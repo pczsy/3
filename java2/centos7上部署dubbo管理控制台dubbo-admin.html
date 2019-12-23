@@ -1,0 +1,131 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修centos7上部署dubbo管理控制台dubbo-admin' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>centos7上部署dubbo管理控制台dubbo-admin</center></div><div class='banquan'>原文出处:本文由博客园博主web_bird提供。<br/>
+原文连接:https://www.cnblogs.com/zhiyouwu/p/11553204.html</div><br>
+    <h2 id="centos7上部署dubbo管理控制台dubbo-admin">centos7上部署dubbo管理控制台dubbo-admin</h2>
+<h3 id="准备工作">1 准备工作</h3>
+<ul>
+<li>服务器：系统centos7， 内存4G， 存储60G， ip 192.168.159.128</li>
+<li>软件环境： 安装有jdk1.8， 具体安装方式参见《centos7上安装jdk1.8》博文； 安装并启动zookeeper，具体安装步骤参见《centos7上安装zookeeper》博文；</li>
+<li>软件准备： 上传tomcat、dubbo-admin.war文件至服务器 /opt/soft目录下(其中tomcat采用版本apache-tomcat-8.5.24， dubbo-admin采用版本dubbo-admin-2.6.0.war)</li>
+</ul>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin0.png" /></p>
+<h3 id="解压tomcat">2 解压tomcat</h3>
+<p>apache-tomcat作为容器，在服务器端解压即可使用，这里使用tar命令解压apache-tomcat-8.5.24压缩包，得到apache-tomcat-8.5.24文件夹：</p>
+<p><code>tar -zxvf apache-tomcat-8.5.24.tar.gz</code></p>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin1.png" /></p>
+<h3 id="解压dubbo-admin压缩包">3 解压dubbo-admin压缩包</h3>
+<p>本文采用apache-tomcat部署dubbo-admin程序，但是这里换一种部署方式，不直接将dubbo-admin.war包放置在apache-tomcat文件夹的webapps下，而是在其配置文件server.xml中使用<code>&lt;Context/&gt;</code>中配置dubbo-admin的解压路径，故需要解压dubbo-admin.war包，此处解压war包使用unzip指令：</p>
+<p><code>unzip -d dubbo-admin-2.6.0.war</code></p>
+<blockquote>
+<p>注意： 如果服务器没有unzip指令，需要安装unzip指令，本文使用 yum install unzip 的方式安装！</p>
+</blockquote>
+<ul>
+<li>安装unzip指令：<br />
+执行上述 <code>unzip dubbo-admin-2.6.0.war -d dubbo-admin</code> 指令后，系统可能会出现 <code>-bash: unzip: 未找到命令</code> 错误信息，这时我们需要安装unzip指令，使用 <code>yum install unzip</code> 指令安装（需要服务器可以连接外网）：</li>
+</ul>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin2.png" /></p>
+<p>安装完 unzip 指令之后，解压dubbo-admin-2.6.0.war 安装包，得到dubbo-admin 文件夹：</p>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin3.png" /></p>
+<p>解压完成之后，我们看下其内部配置的zookeeper连接信息以及登录管理平台的信息，具体路径在解压的文件夹下的 dubbo-admin/WEB-INF/dubbo.properties，我们使用 vi 命令打开该配置文件，内容如下：</p>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin4.png" /></p>
+<p>我们这里就暂时不修改其配置，如有不一致的信息，按需更改即可！</p>
+<h3 id="配置tomcat">4 配置tomcat</h3>
+<p>上文说过，本次采用在tomcat的server.xml中配置dubbo-admin服务，我们找到server.xml的路径，其在tomcat目录下的conf下，我们使用 vi 命令编辑server.xml，在 <code>&lt;/Host&gt;</code> 行上方添加 <code>&lt;Context/&gt;</code> 配置，具体配置如下：</p>
+<p><code>&lt;Context path=&quot;/dubbo&quot; docBase=&quot;/opt/soft/dubbo-admin&quot; debug=&quot;0&quot; privileged=&quot;true&quot; /&gt;</code></p>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin5.png" /></p>
+<p>其中，path配置的路径表示访问路径， docBase配置的路径表示dubbo-admin解压的路径~</p>
+<h3 id="启动tomcat并检查tomcat启动情况">5 启动tomcat并检查tomcat启动情况</h3>
+<p>进入tomcat目录下的bin目录，执行以下指令启动tomcat，启动端口为8080：</p>
+<p><code>./catalina.sh start</code></p>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin6.png" /></p>
+<p>从上图我们可以看到系统提示启动成功，这时我们来检查一下其是否成功启动！</p>
+<ul>
+<li>1 查看启动日志，进入tomcat/logs目录，使用 <code>tail -100f catalina.out</code> 查看日志：</li>
+</ul>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin7.png" /></p>
+<blockquote>
+<p>注意： 图中红色标记的表示tomcat启动成功！接下来我们查看下tomcat进程情况</p>
+</blockquote>
+<ul>
+<li>2 使用 <code>ps -ef|grep tomcat</code> 命令查看tomcat进程：</li>
+</ul>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin8.png" /></p>
+<p>同样，可以看到tomcat的进程存在！</p>
+<h3 id="访问dubbo-admin管理中心">6 访问dubbo-admin管理中心</h3>
+<p>我们在浏览器中输入： <code>http://{ip}:{port}/dubbo</code> ,例如 <code>http://192.168.159.128:8080/dubbo/</code>。 但是很遗憾，我们可能遇到下列的问题：</p>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin9.png" /></p>
+<p>是不是感觉很奇怪啊，我的服务启动了啊，为什么无法连接呢？哈哈，看看你的centos系统的防火墙是不是开了呢？如果开了，关闭它！</p>
+<ul>
+<li>停用防火墙命令：<br />
+<code>systemctl status firewalld.service</code></li>
+<li>禁止防火墙开机自启：<br />
+<code>systemctl disable firewalld.service</code></li>
+</ul>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin10.png" /></p>
+<p>好了，我们重新一下服务器，然后再重新启动一下apache-tomcat，再次访问 <code>http://192.168.159.128:8080/dubbo/</code>，输入用户名/密码（root/root 这里需要注意，并不是上文的root/guest，至于为什么之后会在评论中进行解释），进入页面：</p>
+<p><img src="./images/centos7上部署dubbo管理控制台dubbo-admin11.png" /></p>
+<p>这里可以切换中文，对于英文差的是不是超赞！好d了，至此，我们已经完成了对dubbo-admin的部署！下面，补充一下设置dubbo-admin的开机自启动~</p>
+<h3 id="设置dubbo-admin开机自启动">设置dubbo-admin开机自启动</h3>
+<p>这里不介绍具体的设置步骤了，具体步骤可以参考《centos7上安装zookeeper》一文！这里粘贴下配置脚本：</p>
+<pre><code><code>#!/bin/bash
+#chkconfig:2345 20 90
+#description:dubbo-admin
+#processname:dubbo-admin
+CATALANA_HOME=/opt/soft/apache-tomcat-8.5.24
+export JAVA_HOME=/opt/soft/jdk1.8.0_152
+case $1 in
+start)  
+    echo &quot;Starting Tomcat...&quot;  
+    $CATALANA_HOME/bin/startup.sh  
+    ;;  
+  
+stop)  
+    echo &quot;Stopping Tomcat...&quot;  
+    $CATALANA_HOME/bin/shutdown.sh  
+    ;;  
+  
+restart)  
+    echo &quot;Stopping Tomcat...&quot;  
+    $CATALANA_HOME/bin/shutdown.sh  
+    sleep 2  
+    echo  
+    echo &quot;Starting Tomcat...&quot;  
+    $CATALANA_HOME/bin/startup.sh  
+    ;;  
+*)  
+    echo &quot;Usage: tomcat {start|stop|restart}&quot;  
+    ;; esac
+</code></code></pre>
+<hr />
+<h3 id="blog">Blog:</h3>
+<ul>
+<li>简书： <a href="https://www.jianshu.com/u/91378a397ffe" class="uri">https://www.jianshu.com/u/91378a397ffe</a></li>
+<li>csdn： <a href="https://blog.csdn.net/ZhiyouWu" class="uri">https://blog.csdn.net/ZhiyouWu</a></li>
+<li>开源中国： <a href="https://my.oschina.net/u/3204088" class="uri">https://my.oschina.net/u/3204088</a></li>
+<li>掘金： <a href="https://juejin.im/user/5b5979efe51d451949094265" class="uri">https://juejin.im/user/5b5979efe51d451949094265</a></li>
+<li>博客园： <a href="https://www.cnblogs.com/zhiyouwu/" class="uri">https://www.cnblogs.com/zhiyouwu/</a></li>
+<li>微信： WZY1782357529 (欢迎沟通交流)</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

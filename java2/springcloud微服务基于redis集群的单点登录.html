@@ -1,0 +1,327 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修springcloud微服务基于redis集群的单点登录' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>springcloud微服务基于redis集群的单点登录</center></div><div class='banquan'>原文出处:本文由博客园博主她的开呀提供。<br/>
+原文连接:https://www.cnblogs.com/yloved/p/11574211.html</div><br>
+    <h1 id="springcloud微服务基于redis集群的单点登录">springcloud微服务基于redis集群的单点登录</h1>
+<blockquote>
+<p><strong>yls</strong><br />
+<em>2019-9-23</em></p>
+</blockquote>
+<hr />
+<h2 id="简介">简介</h2>
+<p>本文介绍微服务架构中如何实现单点登录功能<br />
+创建三个服务：</p>
+<ol>
+<li>操作redis集群的服务，用于多个服务之间共享数据</li>
+<li>统一认证中心服务，用于整个系统的统一登录认证</li>
+<li>服务消费者，用于测试单点登录</li>
+</ol>
+<p>大体思路：每个服务都设置一个拦截器检查cookie中是否有token,若有token,则放行，若没有token,重定向到统一认证中心服务进行登录，登录成功后返回到被拦截的服务。</p>
+<h2 id="搭建redis集群服务">搭建redis集群服务</h2>
+<p><a href="https://www.cnblogs.com/yloved/p/11561210.html">搭建redis集群参考文档</a></p>
+<h2 id="搭建统一认证中心">搭建统一认证中心</h2>
+<ul>
+<li>主函数添加注解</li>
+</ul>
+<pre><code><code>/**
+ * 单点登录既要注册到服务注册中心，又要向redis服务系统获取鼓舞
+ * 所以要添加 @EnableDiscoveryClient   @EnableEurekaClient 两个注解
+ *
+ */
+
+@EnableDiscoveryClient
+@EnableEurekaClient
+@EnableFeignClients
+@MapperScan(basePackages = &quot;com.example.itokenservicesso.mapper&quot;)
+@SpringBootApplication
+public class ItokenServiceSsoApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ItokenServiceSsoApplication.class, args);
+    }
+
+}</code></code></pre>
+<ul>
+<li>消费redis服务和熔断器</li>
+</ul>
+<pre><code><code>@FeignClient(value = &quot;itoken-service-redis&quot;, fallback = RedisServiceFallBack.class)
+public interface RedisService {
+
+    @PostMapping(value = &quot;put&quot;)
+    public String put(@RequestParam(value = &quot;key&quot;) String key, @RequestParam(value = &quot;value&quot;) String value, @RequestParam(value = &quot;seconds&quot;) long seconds);
+
+    @GetMapping(value = &quot;get&quot;)
+    public String get(@RequestParam(value = &quot;key&quot;) String key);
+
+}</code></code></pre>
+<pre><code><code>@Component
+public class RedisServiceFallBack implements RedisService {
+    @Override
+    public String put(String key, String value, long seconds) {
+        return FallBack.badGateWay();
+    }
+
+    @Override
+    public String get(String key) {
+        return FallBack.badGateWay();
+    }
+}</code></code></pre>
+<pre><code><code>public class FallBack {
+
+    public static String badGateWay(){
+        try {
+            return JsonUtil.objectToString(ResultUtil.error(502,&quot;内部错误&quot;));
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+}</code></code></pre>
+<ul>
+<li>登录服务</li>
+</ul>
+<pre><code><code>@Service
+public class LoginServiceImpl implements LoginService {
+
+
+    @Autowired
+    private UserMapper userMapper;
+
+    @Autowired
+    private RedisService redisService;
+
+    @Override
+    public User login(String loginCode, String plantPassword) {
+        //从缓存中获取登录用户的数据
+        String json = redisService.get(loginCode);
+
+        User user = null;
+        //如果缓存中没有数据,从数据库取数据
+        if (json == null) {
+            user = userMapper.selectAll(loginCode);
+            String passwordMd5 = DigestUtils.md5DigestAsHex(plantPassword.getBytes());
+            if (user != null &amp;&amp; passwordMd5.equals(user.getPassword())) {
+                //登录成功，刷新缓存
+                try {
+                    redisService.put(loginCode, JsonUtil.objectToString(user), 60 * 60 * 24);
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+                return user;
+            } else {
+                return null;
+            }
+        }
+        //如果缓存中有数据
+        else {
+            try {
+                user = JsonUtil.stringToObject(json, User.class);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return user;
+    }
+}</code></code></pre>
+<ul>
+<li><p>contoller层，处理登录业务和登录跳转</p>
+<ul>
+<li><p>登录业务</p>
+<pre><code><code>    /**
+    * 登录业务
+    *
+    * @param loginCode
+    * @param password
+    * @return
+    */
+    @PostMapping(&quot;login&quot;)
+    public String login(String loginCode,
+                        String password,
+                        @RequestParam(required = false) String url,
+                        HttpServletRequest request,
+                        HttpServletResponse response,
+                        RedirectAttributes redirectAttributes) {
+        User user = loginService.login(loginCode, password);
+        //登录成功
+        if (user != null) {
+
+            String token = UUID.randomUUID().toString();
+            //将token放入缓存
+            String result = redisService.put(token, loginCode, 60 * 60 * 24);
+            //如果redisService没有熔断，也就是返回ok,才能执行
+            if (result != null &amp;&amp; result.equals(&quot;ok&quot;)) {
+                CookieUtil.setCookie(response, &quot;token&quot;, token, 60 * 60 * 24);
+                if (url != null &amp;&amp; !url.trim().equals(&quot;&quot;))
+                    return &quot;redirect:&quot; + url;
+            }
+            //熔断后返回错误提示
+            else {
+                redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;服务器异常&quot;);
+            }
+
+        }
+        //登录失败
+        else {
+            redirectAttributes.addFlashAttribute(&quot;message&quot;, &quot;用户名或密码错误&quot;);
+        }
+        return &quot;redirect:/login&quot;;
+    }</code></code></pre></li>
+<li><p>登录跳转</p></li>
+</ul>
+<pre><code><code>    @Autowired
+    private LoginService loginService;
+
+    @Autowired
+    private RedisService redisService;
+
+    /**
+    * 跳转登录页
+    */
+    @GetMapping(&quot;login&quot;)
+    public String login(HttpServletRequest request,
+                        Model model,
+                        @RequestParam(required = false) String url
+    ) {
+        String token = CookieUtil.getCookie(request, &quot;token&quot;);
+        //token不为空可能已登录,从redis获取账号
+        if (token != null &amp;&amp; token.trim().length() != 0) {
+            String loginCode = redisService.get(token);
+            //如果账号不为空，从redis获取该账号的个人信息
+            if (loginCode != null &amp;&amp; loginCode.trim().length() != 0) {
+                String json = redisService.get(loginCode);
+                if (json != null &amp;&amp; json.trim().length() != 0) {
+                    try {
+                        User user = JsonUtil.stringToObject(json, User.class);
+
+                        //已登录
+                        if (user != null) {
+                            if (url != null &amp;&amp; url.trim().length() != 0) {
+                                return &quot;redirect:&quot; + url;
+                            }
+                        }
+                        //将登录信息传到登录页
+                        model.addAttribute(&quot;user&quot;, user);
+
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+                }
+            }
+        }
+        return &quot;login&quot;;
+    }</code></code></pre></li>
+<li><p>搭建服务消费者：添加一个拦截器，判断token是否为空</p>
+<ul>
+<li>拦截器</li>
+</ul>
+<pre><code><code>public class WebAdminInterceptor implements HandlerInterceptor {
+
+    @Autowired
+    private RedisService redisService;
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        String token = CookieUtil.getCookie(request, &quot;token&quot;);
+
+        //token为空，一定没有登录
+        if (token == null || token.isEmpty()) {
+            response.sendRedirect(&quot;http://localhost:8503/login?url=http://localhost:8601/login&quot;);
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute(&quot;user&quot;);
+
+        //已登陆状态
+        if (user != null) {
+            if (modelAndView != null) {
+                modelAndView.addObject(&quot;user&quot;, user);
+
+            }
+        }
+        //未登录状态
+        else {
+            String token = CookieUtil.getCookie(request, &quot;token&quot;);
+            if (token != null &amp;&amp; !token.isEmpty()) {
+                String loginCode = redisService.get(token);
+
+                if (loginCode != null &amp;&amp; !loginCode.isEmpty()) {
+                    String json = redisService.get(loginCode);
+                    if (json != null &amp;&amp; !json.isEmpty()) {
+                        //已登录状态，创建局部会话
+                        user = JsonUtil.stringToObject(json, User.class);
+                        if (modelAndView != null) {
+                            modelAndView.addObject(&quot;user&quot;, user);
+                        }
+                        request.getSession().setAttribute(&quot;user&quot;, user);
+                    }
+                }
+            }
+        }
+
+        //二次确认是否有用户信息
+        if (user == null) {
+            response.sendRedirect(&quot;http://localhost:8503/login?url=http://localhost:8601/login&quot;);
+
+        }
+
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+
+    }
+}</code></code></pre>
+<ul>
+<li>配置拦截器</li>
+</ul>
+<pre><code><code>@Configuration
+public class WebAdminInterceptorConfig implements WebMvcConfigurer {
+
+    //将拦截器设置为Bean,在拦截其中才能使用@AutoWired注解自动注入
+    @Bean
+    WebAdminInterceptor webAdminInterceptor() {
+        return new WebAdminInterceptor();
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(webAdminInterceptor())
+                .addPathPatterns(&quot;/**&quot;)
+                .excludePathPatterns(&quot;/static&quot;);
+    }
+}</code></code></pre></li>
+<li><p>任意写一个接口,触发拦截器进行测试</p></li>
+</ul>
+<pre><code><code>@RequestMapping(value = {&quot;/login&quot;})
+    public String index(){
+        return &quot;index&quot;;
+    }</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

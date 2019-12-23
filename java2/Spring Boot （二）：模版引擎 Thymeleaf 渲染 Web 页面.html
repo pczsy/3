@@ -1,0 +1,334 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring Boot （二）：模版引擎 Thymeleaf 渲染 Web 页面' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring Boot （二）：模版引擎 Thymeleaf 渲染 Web 页面</center></div><div class='banquan'>原文出处:本文由博客园博主极客挖掘机提供。<br/>
+原文连接:https://www.cnblogs.com/babycomeon/p/11538464.html</div><br>
+    <h1 id="spring-boot-二模版引擎-thymeleaf-渲染-web-页面">Spring Boot （二）：模版引擎 Thymeleaf 渲染 Web 页面</h1>
+<p><img src="./images/Spring Boot （二）：模版引擎 Thymeleaf 渲染 Web 页面0.png" /></p>
+<blockquote>
+<p>在<a href="https://www.geekdigging.com/2019/09/11/2531363117/">《Spring Boot（一）：快速开始》</a>中介绍了如何使用 Spring Boot 构建一个工程，并且提供 RESTful API ，本节我们继续介绍如何使用 Spring Boot 渲染 Web 页面。</p>
+</blockquote>
+<h2 id="什么是-thymeleaf">1. 什么是 Thymeleaf ？</h2>
+<p>虽然我们目前拥有许多十分优秀的前端框架，例如： Vue 、 React 等，非常适用于前后端分离的场景，前端可以独立部署成为服务，前后端从物理上完全进行隔离，降低程序耦合度。但是 Spring Boot 官方依然为我们提供了模版引擎用于一些无需前后端分离的场景。 Thymeleaf 是新一代的模板引擎，在 Spring Boot 中，官方推荐使用 Thymeleaf 来做前端模版引擎。打开 https://start.spring.io/ 可以看到，在当前Spring Boot 的版本中（ 2.1.8.RELEASE ）， 官方提供的模版引擎有以下几种：</p>
+<ul>
+<li>Thymeleaf</li>
+<li>FreeMarker</li>
+<li>Mustache</li>
+<li>Groovy</li>
+</ul>
+<p>Spring Boot 建议使用这些模版引擎，而并不推荐我们继续使用 JSP 。</p>
+<p>Thymeleaf 具体特性如下：</p>
+<ul>
+<li>Thymeleaf 在有网络和无网络的环境下皆可运行，即它可以让美工在浏览器查看页面的静态效果，也可以让程序员在服务器查看带数据的动态页面效果。这是由于它支持 html 原型，然后在 html 标签里增加额外的属性来达到模板+数据的展示方式。浏览器解释 html 时会忽略未定义的标签属性，所以 Thymeleaf 的模板可以静态地运行；当有数据返回到页面时，Thymeleaf 标签会动态地替换掉静态内容，使页面动态显示。</li>
+<li>Thymeleaf 开箱即用的特性。它提供标准和 Spring 标准两种方言，可以直接套用模板实现 JSTL、 OGNL表达式效果，避免每天套模板、改 Jstl、改标签的困扰。同时开发人员也可以扩展和创建自定义的方言。</li>
+<li>Thymeleaf 提供 Spring 标准方言和一个与 SpringMVC 完美集成的可选模块，可以快速的实现表单绑定、属性编辑器、国际化等功能。</li>
+</ul>
+<h2 id="快速入门">2. 快速入门</h2>
+<p>这里我们先正常构建一个 Spring Boot 工程： spring-boot-thymeleaf ，在 pom.xml 文件中引入 Thymeleaf 的相关依赖，如下：</p>
+<pre><code><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-thymeleaf&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>工程的配置文件 application.yml 如下：</p>
+<pre><code><code>server:
+  port: 8080
+spring:
+  application:
+    name: spring-boot-thymleaf
+  thymeleaf:
+    # 关闭thymeleaf缓存 开发时使用 否则没有实时画面
+    cache: false
+    # 检查模板是否存在，然后再呈现
+    check-template-location: true
+    # Content-Type value.
+    servlet:
+      content-type: text/html
+    # 启用MVC Thymeleaf视图分辨率
+    enabled: true
+    # Template encoding.
+    encoding: UTF-8
+    # 关闭严格模式
+    mode: LEGACYHTML5
+    # Prefix that gets prepended to view names when building a URL.
+    prefix: classpath:/templates/
+    # Suffix that gets appended to view names when building a URL.
+    suffix: .html
+  mvc:
+    # 指定静态资源处理路径
+    static-path-pattern: /static/**
+    view:
+      suffix: .html</code></code></pre>
+<p>有关 thymeleaf 都写明了注释，这里需要注意的有以下几点：</p>
+<ul>
+<li>spring.thymeleaf.mode ：这里是配置当前模版的解析模式的，默认值为 HTML ，这时会开启严格模式，所有的 HTML 必须有头有尾，很多地方并不符合我们平时的书写习惯，这里最好关闭严格模式。</li>
+<li>spring.thymeleaf.cache ：这里是 thymeleaf 的缓存，在平时的练习中最好关闭，否则页面修改后刷新浏览器将会无效，而在生产环境中，视具体的业务场景而定。</li>
+<li>spring.mvc.static-path-pattern ：这里是配置我们静态资源的路径，一般默认是配置 <code>/static/**</code> 路径，这里用于存放我们的 js 、 css 、图片等静态资源。</li>
+</ul>
+<p>配置通用 404 和 500 页面，直接在 <code>templates\error</code> 创建对应页面即可，这里可以看一下 Spring Boot 错误页面转发的源码 <code>org.springframework.boot.autoconfigure.web.servlet.error.DefaultErrorViewResolver</code>，如下：</p>
+<pre><code><code>@Override
+public ModelAndView resolveErrorView(HttpServletRequest request, HttpStatus status, Map&lt;String, Object&gt; model) {
+    ModelAndView modelAndView = resolve(String.valueOf(status.value()), model);
+    if (modelAndView == null &amp;&amp; SERIES_VIEWS.containsKey(status.series())) {
+        modelAndView = resolve(SERIES_VIEWS.get(status.series()), model);
+    }
+    return modelAndView;
+}
+
+private ModelAndView resolve(String viewName, Map&lt;String, Object&gt; model) {
+    String errorViewName = &quot;error/&quot; + viewName;
+    TemplateAvailabilityProvider provider = this.templateAvailabilityProviders.getProvider(errorViewName,
+            this.applicationContext);
+    if (provider != null) {
+        return new ModelAndView(errorViewName, model);
+    }
+    return resolveResource(errorViewName, model);
+}</code></code></pre>
+<p>可以看到这里会根据当前的状态响应码转发到对应的页面，路由为 <code>error/**</code> 。笔者这里简单创建两个错误页面，如图：</p>
+<p><img src="./images/Spring Boot （二）：模版引擎 Thymeleaf 渲染 Web 页面1.png" /></p>
+<p>创建测试 Controller ，如下：</p>
+<pre><code><code>@Controller
+public class HelloController {
+
+    @GetMapping(&quot;/hello&quot;)
+    public String hello(HttpServletRequest request) {
+        // 构建测试数据
+        Map&lt;String, Object&gt; map = new HashMap&lt;&gt;();
+
+        UserModel userModel = new UserModel();
+        userModel.setId(1L);
+        userModel.setName(&quot;Spring Boot&quot;);
+        userModel.setAge(18);
+
+        map.put(&quot;user&quot;, userModel);
+
+        List&lt;CourseModel&gt; list = new ArrayList&lt;&gt;();
+
+        for (int i = 0; i &lt; 2; i++) {
+            CourseModel courseMode = new CourseModel();
+            courseMode.setId((long) i);
+            courseMode.setName(&quot;Spring Boot：&quot; + i);
+            courseMode.setAddress(&quot;课程地点：&quot; + i);
+            list.add(courseMode);
+        }
+
+        map.put(&quot;list&quot;, list);
+
+        map.put(&quot;flag&quot;, true);
+
+        request.setAttribute(&quot;data&quot;, map);
+        return &quot;hello&quot;;
+    }
+}</code></code></pre>
+<p>在此注册测试类中，进行数据初始化并输出至页面。</p>
+<ul>
+<li>Thymeleaf 默认的模板路径 <code>src/main/resources/templates</code> ，只需要在这个这个路径下编写模版文件即可。</li>
+</ul>
+<p>Thymeleaf 模版文件如下：</p>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;
+      xmlns:th=&quot;http://www.thymeleaf.org&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1, shrink-to-fit=no&quot;&gt;
+    &lt;title&gt;Hello Spring Boot&lt;/title&gt;
+    &lt;link rel=&quot;stylesheet&quot; th:href=&quot;@{/static/css/bootstrap.min.css}&quot;&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class=&quot;container&quot;&gt;
+    &lt;div&gt;用户信息：&lt;/div&gt;
+    &lt;table class=&quot;table table-dark&quot;&gt;
+        &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th scope=&quot;col&quot;&gt;#&lt;/th&gt;
+            &lt;th scope=&quot;col&quot;&gt;姓名&lt;/th&gt;
+            &lt;th scope=&quot;col&quot;&gt;年龄&lt;/th&gt;
+        &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+        &lt;tr&gt;
+            &lt;th scope=&quot;row&quot; th:text=&quot;${data.user.id}&quot;&gt;&lt;/th&gt;
+            &lt;td th:text=&quot;${data.user.name}&quot;&gt;&lt;/td&gt;
+            &lt;td th:text=&quot;${data.user.age}&quot;&gt;&lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+    &lt;div&gt;课程信息：&lt;/div&gt;
+    &lt;table class=&quot;table table-dark&quot;&gt;
+        &lt;thead&gt;
+        &lt;tr&gt;
+            &lt;th scope=&quot;col&quot;&gt;#&lt;/th&gt;
+            &lt;th scope=&quot;col&quot;&gt;课程名称&lt;/th&gt;
+            &lt;th scope=&quot;col&quot;&gt;课程地点&lt;/th&gt;
+        &lt;/tr&gt;
+        &lt;/thead&gt;
+        &lt;tbody&gt;
+        &lt;tr th:each=&quot;course, iterStat : ${data.list}&quot;&gt;
+            &lt;th scope=&quot;row&quot; th:text=&quot;${course.id}&quot;&gt;&lt;/th&gt;
+            &lt;td th:text=&quot;${course.name}&quot;&gt;&lt;/td&gt;
+            &lt;td th:text=&quot;${course.address}&quot;&gt;&lt;/td&gt;
+        &lt;/tr&gt;
+        &lt;/tbody&gt;
+    &lt;/table&gt;
+
+    &lt;div th:if=&quot;${data.flag == true}&quot;&gt;如果 flag 为 true 你将可以看到这行字：）&lt;/div&gt;
+
+&lt;/div&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></code></pre>
+<p>Thymeleaf 部分常用 th 标签如下：</p>
+<table>
+<thead>
+<tr class="header">
+<th>关键字</th>
+<th>功能介绍</th>
+<th>案例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>th:id</td>
+<td>替换id</td>
+<td><code>&lt;input th:id=&quot;'xxx' + ${collect.id}&quot;/&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:text</td>
+<td>文本替换</td>
+<td><code>&lt;p th:text=&quot;${collect.description}&quot;&gt;description&lt;/p&gt;</code></td>
+</tr>
+<tr class="odd">
+<td>th:utext</td>
+<td>支持html的文本替换</td>
+<td><code>&lt;p th:utext=&quot;${htmlcontent}&quot;&gt;conten&lt;/p&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:object</td>
+<td>替换对象</td>
+<td><code>&lt;div th:object=&quot;${session.user}&quot;&gt;</code></td>
+</tr>
+<tr class="odd">
+<td>th:value</td>
+<td>属性赋值</td>
+<td><code>&lt;input th:value=&quot;${user.name}&quot; /&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:with</td>
+<td>变量赋值运算</td>
+<td><code>&lt;div th:with=&quot;isEven=${prodStat.count}%2==0&quot;&gt;&lt;/div&gt;</code></td>
+</tr>
+<tr class="odd">
+<td>th:style</td>
+<td>设置样式</td>
+<td><code>th:style=&quot;'display:' + @{(${sitrue} ? 'none' : 'inline-block')} + ''&quot;</code></td>
+</tr>
+<tr class="even">
+<td>th:onclick</td>
+<td>点击事件</td>
+<td><code>th:onclick=&quot;'getCollect()'&quot;</code></td>
+</tr>
+<tr class="odd">
+<td>th:each</td>
+<td>属性赋值</td>
+<td><code>tr th:each=&quot;user,userStat:${users}&quot;&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:if</td>
+<td>判断条件</td>
+<td><code>&lt;a th:if=&quot;${userId == collect.userId}&quot; &gt;</code></td>
+</tr>
+<tr class="odd">
+<td>th:unless</td>
+<td>和th:if判断相反</td>
+<td><code>&lt;a th:href=&quot;@{/login}&quot; th:unless=${session.user != null}&gt;Login&lt;/a&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:href</td>
+<td>链接地址</td>
+<td><code>&lt;a th:href=&quot;@{/login}&quot; th:unless=${session.user != null}&gt;Login&lt;/a&gt; /&gt;</code></td>
+</tr>
+<tr class="odd">
+<td>th:switch</td>
+<td>多路选择 配合th:case 使用</td>
+<td><code>&lt;div th:switch=&quot;${user.role}&quot;&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:case</td>
+<td>th:switch的一个分支</td>
+<td><code>&lt;p th:case=&quot;'admin'&quot;&gt;User is an administrator&lt;/p&gt;</code></td>
+</tr>
+<tr class="odd">
+<td>th:fragment</td>
+<td>布局标签，定义一个代码片段，方便其它地方引用</td>
+<td><code>&lt;div th:fragment=&quot;alert&quot;&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:include</td>
+<td>布局标签，替换内容到引入的文件</td>
+<td><code>&lt;head th:include=&quot;layout :: htmlhead&quot; th:with=&quot;title='xx'&quot;&gt;&lt;/head&gt; /&gt;</code></td>
+</tr>
+<tr class="odd">
+<td>th:replace</td>
+<td>布局标签，替换整个标签到引入的文件</td>
+<td><code>&lt;div th:replace=&quot;fragments/header :: title&quot;&gt;&lt;/div&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:selected</td>
+<td>selected选择框 选中</td>
+<td><code>th:selected=&quot;(${xxx.id} == ${configObj.dd})&quot;</code></td>
+</tr>
+<tr class="odd">
+<td>th:src</td>
+<td>图片类地址引入</td>
+<td><code>&lt;img class=&quot;img-responsive&quot; alt=&quot;App Logo&quot; th:src=&quot;@{/img/logo.png}&quot; /&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:inline</td>
+<td>定义js脚本可以使用变量</td>
+<td><code>&lt;script type=&quot;text/javascript&quot; th:inline=&quot;javascript&quot;&gt;</code></td>
+</tr>
+<tr class="odd">
+<td>th:action</td>
+<td>表单提交的地址</td>
+<td><code>&lt;form action=&quot;subscribe.html&quot; th:action=&quot;@{/subscribe}&quot;&gt;</code></td>
+</tr>
+<tr class="even">
+<td>th:remove</td>
+<td>删除某个属性</td>
+<td><code>&lt;tr th:remove=&quot;all&quot;&gt;</code> 1.all:删除包含标签和所有的孩子。2.body:不包含标记删除,但删除其所有的孩子。3.tag:包含标记的删除,但不删除它的孩子。4.all-but-first:删除所有包含标签的孩子,除了第一个。5.none:什么也不做。这个值是有用的动态评估。</td>
+</tr>
+<tr class="odd">
+<td>th:attr</td>
+<td>设置标签属性，多个属性可以用逗号分隔</td>
+<td>比如 <code>th:attr=&quot;src=@{/image/aa.jpg},title=#{logo}&quot;</code> ，此标签不太优雅，一般用的比较少。</td>
+</tr>
+</tbody>
+</table>
+<h2 id="测试">3. 测试</h2>
+<p>启动当前工程，打开浏览器访问路径： http://localhost:8080/hello ，结果如图：</p>
+<p><img src="./images/Spring Boot （二）：模版引擎 Thymeleaf 渲染 Web 页面2.png" /></p>
+<h2 id="代码示例">5. 代码示例</h2>
+<p><a href="https://github.com/meteor1993/spring-boot-examples/tree/master/spring-boot-thymeleaf" title="示例代码-Github">示例代码-Github</a></p>
+<p><a href="https://gitee.com/inwsy/spring-boot-examples/tree/master/spring-boot-thymeleaf" title="示例代码-Gitee">示例代码-Gitee</a></p>
+<h2 id="参考">6. 参考</h2>
+<p><a href="http://www.ityouknow.com/springboot/2016/05/01/spring-boot-thymeleaf.html">《Thymeleaf 使用详解》</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

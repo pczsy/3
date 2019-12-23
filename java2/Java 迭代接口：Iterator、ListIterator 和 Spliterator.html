@@ -1,0 +1,397 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java 迭代接口：Iterator、ListIterator 和 Spliterator' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java 迭代接口：Iterator、ListIterator 和 Spliterator</center></div><div class='banquan'>原文出处:本文由博客园博主锅外的大佬提供。<br/>
+原文连接:https://www.cnblogs.com/liululee/p/11416038.html</div><br>
+    <h2 id="简介">1. 简介</h2>
+<p>当我们使用 <code>for</code> 或 <code>while</code> 循环来遍历一个集合的元素，<code>Iterator</code> 允许我们不用担心索引位置，甚至让我们不仅仅是遍历一个集合，同时还可以改变它。例如，你如果要删除循环中的元素，那么 <code>for</code> 循环不见得总是可行的。</p>
+<p>结合自定义的迭代器，我们可以迭代更为复杂的对象，以及向前和向后移动，并且知晓如何利用其优势也将变得非常清楚。</p>
+<p>本文将深入讨论如何使用 <code>Iterator</code> 和 <code>Iterable</code> 接口。</p>
+<h2 id="iterator">2. Iterator()</h2>
+<p><code>Iterator</code> 接口用于迭代集合中的元素（<code>List</code>，<code>Set</code> 或 <code>Map</code>）。它用于逐个检索元素，并在需要时针对每个元素执行操作。</p>
+<p>下面是用于遍历集合与执行操作的方法：</p>
+<ul>
+<li><code>.hasNext()</code>：如果还没有到达集合的末尾，则返回 <code>true</code>，否则返回 <code>false</code></li>
+<li><code>.next()</code>：返回集合中的下一个元素</li>
+<li><code>.remove()</code>：从集合中移除迭代器返回的最后一个元素</li>
+<li><code>.forEachRemaining()</code>：按顺序为集合中剩下的每个元素执行给定的操作</li>
+</ul>
+<p>首先，由于迭代器是用于集合的，让我们做一个简单的包含几个元素的 <code>ArrayList</code>：</p>
+<pre><code><code>List&lt;String&gt; avengers = new ArrayList&lt;&gt;();
+
+// Now lets add some Avengers to the list
+avengers.add(&quot;Ant-Man&quot;);
+avengers.add(&quot;Black Widow&quot;);
+avengers.add(&quot;Captain America&quot;);
+avengers.add(&quot;Doctor Strange&quot;);</code></code></pre>
+<p>我们可以使用一个简单循环来遍历这个集合：</p>
+<pre><code><code>System.out.println(&quot;Simple loop example:\n&quot;);
+for (int i = 0; i &lt; avengers.size(); i++) {
+    System.out.println(avengers.get(i));
+}</code></code></pre>
+<p>不过，我们想探索迭代器：</p>
+<pre><code><code>System.out.println(&quot;\nIterator Example:\n&quot;);
+
+// First we make an Iterator by calling 
+// the .iterator() method on the collection
+Iterator&lt;String&gt; avengersIterator = avengers.iterator();
+
+// And now we use .hasNext() and .next() to go through it
+while (avengersIterator.hasNext()) {
+    System.out.println(avengersIterator.next());
+}</code></code></pre>
+<p>如果我们想从这个 <code>ArrayList</code> 中删除一个元素，会发生什么？让我们试着使用常规的 <code>for</code> 循环：</p>
+<pre><code><code>System.out.println(&quot;Simple loop example:\n&quot;);
+for (int i = 0; i &lt; avengers.size(); i++) {
+    if (avengers.get(i).equals(&quot;Doctor Strange&quot;)) {
+        avengers.remove(i);
+    }
+    System.out.println(avengers.get(i));
+}</code></code></pre>
+<p>我们会收到一个讨厌的 <code>IndexOutOfBoundsException</code>：</p>
+<pre><code><code>Simple loop example:
+
+Ant-Man
+Black Widow
+Captain America
+Exception in thread &quot;main&quot; java.lang.IndexOutOfBoundsException: Index: 3, Size: 3</code></code></pre>
+<p>这在遍历集合时更改其大小是有意义的，增强 <code>for</code> 循环也一样：</p>
+<pre><code><code>System.out.println(&quot;Simple loop example:\n&quot;);
+for (String avenger : avengers) {
+    if (avenger.equals(&quot;Doctor Strange&quot;)) {
+        avengers.remove(avenger);
+    }
+    System.out.println(avenger);
+}</code></code></pre>
+<p>我们再次收到了另一个异常：</p>
+<pre><code><code>Simple loop example:
+
+Ant-Man
+Black Widow
+Captain America
+Doctor Strange
+Exception in thread &quot;main&quot; java.util.ConcurrentModificationException</code></code></pre>
+<p>这时迭代器就派上用场了，由它充当中间人，从集合中删除元素，同时确保遍历按计划继续：</p>
+<pre><code><code>Iterator&lt;String&gt; avengersIterator = avengers.iterator();
+while (avengersIterator.hasNext()) {
+    String avenger = avengersIterator.next();
+
+    // First we must find the element we wish to remove
+    if (avenger.equals(&quot;Ant-Man&quot;)) {
+        // This will remove &quot;Ant-Man&quot; from the original
+        // collection, in this case a List
+        avengersIterator.remove();
+    }
+}</code></code></pre>
+<p>这是保证在遍历集合时删除元素的安全方法。</p>
+<p>并确认该元素是否已被删除：</p>
+<pre><code><code>// We can also use the helper method .forEachRemaining()
+System.out.println(&quot;For Each Remaining Example:\n&quot;);
+Iterator&lt;String&gt; avengersIteratorForEach = avengers.iterator();
+
+// This will apply System.out::println to all elements in the collection
+avengersIteratorForEach.forEachRemaining(System.out::println);</code></code></pre>
+<p>输出如下：</p>
+<pre><code><code>For Each Remaining Example:
+
+Black Widow
+Captain America
+Doctor Strange</code></code></pre>
+<p>正如你所看到的，蚁人已经从 <code>复仇者联盟</code> 的名单中删除了。</p>
+<h3 id="listiterator">2.1. ListIterator()</h3>
+<p><code>ListIterator</code> 继承自 <code>Iterator</code> 接口。它只在 <code>List</code> 上进行使用，可以双向迭代，这意味着你可以从前到后或从后到前进行迭代。它也没有 current 元素，因为游标总是放在 <code>List</code> 的两个元素之间，所以我们用 <code>.previous()</code> 或 <code>.next()</code> 来访问元素。</p>
+<blockquote>
+<p><code>Iterator</code> 和 <code>ListIterator</code> 之间有什么区别呢？</p>
+</blockquote>
+<p>首先，<code>Iterator</code> 可以用于 <em>任意集合</em> —— <code>List</code>、<code>Map</code>、<code>Queue</code>、<code>Set</code> 等。</p>
+<p><code>ListIterator</code> 只能应用于 List，通过添加这个限制，<code>ListIterator</code> 在方法方面可以更加具体，因此，我们引入了许多新方法，他们可以帮助我们在遍历时对其进行修改。</p>
+<p>如果你正在处理 <code>List</code> 实现（<code>ArrayList</code>、<code>LinkedList</code>等），那么使用 <code>ListIterator</code> 更为可取一些。</p>
+<p>下面是你可能会用到的方法：</p>
+<ul>
+<li><code>.add(E e)</code>：向 List 中添加元素。</li>
+<li><code>.remove()</code>：从 List 中删除 <code>.next()</code> 或 <code>.previous()</code> 返回的最后一个元素。</li>
+<li><code>.set(E e)</code>：使用指定元素来覆盖 List <code>.next（）</code> 或 <code>.previous（）</code> 返回的最后一个元素。</li>
+<li><code>.hasNext()</code>：如果还没有到达 List 的末尾，则返回 <code>true</code>，否则返回 <code>false</code>。</li>
+<li><code>.next()</code>：返回 List 中的下一个元素。</li>
+<li><code>.nextIndex()</code>：返回下一元素的下标。</li>
+<li><code>.hasPrevious()</code>：如果还没有到达 List 的开头，则返回 <code>true</code>，否则返回 <code>false</code>。</li>
+<li><code>.previous()</code>：返回 List 的上一个元素。</li>
+<li><code>.previousIndex()</code>：返回上一元素的下标。</li>
+</ul>
+<p>再次，让我们用一些元素构成一个 <code>ArrayList</code>：</p>
+<pre><code><code>ArrayList&lt;String&gt; defenders = new ArrayList&lt;&gt;();
+
+defenders.add(&quot;Daredevil&quot;);
+defenders.add(&quot;Luke Cage&quot;);
+defenders.add(&quot;Jessica Jones&quot;);
+defenders.add(&quot;Iron Fist&quot;);</code></code></pre>
+<p>让我们用 <code>ListIterator</code> 来遍历 List 并打印其元素：</p>
+<pre><code><code>ListIterator listIterator = defenders.listIterator(); 
+  
+System.out.println(&quot;Original contents of our List:\n&quot;);
+while (listIterator.hasNext()) 
+    System.out.print(listIterator.next() + System.lineSeparator()); </code></code></pre>
+<p>显然，它的工作方式与 <code>Iterator</code> 相同。输出如下：</p>
+<pre><code><code>Original contents of our List: 
+
+Daredevil
+Luke Cage
+Jessica Jones
+Iron Fist</code></code></pre>
+<p>现在，让我们来尝试修改一些元素：</p>
+<pre><code><code>System.out.println(&quot;Modified contents of our List:\n&quot;);
+
+// Now let&#39;s make a ListIterator and modify the elements
+ListIterator defendersListIterator = defenders.listIterator();
+
+while (defendersListIterator.hasNext()) {
+    Object element = defendersListIterator.next();
+    defendersListIterator.set(&quot;The Mighty Defender: &quot; + element);
+}</code></code></pre>
+<p>现在打印 List 的话会得到如下结果：</p>
+<pre><code><code>Modified contents of our List:
+
+The Mighty Defender: Daredevil
+The Mighty Defender: Luke Cage
+The Mighty Defender: Jessica Jones
+The Mighty Defender: Iron Fist</code></code></pre>
+<p>现在，让我们倒着遍历列表，就像我们可以用 <code>ListIterator</code> 做的那样：</p>
+<pre><code><code>System.out.println(&quot;Modified List backwards:\n&quot;);
+while (defendersListIterator.hasPrevious()) {
+    System.out.println(defendersListIterator.previous());
+}</code></code></pre>
+<p>输出如下：</p>
+<pre><code><code>Modified List backwards:
+
+The Mighty Defender: Iron Fist
+The Mighty Defender: Jessica Jones
+The Mighty Defender: Luke Cage
+The Mighty Defender: Daredevil</code></code></pre>
+<h2 id="spliterator">3. Spliterator()</h2>
+<p><code>Spliterator</code> 接口在功能上与 <code>Iterator</code> 相同。你可能永远不需要直接使用 <code>Spliterator</code>，但让我们继续讨论一些用例。</p>
+<p>但是，你应首先熟悉 <a href="https://stackabuse.com/introduction-to-java-8-streams/">Java Streams</a> 和 <a href="https://stackabuse.com/">Lambda Expressions in Java</a>。</p>
+<p>虽然我们将列出 <code>Spliterator</code> 拥有的所有方法，但是 <code>Spliterator</code> 接口的全部工作超出了本文的范畴。我们将通过一个例子讨论 <code>Spliterator</code> 如何使用并行化更有效地遍历我们可以分解的 <code>Stream</code>。</p>
+<p>我们在处理 <code>Spliterator</code> 时使用的方法是：</p>
+<ul>
+<li><pre><code><code>.characteristics()</code></code></pre>
+<p>： 返回该 Spliterator 具有的作为</p>
+<pre><code><code>int</code></code></pre>
+<p>值的特征。 这些包括：</p>
+<ul>
+<li><code>ORDERED</code></li>
+<li><code>DISTINCT</code></li>
+<li><code>SORTED</code></li>
+<li><code>SIZED</code></li>
+<li><code>CONCURRENT</code></li>
+<li><code>IMMUTABLE</code></li>
+<li><code>NONNULL</code></li>
+<li><code>SUBSIZED</code></li>
+</ul></li>
+<li><p><code>.estimateSize()</code>：返回遍历作为 <code>long</code> 值遇到的元素数量的估计值，如果无法返回则返回 <code>long.MAX_VALUE</code>。</p></li>
+<li><p><code>.forEachRemaining(E e)</code>：按顺序对集合中的每个剩余元素执行给定操作。</p></li>
+<li><p><code>.getComparator()</code>：如果该 <code>Spliterator</code> 的源是由 <code>Comparator</code> 排序的，其将返回 <code>Comparator</code>。</p></li>
+<li><p><code>.getExactSizeIfKnown()</code>：如果大小已知则返回 <code>.estimateSize()</code>，否则返回 <code>-1</code>。</p></li>
+<li><p><code>.hasCharacteristics(int characteristics)</code>：如果这个 <code>Spliterator</code> 的 <code>.characteristics()</code> 包含所有给定的特征，则返回 <code>true</code>。</p></li>
+<li><p><code>.tryAdvance(E e)</code>：如果存在剩余元素，则对其执行给定操作，返回 <code>true</code>，否则返回 <code>false</code>。</p></li>
+<li><p><code>.trySplit()</code>：如果这个 <code>Spliterator</code> 可以被分区，返回一个 <code>Spliterator</code> 覆盖元素，当从这个方法返回时，它将不被这个 <code>Spliterator</code> 覆盖。</p></li>
+</ul>
+<p>像往常一样，让我们从一个简单的 <code>ArrayList</code> 开始：</p>
+<pre><code><code>List&lt;String&gt; mutants = new ArrayList&lt;&gt;();
+
+mutants.add(&quot;Professor X&quot;);
+mutants.add(&quot;Magneto&quot;);
+mutants.add(&quot;Storm&quot;);
+mutants.add(&quot;Jean Grey&quot;);
+mutants.add(&quot;Wolverine&quot;);
+mutants.add(&quot;Mystique&quot;);</code></code></pre>
+<p>现在，我们需要将 <code>Spliterator</code> 应用于 <code>Stream</code>。值得庆幸的是，由于 Collections 框架，很容易在 <code>ArrayList</code> 和 <code>Stream</code> 之间进行转换：</p>
+<pre><code><code>// Obtain a Stream to the mutants List.
+Stream&lt;String&gt; mutantStream = mutants.stream();
+
+// Getting Spliterator object on mutantStream.
+Spliterator&lt;String&gt; mutantList = mutantStream.spliterator();</code></code></pre>
+<p>为了展示其中的一些方法，让我们分别运行下它们：</p>
+<pre><code><code>// .estimateSize() method
+System.out.println(&quot;Estimate size: &quot; + mutantList.estimateSize());
+
+// .getExactSizeIfKnown() method
+System.out.println(&quot;\nExact size: &quot; + mutantList.getExactSizeIfKnown());
+
+System.out.println(&quot;\nContent of List:&quot;);
+// .forEachRemaining() method
+mutantList.forEachRemaining((n) -&gt; System.out.println(n));
+
+// Obtaining another Stream to the mutant List.
+Spliterator&lt;String&gt; splitList1 = mutantStream.spliterator();
+
+// .trySplit() method
+Spliterator&lt;String&gt; splitList2 = splitList1.trySplit();
+
+// If splitList1 could be split, use splitList2 first.
+if (splitList2 != null) {
+    System.out.println(&quot;\nOutput from splitList2:&quot;);
+    splitList2.forEachRemaining((n) -&gt; System.out.println(n));
+}
+
+// Now, use the splitList1
+System.out.println(&quot;\nOutput from splitList1:&quot;);
+splitList1.forEachRemaining((n) -&gt; System.out.println(n));</code></code></pre>
+<p>我们将得到输出：</p>
+<pre><code><code>Estimate size: 6
+
+Exact size: 6
+
+Content of List: 
+Professor X
+Magneto
+Storm
+Jean Grey
+Wolverine
+Mystique
+
+Output from splitList2: 
+Professor X
+Magneto
+Storm
+
+Output from splitList1: 
+Jean Grey
+Wolverine
+Mystique</code></code></pre>
+<h2 id="iterable">4. Iterable()</h2>
+<p>如果出于某种原因，我们想要创建一个自定义的 <code>Iterator</code> 接口，应该怎么办？你首先要熟悉的是这张图：</p>
+<p><img src="./images/Java 迭代接口：Iterator、ListIterator 和 Spliterator0.png" alt="file" /></p>
+<p>要创建自定义 <code>Iterator</code>，我们需要为 <code>.hasNext()</code>、<code>.next()</code> 和 <code>.remove()</code> 做自定义实现。</p>
+<p>在 <code>Iterator</code> 接口中，有一个方法，它返回一个集合中元素的迭代器，即 <code>.iterator()</code> 方法，还有一个方法为迭代器中的每个元素执行一个操作的方法，即 <code>.dorEach()</code> 方法。</p>
+<p>例如，假设我们是 Tony Stark，我们需要写个自定义迭代器来列出当前武器库中的每件钢铁侠套装。</p>
+<p>首先，让我们创建一个类来获取和设置 suit 数据：</p>
+<pre><code><code>public class Suit {
+
+    private String codename;
+    private int mark;
+
+    public Suit(String codename, int mark) {
+        this.codename = codename;
+        this.mark = mark;
+    }
+
+    public String getCodename() { return codename; }
+
+    public int getMark() { return mark; }
+
+    public void setCodename (String codename) {this.codename=codename;}
+
+    public void setMark (int mark) {this.mark=mark;}
+
+    public String toString() {
+        return &quot;mark: &quot; + mark + &quot;, codename: &quot; + codename;
+    }
+}</code></code></pre>
+<p>接下来让我们编写自定义 Iterator：</p>
+<pre><code><code>// Our custom Iterator must implement the Iterable interface
+public class Armoury implements Iterable&lt;Suit&gt; {
+    
+    // Notice that we are using our own class as a data type
+    private List&lt;Suit&gt; list = null;
+
+    public Armoury() {
+        // Fill the List with data
+        list = new LinkedList&lt;Suit&gt;();
+        list.add(new Suit(&quot;HOTROD&quot;, 22));
+        list.add(new Suit(&quot;SILVER CENTURION&quot;, 33));
+        list.add(new Suit(&quot;SOUTHPAW&quot;, 34));
+        list.add(new Suit(&quot;HULKBUSTER 2.0&quot;, 48));
+    }
+    
+    public Iterator&lt;Suit&gt; iterator() {
+        return new CustomIterator&lt;Suit&gt;(list);
+    }
+
+    // Here we are writing our custom Iterator
+    // Notice the generic class E since we do not need to specify an exact class
+    public class CustomIterator&lt;E&gt; implements Iterator&lt;E&gt; {
+    
+        // We need an index to know if we have reached the end of the collection
+        int indexPosition = 0;
+        
+        // We will iterate through the collection as a List
+        List&lt;E&gt; internalList;
+        public CustomIterator(List&lt;E&gt; internalList) {
+            this.internalList = internalList;
+        }
+
+        // Since java indexes elements from 0, we need to check against indexPosition +1
+        // to see if we have reached the end of the collection
+        public boolean hasNext() {
+            if (internalList.size() &gt;= indexPosition +1) {
+                return true;
+            }
+            return false;
+        }
+
+        // This is our custom .next() method
+        public E next() {
+            E val = internalList.get(indexPosition);
+
+            // If for example, we were to put here &quot;indexPosition +=2&quot; we would skip every 
+            // second element in a collection. This is a simple example but we could
+            // write very complex code here to filter precisely which elements are
+            // returned. 
+            // Something which would be much more tedious to do with a for or while loop
+            indexPosition += 1;
+            return val;
+        }
+        // In this example we do not need a .remove() method, but it can also be 
+        // written if required
+    }
+}</code></code></pre>
+<p>最后是 main 方法类：</p>
+<pre><code><code>public class IronMan {
+
+    public static void main(String[] args) {
+
+        Armoury armoury = new Armoury();
+
+        // Instead of manually writing .hasNext() and .next() methods to iterate through 
+        // our collection we can simply use the advanced forloop
+        for (Suit s : armoury) {
+            System.out.println(s);
+        }
+    }
+}</code></code></pre>
+<p>输出如下：</p>
+<pre><code><code>mark: 22, codename: HOTROD
+mark: 33, codename: SILVER CENTURION
+mark: 34, codename: SOUTHPAW
+mark: 48, codename: HULKBUSTER 2.0</code></code></pre>
+<h2 id="总结">5. 总结</h2>
+<p>本文中，我们详细讨论了如何使用 Java 中的迭代器，甚至写了一个定制的迭代器来探索 <code>Iterable</code> 接口的所有新的可能性。</p>
+<p>我们还讨论了 Java 是如何利用 Stream 的并行化，使用 <code>Spliterator</code> 接口对集合的遍历进行内部优化。</p>
+<hr />
+<p>8月福利准时来袭，关注公众号<br />
+​<br />
+后台回复：003即可领取7月翻译集锦哦~<br />
+​<br />
+往期福利回复：001，002即可领取！</p>
+<p><img src="./images/Java 迭代接口：Iterator、ListIterator 和 Spliterator1.png" alt="img" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

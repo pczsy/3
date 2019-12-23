@@ -1,0 +1,207 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用挂载盘上传图片，实现无刷新效果' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用挂载盘上传图片，实现无刷新效果</center></div><div class='banquan'>原文出处:本文由博客园博主IT磊哥提供。<br/>
+原文连接:https://www.cnblogs.com/leigei-it/p/11958129.html</div><br>
+    <src class="cnblogs_code">
+<pre><code>前端：<br />&lt;!DOCTYPE html&gt;
+&lt;html lang="zh_CN" xmlns:th="http://www.thymeleaf.org"<span style="color: #000000;">
+    xmlns:shiro</span>="http://www.pollix.at/thymeleaf/shiro"&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;head th:include="include :: header"&gt;
+&lt;!-- 清理浏览器缓存 --&gt;
+&lt;META HTTP-EQUIV="pragma" CONTENT="no-cache"&gt;
+&lt;META HTTP-EQUIV="Cache-Control" CONTENT="no-cache, must-revalidate"&gt;
+&lt;META HTTP-EQUIV="expires" CONTENT="-1"&gt;
+&lt;link rel="stylesheet" href="/css/bootstrap.min.css"&gt;
+&lt;/head&gt;
+
+&lt;body class="gray-bg"&gt;
+    &lt;style type="text/css"&gt;<span style="color: #000000;">
+        ul li{
+            list</span>-<span style="color: #000000;">style: none;
+            margin:10px;
+        }
+    </span>&lt;/style&gt;
+    &lt;div class="container"&gt;
+        &lt;div style="padding-top: 40px;" class="wrapper wrapper-content ui-layout-center"&gt;
+            &lt;input class="form-control gray-bg" type="test" th:value="${msg}"<span style="color: #000000;"> 
+                style</span>="border: 0px; color: red; height: 35px; font-size: 32px; background-color: transparent;"&gt;
+            
+            &lt;form id="file-upload" class="form-inline" style="height: 600px;"<span style="color: #000000;">
+                action</span>="/system/imgsupload/uploadFiles" method="post"<span style="color: #000000;">
+                 enctype</span>="multipart/form-data"&gt;
+                &lt;div class="container"&gt;
+                    &lt;div class="page-header"&gt;
+                        &lt;h1&gt;
+                            &lt;font color="#FF0000"&gt;*&lt;/font&gt; 首页轮换图片管理
+                        &lt;/h1&gt;
+                    &lt;/div&gt;
+                    &lt;ul class="container" &gt;
+                        &lt;li&gt;<span style="color: #000000;">
+                            第一张：</span>&lt;input type="file" class="form-control" name="file" id="file1" onchange="checkFile('file1')" multiple /&gt;
+                        &lt;/li&gt;
+                        &lt;li&gt;<span style="color: #000000;">
+                            第二张：</span>&lt;input type="file" class="form-control" name="file" id="file2" onchange="checkFile('file2')" multiple /&gt;
+                        &lt;/li&gt;
+                        &lt;li&gt;<span style="color: #000000;">
+                            第三张：</span>&lt;input type="file" class="form-control" name="file" id="file3" onchange="checkFile('file3')" multiple /&gt;
+                        &lt;/li&gt;
+                        &lt;li&gt;<span style="color: #000000;">
+                            第四张：</span>&lt;input type="file" class="form-control" name="file" id="file4" onchange="checkFile('file4')" multiple /&gt;
+                        &lt;/li&gt;
+                        &lt;li&gt;<span style="color: #000000;">
+                            第五张：</span>&lt;input type="file" class="form-control" name="file" id="file5" onchange="checkFile('file5')" multiple /&gt;
+                        &lt;/li&gt;
+                        &lt;li&gt;&lt;div class="file-loading" &gt;
+                                &lt;input type="submit" class="btn btn-success" th:value="上传" onclick="check()"/&gt;
+                                &amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;<span style="color: #000000;">nbsp;
+                                </span>&lt;button type="reset" class="btn btn-primary" onchange="reset()"&gt;重置&lt;/button&gt;&lt;/div&gt;
+                        &lt;/li&gt;
+                    &lt;/ul&gt;
+                    &lt;br/&gt;
+                    &lt;div class="form-group"&gt;
+                        &lt;br&gt;
+                        &lt;h3&gt;当前首页轮换图:&lt;/h3&gt;
+                        &lt;img src="/imgUpload/1.jpg" style="height: 200px; width: 220px" class="img-rounded"&gt;
+                        &lt;img src="/imgUpload/2.jpg" style="height: 200px; width: 220px" class="img-rounded"&gt;
+                        &lt;img src="/imgUpload/3.jpg" style="height: 200px; width: 220px" class="img-rounded"&gt;
+                        &lt;img src="/imgUpload/4.jpg" style="height: 200px; width: 220px" class="img-rounded"&gt;
+                        &lt;img src="/imgUpload/5.jpg" style="height: 200px; width: 220px" class="img-rounded"&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            &lt;/form&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;script type="text/javascript"&gt;
+    
+    <span style="color: #008000;">//</span><span style="color: #008000;">重置</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> reset(){
+        document.getElementByName(</span>'file').value =''<span style="color: #000000;">;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">校验文件</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> checkFile(ids){
+        </span><span style="color: #0000ff;">var</span> file =<span style="color: #000000;"> document.getElementById(ids);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">校验类型</span>
+        <span style="color: #0000ff;">var</span> fileName =<span style="color: #000000;"> file.value;
+        </span><span style="color: #0000ff;">var</span> type = fileName.substring(fileName.indexOf("."<span style="color: #000000;">));
+        </span><span style="color: #0000ff;">if</span>(type != ".jpg"<span style="color: #000000;">){
+            alert(</span>"请上传.jpg格式文件！"<span style="color: #000000;">);
+            document.getElementById(ids).value </span>=''<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">校验大小</span>
+        <span style="color: #0000ff;">var</span> size = file.files[0<span style="color: #000000;">].size; 
+        </span><span style="color: #0000ff;">if</span>(size &gt; 1024*1024*8<span style="color: #000000;">){
+            alert(</span>"请上传8M以内大小的图片"<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }</span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(size &lt;= 0<span style="color: #000000;">){
+            alert(</span>"图片大小不能为0M！"<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+    };
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">点击上传之前校验</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> check(){
+        </span><span style="color: #0000ff;">var</span> fileName = document.getElementById('files'<span style="color: #000000;">).value;
+        </span><span style="color: #0000ff;">if</span>(fileName ==''<span style="color: #000000;">){
+            alert(</span>"请选择上传图片"<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+    }
+    
+</span>&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+
+<p>后端：</p>
+<p>1、在拦截器中配置</p>
+<p>//不用拦截图片路径，用于首页登录背景图的切换<br />		filterChainDefinitionMap.put("/imgUpload/**", "anon");</p>
+<p>2、实现挂载盘</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Configuration
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> InterceptorConfig <span style="color: #0000ff;">implements</span><span style="color: #000000;"> WebMvcConfigurer {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 配置虚拟映射路径</span>
+<span style="color: #000000;">    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> addResourceHandlers(ResourceHandlerRegistry registry) {</span><span style="color: #000000;">
+        registry.addResourceHandler(</span>"/imgUpload/**").addResourceLocations("file:E:/imgUpload/"<span style="color: #000000;">);
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> configurePathMatch(PathMatchConfigurer configurer) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated method stub</span>
+<span style="color: #000000;">    }
+...（因为继承了</span>WebMvcConfigurer接口，所以它里面的方法都有实现，空实现即可）</code></pre>
+
+<p>3.实现上传</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Controller
+@RequestMapping(</span>"/system/imgsupload"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ImgsUploadController {
+    
+    </span><span style="color: #0000ff;">private</span> String prefix = "system/imgupload"<span style="color: #000000;">;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">返回上传页面</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @RequiresPermissions(</span>"system:imgsupload:view"<span style="color: #000000;">)
+    @GetMapping()
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String initupload(){
+        </span><span style="color: #0000ff;">return</span> prefix + "/imgsupload"<span style="color: #000000;">;
+    }
+    
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">多张图片上传</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Log(title </span>= "系统管理", module = "首页轮播图片管理", action = "图片上传"<span style="color: #000000;">)
+    @RequestMapping(value </span>= "uploadFiles", method =<span style="color: #000000;"> RequestMethod.POST)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String uploadFiles(HttpServletRequest request, MultipartFile[] file, Model model){
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">文件上传</span>
+        String[] fileName ={"1","2","3","4","5"<span style="color: #000000;">};
+        </span><span style="color: #0000ff;">int</span> count = 0; <span style="color: #008000;">//</span><span style="color: #008000;">分别给上传成功的文件指明下标命名</span>
+        <span style="color: #0000ff;">int</span> page = 0; <span style="color: #008000;">//</span><span style="color: #008000;">记录上传成功的图片数</span>
+        
+        <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">for</span><span style="color: #000000;">(MultipartFile mf : file){
+                </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">mf.isEmpty()){
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取文件类型名</span>
+                    String fileType =<span style="color: #000000;">FilenameUtils.getExtension(mf.getOriginalFilename());
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">把文件上传至本地的挂载盘中</span>
+                    String filepath =  "D:/imgUpload/"<span style="color: #000000;">;
+                    System.out.println(filepath  </span>+ fileName[count] + "." +<span style="color: #000000;"> fileType);
+                    File savefile </span>= <span style="color: #0000ff;">new</span> File(filepath + fileName[count] + "." +<span style="color: #000000;"> fileType);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果指定路径目录不存在，则创建一个</span>
+                    <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">savefile.getParentFile().exists()) {
+                        savefile.getParentFile().mkdirs();
+                    }
+                    mf.transferTo(savefile);
+                    page </span>++<span style="color: #000000;">;
+                }
+                count</span>++<span style="color: #000000;">;
+            }
+            model.addAttribute(</span>"msg", page+"张图片上传成功!"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            model.addAttribute(</span>"msg", "上传失败，请重新上传或者联系管理员！"<span style="color: #000000;">);
+        }   
+        </span><span style="color: #0000ff;">return</span> prefix + "/imgsupload"<span style="color: #000000;">;
+    }    
+ }</span></code></pre>
+
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

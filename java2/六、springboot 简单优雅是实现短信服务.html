@@ -1,0 +1,155 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修六、springboot 简单优雅是实现短信服务' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>六、springboot 简单优雅是实现短信服务</center></div><div class='banquan'>原文出处:本文由博客园博主quellanan提供。<br/>
+原文连接:https://www.cnblogs.com/quellanan/p/11671022.html</div><br>
+    <h1 id="前言">前言</h1>
+<p>上一篇讲了 springboot 集成邮件服务，接下来让我们一起学习下springboot项目中怎么使用短信服务吧。<br />
+项目中的短信服务基本上上都会用到，简单的注册验证码，消息通知等等都会用到。所以我这个脚手架也打算将短息服务继承进来。<br />
+短息服务我使用的平台是阿里云的。网上有很多的短信服务提供商。大家可以根据自己的需求进行选择。</p>
+<h1 id="准备工作">准备工作</h1>
+<p>在阿里云上开通服务，以及进行配置。这些阿里云官方文档都写的很清楚，怎么做就不细说的，大家可以参考一下这篇文章:<br />
+https://blog.csdn.net/qq_27790011/article/details/78339856</p>
+<p>配置好之后你需要获取如下信息：</p>
+<p>accessKeyId 、accessSecret 这两个是秘钥。在用户AccessKey 中可以找到。</p>
+<p>signName 是签名名称。</p>
+<p><img src="./images/六、springboot 简单优雅是实现短信服务0.png" alt="file" /></p>
+<p>templateCode 是模版code<br />
+<img src="./images/六、springboot 简单优雅是实现短信服务1.png" alt="file" /></p>
+<h1 id="添加依赖和配置">添加依赖和配置</h1>
+<p>有了上面的准备工作，我们接下来开始在我们的项目中开发吧。一样的先在pom.xml 文件中加入依赖：</p>
+<pre><code><code>&lt;!--阿里云短信服务--&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.aliyun&lt;/groupId&gt;
+            &lt;artifactId&gt;aliyun-java-sdk-core&lt;/artifactId&gt;
+            &lt;version&gt;4.1.0&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
+            &lt;artifactId&gt;fastjson&lt;/artifactId&gt;
+            &lt;version&gt;1.2.61&lt;/version&gt;
+        &lt;/dependency&gt;</code></code></pre>
+<p>这个fastjson 不是必须的，就看你项目中有没有用到啦，没有用到的话，添加第一个依赖就好了。</p>
+<p>然后在application.properties文件中加入配置，这四个参数，就是准备工作中我们获取的四个参数。<br />
+<img src="./images/六、springboot 简单优雅是实现短信服务2.png" alt="file" /></p>
+<h1 id="service-层">service 层</h1>
+<p>和邮件服务一样，我们这里没有涉及到数据库，就先直接写service 层，创建SmsService 接口和 SmsServiceImpl 类。</p>
+<p><img src="./images/六、springboot 简单优雅是实现短信服务3.png" alt="file" /></p>
+<p>SmsServiceImpl的代码如下：</p>
+<pre><code><code>@Service
+@Slf4j
+public class SmsServiceImpl implements SmsService {
+
+    @Value(&quot;${sms.accessKeyId}&quot;)
+    private String accessKeyId;
+
+    @Value(&quot;${sms.accessSecret}&quot;)
+    private String accessSecret;
+
+    @Value(&quot;${sms.signName}&quot;)
+    private String signName;
+
+    @Value(&quot;${sms.templateCode}&quot;)
+    private String templateCode;
+
+    @Override
+    public boolean sendSms(String iponeNUmber) {
+        DefaultProfile profile = DefaultProfile.getProfile(&quot;cn-hangzhou&quot;, accessKeyId, accessSecret);
+        IAcsClient client = new DefaultAcsClient(profile);
+        CommonRequest request = new CommonRequest();
+        request.setMethod(MethodType.POST);
+        request.setDomain(&quot;dysmsapi.aliyuncs.com&quot;);
+        request.setVersion(&quot;2017-05-25&quot;);
+        request.setAction(&quot;SendSms&quot;);
+        request.putQueryParameter(&quot;RegionId&quot;, &quot;cn-hangzhou&quot;);
+        request.putQueryParameter(&quot;PhoneNumbers&quot;, iponeNUmber);
+        request.putQueryParameter(&quot;SignName&quot;, signName);
+        request.putQueryParameter(&quot;TemplateCode&quot;, templateCode);
+        JSONObject object=new JSONObject();
+        String randCode=getRandCode(6);
+        log.info(&quot;验证码为：{}&quot;,randCode);
+        object.put(&quot;code&quot;,randCode);
+        request.putQueryParameter(&quot;TemplateParam&quot;, object.toJSONString());
+        try {
+            CommonResponse response = client.getCommonResponse(request);
+            log.info(response.getData());
+            return true;
+        } catch (Exception e) {
+            log.error(&quot;{}&quot;,e);
+        }
+        return false;
+    }
+    /**
+     * 生成随机验证码
+     * @param digits
+     * @return
+     */
+    public static String getRandCode(int digits) {
+        StringBuilder sBuilder = new StringBuilder();
+        Random rd = new Random((new Date()).getTime());
+
+        for(int i = 0; i &lt; digits; ++i) {
+            sBuilder.append(String.valueOf(rd.nextInt(9)));
+        }
+
+        return sBuilder.toString();
+    }
+}
+</code></code></pre>
+<p>整体的代码逻辑很简单，首先是通过Value注解将配置文件中配置的那四个参数获取到。</p>
+<p>sendSms()方法中 :</p>
+<p>DefaultProfile 和 IAcsClient 是创建DefaultAcsClient实例并初始化。三个参数分别对应的是:地域ID，RAM账号的AccessKey ID， RAM账号AccessKey Secret。</p>
+<p>DescribeInstancesRequest 是创建API请求并设置参数。request.putQueryParamete()我们修改主要是修改这里面的参数。PhoneNumbers 是接收信息的手机号，这里我发送的是短信验证码。所以我这里生成一个6位的短息验证码。具体需求大家可以根据需求进行调整。</p>
+<h1 id="controller-层">controller 层</h1>
+<p>controller 层比较简单，就一个发送短信的接口，在sms包下创建SmsController类，代码如下：</p>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/sms&quot;)
+public class SmsController {
+
+    @Autowired
+    private SmsService smsService;
+
+    @RequestMapping(value = &quot;/send&quot;,method = RequestMethod.GET)
+    public String sendSms(@RequestParam(value = &quot;userName&quot;)String userName){
+        smsService.sendSms(userName);
+        return &quot;success&quot;;
+    }
+}</code></code></pre>
+<h1 id="测试">测试</h1>
+<p>到此为止，短信服务已经搭建好了，现在我们来测试一下，我们首先启动项目，然后调用接口：</p>
+<pre><code><code>http://localhost:9090/zlflovemm/sms/send?userName=13265459362</code></code></pre>
+<p>然后看下日志</p>
+<p><img src="./images/六、springboot 简单优雅是实现短信服务4.png" alt="file" /></p>
+<p>看看到我们的手机上收到了短信。</p>
+<p><img src="./images/六、springboot 简单优雅是实现短信服务5.png" alt="file" /></p>
+<p>可以看到短信服务是配置成功了的。整体来说没有我们想象中的那么复杂。</p>
+<h1 id="番外">番外</h1>
+<p>好了，就说这么多啦，今天项目的代码也同步到github 上啦。<br />
+github地址：https://github.com/QuellanAn/zlflovemm</p>
+<p>后续加油♡</p>
+<p>欢迎大家关注个人公众号 &quot;程序员爱酸奶&quot;</p>
+<p>分享各种学习资料，包含java，linux，大数据等。资料包含视频文档以及源码，同时分享本人及投递的优质技术博文。</p>
+<p>如果大家喜欢记得关注和分享哟❤<br />
+<img src="./images/六、springboot 简单优雅是实现短信服务6.png" alt="file" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

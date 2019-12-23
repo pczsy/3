@@ -1,0 +1,58 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继</center></div><div class='banquan'>原文出处:本文由博客园博主程序员郭艺宾提供。<br/>
+原文连接:https://www.cnblogs.com/guos/p/11688103.html</div><br>
+    <h1 id="增加eureka">增加Eureka</h1>
+<p>前面介绍的项目都是授权服务和资源服务单独两个，这样在资源服务中的 check_token 地址都是写死的地址 ：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继0.png" alt="file" /></p>
+<p>下面我们把eureka加上，这样就可以直接用服务名了。eureka服务的搭建不再讨论，在服务中加eureka只需要改两个地方，就是加依赖和修改配置：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继1.png" alt="file" /></p>
+<p>增加配置如下：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继2.png" alt="file" /></p>
+<p>然后就可以把资源服务中的固定ip改为服务名：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继3.png" alt="file" /></p>
+<h1 id="增加令牌中继">增加令牌中继</h1>
+<p>从授权服务获取令牌以后，直接访问一个资源服务是没有问题的，但是如果资源服务又去调用其它资源服务，就会产生一个问题，就是令牌无法自动往下传递。要实现令牌中继我们就需要写一个拦截器，将token放到请求的header中。</p>
+<p>首先在服务中增加feign组件：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继4.png" alt="file" /></p>
+<p>增加注解 @EnableFeignClients ：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继5.png" alt="file" /></p>
+<p>注意上面的依赖和注解调用方和被调用方都要增加。然后在被调用方写一个接口：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继6.png" alt="file" /></p>
+<p>在调用方使用feign调用：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继7.png" alt="file" /></p>
+<p>然后在调用方写一个测试接口：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继8.png" alt="file" /></p>
+<p>现在直接申请令牌，然后访问调用方测试接口，会出现如下401错误：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继9.png" alt="file" /></p>
+<p>下面在调用方增加一个拦截器，在header中增加令牌：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继10.png" alt="file" /></p>
+<h1 id="测试">测试</h1>
+<p>下面直接申请令牌，访问调用方的测试接口，可以看到令牌中继的结果：</p>
+<p><img src="./images/SpringBootSecurity学习（25）前后端分离版之OAuth2.0 令牌中继11.png" alt="file" /></p>
+<p>代码地址：https://gitee.com/blueses/spring-boot-security 30 31 32 33</p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn?from=article_bottom">OpenWrite</a> 发布！</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

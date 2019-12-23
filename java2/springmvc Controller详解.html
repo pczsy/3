@@ -1,0 +1,218 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修springmvc Controller详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>springmvc Controller详解</center></div><div class='banquan'>原文出处:本文由博客园博主陈彦斌提供。<br/>
+原文连接:https://www.cnblogs.com/chenyanbin/p/11961019.html</div><br>
+    <h1 style="text-align: center;">简介</h1>
+<p>　　在SpringMVC&nbsp;中，控制器Controller&nbsp;负责处理由DispatcherServlet&nbsp;分发的请求，它把用户请求的数据经过业务处理层处理之后封装成一个Model&nbsp;，然后再把该Model&nbsp;返回给对应的View&nbsp;进行展示。</p>
+<h1 style="text-align: center;">示例</h1>
+<h2>不适用注解修饰</h2>
+<h3>返回ModelAndView</h3>
+<p>controller方法中定义ModelAndView对象并返回，对象中可添加model数据、指定view。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.cyb.ssm.controller;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.ArrayList;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Controller;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Service;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.servlet.ModelAndView;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.cyb.ssm.po.Item;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.cyb.ssm.service.ItemService;
+
+@Controller
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ItemController {
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> ItemService Service;
+    
+    @RequestMapping(</span>"queryItem"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ModelAndView queryItem() {
+        List</span>&lt;Item&gt; itemList =<span style="color: #000000;"> Service.queryItemList();
+        ModelAndView mvAndView </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ModelAndView();
+        mvAndView.addObject(</span>"itemList"<span style="color: #000000;">, itemList);
+        mvAndView.setViewName(</span>"item/item-list"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mvAndView;
+    }
+}</span></code></pre>
+
+<h3>返回void</h3>
+<p>　　在controller<span style="color: #ff0000;"><strong>方法形参上可以定义request和response</strong></span>，使用request或response指定响应结果：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span> service(HttpServletRequest request,HttpServletResponse response){}</code></pre>
+
+<p>1、使用request转发向页面，如下：</p>
+<src class="cnblogs_code">
+<pre><code>request.getRequestDispatcher("页面路径").forward(request, response);</code></pre>
+
+<p>2、也可以通过response页面重定向：</p>
+<src class="cnblogs_code">
+<pre><code>response.sendRedirect("url")</code></pre>
+
+<p>3、也可以通过response指定响应结果，例如：</p>
+<src class="cnblogs_code">
+<pre><code>response.setCharacterEncoding("utf-8"<span style="color: #000000;">);
+response.setContentType(</span>"application/json;charset=utf-8"<span style="color: #000000;">);
+response.getWriter().write(</span>"json串");</code></pre>
+
+<h3>返回字符串</h3>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String queryItem(HttpServletRequest request,Model model) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">查询数据库，用静态数据模拟</span>
+        List&lt;Item&gt; itemList =<span style="color: #000000;"> Service.queryItemList();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">方式一，使用Request的API
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        request.setAttribute("itemList", itemList);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">方式二，使用Model接口的API</span>
+        model.addAttribute("itemList"<span style="color: #000000;">, itemList);
+        </span><span style="color: #0000ff;">return</span> "item/item-list"<span style="color: #000000;">;
+    }</span></code></pre>
+
+<h4>逻辑视图名</h4>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">return</span> "item/item-list";</code></pre>
+
+<h4>redirect重定向</h4>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">return</span> "redirect:testRedirect";</code></pre>
+
+<p>redirect：</p>
+<p>　　相当于&ldquo;response.sendRedirect()&rdquo;</p>
+<p>　　游览器URL发生改变</p>
+<p>　　Request域不能共享</p>
+<h3>forward转发</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">return</span> "forward:testForward";</code></pre>
+
+<p>forward：</p>
+<p>　　相当于&ldquo;request.getRequestDispatcher().forward(request,response)&rdquo;</p>
+<p>　　浏览器URL不发送改变</p>
+<p>　　Request域可以共享</p>
+<src class="cnblogs_code">
+<pre><code>    @RequestMapping("queryItem"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String queryItem(HttpServletRequest request,Model model) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">查询数据库，用静态数据模拟</span>
+        List&lt;Item&gt; itemList =<span style="color: #000000;"> Service.queryItemList();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">方式一，使用Request的API
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        request.setAttribute("itemList", itemList);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">方式二，使用Model接口的API</span>
+        model.addAttribute("itemList"<span style="color: #000000;">, itemList);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        return "item/item-list";
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">转发和重定向使用的代码</span>
+        request.setAttribute("id", 1<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        return "redirect:testRedirect";</span>
+        <span style="color: #0000ff;">return</span> "forward:testForward"<span style="color: #000000;">;
+        
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">请求重定向测试</span>
+    @RequestMapping("testRedirect"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String testRedirect(HttpServletRequest request){
+        String id </span>= (String) request.getAttribute("id"<span style="color: #000000;">);
+        System.out.println(</span>"request域的id："+<span style="color: #000000;">id);
+        </span><span style="color: #0000ff;">return</span> ""<span style="color: #000000;">;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">请求转发测试</span>
+    @RequestMapping("testForward"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String testForward(HttpServletRequest request){
+        Integer id </span>= (Integer) request.getAttribute("id"<span style="color: #000000;">);
+        System.out.println(</span>"request域的id："+<span style="color: #000000;">id);
+        </span><span style="color: #0000ff;">return</span> ""<span style="color: #000000;">;
+    }</span></code></pre>
+
+<h2>使用注解修饰</h2>
+<h3>返回带ResponseBody注解的值</h3>
+<h3>@ResponseBody注解和@RequestBody注解介绍</h3>
+<p>@ResponseBody的作用：</p>
+<p>　　<span style="color: #ff0000;"><strong>ResponseBody</strong></span>注解可以通过内置9种<span style="color: #ff0000;"><strong>HttpMessageConverter</strong></span>，匹配不同的<span style="color: #ff0000;"><strong>Controller</strong><strong>返回值类型</strong></span>，然后进行不同的<span style="color: #ff0000;"><strong>消息转换处理</strong></span></p>
+<p>　　将转换之后的数据放到HttpServletResponse对象的<span style="color: #ff0000;"><strong>响应体</strong></span>返回到页面，</p>
+<p>　　不同的HttpMessageConverter处理的数据，指定的<span style="color: #ff0000;"><strong>ContentType值</strong></span>也不同。</p>
+<p><span style="color: #ff0000;"><strong>@RequestBody</strong></span>注解的作用和@ResponseBody注解正好相反，它是处理<span style="color: #ff0000;"><strong>请求参数</strong></span>的Http消息转换的。</p>
+<src class="cnblogs_code">
+<pre><code>    @RequestMapping("queryItemById"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> @ResponseBody Item queryItemById() {
+        Item item</span>=Service.queryItemById(1<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> item;
+    }
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    @RequestMapping("queryItemById")
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    @ResponseBody
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    public  Item queryItemById2() {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        Item item=Service.queryItemById(1);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        return item;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    }</span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">@RestController相当于@Controller和@ResponseBody的组合
+</span><span style="color: #008000;">//</span><span style="color: #008000;">该类所有方法的返回值都将被@ResponseBody注解给修饰</span>
+<span style="color: #000000;">@RestController
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RestItemController {
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> ItemService Service;
+
+    @RequestMapping(</span>"queryItemByIdWithRest"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Item queryItemById() {
+        Item item </span>= Service.queryItemById(1<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> item;
+    }
+}</span></code></pre>
+
+<h3>常用的 HttpMessageConverter</h3>
+<p>&nbsp;<span style="color: #ff0000;"><strong>MappingJacksonHttpMessageConverter处理POJO类型返回值</strong></span></p>
+<p>&nbsp;MappingJacksonHttpMessageConverter是专门处理POJO类型的。</p>
+<p>默认使用<span style="color: #ff0000;"><strong>MappingJackson</strong></span>的JSON处理能力，将后台返回的Java对象(POJO类型)，转为JSON格式输出到页面。</p>
+<p>将响应体的<span style="color: #ff0000;"><strong>Content-Type</strong></span>设置为<span style="color: #ff0000;"><strong>application/json</strong></span>;charset=utf-8</p>
+<p><span style="color: #ff0000;"><strong>StringHttpMessageConverter处理String类型返回值</strong></span></p>
+<p>StringHttpMessageConverter是专门处理<span style="color: #ff0000;"><strong>String</strong></span>类型的。</p>
+<p>调用response.getWriter()方法将String类型的字符串写回给调用者。</p>
+<p>将响应体的<span style="color: #ff0000;"><strong>Content-Type</strong></span>设置为<span style="color: #ff0000;"><strong>text/plain</strong></span>;charset=utf-8</p>
+<h2>@RequestMapping</h2>
+<p>　　通过RequestMapping注解可以定义不同的处理器映射规则</p>
+<h3>URL路径映射</h3>
+<p>　　@RequestMapping(<span style="color: #ff0000;"><strong>value</strong></span>="/item")或@RequestMapping("/item")</p>
+<p>　　value的值是数组，可以将多个url映射到同一个方法</p>
+<p>　　@RequestMapping(value={<span style="color: #ff0000;"><strong>"/item","/queryItem"</strong></span>})</p>
+<h3>窄化请求映射</h3>
+<p>　　在<span style="color: #ff0000;"><strong>class上添加@RequestMapping(url)</strong></span>指定通用<span style="color: #ff0000;"><strong>请求前缀</strong></span>，限制此类下的所有方法的访问请求url必须以<span style="color: #ff0000;"><strong>请求前缀</strong></span>开头，通过此方法对url进行<span style="color: #ff0000;"><strong>模块化分类</strong></span>管理。</p>
+<h4>example</h4>
+<p>　　商品模块</p>
+<p>　　　　/<span style="color: #ff0000;"><strong>item</strong></span>/add</p>
+<p>　　　　/<span style="color: #ff0000;"><strong>item</strong></span>/update</p>
+<p>　　　　/<span style="color: #ff0000;"><strong>item</strong></span>/delete</p>
+<p>　　用户模块</p>
+<p>　　　　/<span style="color: #ff0000;"><strong>user</strong></span>/add</p>
+<p>　　　　/<span style="color: #ff0000;"><strong>user</strong></span>/update</p>
+<p>　　　　/<span style="color: #ff0000;"><strong>user</strong></span>/delete</p>
+<h3>请求方法限定</h3>
+<h4>　　限定GET方法</h4>
+<p>　　@RequestMapping(<span style="color: #ff0000;"><strong>method</strong></span>=RequestMethod.<span style="color: #0000ff;"><strong>GET</strong></span>)</p>
+<p>如果通过Post访问则报错：</p>
+<p>　　HTTP Status 405 - Request method 'POST' not supported</p>
+<p>例如：</p>
+<p>　　@RequestMapping(value="/editItem",mtthod=RequestMethod.GET)</p>
+<h4>　　限定POST方法</h4>
+<p>　　@RequestMapping(<span style="color: #ff0000;"><strong>method</strong></span>=RequestMethod.<span style="color: #0000ff;"><strong>POST</strong></span>)</p>
+<p>如何通过Post访问则报错:</p>
+<p>　　HTTP Status 405 - Request method 'GET' not supported</p>
+<h4>　　GET和POST都可以</h4>
+<p>　　@RequestMapping(mthod={RequestMethod.GET,RequestMethod.POST})</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

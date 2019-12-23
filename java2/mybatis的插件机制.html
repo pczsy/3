@@ -1,0 +1,176 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修mybatis的插件机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>mybatis的插件机制</center></div><div class='banquan'>原文出处:本文由博客园博主不懂是非提供。<br/>
+原文连接:https://www.cnblogs.com/qm-article/p/11785350.html</div><br>
+    <h1>一、mybatis的插件介绍</h1>
+<p><span style="font-size: 18px;">关于mybatis的插件，我想大家也都用过，就比如最常用的逆向工程，根据表结构生成model，dao，xml文件，还有分页插件，那这些插件的工作原理是怎么样的呢，就比如分页插件，它为什么能改变我们在xml文件中写的sql语句，本文将带大家一起来了解mybatis的插件机制。（由于本人也是在不断学习，文中难免有错误或不足之处，还望指正，本文基于mybatis3.3.0版本），下面将围绕这几个方面</span></p>
+<p><span style="font-size: 18px;">1、插件入口，即怎么把插件注入到mybatis代码里面</span></p>
+<p><span style="font-size: 18px;">2、插件能拦截哪些类或哪些方法</span></p>
+<p><span style="font-size: 18px;">3、举例简易分表插件原理</span></p>
+<h1>二、插件入口</h1>
+<p><span style="font-size: 18px;">在先了解前，我们来一段自定义mybatis插件的代码</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.statement.StatementHandler;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">import</span> org.apache.ibatis.plugin.*<span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.Connection;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Properties;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">@Intercepts(
+</span><span style="color: #008080;"> 8</span>         value =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">                @Signature(
+</span><span style="color: #008080;">10</span>                         type = StatementHandler.<span style="color: #0000ff;">class</span><span style="color: #000000;">,
+</span><span style="color: #008080;">11</span>                         method = "prepare"<span style="color: #000000;">,
+</span><span style="color: #008080;">12</span>                         args = {Connection.<span style="color: #0000ff;">class</span><span style="color: #000000;">} // 不同版本的prepare方法参数不一样，高版本的还有一个Integer参数
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">                )
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">)
+</span><span style="color: #008080;">16</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> PluginDemo <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Interceptor {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">public</span> Object intercept(Invocation invocation) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+</span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> invocation.proceed();
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">23</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Object plugin(Object target) {
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">return</span> Plugin.wrap(target,<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">28</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setProperties(Properties properties) {
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span>     }</code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">要自定义mybatis插件，必须得实现Interceptor接口，这个接口有三个抽象方法</span></p>
+<p><span style="font-size: 18px;">1、intercept，这个方法是mybatis的核心方法，要实现自定义逻辑，基本都是改造这个方法，其中invocation参数可以通过反射要获取原始方法和对应参数信息</span></p>
+<p><span style="font-size: 18px;">2、plugin，它的作用是用来生成一个拦截对方，也就是代理对象，使得被代理的对象一定会经过intercept方法，通常都会使用mybatis提供的工具类Plugin来获取代理对象，如果有自己独特需求，可以自定义</span></p>
+<p><span style="font-size: 18px;">3、setProperties，这个方法就是用来设置插件的一些属性</span></p>
+<p><span style="font-size: 18px;">其中@intercepts注解就是用来标明拦截哪些类，哪些方法。</span></p>
+<p><span style="font-size: 18px;">当我们脱离spring容器来使用mybatis的时候，我们通常是这样写代码的</span></p>
+<p><img src="./images/mybatis的插件机制0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">&nbsp;而在mybatisConfig.xml文件中，我们有配置数据库连接信息，插件，别名，mapper文件映射地址等信息，(温馨提示，这些配置有一定顺序，如果不按照顺序配置，则mybatis解析时会抛出异常，详细配置信息可以参考mbatis的dtd文件配置）既然在配置文件中配置了，那肯定也会被解析掉，如下图，在XmlConfigBuild中进行解析</span></p>
+<p><img src="./images/mybatis的插件机制1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">解析后，插件信息会被存储到configuation中InterceptorChain集合里面，这个configuation在mybatis运行周期是一个单例的，它负责存储所有的配置信息</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/mybatis的插件机制2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">&nbsp;最终，mybatis的插件信息完整的注入到了configuation里面。</span></p>
+<h1>二、mybaits插件能拦截哪些类或哪些方法</h1>
+<p><span style="font-size: 18px;">在正常开发流程中，我们基本都是通过先获取sqlSession，如果不采用自定义配置，在默认的sqlsession实现就是defaultSqlSession，在该类的一个方法里就隐含了融合插件，</span></p>
+<p><img src="./images/mybatis的插件机制3.png" alt="" /></p>
+<p><span style="font-size: 18px;">其中会获取到executor，这个类是通过configuation获取的，</span></p>
+<p><img src="./images/mybatis的插件机制4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">&nbsp;最终融合插件的方法就是图中红框的代码。它会为原始的executor类生成代理类。从而你在执行executor类的一些方法时，比如query,update方法，会先生成对应的代理对象，myabtis采用的是jdk的动态代理，代理后，你执行executor类的query，update方法时会自动转接到你自定义的插件intercept方法里面，也可以理解为覆盖原来的方法。</span></p>
+<p><span style="font-size: 18px;">通过这，我们大概也可以猜测的出，mybatis插件要拦截的类，很大原因在configuation类中有生成，也不带大家绕弯子了，来看截图</span></p>
+<p><span style="font-size: 18px;">拦截statementHandler接口的实现类，它通过routingStatementHandler来实现路由，最终定向到prepareStatementHandler类</span></p>
+<p><img src="./images/mybatis的插件机制5.png" alt="" /></p>
+<p><span style="font-size: 18px;">拦截parameterHandler。这个接口是用来封装参数用的，也就是最终将参数设置到sql里面</span></p>
+<p><img src="./images/mybatis的插件机制6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">拦截ResultSetHandler接口，它主要用于处理sql运行返回的结果</span></p>
+<p>&nbsp;<img src="./images/mybatis的插件机制7.png" alt="" /></p>
+<p><span style="font-size: 18px;">&nbsp;</span></p>
+<p><span style="font-size: 18px;">&nbsp;总结，mybatis可以拦截的类分四大类</span></p>
+<p><span style="font-size: 18px;">一、executor，executor类可以说是执行sql的全过程，如组装参数，sql改造，结果处理，比较广泛，但实际用的不多</span></p>
+<p><span style="font-size: 18px;">二、StatementHandler，这个是执行sql的过程，可以获取到待执行的sql，可用来改造sql，如分页，分表，最常拦截的类</span></p>
+<p><span style="font-size: 18px;">三、paremeterHandler，这个用来拦截sql的参数，可以自定义参数组装规则</span></p>
+<p><span style="font-size: 18px;">四、resultHandler，这个用来处理结果</span></p>
+<h1>三、简易版分表插件</h1>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.statement.StatementHandler;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.mapping.BoundSql;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span> org.apache.ibatis.plugin.*<span style="color: #000000;">;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.MetaObject;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.SystemMetaObject;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.Connection;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Properties;
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span> <span style="color: #000000;">@Intercepts(
+</span><span style="color: #008080;">11</span>         value =<span style="color: #000000;"> {
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">                @Signature(
+</span><span style="color: #008080;">13</span>                         type = StatementHandler.<span style="color: #0000ff;">class</span><span style="color: #000000;">,
+</span><span style="color: #008080;">14</span>                         method = "prepare"<span style="color: #000000;">,
+</span><span style="color: #008080;">15</span>                         args = {Connection.<span style="color: #0000ff;">class</span><span style="color: #000000;">}
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                )
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">)
+</span><span style="color: #008080;">19</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> PluginDemo <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Interceptor {
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">21</span>     <span style="color: #0000ff;">public</span> Object intercept(Invocation invocation) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>         <span style="color: #008000;">/**</span>
+<span style="color: #008080;">24</span> <span style="color: #008000;">         * 获取被拦截的目前类，在这里是拦截了statementHandler，所有目前类也就是它
+</span><span style="color: #008080;">25</span> <span style="color: #008000;">         * 通过这个类我们可以拿到待执行的sql语句，通常使用mataObject工具类来获取
+</span><span style="color: #008080;">26</span> <span style="color: #008000;">         * 关于这个工具类，大家可自行了解，个人认为这个工具类很强大
+</span><span style="color: #008080;">27</span>           <span style="color: #008000;">*/</span>
+<span style="color: #008080;">28</span>         StatementHandler statementHandler =<span style="color: #000000;"> (StatementHandler) invocation.getTarget();
+</span><span style="color: #008080;">29</span>         MetaObject metaObject =<span style="color: #000000;"> SystemMetaObject.forObject(statementHandler);
+</span><span style="color: #008080;">30</span>         <span style="color: #008000;">/**</span>
+<span style="color: #008080;">31</span> <span style="color: #008000;">         * 先解释下为什么写成delegate.boundSql就可以拿到boundSql类
+</span><span style="color: #008080;">32</span> <span style="color: #008000;">         * 从前面也可以得知，statementHandler的默认实现是routingStatementHandler。
+</span><span style="color: #008080;">33</span> <span style="color: #008000;">         * 这个类有一个属性statementHandler，属性名就叫delegate，而这个属性的默认实现又是preparedStatementHandler
+</span><span style="color: #008080;">34</span> <span style="color: #008000;">         * 后面这个类又有属性boundSql，所以，最终形成的写法就是delegate.boundSql。
+</span><span style="color: #008080;">35</span> <span style="color: #008000;">         * 所以这也体现了MetaObject工具类的强大，可以通过实例传参，就可以根据属性名获取对应属性值
+</span><span style="color: #008080;">36</span>          <span style="color: #008000;">*/</span>
+<span style="color: #008080;">37</span>         BoundSql boundSql = (BoundSql) metaObject.getValue("delegate.boundSql"<span style="color: #000000;">);
+</span><span style="color: #008080;">38</span> 
+<span style="color: #008080;">39</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 待执行的sql，在这里也就是预编译后的sql，即参数位都是?号</span>
+<span style="color: #008080;">40</span>         String sql =<span style="color: #000000;"> boundSql.getSql();
+</span><span style="color: #008080;">41</span>         <span style="color: #008000;">/**</span>
+<span style="color: #008080;">42</span> <span style="color: #008000;">         * 既然拿到了预编译后的sql，那就可以按照你自己的想法为所欲为，如分页，按年分表等等
+</span><span style="color: #008080;">43</span> <span style="color: #008000;">         * 分表的话，个人推荐druid的sql解析器，我认为还是不错的，大家可以自行了解
+</span><span style="color: #008080;">44</span> <span style="color: #008000;">         * 最后改造完sql，别忘了把它设置回去
+</span><span style="color: #008080;">45</span> <span style="color: #008000;">         * metaObject.setValue("delegate.boundSql.sql",sql);
+</span><span style="color: #008080;">46</span> <span style="color: #008000;">         *  invocation.proceed，即原始方法的执行
+</span><span style="color: #008080;">47</span> <span style="color: #008000;">         *  注意点就是，因为mybatis插件采用的是代理模式，所以如果存在多个插件，会形成多个代理
+</span><span style="color: #008080;">48</span> <span style="color: #008000;">         *  你如果要拿到最原始的对象，还得进一步进行分解
+</span><span style="color: #008080;">49</span> <span style="color: #008000;">         *  如：while(metaObject.getValue(""h) != null){
+</span><span style="color: #008080;">50</span> <span style="color: #008000;">         *      Object obj = metaObject.getValue("h");
+</span><span style="color: #008080;">51</span> <span style="color: #008000;">         *       ....
+</span><span style="color: #008080;">52</span> <span style="color: #008000;">         *  }
+</span><span style="color: #008080;">53</span>          <span style="color: #008000;">*/</span>
+<span style="color: #008080;">54</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> invocation.proceed();
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">56</span> 
+<span style="color: #008080;">57</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">58</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Object plugin(Object target) {
+</span><span style="color: #008080;">59</span>         <span style="color: #0000ff;">return</span> Plugin.wrap(target,<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+</span><span style="color: #008080;">60</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">61</span> 
+<span style="color: #008080;">62</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">63</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setProperties(Properties properties) {
+</span><span style="color: #008080;">64</span> 
+<span style="color: #008080;">65</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">66</span> }</code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;-----------------------------------------------------------------------------------------------------------------------------分界线-------------------------------------------------------------------------------------</p>
+<p><span style="font-size: 18px;">以上就是全部内容</span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

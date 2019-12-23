@@ -1,0 +1,131 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修centos7 安装 mysql5.7 版本(全)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>centos7 安装 mysql5.7 版本(全)</center></div><div class='banquan'>原文出处:本文由博客园博主sanri1993提供。<br/>
+原文连接:https://www.cnblogs.com/sanri1993/p/11704103.html</div><br>
+    <h3 id="centos-安装">centos 安装</h3>
+<p>版本说明 ：centos7，mysql5.7 ，不是 centos7 可能有些命令不兼容</p>
+<ol>
+<li><p>安装 mysql-server</p>
+<pre><code><code># 下载并安装 mysql yum 
+wget -i -c http://dev.mysql.com/get/mysql57-community-release-el7-10.noarch.rpm
+yum -y install mysql57-community-release-el7-10.noarch.rpm
+
+# 安装 mysql-server
+yum -y install mysql-community-server</code></code></pre></li>
+<li><p>mysql 初始化安装的一些配置</p>
+<pre><code><code># 启动 mysql-serer 
+systemctl start mysqld.service
+# 查看是否启动成功，即是否存在 3306 端口
+netstat -tnlp | grep 3306
+# 查询 root 密码，登录到 mysql
+grep &quot;password&quot; /var/log/mysqld.log
+mysql -uroot -p 
+
+# 首次操作要求重置密码,必须大小写特殊字符组成
+mysql&gt; ALTER USER &#39;root&#39;@&#39;localhost&#39; IDENTIFIED BY &#39;new password&#39;;
+
+# 授权远程访问 % 表示所有主机都可以访问
+mysql&gt; grant all privileges on *.* to &#39;root&#39;@&#39;%&#39; identified by &#39;password&#39; with grant option;
+# 刷新权限信息
+mysql&gt; flush privileges; </code></code></pre></li>
+<li><p>修改字符集</p>
+<pre><code><code>vi /etc/my.cnf
+
+[client]
+default-character-set=utf8
+
+[mysqld]
+character-set-server=utf8
+collation-server=utf8_general_ci
+
+# 重启 mysql 
+systemctl restart mysqld.service
+
+# 查看是否配置成功
+mysql&gt; status; 
+
+Server characterset:    utf8
+Db     characterset:    utf8
+Client characterset:    utf8
+Conn.  characterset:    utf8</code></code></pre></li>
+<li><p>配置可以使用弱密码</p>
+<p>mysql 升级到 5.7 版本后，对密码进行了加强</p>
+<ul>
+<li>mysql.user 中的 password 字段修改为 authentication_string</li>
+<li>增加了密码验证插件</li>
+</ul>
+<pre><code><code># 查看当前密码规则
+mysql&gt; show variables like &#39;validate_password%&#39;;
++--------------------------------------+--------+
+| Variable_name                        | Value  |
++--------------------------------------+--------+
+| validate_password_check_user_name    | OFF    |
+| validate_password_dictionary_file    |        |
+| validate_password_length             | 8      | 密码最小长度
+| validate_password_mixed_case_count   | 1      | 密码大写小写混合个数
+| validate_password_number_count       | 1      | 密码数字个数
+| validate_password_policy             | MEDIUM | 密码检查等级
+| validate_password_special_char_count | 1      | 密码特殊字符个数
++--------------------------------------+--------+</code></code></pre>
+<p>解决办法有两种，一种是改验证规则，二是直接卸载这个密码验证插件</p>
+<ul>
+<li><p>卸载密码验证插件</p>
+<pre><code><code>mysql&gt; uninstall plugin validate_password;</code></code></pre></li>
+<li><p>修改验证规则</p>
+<pre><code><code>mysql&gt; set global validate_password_policy=0;
+mysql&gt; set global validate_password_mixed_case_count=0;
+mysql&gt; set global validate_password_number_count=3;
+mysql&gt; set global validate_password_special_char_count=0;
+mysql&gt; set global validate_password_length=3;</code></code></pre></li>
+</ul></li>
+</ol>
+<h3 id="修改-mysql-密码">修改 mysql 密码</h3>
+<p>如果已经登录了 mysql ，则可以直接修改密码</p>
+<pre><code><code># 方法一. 设置当前登录用户密码
+mysql&gt; set password=password(&#39;newpassword&#39;);
+# 方法二. 直接改用户表
+mysql&gt; use mysql;
+mysql&gt; update user set authentication_string=password(&#39;123abc&#39;) where user=&#39;root&#39;;
+# 方法三. 修改密码
+mysql&gt; alter user root@&#39;localhost&#39; identified by &#39;123456&#39;;</code></code></pre>
+<p>如果没有登录 mysql ，可以跳过权限检查来修改密码</p>
+<pre><code><code>vi /etc/my.cnf
+[mysqld]
+skip-grant-tables
+
+# 然后重启 mysql，不需要 root 密码登录 mysql ，之后随便你怎么玩 </code></code></pre>
+<h3 id="windows-安装">windows 安装</h3>
+<p>一般来说下一步下一步就完事了，但我那时候下载的可能是个测试版本，有个 1045 错误，估计现在的版本都没有了吧。解决办法其实就是跳过权限检查，重置密码，这里给新手一个操作的方法</p>
+<pre><code><code>1. 先停止 mysql 服务，然后 cmd 到 mysql 的 bin 目录
+2. mysqld -nt --skip-grant-tables
+3. 启动 mysql 执行 mysqladmin -u root flush-privileges password &lt;password&gt;</code></code></pre>
+<h2 id="一点小推广">一点小推广</h2>
+<p>创作不易，希望可以支持下我的开源软件，及我的小工具，欢迎来 gitee 点星，fork ，提 bug 。</p>
+<p>Excel 通用导入导出，支持 Excel 公式<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/100601578" class="uri">https://blog.csdn.net/sanri1993/article/details/100601578</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-excel-poi" class="uri">https://gitee.com/sanri/sanri-excel-poi</a></p>
+<p>使用模板代码 ，从数据库生成代码 ，及一些项目中经常可以用到的小工具<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/98664034" class="uri">https://blog.csdn.net/sanri1993/article/details/98664034</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-tools-maven" class="uri">https://gitee.com/sanri/sanri-tools-maven</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

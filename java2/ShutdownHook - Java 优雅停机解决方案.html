@@ -1,0 +1,74 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ShutdownHook - Java 优雅停机解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ShutdownHook - Java 优雅停机解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主good_andyxu提供。<br/>
+原文连接:https://www.cnblogs.com/goodAndyxublog/p/11658187.html</div><br>
+    <p><img src="./images/ShutdownHook - Java 优雅停机解决方案0.png" /></p>
+<p>想象一下，如果你现在刚好在 word 上写需求文档，电脑突然重启。等待开机完成，你可能会发现写了一个小时文档没有保存，就这么没了。。。</p>
+<p>一个正在运行 Java 应用如果突然将其停止，影响不止数据丢失,还会造成其他影响。比如：</p>
+<ul>
+<li>请求丢失：内存队列中等待执行请求丢失</li>
+<li>数据丢失：处于内存缓存中数据未持久化到磁盘</li>
+<li>文件损坏：正在写的文件没有没有更新完成，导致文件损坏</li>
+<li>业务中断：处理一半的业务被强行中断，如支付成功了，却没有更新到数据库中</li>
+<li>服务未下线：上游服务依然往停止节点发送请求</li>
+</ul>
+<p>所以在关闭服务之前，我们需要先做好善后工作，比如保存数据，清理资源，下线服务，然后才退出应用。这种有计划平滑的关闭应用相对直接停止应用，就显得非常『优雅』。</p>
+<blockquote>
+<p>ps: 仔细品味，优雅停机这个词真好~</p>
+</blockquote>
+<h2 id="shutdownhook">ShutdownHook</h2>
+<p>Java 语言提供一种 ShutdownHook（钩子）进制，当 JVM 接受到系统的关闭通知之后，调用 ShutdownHook 内的方法，用以完成清理操作，从而平滑的退出应用。</p>
+<p><em>ShutdownHook代码如下：</em></p>
+<pre><code><code>        Runtime.getRuntime().addShutdownHook(new Thread(() -&gt; {
+            System.out.println(&quot;关闭应用，释放资源&quot;);
+        }));</code></code></pre>
+<p><code>Runtime.getRuntime().addShutdownHook(Thread)</code> 需要传入一个线程对象，后续动作将会在该异步线程内完成。除了主动关闭应用（使用 kill -15 指令）,以下场景也将会触发 ShutdownHook :</p>
+<ul>
+<li>代码执行结束，JVM 正常退出</li>
+<li>应用代码中调用 <code>System#exit</code> 方法</li>
+<li>应用中发生 OOM 错误，导致 JVM 关闭</li>
+<li>终端中使用 <code>Ctrl+C</code>(非后台运行)</li>
+</ul>
+<p>目前很多开源框架都是基于这个机制实现优雅停机，比如 Dubbo，Spring 等。</p>
+<h2 id="相关注意点">相关注意点</h2>
+<p>ShutdownHook 代码实现起来相对简单，但是我们还是需要小心下面这些坑。</p>
+<p><strong><code>Runtime.getRuntime().addShutdownHook(Thread)</code> 可以被多次调用</strong></p>
+<p>我们可以多次调用 <code>Runtime.getRuntime().addShutdownHook(Thread)</code> 方法，从而增加多个。但是需要注意的是，多个 ShutdownHook 之间并无任何顺序，Java 并不会按照加入顺序执行，反而将会并发执行。</p>
+<p>所以尽量在一个 ShutdownHook 完成所有操作。</p>
+<p><strong>ShutdownHook 需要尽快执行结束</strong></p>
+<p>不要在 ShutdownHook 执行需要被阻塞代码，如 I/0 读写，这样就会导致应用短时间不能被关闭。</p>
+<pre><code><code> Runtime.getRuntime().addShutdownHook(new Thread(() -&gt; {
+           while (true){
+               System.out.println(&quot;关闭应用，释放资源&quot;);
+           }
+        }));</code></code></pre>
+<p>上面代码中，我们使用 <code>while(true)</code> 模拟长时间阻塞这种极端情况，关闭该应用时，应用将会一直阻塞在 <code>while</code>代码中，导致应用没办法被关闭。</p>
+<p>除了阻塞之外，还需要小心其他会让线程阻塞的行为，比如死锁。</p>
+<p>为了避免 ShutdownHook 线程被长时间阻塞，我们可以引入超时进制。如果等待一定时间之后，ShutdownHook 还未完成，由脚本直接调用 kill -9 强制退出或者 ShutdownHook 代码中引入超时进制。</p>
+<p>文章首发于<a href="https://studyidea.cn/articles/2019/09/03/1567504427330.html">studyidea.cn/shutdownHook</a></p>
+<blockquote>
+<p>欢迎关注我的公众号：程序通事，获得日常干货推送。如果您对我的专题内容感兴趣，也可以关注我的博客：<a href="https://studyidea.cn">studyidea.cn</a></p>
+</blockquote>
+<p><img src="./images/ShutdownHook - Java 优雅停机解决方案1.png" alt="其他平台.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

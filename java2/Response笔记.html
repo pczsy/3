@@ -1,0 +1,245 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Response笔记' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Response笔记</center></div><div class='banquan'>原文出处:本文由博客园博主Freud领工资也用券提供。<br/>
+原文连接:https://www.cnblogs.com/freud-shen/p/11615203.html</div><br>
+    <p><span style="color: #b22222;"># 今日内容<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;HTTP协议：响应消息<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;Response对象<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;ServletContext对象<br />
+<br />
+<br />
+<span style="color: #b22222;">## HTTP协议：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;请求消息：客户端发送给服务器端的数据<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 数据格式：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;请求行<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;请求头<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;请求空行<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.&nbsp;请求体<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;响应消息：服务器端发送给客户端的数据<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 数据格式：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;响应行<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;组成：协议/版本 响应状态码 状态码描述<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;响应状态码：服务器告诉客户端浏览器本次请求和响应的一个状态。<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;状态码都是3位数字&nbsp;<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;分类：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;1xx：服务器就收客户端消息，但没有接受完成，等待一段时间后，发送1xx多状态码<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;2xx：成功。代表：200<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;3xx：重定向。代表：302(重定向)，304(访问缓存)<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.&nbsp;4xx：客户端错误。<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 代表：<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 404（请求路径没有对应的资源）&nbsp;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 405：请求方式没有对应的doXxx方法<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;5.&nbsp;5xx：服务器端错误。代表：500(服务器内部出现异常)<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;响应头：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;格式：头名称： 值<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;常见的响应头：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;Content-Type：服务器告诉客户端本次响应体数据格式以及编码格式<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;Content-disposition：服务器告诉客户端以什么格式打开响应体数据<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 值：<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* in-line:默认值,在当前页面内打开<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* attachment;filename=xxx：以附件形式打开响应体。文件下载<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;响应空行<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.&nbsp;响应体:传输的数据<br />
+<br />
+<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 响应字符串格式<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;HTTP/1.1 200 OK<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Content-Type: text/html;charset=UTF-8<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Content-Length: 101<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Date: Wed, 06 Jun 2018 07:08:42 GMT<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;html&gt;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;head&gt;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;title&gt;$Title$&lt;/title&gt;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/head&gt;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;body&gt;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;hello , response<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/body&gt;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;/html&gt;<br />
+<br />
+<br />
+<br />
+<span style="color: #b22222;">## Response对象<br />
+&nbsp;&nbsp;&nbsp;&nbsp;* 功能：设置响应消息<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;设置响应行<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;格式：HTTP/1.1 200 ok<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;设置状态码：setStatus(int sc)&nbsp;<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;设置响应头：setHeader(String name, String value)&nbsp;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;设置响应体：<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 使用步骤：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;获取输出流<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 字符输出流：PrintWriter getWriter()<br />
+<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 字节输出流：ServletOutputStream getOutputStream()<br />
+<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;使用输出流，将数据输出到客户端浏览器<br />
+<br />
+<br />
+&nbsp;&nbsp;&nbsp;&nbsp;* 案例：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;完成重定向<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 重定向：资源跳转的方式<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 代码实现：<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;">1. 设置状态码为302</span>
+<span style="color: #008080;">2</span> response.setStatus(302<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> <span style="color: #008000;">//</span><span style="color: #008000;">2.设置响应头location</span>
+<span style="color: #008080;">4</span> response.setHeader("location","/day15/responseDemo2"<span style="color: #000000;">);
+</span><span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> <span style="color: #008000;">//</span><span style="color: #008000;">简单的重定向方法</span>
+<span style="color: #008080;">8</span>response.sendRedirect("/day15/responseDemo2");</code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="color: #b22222;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #b22222;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #b22222;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><br />
+<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 重定向的特点:redirect<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;地址栏发生变化<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;重定向可以访问其他站点(服务器)的资源<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;重定向是两次请求。不能使用request对象来共享数据<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 转发的特点：forward<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;转发地址栏路径不变<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;转发只能访问当前服务器下的资源<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;转发是一次请求，可以使用request对象来共享数据<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* forward 和&nbsp;&nbsp;redirect 区别<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 路径写法：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;路径分类<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;相对路径：通过相对路径不可以确定唯一资源<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 如：./index.html<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 不以/开头，以.开头路径<br />
+<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 规则：找到当前资源和目标资源之间的相对位置关系<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* ./：当前目录<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* ../:后退一级目录<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;绝对路径：通过绝对路径可以确定唯一资源<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 如：http://localhost/day15/responseDemo2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/day15/responseDemo2<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 以/开头的路径<br />
+<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 规则：判断定义的路径是给谁用的？判断请求将来从哪儿发出<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 给客户端浏览器使用：需要加虚拟目录(项目的访问路径)<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 建议虚拟目录动态获取：request.getContextPath()<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* &lt;a&gt; , &lt;form&gt; 重定向...<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 给服务器使用：不需要加虚拟目录<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 转发路径<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;服务器输出字符数据到浏览器<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 步骤：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;获取字符输出流<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;输出数据<br />
+<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 注意：<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 乱码问题：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;PrintWriter pw = response.getWriter();获取的流的默认编码是ISO-8859-1<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;设置该流的默认编码<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;告诉浏览器响应体使用的编码<br />
+<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//简单的形式，设置编码，是在获取流之前设置<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;response.setContentType("text/html;charset=utf-8");<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;服务器输出字节数据到浏览器<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 步骤：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;获取字节输出流<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;输出数据<br />
+<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.&nbsp;验证码<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;本质：图片<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;目的：防止恶意表单注册<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;<br />
+<br />
+<br />
+<span style="color: #b22222;">## ServletContext对象：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;概念：代表整个web应用，可以和程序的容器(服务器)来通信<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;获取：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;通过request对象获取<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;request.getServletContext();<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;通过HttpServlet获取<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.getServletContext();<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;功能：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;获取MIME类型：<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* MIME类型:在互联网通信过程中定义的一种文件数据类型<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 格式： 大类型/小类型&nbsp;&nbsp;&nbsp;text/html&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;image/jpeg<br />
+<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 获取：String getMimeType(String file)&nbsp;&nbsp;<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;域对象：共享数据<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;setAttribute(String name,Object value)<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;getAttribute(String name)<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;removeAttribute(String name)<br />
+<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* ServletContext对象范围：所有用户所有请求的数据<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;获取文件的真实(服务器)路径<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;方法：String getRealPath(String path)&nbsp;&nbsp;<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> String b = context.getRealPath("/b.txt");<span style="color: #008000;">//</span><span style="color: #008000;">web目录下资源访问</span>
+<span style="color: #008080;">2</span> <span style="color: #000000;">System.out.println(b);
+</span><span style="color: #008080;">3</span>         
+<span style="color: #008080;">4</span> String c = context.getRealPath("/WEB-INF/c.txt");<span style="color: #008000;">//</span><span style="color: #008000;">WEB-INF目录下的资源访问</span>
+<span style="color: #008080;">5</span> <span style="color: #000000;">System.out.println(c);
+</span><span style="color: #008080;">6</span>         
+<span style="color: #008080;">7</span> String a = context.getRealPath("/WEB-INF/classes/a.txt");<span style="color: #008000;">//</span><span style="color: #008000;">src目录下的资源访问</span>
+<span style="color: #008080;">8</span> System.out.println(a);</code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="color: #b22222;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #b22222;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #b22222;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #b22222;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #808080;"><span style="color: #808080;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><span style="color: #008000;"><br />
+<br />
+<br />
+<br />
+<span style="color: #b22222;">## 案例：<br />
+&nbsp;&nbsp;&nbsp;&nbsp;* 文件下载需求：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;页面显示超链接<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;点击超链接后弹出下载提示框<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;完成图片文件下载<br />
+<br />
+<br />
+&nbsp;&nbsp;&nbsp;&nbsp;* 分析：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;超链接指向的资源如果能够被浏览器解析，则在浏览器中展示，如果不能解析，则弹出下载提示框。不满足需求<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;任何资源都必须弹出下载提示框<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;使用响应头设置资源的打开方式：<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* content-disposition:attachment;filename=xxx<br />
+<br />
+<br />
+&nbsp;&nbsp;&nbsp;&nbsp;* 步骤：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;定义页面，编辑超链接href属性，指向Servlet，传递资源名称filename<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;定义Servlet<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;获取文件名称<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;使用字节输入流加载文件进内存<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3.&nbsp;指定response的响应头： content-disposition:attachment;filename=xxx<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4.&nbsp;将数据写出到response输出流<br />
+<br />
+<br />
+&nbsp;&nbsp;&nbsp;&nbsp;* 问题：<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 中文文件问题<br />
+<span style="color: #008000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;* 解决思路：<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1.&nbsp;获取客户端使用的浏览器版本信息<br />
+<span style="color: #808080;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2.&nbsp;根据不同的版本信息，设置filename的编码方式不同</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

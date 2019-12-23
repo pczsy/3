@@ -1,0 +1,215 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修设计模式之工厂模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>设计模式之工厂模式</center></div><div class='banquan'>原文出处:本文由博客园博主codeobj提供。<br/>
+原文连接:https://www.cnblogs.com/codeobj/p/11764518.html</div><br>
+    <h1 id="一什么是工厂模式">一、什么是工厂模式</h1>
+<p>实现了创建者和调用者分离，工厂模式分为简单工厂、工厂方法、抽象工厂模式<br />
+# 二、工厂模式好处<br />
+工厂模式是我们最常用的实例化对象模式了，是用工厂方法代替new操作的一种模式。<br />
+利用工厂模式可以降低程序的耦合性，为后期的维护修改提供了很大的便利。<br />
+将选择实现类、创建对象统一管理和控制。从而将调用者跟我们的实现类解耦。</p>
+<h1 id="三工厂模式分类">三、工厂模式分类</h1>
+<h2 id="简单工厂模式">1、简单工厂模式</h2>
+<p>简单工厂模式相当于是一个工厂中有各种产品，创建在一个类中，客户无需知道具体产品的名称，只需要知道产品类所对应的参数即可。但是工厂的职责过重，而且当类型过多时不利于系统的扩展维护。</p>
+<pre><code><code>public interface Car {
+    public void run();
+}</code></code></pre>
+<pre><code><code>public class AoDi implements Car {
+    public void run() {
+        System.out.println(&quot;我是奥迪汽车..&quot;);
+    }
+}</code></code></pre>
+<pre><code><code>public class JiLi implements Car {
+
+    public void run() {
+        System.out.println(&quot;我是吉利汽车...&quot;);
+    }
+}</code></code></pre>
+<pre><code><code>public class CarFactory {
+
+     public static Car createCar(String name) {
+        if (StringUtils.isEmpty(name)) {
+             return null;
+        }
+        if(name.equals(&quot;奥迪&quot;)){
+            return new AoDi();
+        }
+        if(name.equals(&quot;吉利&quot;)){
+            return new JiLi();
+        }
+        return null;
+    }
+}</code></code></pre>
+<pre><code><code>public class Client01 {
+
+    public static void main(String[] args) {
+        Car aodi  =CarFactory.createCar(&quot;奥迪&quot;);
+        Car jili  =CarFactory.createCar(&quot;吉利&quot;);
+        aodi.run();
+        jili.run();
+    }
+
+}</code></code></pre>
+<h3 id="简单工厂的优点缺点">简单工厂的优点/缺点</h3>
+<ul>
+<li>优点：简单工厂模式能够根据外界给定的信息，决定究竟应该创建哪个具体类的对象。明确区分了各自的职责和权力，有利于整个软件体系结构的优化。</li>
+<li>缺点：很明显工厂类集中了所有实例的创建逻辑，容易违反GRASPR的高内聚的责任分配原则</li>
+</ul>
+<h2 id="工厂方法模式">2、工厂方法模式</h2>
+<p><img src="./images/设计模式之工厂模式0.png" alt="file" /><br />
+工厂方法模式Factory Method，又称多态性工厂模式。在工厂方法模式中，核心的工厂类不再负责所有的产品的创建，而是将具体创建的工作交给子类去做。该核心类成为一个抽象工厂角色，仅负责给出具体工厂子类必须实现的接口，而不接触哪一个产品类应当被实例化这种细节。</p>
+<pre><code><code>public interface Car {
+    public void run();
+}</code></code></pre>
+<pre><code><code>public interface CarFactory {
+    public Car createCar();
+}</code></code></pre>
+<pre><code><code>public class AoDi implements Car {
+    public void run() {
+        System.out.println(&quot;我是奥迪汽车..&quot;);
+    }
+}</code></code></pre>
+<pre><code><code>public class JiLi implements Car {
+
+    public void run() {
+        System.out.println(&quot;我是吉利汽车...&quot;);
+    }
+}</code></code></pre>
+<pre><code><code>public class JiLiFactory implements CarFactory {
+
+    public Car createCar() {
+
+        return new JiLi();
+    }
+
+}</code></code></pre>
+<pre><code><code>public class AoDiFactory implements CarFactory {
+
+    public Car createCar() {
+    
+        return new AoDi();
+    }
+}</code></code></pre>
+<pre><code><code>public class Client {
+
+    public static void main(String[] args) {
+        Car aodi = new AoDiFactory().createCar();
+        Car jili = new JiLiFactory().createCar();
+        aodi.run();
+        jili.run();
+    }
+
+}</code></code></pre>
+<h2 id="抽象工厂模式">3、抽象工厂模式</h2>
+<p>抽象工厂简单地说是工厂的工厂，抽象工厂可以创建具体工厂，由具体工厂来产生具体产品。相当于零件工厂和组装工厂。</p>
+<p><img src="./images/设计模式之工厂模式1.png" alt="file" /><br />
+<img src="./images/设计模式之工厂模式2.png" alt="file" /></p>
+<pre><code><code>//发动机
+public interface Engine {
+
+    void run();
+
+    void start();
+}
+
+class EngineA implements Engine {
+
+    public void run() {
+      System.out.println(&quot;转的快!&quot;);
+    }
+
+    public void start() {
+         System.out.println(&quot;启动快,自动档&quot;);
+    }
+
+}
+
+class EngineB implements Engine {
+
+    public void run() {
+      System.out.println(&quot;转的慢!&quot;);
+    }
+
+    public void start() {
+         System.out.println(&quot;启动快,手动档&quot;);
+    }
+
+}</code></code></pre>
+<pre><code><code>//座椅
+public interface Chair {
+       void run();
+}
+
+ class ChairA implements Chair{
+
+    public void run() {
+        System.out.println(&quot;可以自动加热!&quot;);
+    }
+    
+}
+ class ChairB implements Chair{
+
+    public void run() {
+        System.out.println(&quot;不能加热!&quot;);
+    }
+    
+}</code></code></pre>
+<pre><code><code>public interface CarFactory {
+    // 创建发动机
+    Engine createEngine();
+    // 创建座椅
+    Chair createChair();
+}</code></code></pre>
+<pre><code><code>public class JiLiFactory implements CarFactory  {
+
+    public Engine createEngine() {
+    
+        return new EngineA();
+    }
+
+    public Chair createChair() {
+        
+        return new ChairA();
+    }
+
+}</code></code></pre>
+<pre><code><code>public class Client002 {
+
+     public static void main(String[] args) {
+        CarFactory carFactory=new JiLiFactory();
+        // 现组装一个发动机
+        Engine engine=carFactory.createEngine();
+        engine.run();
+        engine.start();
+        // 再组装一个座椅
+        ChairA chairA=carFactory.createChair();
+        chairA.run();
+
+    }
+    
+}</code></code></pre>
+<blockquote>
+<p>个人博客 <a href="https://www.codeobj.com/">蜗牛</a></p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

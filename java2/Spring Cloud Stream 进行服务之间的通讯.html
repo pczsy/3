@@ -1,0 +1,307 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring Cloud Stream 进行服务之间的通讯' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring Cloud Stream 进行服务之间的通讯</center></div><div class='banquan'>原文出处:本文由博客园博主维晟提供。<br/>
+原文连接:https://www.cnblogs.com/bluersw/p/11675139.html</div><br>
+    <h1 id="spring-cloud-stream">Spring Cloud Stream</h1>
+<p>Srping cloud Bus的底层实现就是Spring Cloud Stream，Spring Cloud Stream的目的是用于构建基于消息驱动（或事件驱动）的微服务架构。Spring Cloud Stream本身对Spring Messaging、Spring Integration、Spring Boot Actuator、Spring Boot Externalized Configuration等模块进行封装（整合）和扩展，下面我们实现两个服务之间的通讯来演示Spring Cloud Stream的使用方法。</p>
+<h2 id="整体概述">整体概述</h2>
+<p><img src="./images/Spring Cloud Stream 进行服务之间的通讯0.png" alt="Alt text" /><br />
+服务要想与其他服务通讯要定义通道，一般会定义输出通道和输入通道，输出通道用于发送消息，输入通道用于接收消息，每个通道都会有个名字（输入和输出只是通道类型，可以用不同的名字定义很多很多通道），不同通道的名字不能相同否则会报错（输入通道和输出通道不同类型的通道名称也不能相同），绑定器是操作RabbitMQ或Kafka的抽象层，为了屏蔽操作这些消息中间件的复杂性和不一致性，绑定器会用通道的名字在消息中间件中定义主题，一个主题内的消息生产者来自多个服务，一个主题内消息的消费者也是多个服务，也就是说消息的发布和消费是通过主题进行定义和组织的，通道的名字就是主题的名字，在RabbitMQ中主题使用Exchanges实现，在Kafka中主题使用Topic实现。</p>
+<h2 id="准备环境">准备环境</h2>
+<p>创建两个项目spring-cloud-stream-a和spring-cloud-stream-b，spring-cloud-stream-a我们用Spring Cloud Stream实现通讯，spring-cloud-stream-b我们用Spring Cloud Stream的底层模块Spring Integration实现通讯。<br />
+两个项目的POM文件依赖都是：</p>
+<pre><code><code>&lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-stream&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-stream-binder-rabbit&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-stream-test-support&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;</code></code></pre>
+<p>spring-cloud-stream-binder-rabbit是指绑定器的实现使用RabbitMQ。</p>
+<p>项目配置内容application.properties：</p>
+<pre class="text"><code>spring.application.name=spring-cloud-stream-a
+server.port=9010
+
+#设置默认绑定器
+spring.cloud.stream.defaultBinder = rabbit
+
+spring.rabbitmq.host=127.0.0.1
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=guest
+spring.rabbitmq.password=guest</code></code></pre>
+<pre class="text"><code>spring.application.name=spring-cloud-stream-b
+server.port=9011
+
+#设置默认绑定器
+spring.cloud.stream.defaultBinder = rabbit
+
+spring.rabbitmq.host=127.0.0.1
+spring.rabbitmq.port=5672
+spring.rabbitmq.username=guest
+spring.rabbitmq.password=guest</code></code></pre>
+<p>启动一个rabbitmq:</p>
+<pre class="shell"><code>docker pull rabbitmq:3-management
+
+docker run -d --hostname my-rabbit --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:3-management</code></code></pre>
+<h2 id="编写a项目代码">编写A项目代码</h2>
+<p>在A项目中定义一个输入通道一个输出通道，定义通道在接口中使用@Input和@Output注解定义，程序启动的时候Spring Cloud Stream会根据接口定义将实现类自动注入（Spring Cloud Stream自动实现该接口不需要写代码）。<br />
+A服务输入通道，通道名称ChatExchanges-A-Input，接口定义输入通道必须返回SubscribableChannel：</p>
+<pre class="java"><code>public interface ChatInput {
+
+    String INPUT = &quot;ChatExchanges-A-Input&quot;;
+
+    @Input(ChatInput.INPUT)
+    SubscribableChannel input();
+}</code></code></pre>
+<p>A服务输出通道，通道名称ChatExchanges-A-Output，输出通道必须返回MessageChannel：</p>
+<pre class="java"><code>public interface ChatOutput {
+
+    String OUTPUT = &quot;ChatExchanges-A-Output&quot;;
+
+    @Output(ChatOutput.OUTPUT)
+    MessageChannel output();
+}</code></code></pre>
+<p>定义消息实体类：</p>
+<pre class="java"><code>public class ChatMessage implements Serializable {
+
+    private String name;
+    private String message;
+    private Date chatDate;
+
+    //没有无参数的构造函数并行化会出错
+    private ChatMessage(){}
+
+    public ChatMessage(String name,String message,Date chatDate){
+        this.name = name;
+        this.message = message;
+        this.chatDate = chatDate;
+    }
+
+    public String getName(){
+        return this.name;
+    }
+
+    public String getMessage(){
+        return this.message;
+    }
+
+    public Date getChatDate() { return this.chatDate; }
+
+    public String ShowMessage(){
+        return String.format(&quot;聊天消息：%s的时候，%s说%s。&quot;,this.chatDate,this.name,this.message);
+    }
+}</code></code></pre>
+<p>在业务处理类上用@EnableBinding注解绑定输入通道和输出通道，这个绑定动作其实就是创建并注册输入和输出通道的实现类到Bean中，所以可以直接是使用@Autowired进行注入使用，另外消息的串行化默认使用application/json格式(com.fastexml.jackson)，最后用@StreamListener注解进行指定通道消息的监听：</p>
+<pre class="java"><code>//ChatInput.class的输入通道不在这里绑定，监听到数据会找不到AClient类的引用。
+//Input和Output通道定义的名字不能一样，否则程序启动会抛异常。
+@EnableBinding({ChatOutput.class,ChatInput.class})
+public class AClient {
+
+    private static Logger logger = LoggerFactory.getLogger(AClient.class);
+
+    @Autowired
+    private ChatOutput chatOutput;
+
+    //StreamListener自带了Json转对象的能力，收到B的消息打印并回复B一个新的消息。
+    @StreamListener(ChatInput.INPUT)
+    public void PrintInput(ChatMessage message) {
+
+        logger.info(message.ShowMessage());
+
+        ChatMessage replyMessage = new ChatMessage(&quot;ClientA&quot;,&quot;A To B Message.&quot;, new Date());
+
+        chatOutput.output().send(MessageBuilder.withPayload(replyMessage).build());
+    }
+}
+</code></code></pre>
+<p>到此A项目代码编写完成。</p>
+<h2 id="编写b项目代码">编写B项目代码</h2>
+<p>B项目使用Spring Integration实现消息的发布和消费，定义通道时我们要交换输入通道和输出通道的名称：</p>
+<pre class="java"><code>public interface ChatProcessor {
+
+    String OUTPUT = &quot;ChatExchanges-A-Input&quot;;
+    String INPUT  = &quot;ChatExchanges-A-Output&quot;;
+
+    @Input(ChatProcessor.INPUT)
+    SubscribableChannel input();
+
+    @Output(ChatProcessor.OUTPUT)
+    MessageChannel output();
+}</code></code></pre>
+<p>消息实体类：</p>
+<pre class="java"><code>public class ChatMessage {
+    private String name;
+    private String message;
+    private Date chatDate;
+
+    //没有无参数的构造函数并行化会出错
+    private ChatMessage(){}
+
+    public ChatMessage(String name,String message,Date chatDate){
+        this.name = name;
+        this.message = message;
+        this.chatDate = chatDate;
+    }
+
+    public String getName(){
+        return this.name;
+    }
+
+    public String getMessage(){
+        return this.message;
+    }
+
+    public Date getChatDate() { return this.chatDate; }
+
+    public String ShowMessage(){
+        return String.format(&quot;聊天消息：%s的时候，%s说%s。&quot;,this.chatDate,this.name,this.message);
+    }
+}</code></code></pre>
+<p>业务处理类用@ServiceActivator注解代替@StreamListener，用@InboundChannelAdapter注解发布消息：</p>
+<pre class="java"><code>@EnableBinding(ChatProcessor.class)
+public class BClient {
+
+    private static Logger logger = LoggerFactory.getLogger(BClient.class);
+
+    //@ServiceActivator没有Json转对象的能力需要借助@Transformer注解
+    @ServiceActivator(inputChannel=ChatProcessor.INPUT)
+    public void PrintInput(ChatMessage message) {
+
+        logger.info(message.ShowMessage());
+    }
+
+    @Transformer(inputChannel = ChatProcessor.INPUT,outputChannel = ChatProcessor.INPUT)
+    public ChatMessage transform(String message) throws Exception{
+        ObjectMapper objectMapper = new ObjectMapper();
+        return objectMapper.readValue(message,ChatMessage.class);
+    }
+
+    //每秒发出一个消息给A
+    @Bean
+    @InboundChannelAdapter(value = ChatProcessor.OUTPUT,poller = @Poller(fixedDelay=&quot;1000&quot;))
+    public GenericMessage&lt;ChatMessage&gt; SendChatMessage(){
+        ChatMessage message = new ChatMessage(&quot;ClientB&quot;,&quot;B To A Message.&quot;, new Date());
+        GenericMessage&lt;ChatMessage&gt; gm = new GenericMessage&lt;&gt;(message);
+        return gm;
+    }
+}</code></code></pre>
+<h2 id="运行程序">运行程序</h2>
+<p>启动A项目和B项目：<br />
+<img src="./images/Spring Cloud Stream 进行服务之间的通讯1.png" alt="Alt text" /><br />
+<img src="./images/Spring Cloud Stream 进行服务之间的通讯2.png" alt="Alt text" /></p>
+<h2 id="消费组和消息分区">消费组和消息分区</h2>
+<ul>
+<li>消费组：服务的部署一般是同一个服务会部署多份，如果希望一条消息只执行一次，就将这些相同服务的不同部署实例设置成一个消费组，消费组内的消息只会被一个实例消费。</li>
+<li>消息分区：在一个消费组内除了要保证只有一个实例消费外，还要保证具备相同特征的消息被同一个实例进行消费。</li>
+</ul>
+<p>消费组的设定比较简单，在消息的消费方配置文件中增加：<br />
+spring.cloud.stream.bindings.{通道名称}.group={分组名}<br />
+spring.cloud.stream.bindings.{通道名称}.destination={主题名}<br />
+在消息的产生方配置文件中增加：<br />
+spring.cloud.stream.bindings.{通道名称}.destination={主题名}<br />
+spring-cloud-stream-a配置内容：</p>
+<pre class="text"><code>#设置消费组（消费方设置）
+spring.cloud.stream.bindings.ChatExchanges-A-Input.group=A.group
+spring.cloud.stream.bindings.ChatExchanges-A-Input.destination=AInput
+#设置消费组（生产方设置）
+spring.cloud.stream.bindings.ChatExchanges-A-Output.destination=AOutput</code></code></pre>
+<p>spring-cloud-stream-b配置内容：</p>
+<pre class="text"><code>#设置消费组（消费方设置）
+spring.cloud.stream.bindings.ChatExchanges-A-Output.group=B.group
+spring.cloud.stream.bindings.ChatExchanges-A-Output.destination=AOutput
+#设置消费组（生产方设置）
+spring.cloud.stream.bindings.ChatExchanges-A-Input.destination=AInput</code></code></pre>
+<p>消息分区首先在消息消费方开启消息分区并配置消费者数量和当前消费者索引，然后在消息生产者配置分区键表达式和分区数量（因为是测试我们都将数量设置为1）：<br />
+spring-cloud-stream-a配置内容：</p>
+<pre class="text"><code>#设置分区(消费方设置）
+spring.cloud.stream.bindings.ChatExchanges-A-Input.consumer.partitioned=true
+spring.cloud.stream.instance-count=1
+spring.cloud.stream.instance-index=0
+#设置分区(生产方设置）
+spring.cloud.stream.bindings.ChatExchanges-A-Output.producer.partitionKeyExpression=headers.router
+spring.cloud.stream.bindings.ChatExchanges-A-Output.producer.partitionCount=1</code></code></pre>
+<p>spring-cloud-stream-b配置内容：</p>
+<pre class="text"><code>#设置分区(消费方设置）
+spring.cloud.stream.bindings.ChatExchanges-A-Output.consumer.partitioned=true
+spring.cloud.stream.instance-count=1
+spring.cloud.stream.instance-index=0
+#设置分区(生产方设置）
+spring.cloud.stream.bindings.ChatExchanges-A-Input.producer.partitionKeyExpression=headers.router
+spring.cloud.stream.bindings.ChatExchanges-A-Input.producer.partitionCount=1</code></code></pre>
+<p>修改spring-cloud-stream-a和spring-cloud-stream-b的发送消息代码：<br />
+spring-cloud-stream-a：</p>
+<pre class="java"><code>    //StreamListener自带了Json转对象的能力，收到B的消息打印并回复B一个新的消息。
+    @StreamListener(ChatInput.INPUT)
+    public void PrintInput(ChatMessage message) {
+
+        logger.info(message.ShowMessage());
+
+        ChatMessage replyMessage = new ChatMessage(&quot;ClientA&quot;,&quot;A To B Message.&quot;, new Date());
+
+        //这里只是测试实际业务根据需要设计特征值的范围，这个和消费组内有多少实例有关，然后把特征值放在消息头router属性中
+        int feature = 1;
+        Map&lt;String, Object&gt; headers = new HashMap&lt;&gt;();
+        headers.put(&quot;router&quot;, feature);
+
+        GenericMessage&lt;ChatMessage&gt; genericMessage = new GenericMessage&lt;&gt;(replyMessage,headers);
+
+        chatOutput.output().send(MessageBuilder.fromMessage(genericMessage).build());
+    }</code></code></pre>
+<p>spring-cloud-stream-b：</p>
+<pre class="java"><code>    //每秒发出一个消息给A
+    @Bean
+    @InboundChannelAdapter(value = ChatProcessor.OUTPUT,poller = @Poller(fixedDelay=&quot;1000&quot;))
+    public GenericMessage&lt;ChatMessage&gt; SendChatMessage(){
+        ChatMessage message = new ChatMessage(&quot;ClientB&quot;,&quot;B To A Message.&quot;, new Date());
+
+        //这里只是测试实际业务根据需要设计特征值的范围，这个和消费组内有多少实例有关，然后把特征值放在消息头router属性中
+        int feature = 1;
+        Map&lt;String, Object&gt; headers = new HashMap&lt;&gt;();
+        headers.put(&quot;router&quot;, feature);
+
+        return  new GenericMessage&lt;&gt;(message,headers);
+    }</code></code></pre>
+<p>运行结果：<br />
+<img src="./images/Spring Cloud Stream 进行服务之间的通讯3.png" alt="Alt text" /><br />
+<img src="./images/Spring Cloud Stream 进行服务之间的通讯4.png" alt="Alt text" /><br />
+<img src="./images/Spring Cloud Stream 进行服务之间的通讯5.png" alt="Alt text" /><br />
+<img src="./images/Spring Cloud Stream 进行服务之间的通讯6.png" alt="Alt text" /><br />
+<img src="./images/Spring Cloud Stream 进行服务之间的通讯7.png" alt="Alt text" /></p>
+<h2 id="源码">源码</h2>
+<p><a href="https://github.com/sunweisheng/spring-cloud-example">Github仓库:https://github.com/sunweisheng/spring-cloud-example</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

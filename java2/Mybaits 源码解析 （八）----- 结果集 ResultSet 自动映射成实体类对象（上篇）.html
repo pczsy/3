@@ -1,0 +1,1363 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Mybaits 源码解析 （八）----- 结果集 ResultSet 自动映射成实体类对象（上篇）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Mybaits 源码解析 （八）----- 结果集 ResultSet 自动映射成实体类对象（上篇）</center></div><div class='banquan'>原文出处:本文由博客园博主chen_hao提供。<br/>
+原文连接:https://www.cnblogs.com/java-chen-hao/p/11760777.html</div><br>
+    <p>上一篇文章我们已经将SQL发送到了数据库，并返回了ResultSet，接下来就是将结果集 ResultSet 自动映射成实体类对象。这样使用者就无需再手动操作结果集，并将数据填充到实体类对象中。这可大大降低开发的工作量，提高工作效率。</p>
+<h2 style="text-align: left;">映射结果入口</h2>
+<p>我们来看看上次看源码的位置</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt; query(Statement statement, ResultHandler resultHandler) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    PreparedStatement ps </span>=<span style="color: #000000;"> (PreparedStatement)statement;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">执行数据库SQL</span>
+<span style="color: #000000;">    ps.execute();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">进行resultSet自动映射</span>
+<strong>    <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>.resultSetHandler.handleResultSets(ps);</strong>
+}</span></code></pre>
+
+<p>结果集的处理入口方法是 handleResultSets</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> List&lt;Object&gt; handleResultSets(Statement stmt) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    
+    </span><span style="color: #0000ff;">final</span> List&lt;Object&gt; multipleResults = <span style="color: #0000ff;">new</span> ArrayList&lt;Object&gt;<span style="color: #000000;">();
+
+    </span><span style="color: #0000ff;">int</span> resultSetCount = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取第一个ResultSet,通常只会有一个</span>
+    ResultSetWrapper rsw =<span style="color: #000000;"> getFirstResultSet(stmt);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">从配置中读取对应的ResultMap，通常也只会有一个，设置多个是通过逗号来分隔，我们平时有这样设置吗？</span>
+    List&lt;ResultMap&gt; resultMaps =<span style="color: #000000;"> mappedStatement.getResultMaps();
+    </span><span style="color: #0000ff;">int</span> resultMapCount =<span style="color: #000000;"> resultMaps.size();
+    validateResultMapsCount(rsw, resultMapCount);
+
+    </span><span style="color: #0000ff;">while</span> (rsw != <span style="color: #0000ff;">null</span> &amp;&amp; resultMapCount &gt;<span style="color: #000000;"> resultSetCount) {
+        ResultMap resultMap </span>=<span style="color: #000000;"> resultMaps.get(resultSetCount);
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 处理结果集</span>
+        handleResultSet(rsw, resultMap, multipleResults, <span style="color: #0000ff;">null</span></strong><span style="color: #000000;"><strong>);</strong>
+        rsw </span>=<span style="color: #000000;"> getNextResultSet(stmt);
+        cleanUpAfterHandlingResultSet();
+        resultSetCount</span>++<span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 以下逻辑均与多结果集有关，就不分析了，代码省略</span>
+    String[] resultSets =<span style="color: #000000;"> mappedStatement.getResultSets();
+    </span><span style="color: #0000ff;">if</span> (resultSets != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {...}
+
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> collapseSingleResultList(multipleResults);
+}</span></code></pre>
+
+<p>在实际运行过程中，通常情况下一个Sql语句只返回一个结果集，对多个结果集的情况不做分析 。实际很少用到。继续看handleResultSet方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> handleResultSet(ResultSetWrapper rsw, ResultMap resultMap, List&lt;Object&gt; multipleResults, ResultMapping parentMapping) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (parentMapping != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            handleRowValues(rsw, resultMap, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">, RowBounds.DEFAULT, parentMapping);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">if</span> (resultHandler == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建默认的结果处理器</span>
+                DefaultResultHandler defaultResultHandler = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DefaultResultHandler(objectFactory);
+                </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 处理结果集的行数据</span>
+                handleRowValues(rsw, resultMap, defaultResultHandler, rowBounds, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将结果加入multipleResults中</span>
+</strong><span style="color: #000000;"><strong>                multipleResults.add(defaultResultHandler.getResultList());</strong>
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                handleRowValues(rsw, resultMap, resultHandler, rowBounds, </span><span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            }
+        }
+    } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+        closeResultSet(rsw.getResultSet());
+    }
+}</span></code></pre>
+
+<p>通过handleRowValues 映射ResultSet结果，最后映射的结果会在defaultResultHandler的ResultList集合中，最后将结果加入到multipleResults中就可以返回了，我们继续跟进<strong>handleRowValues这个核心方法</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> handleRowValues(ResultSetWrapper rsw, ResultMap resultMap, ResultHandler&lt;?&gt;<span style="color: #000000;"> resultHandler,
+        RowBounds rowBounds, ResultMapping parentMapping) </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (<strong>resultMap.hasNestedResultMaps()</strong>) {
+        ensureNoRowBounds();
+        checkResultHandler();
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 处理嵌套映射，关于嵌套映射我们下一篇文章单独分析</span>
+</strong><span style="color: #000000;"><strong>        handleRowValuesForNestedResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);</strong>
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 处理简单映射，本文先只分析简单映射</span>
+</strong><span style="color: #000000;"><strong>        handleRowValuesForSimpleResultMap(rsw, resultMap, resultHandler, rowBounds, parentMapping);</strong>
+    }
+}</span></code></pre>
+
+<p>我们可以通过resultMap.hasNestedResultMaps()知道查询语句是否是嵌套查询，如果resultMap中包含&lt;association&gt; 和 &lt;collection&gt;且其select属性不为空，则为嵌套查询，大家可以看看我第三篇文章关于<a href="https://www.cnblogs.com/java-chen-hao/p/11743442.html#_label2_1">解析 resultMap 节点</a>。本文先分析简单的映射</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> handleRowValuesForSimpleResultMap(ResultSetWrapper rsw, ResultMap resultMap,
+        ResultHandler</span>&lt;?&gt; resultHandler, RowBounds rowBounds, ResultMapping parentMapping) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    DefaultResultContext</span>&lt;Object&gt; resultContext = <span style="color: #0000ff;">new</span> DefaultResultContext&lt;Object&gt;<span style="color: #000000;">();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 根据 RowBounds 定位到指定行记录</span>
+<span style="color: #000000;">    skipRows(rsw.getResultSet(), rowBounds);
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> ResultSet是一个集合，很有可能我们查询的就是一个List，这就就每条数据遍历处理</span></strong>
+    <span style="color: #0000ff;">while</span> (shouldProcessMoreRows(resultContext, rowBounds) &amp;&amp;<span style="color: #000000;"> rsw.getResultSet().next()) {
+        ResultMap discriminatedResultMap </span>= resolveDiscriminatedResultMap(rsw.getResultSet(), resultMap, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 从 resultSet 中获取结果</span>
+        Object rowValue =<span style="color: #000000;"> getRowValue(rsw, discriminatedResultMap);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存储结果到resultHandler的ResultList，最后ResultList加入multipleResults中返回</span>
+</strong><span style="color: #000000;"><strong>        storeObject(resultHandler, resultContext, rowValue, parentMapping, rsw.getResultSet());</strong>
+    }
+}</span></code></pre>
+
+<p>我们查询的结果很有可能是一个集合，所以这里要遍历集合，每条结果单独进行映射，最后映射的结果加入到<strong>resultHandler的ResultList</strong></p>
+<p><strong>MyBatis 默认提供了 RowBounds 用于分页，从上面的代码中可以看出，这并非是一个高效的分页方式，是查出所有的数据，进行内存分页。除了使用 RowBounds，还可以使用一些第三方分页插件进行分页。</strong>我们后面文章来讲，我们来看关键代码getRowValue，处理一行数据</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> Object getRowValue(ResultSetWrapper rsw, ResultMap resultMap) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 这个Map是用来存储延迟加载的BountSql的，我们下面来看</span>
+    <span style="color: #0000ff;">final</span> ResultLoaderMap lazyLoader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResultLoaderMap();
+ </span></strong><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 创建实体类对象，比如 Employ 对象</span>
+    Object rowValue = createResultObject(rsw, resultMap, lazyLoader, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+    </span></strong><span style="color: #0000ff;">if</span> (rowValue != <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
+        </span><span style="color: #0000ff;">final</span> MetaObject metaObject =<span style="color: #000000;"> configuration.newMetaObject(rowValue);
+        </span><span style="color: #0000ff;">boolean</span> foundValues = <span style="color: #0000ff;">this</span><span style="color: #000000;">.useConstructorMappings;
+        
+        </span><strong><span style="color: #0000ff;">if</span> (shouldApplyAutomaticMappings(resultMap, <span style="color: #0000ff;">false</span><span style="color: #000000;">)) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">自动映射,结果集中有的column，但resultMap中并没有配置  </span>
+            foundValues = applyAutomaticMappings(rsw, resultMap, metaObject, <span style="color: #0000ff;">null</span>) ||<span style="color: #000000;"> foundValues;
+        }
+      </span></strong><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 根据 &lt;resultMap&gt; 节点中配置的映射关系进行映射</span>
+        foundValues = applyPropertyMappings(rsw, resultMap, metaObject, lazyLoader, <span style="color: #0000ff;">null</span>) ||</strong><span style="color: #000000;"><strong> foundValues;</strong>
+        foundValues </span>= lazyLoader.size() &gt; 0 ||<span style="color: #000000;"> foundValues;
+        rowValue </span>= foundValues || configuration.isReturnInstanceForEmptyRow() ? rowValue : <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> rowValue;
+}</span></code></pre>
+
+<p>重要的逻辑已经注释出来了。分别如下：</p>
+<ol>
+<li>创建实体类对象</li>
+<li>
+<p>自动映射结果集中有的column，但resultMap中并没有配置</p>
+</li>
+<li>
+<p>根据 &lt;resultMap&gt; 节点中配置的映射关系进行映射</p>
+</li>
+</ol>
+<h2 id="autoid-3-2-6">创建实体类对象</h2>
+<p>我们想将查询结果映射成实体类对象，第一步当然是要创建实体类对象了，下面我们来看一下 MyBatis 创建实体类对象的过程。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> Object createResultObject(ResultSetWrapper rsw, ResultMap resultMap, ResultLoaderMap lazyLoader, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    </span><span style="color: #0000ff;">this</span>.useConstructorMappings = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">final</span> List&lt;Class&lt;?&gt;&gt; constructorArgTypes = <span style="color: #0000ff;">new</span> ArrayList&lt;Class&lt;?&gt;&gt;<span style="color: #000000;">();
+    </span><span style="color: #0000ff;">final</span> List&lt;Object&gt; constructorArgs = <span style="color: #0000ff;">new</span> ArrayList&lt;Object&gt;<span style="color: #000000;">();
+
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 调用重载方法创建实体类对象</span>
+    Object resultObject =<span style="color: #000000;"> createResultObject(rsw, resultMap, constructorArgTypes, constructorArgs, columnPrefix);
+    </span></strong><span style="color: #0000ff;">if</span> (resultObject != <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
+        </span><span style="color: #0000ff;">final</span> List&lt;ResultMapping&gt; propertyMappings =<span style="color: #000000;"> resultMap.getPropertyResultMappings();
+        </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (ResultMapping propertyMapping : propertyMappings) {
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 如果开启了延迟加载，则为 resultObject 生成代理类，如果仅仅是配置的关联查询，没有开启延迟加载，是不会创建代理类</span></strong>
+            <span style="color: #0000ff;">if</span> (propertyMapping.getNestedQueryId() != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> propertyMapping.isLazy()) {
+                </span><strong><span style="color: #008000;">/*</span><span style="color: #008000;">
+                 * 创建代理类，默认使用 Javassist 框架生成代理类。
+                 * 由于实体类通常不会实现接口，所以不能使用 JDK 动态代理 API 为实体类生成代理。
+                 * 并且将lazyLoader传进去了
+                 </span><span style="color: #008000;">*/</span></strong><span style="color: #000000;">
+                resultObject </span>=<span style="color: #000000;"> configuration.getProxyFactory()
+                    .createProxy(resultObject, <strong>lazyLoader</strong>, configuration, objectFactory, constructorArgTypes, constructorArgs);
+                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            }
+        }
+    }
+    </span><span style="color: #0000ff;">this</span>.useConstructorMappings =<span style="color: #000000;">
+        resultObject </span>!= <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">constructorArgTypes.isEmpty();
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> resultObject;
+}</span></code></pre>
+
+<p>我们先来看&nbsp;createResultObject 重载方法的逻辑</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> Object createResultObject(ResultSetWrapper rsw, ResultMap resultMap, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt; constructorArgs, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    </span><span style="color: #0000ff;">final</span> Class&lt;?&gt; resultType =<span style="color: #000000;"> resultMap.getType();
+    </span><span style="color: #0000ff;">final</span> MetaClass metaType =<span style="color: #000000;"> MetaClass.forClass(resultType, reflectorFactory);
+    </span><span style="color: #0000ff;">final</span> List&lt;ResultMapping&gt; constructorMappings =<span style="color: #000000;"> resultMap.getConstructorResultMappings();
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (hasTypeHandlerForResultObject(rsw, resultType)) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> createPrimitiveResultObject(rsw, resultMap, columnPrefix);
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">constructorMappings.isEmpty()) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> createParameterizedResultObject(rsw, resultType, constructorMappings, constructorArgTypes, constructorArgs, columnPrefix);
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (resultType.isInterface() ||<span style="color: #000000;"> metaType.hasDefaultConstructor()) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通过 ObjectFactory 调用目标类的默认构造方法创建实例</span>
+     <strong>   <span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> objectFactory.create(resultType);</strong>
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (shouldApplyAutomaticMappings(resultMap, <span style="color: #0000ff;">false</span><span style="color: #000000;">)) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> createByConstructorSignature(rsw, resultType, constructorArgTypes, constructorArgs, columnPrefix);
+    }
+    </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ExecutorException("Do not know how to create an instance of " +<span style="color: #000000;"> resultType);
+}</span></code></pre>
+
+<p>一般情况下，MyBatis 会通过 ObjectFactory 调用默认构造方法创建实体类对象。看看是如何创建的</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> &lt;T&gt; T create(Class&lt;T&gt; type, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+    Class</span>&lt;?&gt; classToCreate = <span style="color: #0000ff;">this</span><span style="color: #000000;">.resolveInterface(type);
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.instantiateClass(classToCreate, constructorArgTypes, constructorArgs);
+}
+
+</span>&lt;T&gt; T instantiateClass(Class&lt;T&gt; type, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        Constructor constructor;
+        </span><span style="color: #0000ff;">if</span> (constructorArgTypes != <span style="color: #0000ff;">null</span> &amp;&amp; constructorArgs != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            constructor </span>= type.getDeclaredConstructor((Class[])constructorArgTypes.toArray(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Class[constructorArgTypes.size()]));
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">constructor.isAccessible()) {
+                constructor.setAccessible(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            }
+
+            </span><span style="color: #0000ff;">return</span> constructor.newInstance(constructorArgs.toArray(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Object[constructorArgs.size()]));
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">通过反射获取构造器</span>
+            constructor =<span style="color: #000000;"> type.getDeclaredConstructor();
+            </span></strong><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">constructor.isAccessible()) {
+                constructor.setAccessible(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            }
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">通过构造器来实例化对象</span>
+            <span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> constructor.newInstance();</strong>
+        }
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception var9) {
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ReflectionException("Error instantiating " + type + " with invalid types (" + argTypes + ") or values (" + argValues + "). Cause: " +<span style="color: #000000;"> var9, var9);
+    }
+}</span></code></pre>
+
+<p>很简单，就是通过反射创建对象</p>
+<h2 id="autoid-3-2-6">结果集映射</h2>
+<p>映射结果集分为两种情况：一种是自动映射(结果集有但在resultMap里没有配置的字段)，在实际应用中，都会使用自动映射，减少配置的工作。自动映射在Mybatis中也是默认开启的。第二种是映射ResultMap中配置的，我们分这两者映射来看</p>
+<h3>自动映射</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">boolean</span> applyAutomaticMappings(ResultSetWrapper rsw, ResultMap resultMap, MetaObject metaObject, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 获取 UnMappedColumnAutoMapping 列表</span>
+    List&lt;UnMappedColumnAutoMapping&gt; autoMapping =<span style="color: #000000;"> createAutomaticMappings(rsw, resultMap, metaObject, columnPrefix);
+    </span></strong><span style="color: #0000ff;">boolean</span> foundValues = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">autoMapping.isEmpty()) {
+        </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (UnMappedColumnAutoMapping mapping : autoMapping) {
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 通过 TypeHandler 从结果集中获取指定列的数据</span>
+            <span style="color: #0000ff;">final</span> Object value =<span style="color: #000000;"> mapping.typeHandler.getResult(rsw.getResultSet(), mapping.column);
+            </span></strong><span style="color: #0000ff;">if</span> (value != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                foundValues </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">if</span> (value != <span style="color: #0000ff;">null</span> || (configuration.isCallSettersOnNulls() &amp;&amp; !<span style="color: #000000;">mapping.primitive)) {
+                </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 通过元信息对象设置 value 到实体类对象的指定字段上</span>
+</strong><span style="color: #000000;"><strong>                metaObject.setValue(mapping.property, value);</strong>
+            }
+        }
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> foundValues;
+}</span></code></pre>
+
+<p>首先是获取 UnMappedColumnAutoMapping 集合，然后遍历该集合，并通过 TypeHandler 从结果集中获取数据，最后再将获取到的数据设置到实体类对象中。</p>
+<p>UnMappedColumnAutoMapping 用于记录未配置在 &lt;resultMap&gt; 节点中的映射关系。它的代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UnMappedColumnAutoMapping {
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> String column;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> String property;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> TypeHandler&lt;?&gt;<span style="color: #000000;"> typeHandler;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> primitive;
+
+    </span><span style="color: #0000ff;">public</span> UnMappedColumnAutoMapping(String column, String property, TypeHandler&lt;?&gt; typeHandler, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> primitive) {
+        </span><span style="color: #0000ff;">this</span>.column =<span style="color: #000000;"> column;
+        </span><span style="color: #0000ff;">this</span>.property =<span style="color: #000000;"> property;
+        </span><span style="color: #0000ff;">this</span>.typeHandler =<span style="color: #000000;"> typeHandler;
+        </span><span style="color: #0000ff;">this</span>.primitive =<span style="color: #000000;"> primitive;
+    }
+}</span></code></pre>
+
+<p>仅用于记录映射关系。下面看一下获取 UnMappedColumnAutoMapping 集合的过程，如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> List&lt;UnMappedColumnAutoMapping&gt; createAutomaticMappings(ResultSetWrapper rsw, ResultMap resultMap, MetaObject metaObject, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    </span><span style="color: #0000ff;">final</span> String mapKey = resultMap.getId() + ":" +<span style="color: #000000;"> columnPrefix;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从缓存中获取 UnMappedColumnAutoMapping 列表</span>
+    List&lt;UnMappedColumnAutoMapping&gt; autoMapping =<span style="color: #000000;"> autoMappingsCache.get(mapKey);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 缓存未命中</span>
+    <span style="color: #0000ff;">if</span> (autoMapping == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        autoMapping </span>= <span style="color: #0000ff;">new</span> ArrayList&lt;UnMappedColumnAutoMapping&gt;<span style="color: #000000;">();
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 从 ResultSetWrapper 中获取未配置在 &lt;resultMap&gt; 中的列名</span>
+        <span style="color: #0000ff;">final</span> List&lt;String&gt; unmappedColumnNames =<span style="color: #000000;"> rsw.getUnmappedColumnNames(resultMap, columnPrefix);
+        </span></strong><span style="color: #0000ff;">for</span><span style="color: #000000;"> (String columnName : unmappedColumnNames) {
+            String propertyName </span>=<span style="color: #000000;"> columnName;
+            </span><span style="color: #0000ff;">if</span> (columnPrefix != <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">columnPrefix.isEmpty()) {
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (columnName.toUpperCase(Locale.ENGLISH).startsWith(columnPrefix)) {
+                    propertyName </span>=<span style="color: #000000;"> columnName.substring(columnPrefix.length());
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                }
+            }
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 将下划线形式的列名转成驼峰式，比如 AUTHOR_NAME -&gt; authorName</span>
+            <span style="color: #0000ff;">final</span> String property =<span style="color: #000000;"> metaObject.findProperty(propertyName, configuration.isMapUnderscoreToCamelCase());
+            </span></strong><span style="color: #0000ff;">if</span> (property != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> metaObject.hasSetter(property)) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检测当前属性是否存在于 resultMap 中</span>
+                <span style="color: #0000ff;">if</span><span style="color: #000000;"> (resultMap.getMappedProperties().contains(property)) {
+                    </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取属性对于的类型</span>
+                <span style="color: #0000ff;">final</span> Class&lt;?&gt; propertyType =<span style="color: #000000;"> metaObject.getSetterType(property);
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (typeHandlerRegistry.hasTypeHandler(propertyType, rsw.getJdbcType(columnName))) {
+                    </span><span style="color: #0000ff;">final</span> TypeHandler&lt;?&gt; typeHandler =<span style="color: #000000;"> rsw.getTypeHandler(propertyType, columnName);
+                    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 封装上面获取到的信息到 UnMappedColumnAutoMapping 对象中</span>
+                    autoMapping.add(<span style="color: #0000ff;">new</span></strong><span style="color: #000000;"><strong> UnMappedColumnAutoMapping(columnName, property, typeHandler, propertyType.isPrimitive()));</strong>
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    configuration.getAutoMappingUnknownColumnBehavior()
+                        .doAction(mappedStatement, columnName, property, propertyType);
+                }
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                configuration.getAutoMappingUnknownColumnBehavior()
+                    .doAction(mappedStatement, columnName, (property </span>!= <span style="color: #0000ff;">null</span>) ? property : propertyName, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            }
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 写入缓存</span>
+<span style="color: #000000;">        autoMappingsCache.put(mapKey, autoMapping);
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> autoMapping;
+}</span></code></pre>
+
+<p>先来看看从 ResultSetWrapper 中获取未配置在 &lt;resultMap&gt; 中的列名</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> List&lt;String&gt; getUnmappedColumnNames(ResultMap resultMap, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    List</span>&lt;String&gt; unMappedColumnNames =<span style="color: #000000;"> unMappedColumnNamesMap.get(getMapKey(resultMap, columnPrefix));
+    </span><span style="color: #0000ff;">if</span> (unMappedColumnNames == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 加载已映射与未映射列名</span>
+<span style="color: #000000;">        loadMappedAndUnmappedColumnNames(resultMap, columnPrefix);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取未映射列名</span>
+        unMappedColumnNames =<span style="color: #000000;"> unMappedColumnNamesMap.get(getMapKey(resultMap, columnPrefix));
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> unMappedColumnNames;
+}
+
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> loadMappedAndUnmappedColumnNames(ResultMap resultMap, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    List</span>&lt;String&gt; mappedColumnNames = <span style="color: #0000ff;">new</span> ArrayList&lt;String&gt;<span style="color: #000000;">();
+    List</span>&lt;String&gt; unmappedColumnNames = <span style="color: #0000ff;">new</span> ArrayList&lt;String&gt;<span style="color: #000000;">();
+    </span><span style="color: #0000ff;">final</span> String upperColumnPrefix = columnPrefix == <span style="color: #0000ff;">null</span> ? <span style="color: #0000ff;">null</span><span style="color: #000000;"> : columnPrefix.toUpperCase(Locale.ENGLISH);
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 获取 &lt;resultMap&gt; 中配置的所有列名</span></strong>
+    <span style="color: #0000ff;">final</span> Set&lt;String&gt; mappedColumns =<span style="color: #000000;"> prependPrefixes(resultMap.getMappedColumns(), upperColumnPrefix);
+    </span><strong><span style="color: #008000;">/*</span><span style="color: #008000;">
+     * 遍历 columnNames，columnNames 是 ResultSetWrapper 的成员变量，保存了当前结果集中的所有列名
+     * 这里是通过ResultSet中的所有列名来获取没有在resultMap中配置的列名
+     * 意思是后面进行自动赋值时，只赋值查出来的列名
+     </span><span style="color: #008000;">*/</span></strong>
+    <span style="color: #0000ff;">for</span><span style="color: #000000;"> (String columnName : columnNames) {
+        </span><span style="color: #0000ff;">final</span> String upperColumnName =<span style="color: #000000;"> columnName.toUpperCase(Locale.ENGLISH);
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 检测已映射列名集合中是否包含当前列名</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> (mappedColumns.contains(upperColumnName)) {
+            mappedColumnNames.add(upperColumnName);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将列名存入 unmappedColumnNames 中</span>
+</strong><span style="color: #000000;"><strong>            unmappedColumnNames.add(columnName);
+        }</strong>
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 缓存列名集合</span>
+<span style="color: #000000;">    mappedColumnNamesMap.put(getMapKey(resultMap, columnPrefix), mappedColumnNames);
+    unMappedColumnNamesMap.put(getMapKey(resultMap, columnPrefix), unmappedColumnNames);
+}</span></code></pre>
+
+<p>首先是从当前数据集中获取列名集合，然后获取 &lt;resultMap&gt; 中配置的列名集合。之后遍历数据集中的列名集合，并判断列名是否被配置在了 &lt;resultMap&gt; 节点中。若配置了，则表明该列名已有映射关系，此时该列名存入 mappedColumnNames 中。若未配置，则表明列名未与实体类的某个字段形成映射关系，此时该列名存入 unmappedColumnNames 中。</p>
+<h3>映射result节点</h3>
+<p>接下来分析一下 MyBatis 是如何将结果集中的数据填充到已配置ResultMap映射的实体类字段中的。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">boolean</span> applyPropertyMappings(ResultSetWrapper rsw, ResultMap resultMap, MetaObject metaObject,ResultLoaderMap lazyLoader, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取已映射的列名</span>
+    <span style="color: #0000ff;">final</span> List&lt;String&gt; mappedColumnNames =<span style="color: #000000;"> rsw.getMappedColumnNames(resultMap, columnPrefix);
+    </span><span style="color: #0000ff;">boolean</span> foundValues = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 获取 ResultMapping集合</span>
+    <span style="color: #0000ff;">final</span> List&lt;ResultMapping&gt; propertyMappings =<span style="color: #000000;"> resultMap.getPropertyResultMappings();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 所有的ResultMapping遍历进行映射</span>
+    <span style="color: #0000ff;">for</span></strong><span style="color: #000000;"><strong> (ResultMapping propertyMapping : propertyMappings) {</strong>
+        String column </span>=<span style="color: #000000;"> prependPrefix(propertyMapping.getColumn(), columnPrefix);
+        </span><span style="color: #0000ff;">if</span> (propertyMapping.getNestedResultMapId() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            column </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (propertyMapping.isCompositeResult()
+            </span>|| (column != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> mappedColumnNames.contains(column.toUpperCase(Locale.ENGLISH)))
+            </span>|| propertyMapping.getResultSet() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 从结果集中获取指定列的数据</span>
+            Object value =<span style="color: #000000;"> getPropertyMappingValue(rsw.getResultSet(), metaObject, propertyMapping, lazyLoader, columnPrefix);
+            
+            </span></strong><span style="color: #0000ff;">final</span> String property =<span style="color: #000000;"> propertyMapping.getProperty();
+            </span><span style="color: #0000ff;">if</span> (property == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 若获取到的值为 DEFERED，则延迟加载该值</span>
+            } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (value ==<span style="color: #000000;"> DEFERED) {
+                foundValues </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+            }
+            </span></strong><span style="color: #0000ff;">if</span> (value != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                foundValues </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">if</span> (value != <span style="color: #0000ff;">null</span> || (configuration.isCallSettersOnNulls() &amp;&amp; !<span style="color: #000000;">metaObject.getSetterType(property).isPrimitive())) {
+                </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 将获取到的值设置到实体类对象中</span>
+</strong><span style="color: #000000;"><strong>                metaObject.setValue(property, value);</strong>
+            }
+        }
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> foundValues;
+}
+
+</span><span style="color: #0000ff;">private</span> Object getPropertyMappingValue(ResultSet rs, MetaObject metaResultObject, ResultMapping propertyMapping,ResultLoaderMap lazyLoader, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    </span><span style="color: #0000ff;">if</span> (propertyMapping.getNestedQueryId() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 获取关联查询结果</span>
+        <span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> getNestedQueryMappingValue(rs, metaResultObject, propertyMapping, lazyLoader, columnPrefix);</strong>
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (propertyMapping.getResultSet() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        addPendingChildRelation(rs, metaResultObject, propertyMapping);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> DEFERED;
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">final</span> TypeHandler&lt;?&gt; typeHandler =<span style="color: #000000;"> propertyMapping.getTypeHandler();
+        </span><span style="color: #0000ff;">final</span> String column =<span style="color: #000000;"> prependPrefix(propertyMapping.getColumn(), columnPrefix);
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 从 ResultSet 中获取指定列的值</span>
+        <span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> typeHandler.getResult(rs, column);</strong>
+    }
+}</span></code></pre>
+
+<p>从 ResultMap 获取映射对象 ResultMapping 集合。然后遍历 ResultMapping 集合，再此过程中调用 getPropertyMappingValue 获取指定指定列的数据，最后将获取到的数据设置到实体类对象中。</p>
+<p>这里和自动映射有一点不同，<strong>自动映射是从直接从ResultSet&nbsp;中获取指定列的值，但是通过ResultMap多了一种情况，那就是关联查询，也可以说是延迟查询，此关联查询如果没有配置延迟加载，那么就要获取关联查询的值，如果配置了延迟加载，则返回DEFERED</strong></p>
+<h2 id="autoid-3-2-6">关联查询与延迟加载</h2>
+<p>我们的查询经常会碰到一对一，一对多的情况，通常我们可以用一条 SQL 进行多表查询完成任务。当然我们也可以使用关联查询，将一条 SQL 拆成两条去完成查询任务。MyBatis 提供了两个标签用于支持一对一和一对多的使用场景，分别是 &lt;association&gt; 和 &lt;collection&gt;。下面我来演示一下如何使用 &lt;association&gt; 完成一对一的关联查询。先来看看实体类的定义：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">/**</span><span style="color: #008000;"> 作者类 </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Author {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer id;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String name;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer age;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer sex;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String email;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 省略 getter/setter</span>
+<span style="color: #000000;">}
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;"> 文章类 </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Article {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer id;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String title;
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 一对一关系</span>
+    <span style="color: #0000ff;">private</span><span style="color: #000000;"> Author author;
+    </span></strong><span style="color: #0000ff;">private</span><span style="color: #000000;"> String content;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Date createTime;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 省略 getter/setter</span>
+}</code></pre>
+
+<p>接下来看一下 Mapper 接口与映射文件的定义。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> ArticleDao {
+    Article findOne(@Param(</span>"id") <span style="color: #0000ff;">int</span><span style="color: #000000;"> id);
+    Author findAuthor(@Param(</span>"id") <span style="color: #0000ff;">int</span><span style="color: #000000;"> authorId);
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code>&lt;mapper namespace="xyz.coolblog.dao.ArticleDao"&gt;
+    &lt;resultMap id="articleResult" type="Article"&gt;
+        &lt;result property="createTime" column="create_time"/&gt;
+    <strong>    <span style="color: #008000;">//</span><span style="color: #008000;">column 属性值仅包含列信息，参数类型为 author_id 列对应的类型，这里为 Integer
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">意思是将author_id做为参数传给关联的查询语句findAuthor</span>
+        &lt;association property="author" column="author_id" javaType="Author" select="findAuthor"/&gt;</strong>
+    &lt;/resultMap&gt;
+
+    &lt;select id="findOne" resultMap="articleResult"&gt;<span style="color: #000000;">
+        SELECT
+            id, author_id, title, content, create_time
+        FROM
+            article
+        WHERE
+            id </span>=<span style="color: #000000;"> #{id}
+    </span>&lt;/select&gt;
+
+    &lt;select id="findAuthor" resultType="Author"&gt;<span style="color: #000000;">
+        SELECT
+            id, name, age, sex, email
+        FROM
+            author
+        WHERE
+            id </span>=<span style="color: #000000;"> #{id}
+    </span>&lt;/select&gt;
+&lt;/mapper&gt;</code></pre>
+
+<p><strong>开启延迟加载</strong></p>
+<src class="cnblogs_code">
+<pre><code>&lt;!-- 开启延迟加载 --&gt;
+&lt;setting name="lazyLoadingEnabled" value="true"/&gt;
+&lt;!-- 关闭积极的加载策略 --&gt;
+&lt;setting name="aggressiveLazyLoading" value="false"/&gt;
+&lt;!-- 延迟加载的触发方法 --&gt;
+&lt;setting name="lazyLoadTriggerMethods" value="equals,hashCode"/&gt;</code></pre>
+
+<p><strong>此时association节点使用了select指向另外一个查询语句，并且将&nbsp;author_id作为参数传给关联查询的语句</strong></p>
+<p><strong>此时如果不开启延迟加载，那么会生成两条SQL，先执行findOne，然后通过findOne的返回结果做为参数，执行findAuthor语句，并将结果设置到</strong><strong>author属性</strong></p>
+<p><strong>如果开启了延迟加载呢？那么只会执行findOne一条SQL，当调用article.getAuthor()方法时，才会去执行findAuthor进行查询，我们下面来看看是如何实现的</strong></p>
+<p>我们还是要从上面映射result节点说起</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> Object getPropertyMappingValue(ResultSet rs, MetaObject metaResultObject, ResultMapping propertyMapping,ResultLoaderMap lazyLoader, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    </span><strong><span style="color: #0000ff;">if</span> (propertyMapping.getNestedQueryId() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取关联查询结果</span>
+        <span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> getNestedQueryMappingValue(rs, metaResultObject, propertyMapping, lazyLoader, columnPrefix);</strong>
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (propertyMapping.getResultSet() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        addPendingChildRelation(rs, metaResultObject, propertyMapping);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> DEFERED;
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">final</span> TypeHandler&lt;?&gt; typeHandler =<span style="color: #000000;"> propertyMapping.getTypeHandler();
+        </span><span style="color: #0000ff;">final</span> String column =<span style="color: #000000;"> prependPrefix(propertyMapping.getColumn(), columnPrefix);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从 ResultSet 中获取指定列的值</span>
+        <span style="color: #0000ff;">return</span><span style="color: #000000;"> typeHandler.getResult(rs, column);
+    }
+}</span></code></pre>
+
+<p>我们看到，如果ResultMapping设置了关联查询，也就是<strong>association或者collection配置了select，那么就要通过关联语句来查询结果，并设置到实体类对象的属性中了。如果没配置select，那就简单，直接从ResultSet中通过列名获取结果。</strong>那我们来看看getNestedQueryMappingValue</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> Object getNestedQueryMappingValue(ResultSet rs, MetaObject metaResultObject, ResultMapping propertyMapping, ResultLoaderMap lazyLoader, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取关联查询 id，id = 命名空间 + &lt;association&gt; 的 select 属性值</span>
+    <span style="color: #0000ff;">final</span> String nestedQueryId =<span style="color: #000000;"> propertyMapping.getNestedQueryId();
+    </span><span style="color: #0000ff;">final</span> String property =<span style="color: #000000;"> propertyMapping.getProperty();
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 根据 nestedQueryId 获取关联的 MappedStatement</span>
+    <span style="color: #0000ff;">final</span> MappedStatement nestedQuery =<span style="color: #000000;"> configuration.getMappedStatement(nestedQueryId);
+    </span></strong><span style="color: #008000;">//</span><span style="color: #008000;">获取关联查询MappedStatement的参数类型</span>
+    <span style="color: #0000ff;">final</span> Class&lt;?&gt; nestedQueryParameterType =<span style="color: #000000;"> nestedQuery.getParameterMap().getType();
+    </span><strong><span style="color: #008000;">/*</span><span style="color: #008000;">
+     * 生成关联查询语句参数对象，参数类型可能是一些包装类，Map 或是自定义的实体类，
+     * 具体类型取决于配置信息。以上面的例子为基础，下面分析不同配置对参数类型的影响：
+     *   1. &lt;association column="author_id"&gt; 
+     *      column 属性值仅包含列信息，参数类型为 author_id 列对应的类型，这里为 Integer
+     * 
+     *   2. &lt;association column="{id=author_id, name=title}"&gt; 
+     *      column 属性值包含了属性名与列名的复合信息，MyBatis 会根据列名从 ResultSet 中
+     *      获取列数据，并将列数据设置到实体类对象的指定属性中，比如：
+     *          Author{id=1, name="陈浩"}
+     *      或是以键值对 &lt;属性, 列数据&gt; 的形式，将两者存入 Map 中。比如：
+     *          {"id": 1, "name": "陈浩"}
+     *
+     *      至于参数类型到底为实体类还是 Map，取决于关联查询语句的配置信息。比如：
+     *          &lt;select id="findAuthor"&gt;  -&gt;  参数类型为 Map
+     *          &lt;select id="findAuthor" parameterType="Author"&gt; -&gt; 参数类型为实体类
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">final</span> Object nestedQueryParameterObject =</strong><span style="color: #000000;"><strong> prepareParameterForNestedQuery(rs, propertyMapping, nestedQueryParameterType, columnPrefix);</strong>
+    Object value </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> (nestedQueryParameterObject != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 获取 BoundSql，这里设置了运行时参数，所以这里是能直接执行的</span>
+        <span style="color: #0000ff;">final</span> BoundSql nestedBoundSql =<span style="color: #000000;"> nestedQuery.getBoundSql(nestedQueryParameterObject);
+        </span></strong><span style="color: #0000ff;">final</span> CacheKey key =<span style="color: #000000;"> executor.createCacheKey(nestedQuery, nestedQueryParameterObject, RowBounds.DEFAULT, nestedBoundSql);
+        </span><span style="color: #0000ff;">final</span> Class&lt;?&gt; targetType =<span style="color: #000000;"> propertyMapping.getJavaType();
+
+        </span><strong><span style="color: #0000ff;">if</span></strong><span style="color: #000000;"><strong> (executor.isCached(nestedQuery, key)) {</strong>
+            executor.deferLoad(nestedQuery, metaResultObject, property, key, targetType);
+            value </span>=<span style="color: #000000;"> DEFERED;
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 创建结果加载器</span>
+            <span style="color: #0000ff;">final</span> ResultLoader resultLoader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResultLoader(configuration, executor, nestedQuery, nestedQueryParameterObject, targetType, key, nestedBoundSql);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检测当前属性是否需要延迟加载</span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;"> (propertyMapping.isLazy()) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 添加延迟加载相关的对象到 loaderMap 集合中</span>
+<span style="color: #000000;">                lazyLoader.addLoader(property, metaResultObject, resultLoader);
+                value </span>=<span style="color: #000000;"> DEFERED;
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 直接执行关联查询
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果只是配置关联查询，但是没有开启懒加载，则直接执行关联查询，并返回结果，设置到实体类对象的属性中</span>
+                value =</strong><span style="color: #000000;"><strong> resultLoader.loadResult();
+            }</strong>
+        }
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value;
+}</span></code></pre>
+
+<p>下面先来总结一下该方法的逻辑：</p>
+<ol>
+<li>根据 nestedQueryId 获取 MappedStatement</li>
+<li>生成参数对象</li>
+<li>获取 BoundSql</li>
+<li>创建结果加载器 ResultLoader</li>
+<li>检测当前属性是否需要进行延迟加载，若需要，则添加延迟加载相关的对象到 loaderMap 集合中</li>
+<li>如不需要延迟加载，则直接通过结果加载器加载结果</li>
+</ol>
+<p>以上流程中针对一级缓存的检查是十分有必要的，若缓存命中，可直接取用结果，无需再在执行关联查询 SQL。若缓存未命中，接下来就要按部就班执行延迟加载相关逻辑</p>
+<p>我们来看一下添加延迟加载相关对象到 loaderMap 集合中的逻辑，如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> addLoader(String property, MetaObject metaResultObject, ResultLoader resultLoader) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将属性名转为大写</span>
+    String upperFirst =<span style="color: #000000;"> getUppercaseFirstProperty(property);
+    </span><span style="color: #0000ff;">if</span> (!upperFirst.equalsIgnoreCase(property) &amp;&amp;<span style="color: #000000;"> loaderMap.containsKey(upperFirst)) {
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ExecutorException("Nested lazy loaded result property '" + property +
+                                    "' for query id '" + resultLoader.mappedStatement.getId() +
+                                    " already exists in the result map. The leftmost property of all lazy loaded properties must be unique within a result map."<span style="color: #000000;">);
+    }
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 创建 LoadPair，并将 &lt;大写属性名，LoadPair对象&gt; 键值对添加到 loaderMap 中</span>
+    loaderMap.put(upperFirst, <span style="color: #0000ff;">new</span></strong><span style="color: #000000;"><strong> LoadPair(property, metaResultObject, resultLoader));</strong>
+}</span></code></pre>
+
+<p>我们再来回顾一下文章开始的创建实体类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> Object createResultObject(ResultSetWrapper rsw, ResultMap resultMap, ResultLoaderMap lazyLoader, String columnPrefix) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    </span><span style="color: #0000ff;">this</span>.useConstructorMappings = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">final</span> List&lt;Class&lt;?&gt;&gt; constructorArgTypes = <span style="color: #0000ff;">new</span> ArrayList&lt;Class&lt;?&gt;&gt;<span style="color: #000000;">();
+    </span><span style="color: #0000ff;">final</span> List&lt;Object&gt; constructorArgs = <span style="color: #0000ff;">new</span> ArrayList&lt;Object&gt;<span style="color: #000000;">();
+
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 调用重载方法创建实体类对象</span>
+    Object resultObject =<span style="color: #000000;"> createResultObject(rsw, resultMap, constructorArgTypes, constructorArgs, columnPrefix);
+    </span></strong><span style="color: #0000ff;">if</span> (resultObject != <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">hasTypeHandlerForResultObject(rsw, resultMap.getType())) {
+        </span><span style="color: #0000ff;">final</span> List&lt;ResultMapping&gt; propertyMappings =<span style="color: #000000;"> resultMap.getPropertyResultMappings();
+        </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (ResultMapping propertyMapping : propertyMappings) {
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 如果开启了延迟加载，则为 resultObject 生成代理类，如果仅仅是配置的关联查询，没有开启延迟加载，是不会创建代理类</span>
+            <span style="color: #0000ff;">if</span> (propertyMapping.getNestedQueryId() != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> propertyMapping.isLazy()) {
+                </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+                 * 创建代理类，默认使用 Javassist 框架生成代理类。
+                 * 由于实体类通常不会实现接口，所以不能使用 JDK 动态代理 API 为实体类生成代理。
+                 * 并且将lazyLoader传进去了
+                 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+                resultObject </span>=<span style="color: #000000;"> configuration.getProxyFactory()
+                    .createProxy(resultObject, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
+                </span></strong><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            }
+        }
+    }
+    </span><span style="color: #0000ff;">this</span>.useConstructorMappings =<span style="color: #000000;">
+        resultObject </span>!= <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">constructorArgTypes.isEmpty();
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> resultObject;
+}</span></code></pre>
+
+<p>如果开启了延迟加载，并且有关联查询，此时是要创建一个代理对象的，<strong>将上面存放BondSql的lazyLoader和创建的目标对象</strong><strong>resultObject 作为参数传进去。</strong></p>
+<p>Mybatis提供了两个实现类CglibProxyFactory和JavassistProxyFactory，分别基于org.javassist:javassist和cglib:cglib进行实现。createProxy方法就是实现懒加载逻辑的核心方法，也是我们分析的目标。</p>
+<h3>CglibProxyFactory</h3>
+<p>CglibProxyFactory基于cglib动态代理模式，<strong>通过继承父类的方式生成动态代理类。</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">public</span> Object createProxy(Object target, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> EnhancedResultObjectProxyImpl.createProxy(target, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
+}
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Object createProxy(Object target, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+  </span><span style="color: #0000ff;">final</span> Class&lt;?&gt; type =<span style="color: #000000;"> target.getClass();
+  EnhancedResultObjectProxyImpl callback </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> EnhancedResultObjectProxyImpl(type, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">由CglibProxyFactory生成对象</span>
+  Object enhanced =<span style="color: #000000;"> crateProxy(type, callback, constructorArgTypes, constructorArgs);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">复制属性</span>
+<span style="color: #000000;">  PropertyCopier.copyBeanProperties(type, target, enhanced);
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> enhanced;
+}
+
+</span><span style="color: #0000ff;">static</span> Object crateProxy(Class&lt;?&gt; type, Callback callback, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+  Enhancer enhancer </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Enhancer();
+  enhancer.setCallback(callback);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">设置父类对象</span>
+<span style="color: #000000;">  enhancer.setSuperclass(type);
+  </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+    type.getDeclaredMethod(WRITE_REPLACE_METHOD);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ObjectOutputStream will call writeReplace of objects returned by writeReplace</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (log.isDebugEnabled()) {
+      log.debug(WRITE_REPLACE_METHOD </span>+ " method was found on bean " + type + ", make sure it returns this"<span style="color: #000000;">);
+    }
+  } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (NoSuchMethodException e) {
+    enhancer.setInterfaces(</span><span style="color: #0000ff;">new</span> Class[]{WriteReplaceInterface.<span style="color: #0000ff;">class</span><span style="color: #000000;">});
+  } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SecurityException e) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> nothing to do here</span>
+<span style="color: #000000;">  }
+  Object enhanced;
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (constructorArgTypes.isEmpty()) {
+    enhanced </span>=<span style="color: #000000;"> enhancer.create();
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    Class</span>&lt;?&gt;[] typesArray = constructorArgTypes.toArray(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Class[constructorArgTypes.size()]);
+    Object[] valuesArray </span>= constructorArgs.toArray(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Object[constructorArgs.size()]);
+    enhanced </span>=<span style="color: #000000;"> enhancer.create(typesArray, valuesArray);
+  }
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> enhanced;
+}</span></code></pre>
+
+<p>&nbsp;可以看到，初始化Enhancer，并调用构造方法，生成对象。从<code>enhancer.setSuperclass(type);</code>也能看出cglib采用的是继承父类的方式。</p>
+<p><strong>EnhancedResultObjectProxyImpl</strong></p>
+<p>EnhancedResultObjectProxyImpl实现了MethodInterceptor接口，此接口是Cglib拦截目标对象方法的入口，对目标对象方法的调用都会通过此接口的intercept的方法。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">public</span> Object intercept(Object enhanced, Method method, Object[] args, MethodProxy methodProxy) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+  </span><span style="color: #0000ff;">final</span> String methodName =<span style="color: #000000;"> method.getName();
+  </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">synchronized</span><span style="color: #000000;"> (lazyLoader) {
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (WRITE_REPLACE_METHOD.equals(methodName)) {
+        Object original;
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (constructorArgTypes.isEmpty()) {
+          original </span>=<span style="color: #000000;"> objectFactory.create(type);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+          original </span>=<span style="color: #000000;"> objectFactory.create(type, constructorArgTypes, constructorArgs);
+        }
+        PropertyCopier.copyBeanProperties(type, enhanced, original);
+        </span><span style="color: #0000ff;">if</span> (lazyLoader.size() &gt; 0<span style="color: #000000;">) {
+          </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> CglibSerialStateHolder(original, lazyLoader.getProperties(), objectFactory, constructorArgTypes, constructorArgs);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+          </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> original;
+        }
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (lazyLoader.size() &gt; 0 &amp;&amp; !<span style="color: #000000;">FINALIZE_METHOD.equals(methodName)) {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+         * 如果 aggressive 为 true，或触发方法（比如 equals，hashCode 等）被调用，
+         * 则加载所有的所有延迟加载的数据
+         </span><span style="color: #008000;">*/</span>
+          <span style="color: #0000ff;">if</span> (aggressive ||<span style="color: #000000;"> lazyLoadTriggerMethods.contains(methodName)) {
+            lazyLoader.loadAll();
+          } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (PropertyNamer.isSetter(methodName)) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果使用者显示调用了 setter 方法，则将相应的延迟加载类从 loaderMap 中移除</span>
+            <span style="color: #0000ff;">final</span> String property =<span style="color: #000000;"> PropertyNamer.methodToProperty(methodName);
+            lazyLoader.remove(property);
+          </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 检测使用者是否调用 getter 方法</span>
+          } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (PropertyNamer.isGetter(methodName)) {
+            </span><span style="color: #0000ff;">final</span> String property =<span style="color: #000000;"> PropertyNamer.methodToProperty(methodName);
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (lazyLoader.hasLoader(property)) {
+              </span><span style="color: #008000;">//</span><span style="color: #008000;"> 执行延迟加载逻辑</span>
+</strong><span style="color: #000000;"><strong>              lazyLoader.load(property);
+            }
+          }</strong>
+        }
+      }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">执行原方法（即父类方法）</span>
+    <span style="color: #0000ff;">return</span><span style="color: #000000;"> methodProxy.invokeSuper(enhanced, args);
+  } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable t) {
+    </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> ExceptionUtil.unwrapThrowable(t);
+  }
+}</span></code></pre>
+
+<p>完整的代码</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('3509af48-2a0a-42fa-9aff-9fe3aa312fba')"><img id="code_img_closed_3509af48-2a0a-42fa-9aff-9fe3aa312fba" class="code_img_closed" src="./images/Mybaits 源码解析 （八）----- 结果集 ResultSet 自动映射成实体类对象（上篇）0.png" alt="" /><img id="code_img_opened_3509af48-2a0a-42fa-9aff-9fe3aa312fba" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('3509af48-2a0a-42fa-9aff-9fe3aa312fba',event)" src="./images/Mybaits 源码解析 （八）----- 结果集 ResultSet 自动映射成实体类对象（上篇）1.png" alt="" />
+<src id="cnblogs_code_open_3509af48-2a0a-42fa-9aff-9fe3aa312fba" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.reflect.Method;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Map;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Properties;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Set;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> net.sf.cglib.proxy.Callback;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> net.sf.cglib.proxy.Enhancer;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> net.sf.cglib.proxy.MethodInterceptor;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> net.sf.cglib.proxy.MethodProxy;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.AbstractEnhancedDeserializationProxy;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.AbstractSerialStateHolder;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.ProxyFactory;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.ResultLoaderMap;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.WriteReplaceInterface;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.io.Resources;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.logging.Log;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.logging.LogFactory;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.ExceptionUtil;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.factory.ObjectFactory;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.property.PropertyCopier;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.property.PropertyNamer;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.Configuration;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * cglib代理工厂类，实现延迟加载属性
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> Clinton Begin
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> CglibProxyFactory <span style="color: #0000ff;">implements</span><span style="color: #000000;"> ProxyFactory {
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * finalize方法
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String FINALIZE_METHOD = "finalize"<span style="color: #000000;">;
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * writeReplace方法
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String WRITE_REPLACE_METHOD = "writeReplace"<span style="color: #000000;">;
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 加载Enhancer，这个是Cglib的入口
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">public</span><span style="color: #000000;"> CglibProxyFactory() {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+      Resources.classForName(</span>"net.sf.cglib.proxy.Enhancer"<span style="color: #000000;">);
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable e) {
+      </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> IllegalStateException("Cannot enable lazy loading because CGLIB is not available. Add CGLIB to your classpath."<span style="color: #000000;">, e);
+    }
+  }
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 创建代理对象
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> target 目标对象
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> lazyLoader 延迟加载器
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> configuration 配置类
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> objectFactory 对象工厂
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgTypes 构造函数类型[]
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgs  构造函数的值[]
+   * </span><span style="color: #808080;">@return</span>
+   <span style="color: #008000;">*/</span><span style="color: #000000;">
+  @Override
+  </span><span style="color: #0000ff;">public</span> Object createProxy(Object target, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> EnhancedResultObjectProxyImpl.createProxy(target, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
+  }
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 创建一个反序列化代理
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> target 目标
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> unloadedProperties
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> objectFactory 对象工厂
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgTypes 构造函数类型数组
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgs 构造函数值
+   * </span><span style="color: #808080;">@return</span>
+   <span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">public</span> Object createDeserializationProxy(Object target, Map&lt;String, ResultLoaderMap.LoadPair&gt; unloadedProperties, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> EnhancedDeserializationProxyImpl.createProxy(target, unloadedProperties, objectFactory, constructorArgTypes, constructorArgs);
+  }
+
+  @Override
+  </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setProperties(Properties properties) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Not Implemented</span>
+<span style="color: #000000;">  }
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 返回代理对象， 这个代理对象在调用任何方法都会调用本类的intercept方法
+   * Enhancer 认为这个就是自定义类的工厂，比如这个类需要实现什么接口
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> type 目标类型
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> callback 结果对象代理实现类，当中有invoke回调方法
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgTypes 构造函数类型数组
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgs 构造函数对应字段的值数组
+   * </span><span style="color: #808080;">@return</span>
+   <span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">static</span> Object crateProxy(Class&lt;?&gt; type, Callback callback, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> enhancer 配置调节代理对象的一些参数
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置回调方法
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置超类
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">判断当传入目标类型是否有writeReplace方法，没有则配置一个有writeReplace方法的接口（序列化写出）</span>
+    Enhancer enhancer = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Enhancer();
+    enhancer.setCallback(callback);
+    enhancer.setSuperclass(type);
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+      type.getDeclaredMethod(WRITE_REPLACE_METHOD);
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> ObjectOutputStream will call writeReplace of objects returned by writeReplace</span>
+      <span style="color: #0000ff;">if</span><span style="color: #000000;"> (LogHolder.log.isDebugEnabled()) {
+        LogHolder.log.debug(WRITE_REPLACE_METHOD </span>+ " method was found on bean " + type + ", make sure it returns this"<span style="color: #000000;">);
+      }
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (NoSuchMethodException e) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">这个enhancer增加一个WriteReplaceInterface接口</span>
+      enhancer.setInterfaces(<span style="color: #0000ff;">new</span> Class[]{WriteReplaceInterface.<span style="color: #0000ff;">class</span><span style="color: #000000;">});
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SecurityException e) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> nothing to do here</span>
+<span style="color: #000000;">    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">根据构造函数创建一个对象
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">无参构造
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">有参构造</span>
+<span style="color: #000000;">    Object enhanced;
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (constructorArgTypes.isEmpty()) {
+      enhanced </span>=<span style="color: #000000;"> enhancer.create();
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      Class</span>&lt;?&gt;[] typesArray = constructorArgTypes.toArray(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Class[constructorArgTypes.size()]);
+      Object[] valuesArray </span>= constructorArgs.toArray(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Object[constructorArgs.size()]);
+      enhanced </span>=<span style="color: #000000;"> enhancer.create(typesArray, valuesArray);
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> enhanced;
+  }
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 结果对象代理实现类，
+   * 它实现方法拦截器的intercept方法
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> EnhancedResultObjectProxyImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> MethodInterceptor {
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> Class&lt;?&gt;<span style="color: #000000;"> type;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> ResultLoaderMap lazyLoader;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> aggressive;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> Set&lt;String&gt;<span style="color: #000000;"> lazyLoadTriggerMethods;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> ObjectFactory objectFactory;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> List&lt;Class&lt;?&gt;&gt;<span style="color: #000000;"> constructorArgTypes;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> List&lt;Object&gt;<span style="color: #000000;"> constructorArgs;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 代理对象创建
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> type 目标class类型
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> lazyLoader 延迟加载器
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> configuration 配置信息
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> objectFactory 对象工厂
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgTypes 构造函数类型数组
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgs 构造函数值数组
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> EnhancedResultObjectProxyImpl(Class&lt;?&gt; type, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #0000ff;">this</span>.type =<span style="color: #000000;"> type;
+      </span><span style="color: #0000ff;">this</span>.lazyLoader =<span style="color: #000000;"> lazyLoader;
+      </span><span style="color: #0000ff;">this</span>.aggressive =<span style="color: #000000;"> configuration.isAggressiveLazyLoading();
+      </span><span style="color: #0000ff;">this</span>.lazyLoadTriggerMethods =<span style="color: #000000;"> configuration.getLazyLoadTriggerMethods();
+      </span><span style="color: #0000ff;">this</span>.objectFactory =<span style="color: #000000;"> objectFactory;
+      </span><span style="color: #0000ff;">this</span>.constructorArgTypes =<span style="color: #000000;"> constructorArgTypes;
+      </span><span style="color: #0000ff;">this</span>.constructorArgs =<span style="color: #000000;"> constructorArgs;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 创建代理对象, 将源对象值赋值给代理对象
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> target 目标对象
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> lazyLoader 延迟加载器
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> configuration 配置对象
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> objectFactory 对象工厂
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgTypes 构造函数类型数组
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgs 构造函数值数组
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Object createProxy(Object target, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">获取目标的类型
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">创建一个结果对象代理实现类（它实现cglib的MethodInterface接口，完成回调作用invoke方法）</span>
+      <span style="color: #0000ff;">final</span> Class&lt;?&gt; type =<span style="color: #000000;"> target.getClass();
+      EnhancedResultObjectProxyImpl callback </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> EnhancedResultObjectProxyImpl(type, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
+      Object enhanced </span>=<span style="color: #000000;"> crateProxy(type, callback, constructorArgTypes, constructorArgs);
+      PropertyCopier.copyBeanProperties(type, target, enhanced);
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> enhanced;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 回调方法
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> enhanced 代理对象
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> method 方法
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> args 方法参数
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> methodProxy 代理方法
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> Throwable
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Override
+    </span><span style="color: #0000ff;">public</span> Object intercept(Object enhanced, Method method, Object[] args, MethodProxy methodProxy) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">获取方法名</span>
+      <span style="color: #0000ff;">final</span> String methodName =<span style="color: #000000;"> method.getName();
+      </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 同步获取延迟加载对象
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果是执行writeReplace方法(序列化写出）
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实例化一个目标对象的实例</span>
+        <span style="color: #0000ff;">synchronized</span><span style="color: #000000;"> (lazyLoader) {
+          </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (WRITE_REPLACE_METHOD.equals(methodName)) {
+            Object original;
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (constructorArgTypes.isEmpty()) {
+              original </span>=<span style="color: #000000;"> objectFactory.create(type);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+              original </span>=<span style="color: #000000;"> objectFactory.create(type, constructorArgTypes, constructorArgs);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将enhanced中的属性复制到orignal对象中
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果延迟加载数量&gt;0,</span>
+<span style="color: #000000;">            PropertyCopier.copyBeanProperties(type, enhanced, original);
+            </span><span style="color: #0000ff;">if</span> (lazyLoader.size() &gt; 0<span style="color: #000000;">) {
+              </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> CglibSerialStateHolder(original, lazyLoader.getProperties(), objectFactory, constructorArgTypes, constructorArgs);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+              </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> original;
+            }
+          } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">不是writeReplace方法
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 延迟加载长度大于0， 且不是finalize方法
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> configuration配置延迟加载参数，延迟加载触发的方法包含这个方法
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 延迟加载所有数据</span>
+            <span style="color: #0000ff;">if</span> (lazyLoader.size() &gt; 0 &amp;&amp; !<span style="color: #000000;">FINALIZE_METHOD.equals(methodName)) {
+              </span><span style="color: #0000ff;">if</span> (aggressive ||<span style="color: #000000;"> lazyLoadTriggerMethods.contains(methodName)) {
+                lazyLoader.loadAll();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> setter方法，直接移除</span>
+              } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (PropertyNamer.isSetter(methodName)) {
+                </span><span style="color: #0000ff;">final</span> String property =<span style="color: #000000;"> PropertyNamer.methodToProperty(methodName);
+                lazyLoader.remove(property);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> getter方法， 加载该属性</span>
+              } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (PropertyNamer.isGetter(methodName)) {
+                </span><span style="color: #0000ff;">final</span> String property =<span style="color: #000000;"> PropertyNamer.methodToProperty(methodName);
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (lazyLoader.hasLoader(property)) {
+                  lazyLoader.load(property);
+                }
+              }
+            }
+          }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> methodProxy.invokeSuper(enhanced, args);
+      } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable t) {
+        </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> ExceptionUtil.unwrapThrowable(t);
+      }
+    }
+  }
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 他继承抽象反序列化代理和实现了方法拦截
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> EnhancedDeserializationProxyImpl <span style="color: #0000ff;">extends</span> AbstractEnhancedDeserializationProxy <span style="color: #0000ff;">implements</span><span style="color: #000000;"> MethodInterceptor {
+
+    </span><span style="color: #0000ff;">private</span> EnhancedDeserializationProxyImpl(Class&lt;?&gt; type, Map&lt;String, ResultLoaderMap.LoadPair&gt;<span style="color: #000000;"> unloadedProperties, ObjectFactory objectFactory,
+            List</span>&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(type, unloadedProperties, objectFactory, constructorArgTypes, constructorArgs);
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 创建代理对象
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> target
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> unloadedProperties
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> objectFactory
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgTypes
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgs
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Object createProxy(Object target, Map&lt;String, ResultLoaderMap.LoadPair&gt;<span style="color: #000000;"> unloadedProperties, ObjectFactory objectFactory,
+            List</span>&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #0000ff;">final</span> Class&lt;?&gt; type =<span style="color: #000000;"> target.getClass();
+      EnhancedDeserializationProxyImpl callback </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> EnhancedDeserializationProxyImpl(type, unloadedProperties, objectFactory, constructorArgTypes, constructorArgs);
+      Object enhanced </span>=<span style="color: #000000;"> crateProxy(type, callback, constructorArgTypes, constructorArgs);
+      PropertyCopier.copyBeanProperties(type, target, enhanced);
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> enhanced;
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> Object intercept(Object enhanced, Method method, Object[] args, MethodProxy methodProxy) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+      </span><span style="color: #0000ff;">final</span> Object o = <span style="color: #0000ff;">super</span><span style="color: #000000;">.invoke(enhanced, method, args);
+      </span><span style="color: #0000ff;">return</span> o <span style="color: #0000ff;">instanceof</span> AbstractSerialStateHolder ?<span style="color: #000000;"> o : methodProxy.invokeSuper(o, args);
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">protected</span> AbstractSerialStateHolder newSerialStateHolder(Object userBean, Map&lt;String, ResultLoaderMap.LoadPair&gt;<span style="color: #000000;"> unloadedProperties, ObjectFactory objectFactory,
+            List</span>&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> CglibSerialStateHolder(userBean, unloadedProperties, objectFactory, constructorArgTypes, constructorArgs);
+    }
+  }
+
+
+}</span></code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p>如上，代理方法首先会检查 aggressive 是否为 true，如果不满足，再去检查 lazyLoadTriggerMethods 是否包含当前方法名。这里两个条件只要一个为 true，当前实体类中所有需要延迟加载。aggressive 和 lazyLoadTriggerMethods 两个变量的值取决于下面的配置。</p>
+<src class="cnblogs_code">
+<pre><code>&lt;setting name="aggressiveLazyLoading" value="false"/&gt;
+&lt;setting name="lazyLoadTriggerMethods" value="equals,hashCode"/&gt;</code></pre>
+
+<p>然后代理逻辑会检查使用者是不是调用了实体类的 setter 方法，如果调用了，就将该属性对应的 LoadPair 从 loaderMap 中移除。为什么要这么做呢？答案是：使用者既然手动调用 setter 方法，说明使用者想自定义某个属性的值。此时，延迟加载逻辑不应该再修改该属性的值，所以这里从 loaderMap 中移除属性对于的 LoadPair。</p>
+<p>最后如果使用者调用的是某个属性的<strong> getter 方法</strong>，且该属性配置了延迟加载，此时延迟加载逻辑就会被触发。那接下来，我们来看看延迟加载逻辑是怎样实现的的。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> load(String property) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从 loaderMap 中移除 property 所对应的 LoadPair</span>
+    LoadPair pair =<span style="color: #000000;"> loaderMap.remove(property.toUpperCase(Locale.ENGLISH));
+    </span><span style="color: #0000ff;">if</span> (pair != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 加载结果</span>
+<span style="color: #000000;">        pair.load();
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+}
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> load(<span style="color: #0000ff;">final</span> Object userObject) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+     * 调用 ResultLoader 的 loadResult 方法加载结果，
+     * 并通过 metaResultObject 设置结果到实体类对象中
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.metaResultObject.setValue(property, <span style="color: #0000ff;">this</span><span style="color: #000000;">.resultLoader.loadResult());
+}
+
+</span><span style="color: #0000ff;">public</span> Object loadResult() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 执行关联查询</span>
+    List&lt;Object&gt; list =<span style="color: #000000;"> selectList();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 抽取结果</span>
+    resultObject =<span style="color: #000000;"> resultExtractor.extractObjectFromList(list, targetType);
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> resultObject;
+}
+
+</span><span style="color: #0000ff;">private</span> &lt;E&gt; List&lt;E&gt; selectList() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    Executor localExecutor </span>=<span style="color: #000000;"> executor;
+    </span><span style="color: #0000ff;">if</span> (Thread.currentThread().getId() != <span style="color: #0000ff;">this</span>.creatorThreadId ||<span style="color: #000000;"> localExecutor.isClosed()) {
+        localExecutor </span>=<span style="color: #000000;"> newExecutor();
+    }
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 通过 Executor 就行查询，这个之前已经分析过了
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里的parameterObject和boundSql就是我们之前存放在LoadPair中的，现在直接拿来执行了</span>
+        <span style="color: #0000ff;">return</span> localExecutor.&lt;E&gt;</strong><span style="color: #000000;"><strong>query(mappedStatement, parameterObject, RowBounds.DEFAULT,
+                                      Executor.NO_RESULT_HANDLER, cacheKey, boundSql);</strong>
+    } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (localExecutor !=<span style="color: #000000;"> executor) {
+            localExecutor.close(</span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        }
+    }
+}</span></code></pre>
+
+<p>好了，延迟加载我们基本已经讲清楚了，我们介绍一下另外的一种代理方式</p>
+<h3>JavassistProxyFactory</h3>
+<p>JavassistProxyFactory使用的是javassist方式，直接修改class文件的字节码格式。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.reflect.Method;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Map;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Properties;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Set;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javassist.util.proxy.MethodHandler;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javassist.util.proxy.Proxy;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javassist.util.proxy.ProxyFactory;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.ExecutorException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.AbstractEnhancedDeserializationProxy;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.AbstractSerialStateHolder;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.ResultLoaderMap;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.WriteReplaceInterface;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.io.Resources;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.logging.Log;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.logging.LogFactory;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.ExceptionUtil;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.factory.ObjectFactory;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.property.PropertyCopier;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.property.PropertyNamer;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.Configuration;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">JavassistProxy字节码生成代理
+ * 1.创建一个代理对象然后将目标对象的值赋值给代理对象，这个代理对象是可以实现其他的接口
+ * 2. JavassistProxyFactory实现ProxyFactory接口createProxy(创建代理对象的方法)
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> Eduardo Macarron
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> JavassistProxyFactory <span style="color: #0000ff;">implements</span><span style="color: #000000;"> org.apache.ibatis.executor.loader.ProxyFactory {
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * finalize方法（垃圾回收）
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String FINALIZE_METHOD = "finalize"<span style="color: #000000;">;
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * writeReplace(序列化写出方法）
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String WRITE_REPLACE_METHOD = "writeReplace"<span style="color: #000000;">;
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 加载ProxyFactory, 也就是JavassistProxy的入口
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">public</span><span style="color: #000000;"> JavassistProxyFactory() {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+      Resources.classForName(</span>"javassist.util.proxy.ProxyFactory"<span style="color: #000000;">);
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable e) {
+      </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> IllegalStateException("Cannot enable lazy loading because Javassist is not available. Add Javassist to your classpath."<span style="color: #000000;">, e);
+    }
+  }
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 创建代理
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> target 目标对象
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> lazyLoader 延迟加载Map集合（那些属性是需要延迟加载的）
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> configuration 配置类
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> objectFactory 对象工厂
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgTypes 构造函数类型[]
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgs  构造函数的值[]
+   * </span><span style="color: #808080;">@return</span>
+   <span style="color: #008000;">*/</span><span style="color: #000000;">
+  @Override
+  </span><span style="color: #0000ff;">public</span> Object createProxy(Object target, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> EnhancedResultObjectProxyImpl.createProxy(target, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
+  }
+
+  </span><span style="color: #0000ff;">public</span> Object createDeserializationProxy(Object target, Map&lt;String, ResultLoaderMap.LoadPair&gt; unloadedProperties, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> EnhancedDeserializationProxyImpl.createProxy(target, unloadedProperties, objectFactory, constructorArgTypes, constructorArgs);
+  }
+
+  @Override
+  </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setProperties(Properties properties) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Not Implemented</span>
+<span style="color: #000000;">  }
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 获取代理对象， 也就是说在执行方法之前首先调用MethodHanlder的invoke方法
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> type 目标类型
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> callback 回调对象
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgTypes 构造函数类型数组
+   * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgs 构造函数值的数组
+   * </span><span style="color: #808080;">@return</span>
+   <span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">static</span> Object crateProxy(Class&lt;?&gt; type, MethodHandler callback, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建一个代理工厂类
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 配置超类</span>
+    ProxyFactory enhancer = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ProxyFactory();
+    enhancer.setSuperclass(type);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">判断是否有writeReplace方法，如果没有将这个代理对象实现WriteReplaceInterface接口，这个接口只有一个writeReplace方法</span>
+    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+      type.getDeclaredMethod(WRITE_REPLACE_METHOD);
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> ObjectOutputStream will call writeReplace of objects returned by writeReplace</span>
+      <span style="color: #0000ff;">if</span><span style="color: #000000;"> (LogHolder.log.isDebugEnabled()) {
+        LogHolder.log.debug(WRITE_REPLACE_METHOD </span>+ " method was found on bean " + type + ", make sure it returns this"<span style="color: #000000;">);
+      }
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (NoSuchMethodException e) {
+      enhancer.setInterfaces(</span><span style="color: #0000ff;">new</span> Class[]{WriteReplaceInterface.<span style="color: #0000ff;">class</span><span style="color: #000000;">});
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SecurityException e) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> nothing to do here</span>
+<span style="color: #000000;">    }
+
+    Object enhanced;
+    Class</span>&lt;?&gt;[] typesArray = constructorArgTypes.toArray(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Class[constructorArgTypes.size()]);
+    Object[] valuesArray </span>= constructorArgs.toArray(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Object[constructorArgs.size()]);
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 根据构造函数创建一个代理对象</span>
+      enhanced =<span style="color: #000000;"> enhancer.create(typesArray, valuesArray);
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+      </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ExecutorException("Error creating lazy proxy.  Cause: " +<span style="color: #000000;"> e, e);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置回调对象</span>
+<span style="color: #000000;">    ((Proxy) enhanced).setHandler(callback);
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> enhanced;
+  }
+
+  </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+   * 实现Javassist的MethodHandler接口， 相对于Cglib的MethodInterceptor
+   * 他们接口的方法名也是不一样的，Javassist的是invoke, 而cglib是intercept，叫法不同，实现功能是一样的
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> EnhancedResultObjectProxyImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> MethodHandler {
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 目标类型
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> Class&lt;?&gt;<span style="color: #000000;"> type;
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 延迟加载Map集合
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> ResultLoaderMap lazyLoader;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 是否配置延迟加载
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> aggressive;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 延迟加载触发的方法
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> Set&lt;String&gt;<span style="color: #000000;"> lazyLoadTriggerMethods;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 对象工厂
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> ObjectFactory objectFactory;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 构造函数类型数组
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> List&lt;Class&lt;?&gt;&gt;<span style="color: #000000;"> constructorArgTypes;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 构造函数类型的值数组
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> List&lt;Object&gt;<span style="color: #000000;"> constructorArgs;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 构造函数私有化了
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> type
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> lazyLoader
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> configuration
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> objectFactory
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgTypes
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> constructorArgs
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> EnhancedResultObjectProxyImpl(Class&lt;?&gt; type, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #0000ff;">this</span>.type =<span style="color: #000000;"> type;
+      </span><span style="color: #0000ff;">this</span>.lazyLoader =<span style="color: #000000;"> lazyLoader;
+      </span><span style="color: #0000ff;">this</span>.aggressive =<span style="color: #000000;"> configuration.isAggressiveLazyLoading();
+      </span><span style="color: #0000ff;">this</span>.lazyLoadTriggerMethods =<span style="color: #000000;"> configuration.getLazyLoadTriggerMethods();
+      </span><span style="color: #0000ff;">this</span>.objectFactory =<span style="color: #000000;"> objectFactory;
+      </span><span style="color: #0000ff;">this</span>.constructorArgTypes =<span style="color: #000000;"> constructorArgTypes;
+      </span><span style="color: #0000ff;">this</span>.constructorArgs =<span style="color: #000000;"> constructorArgs;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Object createProxy(Object target, ResultLoaderMap lazyLoader, Configuration configuration, ObjectFactory objectFactory, List&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取目标类型
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建一个EnhancedResultObjectProxyImpl对象，回调对象</span>
+      <span style="color: #0000ff;">final</span> Class&lt;?&gt; type =<span style="color: #000000;"> target.getClass();
+      EnhancedResultObjectProxyImpl callback </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> EnhancedResultObjectProxyImpl(type, lazyLoader, configuration, objectFactory, constructorArgTypes, constructorArgs);
+      Object enhanced </span>=<span style="color: #000000;"> crateProxy(type, callback, constructorArgTypes, constructorArgs);
+      PropertyCopier.copyBeanProperties(type, target, enhanced);
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> enhanced;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 回调方法
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> enhanced 代理对象
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> method 方法
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> methodProxy 代理方法
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> args 入参
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> Throwable
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Override
+    </span><span style="color: #0000ff;">public</span> Object invoke(Object enhanced, Method method, Method methodProxy, Object[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">获取方法名称</span>
+      <span style="color: #0000ff;">final</span> String methodName =<span style="color: #000000;"> method.getName();
+      </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">synchronized</span><span style="color: #000000;"> (lazyLoader) {
+          </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (WRITE_REPLACE_METHOD.equals(methodName)) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果方法是writeReplace</span>
+<span style="color: #000000;">            Object original;
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (constructorArgTypes.isEmpty()) {
+              original </span>=<span style="color: #000000;"> objectFactory.create(type);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+              original </span>=<span style="color: #000000;"> objectFactory.create(type, constructorArgTypes, constructorArgs);
+            }
+            PropertyCopier.copyBeanProperties(type, enhanced, original);
+            </span><span style="color: #0000ff;">if</span> (lazyLoader.size() &gt; 0<span style="color: #000000;">) {
+              </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> JavassistSerialStateHolder(original, lazyLoader.getProperties(), objectFactory, constructorArgTypes, constructorArgs);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+              </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> original;
+            }
+          } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">不是writeReplace方法
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 延迟加载长度大于0， 且不是finalize方法
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> configuration配置延迟加载参数，延迟加载触发的方法包含这个方法
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 延迟加载所有数据</span>
+            <span style="color: #0000ff;">if</span> (lazyLoader.size() &gt; 0 &amp;&amp; !<span style="color: #000000;">FINALIZE_METHOD.equals(methodName)) {
+              </span><span style="color: #0000ff;">if</span> (aggressive ||<span style="color: #000000;"> lazyLoadTriggerMethods.contains(methodName)) {
+                lazyLoader.loadAll();
+              } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (PropertyNamer.isSetter(methodName)) {
+                </span><span style="color: #0000ff;">final</span> String property =<span style="color: #000000;"> PropertyNamer.methodToProperty(methodName);
+                lazyLoader.remove(property);
+              } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (PropertyNamer.isGetter(methodName)) {
+                </span><span style="color: #0000ff;">final</span> String property =<span style="color: #000000;"> PropertyNamer.methodToProperty(methodName);
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (lazyLoader.hasLoader(property)) {
+                  lazyLoader.load(property);
+                }
+              }
+            }
+          }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> methodProxy.invoke(enhanced, args);
+      } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable t) {
+        </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> ExceptionUtil.unwrapThrowable(t);
+      }
+    }
+  }
+
+  </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> EnhancedDeserializationProxyImpl <span style="color: #0000ff;">extends</span> AbstractEnhancedDeserializationProxy <span style="color: #0000ff;">implements</span><span style="color: #000000;"> MethodHandler {
+
+    </span><span style="color: #0000ff;">private</span> EnhancedDeserializationProxyImpl(Class&lt;?&gt; type, Map&lt;String, ResultLoaderMap.LoadPair&gt;<span style="color: #000000;"> unloadedProperties, ObjectFactory objectFactory,
+            List</span>&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(type, unloadedProperties, objectFactory, constructorArgTypes, constructorArgs);
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Object createProxy(Object target, Map&lt;String, ResultLoaderMap.LoadPair&gt;<span style="color: #000000;"> unloadedProperties, ObjectFactory objectFactory,
+            List</span>&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #0000ff;">final</span> Class&lt;?&gt; type =<span style="color: #000000;"> target.getClass();
+      EnhancedDeserializationProxyImpl callback </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> EnhancedDeserializationProxyImpl(type, unloadedProperties, objectFactory, constructorArgTypes, constructorArgs);
+      Object enhanced </span>=<span style="color: #000000;"> crateProxy(type, callback, constructorArgTypes, constructorArgs);
+      PropertyCopier.copyBeanProperties(type, target, enhanced);
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> enhanced;
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> Object invoke(Object enhanced, Method method, Method methodProxy, Object[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+      </span><span style="color: #0000ff;">final</span> Object o = <span style="color: #0000ff;">super</span><span style="color: #000000;">.invoke(enhanced, method, args);
+      </span><span style="color: #0000ff;">return</span> o <span style="color: #0000ff;">instanceof</span> AbstractSerialStateHolder ?<span style="color: #000000;"> o : methodProxy.invoke(o, args);
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">protected</span> AbstractSerialStateHolder newSerialStateHolder(Object userBean, Map&lt;String, ResultLoaderMap.LoadPair&gt;<span style="color: #000000;"> unloadedProperties, ObjectFactory objectFactory,
+            List</span>&lt;Class&lt;?&gt;&gt; constructorArgTypes, List&lt;Object&gt;<span style="color: #000000;"> constructorArgs) {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> JavassistSerialStateHolder(userBean, unloadedProperties, objectFactory, constructorArgTypes, constructorArgs);
+    }
+  }
+
+  </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> LogHolder {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> Log log = LogFactory.getLog(JavassistProxyFactory.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+  }
+
+}</span></code></pre>
+
+<p>注释已经很清楚了，我就不累述了</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,246 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java 8 - 多线程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java 8 - 多线程</center></div><div class='banquan'>原文出处:本文由博客园博主CoderJerry提供。<br/>
+原文连接:https://www.cnblogs.com/yangyuanhu/p/11944834.html</div><br>
+    <h1 id="概念">概念</h1>
+<p>关于什么是线程,进程等概念,请看下面文章:</p>
+<p><a href="https://www.cnblogs.com/yangyuanhu/p/11112782.html">并发/并行/阻塞/非阻塞</a></p>
+<p><a href="https://www.cnblogs.com/yangyuanhu/p/11112782.html">多进程概念</a></p>
+<p><a href="https://www.cnblogs.com/yangyuanhu/p/11127149.html">多线程概念</a></p>
+<p>上述文章代码使用的是python,但是所有的概念和原理都是相同的;</p>
+<p>需要特别强调的是Java中的线程在多核处理器上是可以真正并行执行的,没有cpython中的全局锁这么一说</p>
+<h1 id="线程的状态切换以及生命周期">线程的状态切换以及生命周期:</h1>
+<p><img src="./images/Java 8 - 多线程0.png" alt="image-20191127093852138" /></p>
+<p>注意:stop方法以及被弃用建议不要使用了,线程正确的结束,应该是线程任务全部完成,或者是被作为守护线程,被守护线程运行结束,再或者调用中断方法<code>interrupt</code></p>
+<h1 id="java中启动线程的方式">Java中启动线程的方式:</h1>
+<pre><code><code>package com.yh.lesson.collection.thread;
+
+import sun.nio.ch.ThreadPool;
+
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+public class Test {
+    public static void main(String[] args) {
+        //1.匿名类
+        Thread td1 = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println(Thread.currentThread().getName());
+            }
+        });
+        td1.start();
+
+        //2.lambda表达式 DJK1.8
+        Thread td2 = new Thread(()-&gt;{
+            System.out.println(Thread.currentThread().getName());
+        });
+        td2.start();
+
+        //3.runnable实现类
+        Thread td3 = new Thread(new Runner());
+        td3.start();
+    }
+}
+class Runner implements Runnable{
+    @Override
+    public void run() {
+        System.out.println(Thread.currentThread().getName());
+    }
+}
+
+            //4.继承extends 覆盖run方法
+class TTT extends Thread{
+    @Override
+    public void run() {
+        System.out.println(Thread.currentThread().getName());
+    }
+}
+</code></code></pre>
+<p>其他方法属性参照API,你可以把线程看做一个子程序,无法是启动,中断,获取状态,设置守护等等操作</p>
+<p><a href="http://www.matools.com/file/manual/jdk_api_1.8_google/java/lang/Thread.html">ThreadAPI</a></p>
+<h2 id="常用方法-sleepjoin">常用方法 sleep,join</h2>
+<p>sleep是线程睡眠一段时间然后继续运行</p>
+<p>注意:sleep是Thread类的静态方法,需要捕获异常</p>
+<pre><code><code>//下面的代码输出大写A-Z 每个500毫秒循环一次
+new Thread(()-&gt;{
+  for (int i = 65; i &lt; 91; i++) {
+    char c = (char) i;
+    System.out.printf(&quot;%s&quot;,c);
+    try {
+      Thread.sleep(500);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+  }
+}).start();</code></code></pre>
+<p>join使当前线程等到调用join的线程执行结束才能执行</p>
+<p>注意:join是对象方法,也需要捕获异常</p>
+<pre><code><code>System.out.println(&quot;start!&quot;);
+Thread th1 = new Thread(()-&gt;{
+    for (int i = 0; i &lt; 10; i++) {
+        System.out.print(i);
+    }
+});
+try {
+    th1.join();
+} catch (InterruptedException e) {
+    e.printStackTrace();
+}
+System.out.println(&quot;over!&quot;);
+/*
+输出:
+start!
+0123456789
+over!
+*/</code></code></pre>
+<p>使得主线程等待th1执行完毕后再输出over!</p>
+<p>另外join函数重载了一个带有超时的方法,可以使主线程等待一段时间后开始运行</p>
+<h1 id="优先级">优先级:</h1>
+<p><img src="./images/Java 8 - 多线程1.png" alt="image-20191127112518233" /></p>
+<p><img src="./images/Java 8 - 多线程2.png" alt="image-20191127112614109" /></p>
+<p><img src="./images/Java 8 - 多线程3.png" alt="image-20191127112625647" /></p>
+<h1 id="线程锁">线程锁:</h1>
+<p><img src="./images/Java 8 - 多线程4.png" alt="image-20191127114305274" /></p>
+<h2 id="为什么使用synchronized">为什么使用synchronized</h2>
+<p>当多个线程并发的操作同一个资源时就看你引发数据安全问题,解决方案就是使并发变成串行(异步变同步)</p>
+<p>使用synchronized关键字,可以使得代码串行,其可应用于方法声明或是代码块</p>
+<h2 id="案例">案例:</h2>
+<p>在方法声明中使用,表示该方法不允许并发执行:</p>
+<pre><code><code>public class LockDemo {
+    public static void main(String[] args) {
+        new Thread(()-&gt;{
+           func(&quot;pic&quot;);
+        }).start();
+        new Thread(()-&gt;{
+            func(&quot;text&quot;);
+        }).start();
+    }
+    static synchronized void func(String s){
+        for (int i=0;i &lt; 10;i++){
+            try {
+                Thread.sleep(2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(s+&quot;  &quot;+i);
+        }
+    }
+}</code></code></pre>
+<p>在代码块中使用,表示该代码块不允许并发执行:</p>
+<pre><code><code>public class LockDemo2 {
+    public static void main(String[] args) {
+        new Thread(()-&gt;{
+           func(&quot;pic&quot;);
+        }).start();
+        new Thread(()-&gt;{
+            func(&quot;text&quot;);
+        }).start();
+
+    }
+    static void func(String s){
+//        synchronized (new String(&quot;&quot;)) {   //注意用于同步的对象必须保持一致,否则无法同步
+        synchronized (&quot;&quot;) {//字符时常量所以对象地址没有变化 可以实现同步
+            for (int i = 0; i &lt; 10; i++) {
+                try {
+                    Thread.sleep(2);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(s + &quot;  &quot; + i);
+            }
+        }
+    }
+}</code></code></pre>
+<p>注意:synchronized ()括号中可以填写任意对象,但是要保证多个线程使用的是同一个对象,否则无法实现同步</p>
+<h2 id="避免随意加锁">避免随意加锁</h2>
+<p>很多人在碰到安全问题时会随意的加锁,有加在方法上的,有随便加载代码上的.,很随意...</p>
+<h5 id="锁的粒度粒度表示锁住代码范围">锁的粒度:粒度表示锁住代码范围,</h5>
+<ul>
+<li>被锁住的代码越少粒度越小,性能越好</li>
+<li>被锁住的代码越少粒度越大,性能越差</li>
+</ul>
+<h5 id="锁对象的选择">锁对象的选择:</h5>
+<p>锁对象可以是任意对象,有的人用this有的用Person.class,各种各样的....</p>
+<p>哪种都不算错,但是要注意,不要让不想关的线程在对象上访问锁,</p>
+<p>例如:有一个余额变量<code>balance</code>,线程A和线程B需要并发的操作这个变量,但是线程C并不会对<code>balance</code>做任何修改,此时就不应该让C也使用A/B线程所使用的锁;</p>
+<p>简单的说:尽量减少同一个锁对象管理的线程数量</p>
+<h2 id="死锁">死锁:</h2>
+<p>当多个线程对同一个锁对象执行wait时将进入死锁(为什么要这么做?)</p>
+<p>synchronized代码块的设计极大的避免了死锁出现的情况,就这点来看java更方便,python需要明确的加锁和解锁,代码量挺多....</p>
+<h1 id="线程间通讯">线程间通讯:</h1>
+<p>首先明确多个线程共享进程中的资源,也就是是说本来就可以相互通讯,但是我们直接通过访问某个变量来通讯的话,是效率非常低的, 因为你不知道什么时候对方线程准备好了,所有你只能无限的循环去检查变量的值;</p>
+<p>来看这样一个例子:</p>
+<p>小明派小刚去安装炸弹,安装完成后小明只需要按下手中的遥控器就可以引爆,问题是小明不知道什么时候安装完成,并且小刚已经撤离,一旦过早的引爆小刚会发生危险,过晚的引爆又无法及时完成任务;这时候就需要让他们之间可以传递讯号,来获知彼此的状态;</p>
+<p>这个例子说明了为什么需要在线程间通讯,并且我们可以发现小明不需要不断的询问小刚是否完成,而是等待小刚给自己发信号,这就是线程通讯要实现的效果</p>
+<p><img src="./images/Java 8 - 多线程5.png" alt="image-20191127133217555" /></p>
+<p>强调:上面的唤醒,始终针对的是在当前同步对象(锁对象)上等待的线程</p>
+<h2 id="案例-1">案例:</h2>
+<pre><code><code>package com.yh.lesson.collection.thread;
+
+public class ThreadCommunication {
+    static boolean finished = false;//表示炸弹是否安装完成的变量
+    static String lock = new String();//锁
+
+    public static void main(String[] args) throws InterruptedException {
+        //小明线程
+        Thread t1 = new Thread(() -&gt; {
+            System.out.println(&quot;等待....&quot;);
+            synchronized (lock){
+                try {
+                    lock.wait();
+                    System.out.println(&quot;收到信号!&quot;);
+                    if(finished){
+                        System.out.println(&quot;安全引爆,任务完成!&quot;);
+                    }else{
+                        System.out.println(&quot;安装未完成,小刚牺牲了!&quot;);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        //小刚线程
+        Thread t2 = new Thread(() -&gt; {
+            try {
+                System.out.println(&quot;开始安装!&quot;);
+                Thread.sleep(3000);
+                System.out.println(&quot;安装完成!&quot;);
+                finished = true;
+                synchronized (lock) {
+                    lock.notifyAll();
+                }
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        
+        t1.start();
+        t2.start();
+    }
+}</code></code></pre>
+<p><strong>注意:wait()和notify(),notifyall(),必须在同步代码中使用</strong></p>
+<p>ps:就这个synchronize和 notify坑了多少年轻人(当年也年轻),notify和wait本质上就是在操作一个作为标记的变量表示事件是否发生了,</p>
+<p>synchronize本质也是操作一个标志表示是否加锁了,偏偏把两者强行绑在一起,真让人捉摸不透,这点python整的很好,锁是锁,事件是事件,有兴趣的可以看看我的另一篇文章:<a href="https://www.cnblogs.com/yangyuanhu/p/11134672.html">线程通讯-事件</a>在文章的最下面</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

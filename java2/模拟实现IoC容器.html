@@ -1,0 +1,188 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修模拟实现IoC容器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>模拟实现IoC容器</center></div><div class='banquan'>原文出处:本文由博客园博主捉妖大师提供。<br/>
+原文连接:https://www.cnblogs.com/kinder/p/11871404.html</div><br>
+    <p><span style="font-family: Microsoft YaHei;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size: 15px;">&nbsp; Spring的IoC核心就是控制反转，将对实现对象的操作控制器交出来，由IoC容器来管理，从配置文件中获取配置信息，Java对XML文档提供了完美的支持，dom4j功能强大，而下面我就用JDOM这一开源项目，利用它可以纯Java技术实现对XML文档的解析、生成、序列化来模拟实现IoC容器。</span></span><br /><br /><span style="font-family: Microsoft YaHei;">&nbsp;一、传统方式完成项目。</span><br /><span style="font-family: Microsoft YaHei;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; 1.定义接口</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-family: Microsoft YaHei;"><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.decipher.car;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> Car {
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getBrand();
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run();
+    
+}</span></span></code></pre>
+
+<p><br /><span style="font-family: Microsoft YaHei;">2.接下来实现Car接口</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.decipher.carImplementation;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.decipher.car.Car;
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> BMWCar <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Car{
+    </span><span style="color: #0000ff;">private</span> String MyBrand="宝马"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getBrand(){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> MyBrand;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run(){
+        System.out.println(MyBrand</span>+" is runing"<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p><br /><span style="font-family: Microsoft YaHei;">3.新建一个Human类</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.decipher.human;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.decipher.car.Car;
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Human {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Car car;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Car getCar() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> car;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setCar(Car car) {
+        </span><span style="color: #0000ff;">this</span>.car =<span style="color: #000000;"> car;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> myCarRun(){
+        car.run();
+    }
+}</span></code></pre>
+
+<p><br /><span style="font-family: Microsoft YaHei;">4.最后编写测试类</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.decipher.humen;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.decipher.car.Car;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.decipher.carImplementation.BMWCar;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.decipher.human.Human;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HumenTest {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        Human human</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Human();
+        Car car</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> BMWCar();
+        human.setCar(car);
+        human.myCarRun();    
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><br /><span style="font-family: Microsoft YaHei;">5.运行结果如图：</span><br /><img src="./images/模拟实现IoC容器0.png" alt="" /><br /><br /><br /><span style="font-family: Microsoft YaHei;">二.JDOM模拟IoC容器反转控制</span><br /><span style="font-family: Microsoft YaHei;">在编程之前要导入jdom.jar包到项目工程目录中。</span><br /><span style="font-family: Microsoft YaHei;">1.新建BeanFactory</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.decipher.spring;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> BeanFactory {
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Object getBean(String id);
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><br /><span style="font-family: Microsoft YaHei;">2.实现BeanFactory接口</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.decipher.spring;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.reflect.Method;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.HashMap;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Map;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.jdom.Document;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.jdom.Element;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.jdom.input.SAXBuilder;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ClassPathXmlApplicationContext {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">储存各个实例的键值对</span>
+    <span style="color: #0000ff;">private</span> Map&lt;String,Object&gt; beans=<span style="color: #0000ff;">new</span> HashMap&lt;String,Object&gt;<span style="color: #000000;">();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">构造方法</span>
+    <span style="color: #0000ff;">public</span> ClassPathXmlApplicationContext() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">读取XML文档</span>
+        SAXBuilder sb=<span style="color: #0000ff;">new</span><span style="color: #000000;"> SAXBuilder();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">构造文档对象DOC</span>
+        Document doc=sb.build(<span style="color: #0000ff;">this</span>.getClass().getClassLoader().getResource("beans.xml"<span style="color: #000000;">));
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取XML文档根元素</span>
+        Element root=<span style="color: #000000;">doc.getRootElement();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取根元素下所有的子元素</span>
+        List list=root.getChildren("bean"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历所有的Bean元素</span>
+        <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i=0;i&lt;list.size();i++<span style="color: #000000;">){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">取得第i个Bean元素</span>
+            Element element=<span style="color: #000000;">(Element)list.get(i);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获取第i个Bean元素的id属性值，并将其存入到字符串变量id中</span>
+            String id=element.getAttributeValue("id"<span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获取第i个Bean元素的class属性值，并将其存入到字符串变量clazz中</span>
+            String clazz=element.getAttributeValue("class"<span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">使用反射生成类的对象，相当于生成类对象，且存储在Map中</span>
+            Object o=<span style="color: #000000;">Class.forName(clazz).newInstance();
+            System.out.println(id);
+            System.out.println(clazz);
+            beans.put(id,o);</span><span style="color: #008000;">//</span><span style="color: #008000;">将id和对象o存入Map中
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">对第i个bean元素下的每个property子元素进行遍历</span>
+            <span style="color: #0000ff;">for</span>(Element propertyElement:(List&lt;Element&gt;)element.getChildren("property"<span style="color: #000000;">)){
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获取property元素的name属性值</span>
+                String name=propertyElement.getAttributeValue("name"<span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获取property元素的bean属性值</span>
+                String beanInstance=propertyElement.getAttributeValue("bean"<span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">取得被注入对象的实例</span>
+                Object beanObject=<span style="color: #000000;">beans.get(beanInstance);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获取setter方法的方法名,形式为setXxx</span>
+                String methodName="set"+name.substring(0, 1).toUpperCase()+name.substring(1<span style="color: #000000;">);
+                System.out.println(</span>"method name= "+<span style="color: #000000;">methodName);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">使用反射取得指定名称，指定参数类型的setXxx方法</span>
+                Method m=o.getClass().getMethod(methodName, beanObject.getClass().getInterfaces()[0<span style="color: #000000;">]);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">调用对象o的setXxx方法</span>
+<span style="color: #000000;">                m.invoke(o,beanObject);
+            }
+        }
+    }
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Object getBean(String id){
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> beans.get(id);
+        }<br />}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><br /><span style="font-family: Microsoft YaHei;">3.配置beans.xml文件</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">beans</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="baomacar"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="com.decipher.carImplementation.BMWCar"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="human"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="com.decipher.human.Human"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="car"</span><span style="color: #ff0000;"> bean</span><span style="color: #0000ff;">="baomacar"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">property</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">beans</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p><br /><span style="font-family: Microsoft YaHei;">4.编写测试类HumenTest</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.decipher.humen;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.decipher.spring.ClassPathXmlApplicationContext;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.decipher.car.Car;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.decipher.carImplementation.BMWCar;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.decipher.human.Human;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HumenTest {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {    
+        ClassPathXmlApplicationContext ctx</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> ClassPathXmlApplicationContext();
+        Human human</span>=(Human)ctx.getBean("human"<span style="color: #000000;">);
+        human.myCarRun();
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><br /><span style="font-family: Microsoft YaHei;">5.运行如图：</span><br /><span style="font-family: Microsoft YaHei;"><img src="./images/模拟实现IoC容器1.png" alt="" /></span></p>
+<p><span style="font-family: Microsoft YaHei;">6.总结</span><br /><span style="font-family: Microsoft YaHei;">&nbsp;&nbsp; &nbsp;从上面的两种实例化对象可以看出，传统的方式中，由程序员管理类对象，而在模拟的IoC容器中，将对类对象操作的控制器移交给IoC容器，由Ioc容器中的ApplicationContext处理XML配置文件,XML文件中每配置一个bean，即存储在Map中，不需要程序员再new一个对象，而直接从容器中获取即可，控制反转可以松耦，交出控制权利。</span><br /><br /></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

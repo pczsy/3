@@ -1,0 +1,311 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修多线程编程学习六(Java 中的阻塞队列).' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>多线程编程学习六(Java 中的阻塞队列).</center></div><div class='banquan'>原文出处:本文由博客园博主JMCui提供。<br/>
+原文连接:https://www.cnblogs.com/jmcui/p/11442616.html</div><br>
+    <h2 id="介绍">介绍</h2>
+<p>阻塞队列（BlockingQueue）是指当队列满时，队列会阻塞插入元素的线程，直到队列不满；当队列空时，队列会阻塞获得元素的线程，直到队列变非空。阻塞队列就是生产者用来存放元素、消费者用来获取元素的容器。</p>
+<p>当线程 插入/获取 动作由于队列 满/空 阻塞后，队列也提供了一些机制去处理，或抛出异常，或返回特殊值，或者线程一直等待...</p>
+<table>
+<thead>
+<tr class="header">
+<th>方法/处理方式</th>
+<th>抛出异常</th>
+<th>返回特殊值</th>
+<th>一直阻塞</th>
+<th>超时退出</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>插入方法</td>
+<td>add(e)</td>
+<td>offer(e)</td>
+<td>put(e)</td>
+<td>offer(e, timeout, unit)</td>
+</tr>
+<tr class="even">
+<td>移除方法</td>
+<td>remove(o)</td>
+<td>poll()</td>
+<td>take()</td>
+<td>poll(timeout, unit)</td>
+</tr>
+<tr class="odd">
+<td>检查方法</td>
+<td>element()</td>
+<td>peek() — 不移除元素</td>
+<td>不可用</td>
+<td>不可用</td>
+</tr>
+</tbody>
+</table>
+<p><b style="color:red">tips：</b> 如果是无界阻塞队列，则 put 方法永远不会被阻塞；offer 方法始终返回 true。</p>
+<p>Java 中的阻塞队列：</p>
+<p><img src="./images/多线程编程学习六(Java 中的阻塞队列).0.png" /></p>
+<h2 id="arrayblockingqueue">ArrayBlockingQueue</h2>
+<p>ArrayBlockingQueue 是一个用数组实现的有界阻塞队列。此队列按照先进先出（FIFO）的原则对元素进行排序，默认情况下不保证线程公平的访问。</p>
+<p>通过可重入的独占锁 ReentrantLock 来控制并发，Condition 来实现阻塞。</p>
+<pre><code><code>public class ArrayBlockingQueueTest {
+
+    /**
+     * 1. 由于是有界阻塞队列，需要设置初始大小
+     * 2. 默认不保证阻塞线程的公平访问，可设置公平性
+     */
+    private static ArrayBlockingQueue&lt;String&gt; QUEUE = new ArrayBlockingQueue&lt;&gt;(2, true);
+
+    public static void main(String[] args) throws InterruptedException {
+
+        Thread put = new Thread(() -&gt; {
+            // 3. 尝试插入元素
+            try {
+                QUEUE.put(&quot;java&quot;);
+                QUEUE.put(&quot;javaScript&quot;);
+                // 4. 元素已满，会阻塞线程
+                QUEUE.put(&quot;c++&quot;);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        put.start();
+        Thread take = new Thread(() -&gt; {
+            try {
+                // 5. 获取一个元素
+                System.out.println(QUEUE.take());
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+        take.start();
+        // 6 javaScript、c++
+        System.out.println(QUEUE.take());
+        System.out.println(QUEUE.take());
+    }
+}</code></code></pre>
+<h2 id="linkedblockingqueue">LinkedBlockingQueue</h2>
+<p>LinkedBlockingQueue 是一个用单向链表实现的有界阻塞队列。此队列的默认最大长度为 Integer.MAX_VALUE。此队列按照先进先出的原则对元素进行排序，吞吐量通常要高于ArrayBlockingQueue。Executors.newFixedThreadPool() 就使用了这个队列。</p>
+<p>和 ArrayBlockingQueue 一样，采用 ReentrantLock 来控制并发，不同的是它使用了两个独占锁来控制消费和生产，通过 takeLock 和 putLock 两个锁来控制生产和消费，互不干扰，只要队列未满，生产线程可以一直生产；只要队列不空，消费线程可以一直消费，不会相互因为独占锁而阻塞。</p>
+<p><b style="color:red">tips：</b>因为使用了双锁，避免并发计算不准确，使用了一个 AtomicInteger 变量统计元素总量。</p>
+<h2 id="linkedblockingdeque">LinkedBlockingDeque</h2>
+<p>LinkedBlockingDeque 是一个由双向链表结构组成的有界阻塞队列，可以从队列的两端插入和移出元素。它实现了BlockingDeque接口，多了addFirst、addLast、offerFirst、offerLast、peekFirst和peekLast等方法，以 First 单词结尾的方法，表示插入、获取或移除双端队列的第一个元素。以 Last 单词结尾的方法，表示插入、获取或移除双端队列的最后一个元素。</p>
+<p>LinkedBlockingDeque 的 Node 实现多了指向前一个节点的变量 prev，以此实现双向队列。并发控制上和 ArrayBlockingQueue 类似，采用单个 ReentrantLock 来控制并发。因为双端队列头尾都可以消费和生产，所以使用了一个共享锁。</p>
+<p>双向阻塞队列可以运用在“工作窃取”模式中。</p>
+<pre><code><code>public class LinkedBlockingDequeTest {
+
+    private static LinkedBlockingDeque&lt;String&gt; DEQUE = new LinkedBlockingDeque&lt;&gt;(2);
+
+    public static void main(String[] args) {
+        DEQUE.addFirst(&quot;java&quot;);
+        DEQUE.addFirst(&quot;c++&quot;);
+        // java
+        System.out.println(DEQUE.peekLast());
+        // java
+        System.out.println(DEQUE.pollLast());
+        DEQUE.addLast(&quot;php&quot;);
+        // c++
+        System.out.println(DEQUE.pollFirst());
+    }
+}</code></code></pre>
+<p><b style="color:red">tips：</b> take() 方法调用的是 takeFirst()，使用时候需注意。</p>
+<h2 id="priorityblockingqueue">PriorityBlockingQueue</h2>
+<p>PriorityBlockingQueue 是一个底层由数组实现的无界阻塞队列，并带有排序功能。由于是无界队列，所以插入永远不会被阻塞。默认情况下元素采取自然顺序升序排列。也可以自定义类实现 compareTo()方法来指定元素排序规则，或者初始化 PriorityBlockingQueue 时，指定构造参数 Comparator 来对元素进行排序。</p>
+<p>底层同样采用 ReentrantLock 来控制并发，由于只有获取会阻塞，所以只采用一个Condition（只通知消费）来实现。</p>
+<pre><code><code>public class PriorityBlockingQueueTest {
+
+    private static PriorityBlockingQueue&lt;String&gt; QUEUE = new PriorityBlockingQueue&lt;&gt;();
+
+    public static void main(String[] args) {
+        QUEUE.add(&quot;java&quot;);
+        QUEUE.add(&quot;javaScript&quot;);
+        QUEUE.add(&quot;c++&quot;);
+        QUEUE.add(&quot;python&quot;);
+        QUEUE.add(&quot;php&quot;);
+        Iterator&lt;String&gt; it = QUEUE.iterator();
+        while (it.hasNext()) {
+            // c++  javaScript  java  python  php
+            // 同优先级不保证排序顺序
+            System.out.print(it.next() + &quot;  &quot;);
+        }
+    }
+}</code></code></pre>
+<h2 id="delayqueue">DelayQueue</h2>
+<p>DelayQueue 是一个支持延时获取元素的无界阻塞队列。队列使用 PriorityQueue 来实现。队列中的元素必须实现 Delayed 接口（Delayed 接口的设计可以参考 ScheduledFutureTask 类），元素按延迟优先级排序，延迟时间短的排在前面，只有在延迟期满时才能从队列中提取元素。</p>
+<p>DelayQueue 中的 PriorityQueue 会对队列中的任务进行排序。排序时，time 小的排在前面（时间早的任务将被先执行）。如果两个任务的 time 相同，就比较 sequenceNumber，sequenceNumber 小的排在前面（也就是说，如果两个任务的执行时间相同，那么先提交的任务将被先执行）。</p>
+<p>和 PriorityBlockingQueue 相似，底层也是数组，采用一个 ReentrantLock 来控制并发。</p>
+<p>应用场景：</p>
+<ol>
+<li>缓存系统的设计：可以用 DelayQueue 保存缓存元素的有效期，使用一个线程循环查询 DelayQueue，一旦能从 DelayQueue 中获取元素时，表示缓存有效期到了。</li>
+<li>定时任务调度：使用 DelayQueue 保存当天将会执行的任务和执行时间，一旦从 DelayQueue 中获取到任务就开始执行，比如 TimerQueue 就是使用 DelayQueue 实现的。</li>
+</ol>
+<pre class="java"><code>public class DelayElement implements Delayed, Runnable {
+
+    private static final AtomicLong SEQUENCER = new AtomicLong();
+    /**
+     * 标识元素先后顺序
+     */
+    private final long sequenceNumber;
+    /**
+     * 延迟时间，单位纳秒
+     */
+    private long time;
+
+    public DelayElement(long time) {
+        this.time = System.nanoTime() + time;
+        this.sequenceNumber = SEQUENCER.getAndIncrement();
+    }
+
+    @Override
+    public long getDelay(TimeUnit unit) {
+        return unit.convert(time - System.nanoTime(), NANOSECONDS);
+    }
+
+    @Override
+    public int compareTo(Delayed other) {
+        // compare zero if same object
+        if (other == this) {
+            return 0;
+        }
+        if (other instanceof DelayElement) {
+            DelayElement x = (DelayElement) other;
+            long diff = time - x.time;
+            if (diff &lt; 0) {
+                return -1;
+            } else if (diff &gt; 0) {
+                return 1;
+            } else if (sequenceNumber &lt; x.sequenceNumber) {
+                return -1;
+            } else {
+                return 1;
+            }
+        }
+        long diff = getDelay(NANOSECONDS) - other.getDelay(NANOSECONDS);
+        return (diff &lt; 0) ? -1 : (diff &gt; 0) ? 1 : 0;
+    }
+
+    @Override
+    public void run() {
+        System.out.println(&quot;sequenceNumber&quot; + sequenceNumber);
+    }
+
+    @Override
+    public String toString() {
+        return &quot;DelayElement{&quot; + &quot;sequenceNumber=&quot; + sequenceNumber + &quot;, time=&quot; + time + &#39;}&#39;;
+    }
+}</code></code></pre>
+<pre class="java"><code>public class DelayQueueTest {
+
+    private static DelayQueue&lt;DelayElement&gt; QUEUE = new DelayQueue&lt;&gt;();
+
+    public static void main(String[] args) {
+        // 1. 添加 10 个参数
+        for (int i = 1; i &lt; 10; i++) {
+            // 2. 5 秒内随机延迟
+            int nextInt = new Random().nextInt(5);
+            long convert = TimeUnit.NANOSECONDS.convert(nextInt, TimeUnit.SECONDS);
+            QUEUE.offer(new DelayElement(convert));
+        }
+        // 3. 查询元素排序 —— 延迟短的排在前面
+        Iterator&lt;DelayElement&gt; iterator = QUEUE.iterator();
+        while (iterator.hasNext()) {
+            System.out.println(iterator.next());
+        }
+        // 4. 可观察到元素延迟输出
+        while (!QUEUE.isEmpty()) {
+            Thread thread = new Thread(QUEUE.poll());
+            thread.start();
+        }
+    }
+}</code></code></pre>
+<h2 id="linkedtransferqueue">LinkedTransferQueue</h2>
+<p>LinkedTransferQueue是一个由链表结构组成的无界阻塞TransferQueue队列。</p>
+<p>并发控制上采用了大量的 CAS 操作，没有使用锁。</p>
+<p>相对于其他阻塞队列，LinkedTransferQueue 多了 tryTransfer 和 transfer 方法。</p>
+<ol>
+<li>transfer ： Transfers the element to a consumer, waiting if necessary to do so. 存入的元素必须等到有消费者消费才返回。</li>
+<li>tryTransfer：Transfers the element to a waiting consumer immediately, if possible. 如果有消费者正在等待消费元素，则把传入的元素传给消费者。否则立即返回 false，不用等到消费。</li>
+</ol>
+<h2 id="synchronousqueue">SynchronousQueue</h2>
+<p>SynchronousQueue 是一个不存储元素的阻塞队列。每一个 put 操作必须等待一个 take 操作，否则继续 put 操作会被阻塞。Executors.newCachedThreadPool 就使用了这个队列。</p>
+<p>SynchronousQueue 默认情况下线程采用非公平性策略访问队列，未使用锁，全部通过 CAS 操作来实现并发，吞吐量非常高，高于 LinkedBlockingQueue 和 ArrayBlockingQueue，非常适合用来处理一些高效的传递性场景。Executors.newCachedThreadPool() 就使用了 SynchronousQueue 进行任务传递。</p>
+<pre><code><code>public class SynchronousQueueTest {
+
+    private static class SynchronousQueueProducer implements Runnable {
+
+        private BlockingQueue&lt;String&gt; blockingQueue;
+
+        private SynchronousQueueProducer(BlockingQueue&lt;String&gt; queue) {
+            this.blockingQueue = queue;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    String data = UUID.randomUUID().toString();
+                    System.out.println(Thread.currentThread().getName() + &quot; Put: &quot; + data);
+                    blockingQueue.put(data);
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    private static class SynchronousQueueConsumer implements Runnable {
+
+        private BlockingQueue&lt;String&gt; blockingQueue;
+
+        private SynchronousQueueConsumer(BlockingQueue&lt;String&gt; queue) {
+            this.blockingQueue = queue;
+        }
+
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    System.out.println(Thread.currentThread().getName() + &quot; take(): &quot; + blockingQueue.take());
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+    public static void main(String[] args) {
+
+        final BlockingQueue&lt;String&gt; synchronousQueue = new SynchronousQueue&lt;&gt;();
+        SynchronousQueueProducer queueProducer = new SynchronousQueueProducer(synchronousQueue);
+        new Thread(queueProducer, &quot;producer - 1&quot;).start();
+        SynchronousQueueConsumer queueConsumer1 = new SynchronousQueueConsumer(synchronousQueue);
+        new Thread(queueConsumer1, &quot;consumer — 1&quot;).start();
+        SynchronousQueueConsumer queueConsumer2 = new SynchronousQueueConsumer(synchronousQueue);
+        new Thread(queueConsumer2, &quot;consumer — 2&quot;).start();
+    }
+}</code></code></pre>
+<p> <br />
+ </p>
+<ol>
+<li>参考书籍：《Java 并发编程的艺术》</li>
+<li>参考博文：<a href="https://www.cnblogs.com/konck/p/9473677.html" class="uri">https://www.cnblogs.com/konck/p/9473677.html</a></li>
+</ol>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

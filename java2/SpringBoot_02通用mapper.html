@@ -1,0 +1,284 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot_02通用mapper' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot_02通用mapper</center></div><div class='banquan'>原文出处:本文由博客园博主爱华顿g提供。<br/>
+原文连接:https://www.cnblogs.com/aihuadung/p/11592765.html</div><br>
+    <p>&nbsp;</p>
+<p><strong>注意</strong><strong>:</strong>一旦引入了通用Mapper的启动器，会覆盖Mybatis官方启动器的功能，因此需要移除对官方Mybatis启动器的依赖。</p>
+<p align="left">无需任何配置就可以使用了。如果有特殊需要，可以到通用mapper官网查看：<a href="https://github.com/abel533/Mapper/wiki/3.config">https://github.com/abel533/Mapper/wiki/3.config</a></p>
+<p align="left">通用mapper不需要dao层的xml文件,只需要dao层的接口继承Mapper接口</p>
+<p align="left">&nbsp;</p>
+<h2>总结使用步骤</h2>
+<p><strong>整合通用mapper</strong><strong>的使用：</strong></p>
+<p>第一步：&nbsp; 如果使用通用mapper就需要把mybatis的依赖和配置全部去掉 包括jar、xml、引导类上的mapperScan</p>
+<p>&nbsp;</p>
+<p>第二步：添加通用mapper的启动器</p>
+<p>&nbsp;&nbsp; &lt;dependency&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;groupId&gt;tk.mybatis&lt;/groupId&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;artifactId&gt;mapper-spring-boot-starter&lt;/artifactId&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;version&gt;2.1.5&lt;/version&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/dependency&gt;</p>
+<p>第三步：修改pojo实体类</p>
+<p>&nbsp; 在类名上添加一个注解@Table（name="表名"） 用于表和实体类的映射关系</p>
+<p>&nbsp; 在注解上添加一个@Id&nbsp; 表名是主键</p>
+<p>第四步：修改dao，让Dao的接口继承一个父接口Mapper&lt;T&gt; ,默认就有了CRUD方法</p>
+<p>&nbsp;</p>
+<p>第五步：修改Service实现类中dao的方法 userDao.selectByPrimaryKey(id)</p>
+<p align="left">&nbsp;</p>
+<h2>一.和整合mybatis的区别</h2>
+<p>&nbsp;</p>
+<ol>
+<li>不需要编写xml文件,</li>
+<li>更改引导类上的@MapperScan注解,改成通用mapper的</li>
+<li>不需要在application.yml文件上对 通用mapper 进行配置</li>
+<li>dao层的接口需要实现Mapper&lt;对应的实体类&gt;接口</li>
+<li>实体类需要使用注解告诉通用mapper谁是主键,该实体类对应的表是谁</li>
+</ol>
+<p>&nbsp;</p>
+<h2>二.通用mapper的使用</h2>
+<h3>1.&nbsp;&nbsp;&nbsp; 导入启动器(坐标)</h3>
+<p>&nbsp;</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p>&lt;!-- 通用mapper --&gt;</p>
+<p>&lt;dependency&gt;</p>
+<p>&nbsp;&nbsp;&nbsp; &lt;groupId&gt;tk.mybatis&lt;/groupId&gt;</p>
+<p>&nbsp;&nbsp;&nbsp; &lt;artifactId&gt;mapper-spring-boot-starter&lt;/artifactId&gt;</p>
+<p>&nbsp;&nbsp;&nbsp; &lt;version&gt;2.1.5&lt;/version&gt;</p>
+<p>&lt;/dependency&gt;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>将通用mapper的坐标替换成mybatis的</p>
+<p>&nbsp;</p>
+<p>完整坐标:</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p align="left">&nbsp;&nbsp; &nbsp;&lt;<strong>dependencies</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>&lt;!--</em><em>通过项目模板,已经自动配置上了springmvc启动器,lombok启动器和test启动器--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--项目模板自动配置 开始--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em>&lt;<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>groupId</strong>&gt;org.springframework.boot&lt;/<strong>groupId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>artifactId</strong>&gt;spring-boot-starter-web&lt;/<strong>artifactId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/<strong>dependency</strong>&gt;<br />
+  <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>groupId</strong>&gt;org.projectlombok&lt;/<strong>groupId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>artifactId</strong>&gt;lombok&lt;/<strong>artifactId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>optional</strong>&gt;true&lt;/<strong>optional</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>groupId</strong>&gt;org.springframework.boot&lt;/<strong>groupId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>artifactId</strong>&gt;spring-boot-starter-test&lt;/<strong>artifactId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>scope</strong>&gt;test&lt;/<strong>scope</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>&lt;!--</em><em>项目模板自动配置 结束--&gt;<br />
+  <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--配置springboot整合mybatis 开始--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--配置mybatis 开始--&gt;<br />
+  &lt;!--&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;dependency&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  &lt;groupId&gt;org.mybatis.spring.boot&lt;/groupId&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  &lt;artifactId&gt;mybatis-spring-boot-starter&lt;/artifactId&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  &lt;version&gt;2.0.1&lt;/version&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/dependency&gt;--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 通用mapper --&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em>&lt;<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>groupId</strong>&gt;tk.mybatis&lt;/<strong>groupId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>artifactId</strong>&gt;mapper-spring-boot-starter&lt;/<strong>artifactId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>version</strong>&gt;2.1.5&lt;/<strong>version</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>&lt;!--</em><em>配置通用mapper 结束--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--配置jdbc 开始--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--spring中的jdbc连接和事务是配置中的重要一环，在SpringBoot中该如何处理呢？<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 我们只要找到SpringBoot提供的启动器即可：<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  </em>&lt;<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>groupId</strong>&gt;org.springframework.boot&lt;/<strong>groupId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>artifactId</strong>&gt;spring-boot-starter-jdbc&lt;/<strong>artifactId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>&lt;!--</em><em>配置jdbc 结束--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--配置mysql 开始--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em>&lt;<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>groupId</strong>&gt;mysql&lt;/<strong>groupId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>artifactId</strong>&gt;mysql-connector-java&lt;/<strong>artifactId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>version</strong>&gt;5.1.47&lt;/<strong>version</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>&lt;!--</em><em>配置mysql 结束--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--配置Druid连接池 开始--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em>&lt;<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>groupId</strong>&gt;com.alibaba&lt;/<strong>groupId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>artifactId</strong>&gt;druid&lt;/<strong>artifactId</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;<strong>version</strong>&gt;1.1.6&lt;/<strong>version</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/<strong>dependency</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>&lt;!--</em><em>配置Druid连接池 结束--&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!--配置springboot整合mybatis 结束--&gt;<br />
+  <br />
+  <br />
+  &nbsp;&nbsp;&nbsp; </em>&lt;/<strong>dependencies</strong>&gt;</p>
+<p>&nbsp;</p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+
+
+
+
+
+</tbody>
+
+
+
+
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>2.&nbsp;&nbsp;&nbsp;
+在引导类上添加注解@MapperScan</h3>
+<p>&nbsp;<img src="./images/SpringBoot_02通用mapper0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong>注意导的包的路径</strong></span></p>
+<p><strong>&nbsp;</strong></p>
+<p><strong>&nbsp;</strong></p>
+<h3>3.&nbsp;&nbsp;&nbsp;
+编辑实体类</h3>
+<p>&nbsp;</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<pre><code><strong>package </strong>com.ahd.pojo;<br />
+  <br />
+  <strong>import </strong>lombok.Data;<br />
+  <strong>import </strong>tk.mybatis.mapper.annotation.KeySql;<br />
+  <br />
+  <strong>import </strong>javax.persistence.Id;<br />
+  <strong>import </strong>javax.persistence.Table;<br />
+  <strong>import </strong>java.util.Date;<br />
+  <br />
+  @Data&nbsp;&nbsp; <em>//lombok</em><em>的注解,在工程编译时自动为实体类添加上get,set,...方法<br />
+  </em>@Table(name=<strong>"tb_user"</strong>)&nbsp; <em>//</em><em>告诉通用`mapper对应的数据库表的名字<br />
+  </em><strong>public class </strong>User {<br />
+&nbsp;&nbsp;&nbsp; <em>// id<br />
+&nbsp;&nbsp;&nbsp; </em>@Id <em>//</em><em>告诉通用mapper 谁是主键<br />
+&nbsp;&nbsp;&nbsp; </em>@KeySql(useGeneratedKeys = <strong>true</strong>) <em>//</em><em>开启自增主键回显功能<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>Long <strong>id</strong>;<br />
+&nbsp;&nbsp;&nbsp; <em>// </em><em>用户名<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>String <strong>userName</strong>;<br />
+&nbsp;&nbsp;&nbsp; <em>// </em><em>密码<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>String <strong>password</strong>;<br />
+&nbsp;&nbsp;&nbsp; <em>// </em><em>姓名<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>String <strong>name</strong>;<br />
+&nbsp;&nbsp;&nbsp; <em>// </em><em>年龄<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>Integer <strong>age</strong>;<br />
+&nbsp;&nbsp;&nbsp; <em>// </em><em>性别，1男性，2女性<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>Integer <strong>sex</strong>;<br />
+&nbsp;&nbsp;&nbsp; <em>// </em><em>出生日期<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>Date <strong>birthday</strong>;<br />
+&nbsp;&nbsp;&nbsp; <em>// </em><em>创建时间<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>Date <strong>created</strong>;<br />
+&nbsp;&nbsp;&nbsp; <em>// </em><em>更新时间<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>Date <strong>updated</strong>;<br />
+&nbsp;&nbsp;&nbsp; <em>// </em><em>备注<br />
+&nbsp;&nbsp;&nbsp; </em><strong>private </strong>String <strong>note</strong>;<br />
+}</code></pre>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<h3>4.&nbsp;&nbsp;&nbsp; application.yml配置文件</h3>
+<p>&nbsp;</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<pre><code><strong>spring:<br />
+&nbsp; datasource:<br />
+&nbsp;&nbsp;&nbsp; type: </strong>com.alibaba.druid.pool.DruidDataSource<br />
+&nbsp;&nbsp;&nbsp; <strong>username: </strong>root<br />
+&nbsp;&nbsp;&nbsp; <strong>url: </strong>jdbc:mysql:///saas-export-96<br />
+&nbsp;&nbsp;&nbsp; <strong>password: </strong>123456<br />
+&nbsp;&nbsp;&nbsp; <strong>driver-class-name: </strong>com.mysql.jdbc.Driver<br />
+  <em>#mybatis:<br />
+#&nbsp; configuration:<br />
+#&nbsp;&nbsp;&nbsp; map-underscore-to-camel-case: true<br />
+#&nbsp; type-aliases-package: com.ahd.pojo<br />
+#&nbsp; mapper-locations: /mapper/**</em></code></pre>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>5.&nbsp;&nbsp;&nbsp; 编写dao层接口</h3>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<pre><code><strong>package </strong>com.ahd.dao;<br />
+  <br />
+  <strong>import </strong>com.ahd.pojo.User;<br />
+  <strong>import </strong>tk.mybatis.mapper.common.Mapper;<br />
+  <br />
+  <strong>public interface </strong>UserDao <strong>extends </strong>Mapper&lt;User&gt;{<em>//</em><em>添加泛型,告知通用Mapper实体类是谁<br />
+  </em>}</code></pre>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>6.&nbsp;&nbsp;&nbsp; 说明</h3>
+<p><strong>自己编写的dao</strong><strong>层继承Mapper</strong><strong>接口,UserDao</strong><strong>会继承我们开发所需的大部分方法,</strong><strong>几乎不需要自己动手编写sql</strong><strong>语句了</strong></p>
+<p>&nbsp;</p>
+<p>通用mapper会默认自动将数据库表字段和实体类中的驼峰标识的属性进行转换,不需要像mabatis那样配置</p>
+<p>&nbsp;<img src="./images/SpringBoot_02通用mapper1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>7.&nbsp;&nbsp;&nbsp; 运行结果（使用谷歌json数据显示插件显示）</h3>
+<p>&nbsp;<img src="./images/SpringBoot_02通用mapper2.png" alt="" /></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

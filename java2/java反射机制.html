@@ -1,0 +1,495 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修java反射机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>java反射机制</center></div><div class='banquan'>原文出处:本文由博客园博主说点一二提供。<br/>
+原文连接:https://www.cnblogs.com/perserv/p/11453072.html</div><br>
+    <h1 class="md-end-block md-heading">概述</h1>
+<p class="md-end-block md-p"><span class="md-tab"> 　　<span class="md-plain">RTTI:运行时类型信息使得你可以在程序运行时发现和使用类型信息。但是这个类型在编译时必须已知，这样才能使用RTTI识别他，并利用这些信息做一些有用的事。换句话说，在编译时，编译器必须知道所有要通过RTTI来处理的类。</span></span></p>
+<p class="md-end-block md-p"><span class="md-tab"> <span class="md-plain">但是，在编译时程序根本没法获知这个对象所属的类。例如，假设你从磁盘文件或者网络连接中获取一串字节，并且你被告知这些字节代表了一个类。这时候需要通过反射。这样也可以达到在跨网络的远程平台上创建和运行对象的能力。即远程方法调用(RMI).</span></span></p>
+<h2 class="md-end-block md-heading"><span class="md-plain">定义</span></h2>
+<p class="md-end-block md-p"><span><strong>　　JAVA反射机制是在运行状态中，对于任意一个类，都能够知道这个类的所有属性和方法；对于任意一个对象，都能够调用它的任意方法和属性；这种动态获取信息以及动态调用对象方法的功能称为java语言的反射机制。只用反射的前提就是必须先得到代表的字节码的Class，Class类用于表示.class文件(字节码)</strong></span></p>
+<p class="md-end-block md-p">&nbsp;</p>
+<h2 class="md-end-block md-heading md-focus"><span class="md-plain md-expand">反射的三种方式</span></h2>
+<p class="md-end-block md-p"><span class="md-tab"> <span class="md-plain">反射其实是获取类的字节码文件，也就是.class文件，那么我们就可以通过Class这个对象进行获取。</span></span></p>
+<ol class="ol-list">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">getClass()方法</span></p>
+</li>
+</ol>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        GetClass get </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> GetClass();
+        Class c </span>=<span style="color: #000000;"> get.getClass();
+        System.out.println(c.getName());
+  }</span></code></pre>
+
+<p class="md-end-block md-p"><span class="md-plain">　　2..class方法</span></p>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        Class c </span>= GetClass.<span style="color: #0000ff;">class</span><span style="color: #000000;">;
+        System.out.println(c.getName());
+  }</span></code></pre>
+
+<ol class="ol-list" start="3">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">Class.forName(String name)</span></p>
+</li>
+</ol>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        Class c </span>=Class.forName("GetClass"<span style="color: #000000;">)
+        System.out.println(c.getName());
+  }</span></code></pre>
+
+<p class="md-list-item"><span class="md-tab"><span class="md-plain">　　那么这3中方式我们一般选用哪种方式呢？第一种已经创建了对象，那么这个时候就不需要去进行反射了，显得有点多此一举。第二种需要导入类的包，依赖性太强。<strong>所以我们一般选中第三种方式。</strong></span></span></p>
+<p class="md-end-block md-p">&nbsp;</p>
+<h2 class="md-end-block md-heading"><span class="md-plain">反射机制的相关类</span></h2>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">类名</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">Class类</span></span></td>
+<td><span class="td-span"><span class="md-plain">代表类的实体，在运行的Java应用程序中表示类和接口</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">Field类</span></span></td>
+<td><span class="td-span"><span class="md-plain">代表类的成员变量（成员变量也称为类的属性）</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">Method类</span></span></td>
+<td><span class="td-span"><span class="md-plain">代表类的方法</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">Constructor类</span></span></td>
+<td><span class="td-span"><span class="md-plain">代表类的构造方法</span></span></td>
+</tr>
+</tbody>
+</table>
+<p class="md-end-block md-p">&nbsp;</p>
+<h3 class="md-end-block md-heading"><span class="md-plain">Class类</span></h3>
+<p class="md-end-block md-p"><span class=" md-link"><a href="https://developer.android.google.cn/reference/java/lang/Class"><span class="md-plain">Class</span></a><span class="md-plain">代表类的实体，在运行的Java应用程序中表示类和接口。在这个类中提供了很多有用的方法，这里对他们简单的分类介绍。</span></span></p>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<h4 class="md-end-block md-p"><span><strong>获得类相关的方法</strong></span></h4>
+</li>
+</ul>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">方法</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">asSubclass(Class<span class="md-tag md-raw-inline">&lt;U&gt;<span class="md-plain"> clazz)</span></span></span></span></td>
+<td><span class="td-span"><span class="md-plain">把传递的类的对象转换成代表其子类的对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">Cast</span></span></td>
+<td><span class="td-span"><span class="md-plain">把对象转换成代表类或是接口的对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getClassLoader()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得类的加载器</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getClasses()</span></span></td>
+<td><span class="td-span"><span class="md-plain">返回一个数组，数组中包含该类中所有公共类和接口类的对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getDeclaredClasses()</span></span></td>
+<td><span class="td-span"><span class="md-plain">返回一个数组，数组中包含该类中所有类和接口类的对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">forName(String className)</span></span></td>
+<td><span class="td-span"><span class="md-plain">根据类名返回类的对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getName()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得类的完整路径名字</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">newInstance()</span></span></td>
+<td><span class="td-span"><span class="md-plain">创建类的实例</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getPackage()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得类的包</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getSimpleName()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得类的名字</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getSuperclass()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得当前类继承的父类的名字</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getInterfaces()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得当前类实现的类或是接口</span></span></td>
+</tr>
+</tbody>
+</table>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<h4 class="md-end-block md-p"><span><strong>获得类中属性相关的方法</strong></span></h4>
+</li>
+</ul>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">方法</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getField(String name)</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得某个公有的属性对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getFields()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得所有公有的属性对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getDeclaredField(String name)</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得某个属性对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getDeclaredFields()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得所有属性对象</span></span></td>
+</tr>
+</tbody>
+</table>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<h4 class="md-end-block md-p"><span><strong>获得类中注解相关的方法</strong></span></h4>
+</li>
+</ul>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">方法</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getAnnotation(Class<span class="md-tag md-raw-inline">&lt;A&gt;<span class="md-plain"> annotationClass)</span></span></span></span></td>
+<td><span class="td-span"><span class="md-plain">返回该类中与参数类型匹配的公有注解对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getAnnotations()</span></span></td>
+<td><span class="td-span"><span class="md-plain">返回该类所有的公有注解对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getDeclaredAnnotation(Class<span class="md-tag md-raw-inline">&lt;A&gt;<span class="md-plain"> annotationClass)</span></span></span></span></td>
+<td><span class="td-span"><span class="md-plain">返回该类中与参数类型匹配的所有注解对象</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getDeclaredAnnotations()</span></span></td>
+<td><span class="td-span"><span class="md-plain">返回该类所有的注解对象</span></span></td>
+</tr>
+</tbody>
+</table>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<h4 class="md-end-block md-p"><span><strong>获得类中构造器相关的方法</strong></span></h4>
+</li>
+</ul>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">方法</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getConstructor(Class...&lt;?&gt; parameterTypes)</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得该类中与参数类型匹配的公有构造方法</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getConstructors()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得该类的所有公有构造方法</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getDeclaredConstructor(Class...&lt;?&gt; parameterTypes)</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得该类中与参数类型匹配的构造方法</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getDeclaredConstructors()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得该类所有构造方法</span></span></td>
+</tr>
+</tbody>
+</table>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<h4 class="md-end-block md-p"><span><strong>获得类中方法相关的方法</strong></span></h4>
+</li>
+</ul>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">方法</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getMethod(String name, Class...&lt;?&gt; parameterTypes)</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得该类某个公有的方法</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getMethods()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得该类所有公有的方法</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getDeclaredMethod(String name, Class...&lt;?&gt; parameterTypes)</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得该类某个方法</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">getDeclaredMethods()</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得该类所有方法</span></span></td>
+</tr>
+</tbody>
+</table>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<h4 class="md-end-block md-p"><span><strong>类中其他重要的方法</strong></span></h4>
+</li>
+</ul>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">方法</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">isAnnotation()</span></span></td>
+<td><span class="td-span"><span class="md-plain">如果是注解类型则返回true</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">isAnnotationPresent(Class&lt;? extends Annotation&gt; annotationClass)</span></span></td>
+<td><span class="td-span"><span class="md-plain">如果是指定类型注解类型则返回true</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">isAnonymousClass()</span></span></td>
+<td><span class="td-span"><span class="md-plain">如果是匿名类则返回true</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">isArray()</span></span></td>
+<td><span class="td-span"><span class="md-plain">如果是一个数组类则返回true</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">isEnum()</span></span></td>
+<td><span class="td-span"><span class="md-plain">如果是枚举类则返回true</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">isInstance(Object obj)</span></span></td>
+<td><span class="td-span"><span class="md-plain">如果obj是该类的实例则返回true</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">isInterface()</span></span></td>
+<td><span class="td-span"><span class="md-plain">如果是接口类则返回true</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">isLocalClass()</span></span></td>
+<td><span class="td-span"><span class="md-plain">如果是局部类则返回true</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">isMemberClass()</span></span></td>
+<td><span class="td-span"><span class="md-plain">如果是内部类则返回true</span></span></td>
+</tr>
+</tbody>
+</table>
+<h3 class="md-end-block md-heading"><span class="md-plain">Field类</span></h3>
+<p class="md-end-block md-p"><span class=" md-link"><a href="https://developer.android.google.cn/reference/java/lang/reflect/Field"><span class="md-plain">Field</span></a><span class="md-plain">代表类的成员变量（成员变量也称为类的属性）。</span></span></p>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">方法</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">equals(Object obj)</span></span></td>
+<td><span class="td-span"><span class="md-plain">属性与obj相等则返回true</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">get(Object obj)</span></span></td>
+<td><span class="td-span"><span class="md-plain">获得obj中对应的属性值</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">set(Object obj, Object value)</span></span></td>
+<td><span class="td-span"><span class="md-plain">设置obj中对应属性值</span></span></td>
+</tr>
+</tbody>
+</table>
+<h3 class="md-end-block md-heading"><span class="md-plain">Method类</span></h3>
+<p class="md-end-block md-p"><span class=" md-link"><a href="https://developer.android.google.cn/reference/java/lang/reflect/Method"><span class="md-plain">Method</span></a><span class="md-plain">代表类的方法。</span></span></p>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">方法</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">invoke(Object obj, Object... args)</span></span></td>
+<td><span class="td-span"><span class="md-plain">传递object对象及参数调用该对象对应的方法</span></span></td>
+</tr>
+</tbody>
+</table>
+<h3 class="md-end-block md-heading"><span class="md-plain">Constructor类</span></h3>
+<p class="md-end-block md-p"><span class="md-link"><a href="https://developer.android.google.cn/reference/java/lang/reflect/Constructor"><span class="md-plain">Constructor</span></a><span class="md-plain">代表类的构造方法。</span></span></p>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">方法</span></span></th><th><span class="td-span"><span class="md-plain">用途</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span class="md-plain">newInstance(Object... initargs)</span></span></td>
+<td><span class="td-span"><span class="md-plain">根据传递的参数创建类的对象</span></span></td>
+</tr>
+</tbody>
+</table>
+<p class="md-end-block md-p">&nbsp;</p>
+<h2 class="md-end-block md-heading"><span class="md-plain">反射用例</span></h2>
+<h3 class="md-end-block md-heading"><span class="md-plain">被反射类Book</span></h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> rtti.reflect;
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Book {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String TAG = "BookTag"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String name;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String author;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setName(String name) {
+        </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setAuthor(String author) {
+        </span><span style="color: #0000ff;">this</span>.author =<span style="color: #000000;"> author;
+    }
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getAuthor() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> author;
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString(){
+        </span><span style="color: #0000ff;">return</span> "Book[ "+name+"  "+author+" ]"<span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Book(){}
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Book(String name,String author){
+        </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+        </span><span style="color: #0000ff;">this</span>.author =<span style="color: #000000;">author;
+    }
+    </span><span style="color: #0000ff;">private</span> String declareMethod(<span style="color: #0000ff;">int</span><span style="color: #000000;"> index){
+        String str </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (index){
+            </span><span style="color: #0000ff;">case</span> 0<span style="color: #000000;">:
+                str </span>= "declareMethod 1 !"<span style="color: #000000;">;
+                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">case</span> 1<span style="color: #000000;">:
+                str </span>= "declareMethod 2 !"<span style="color: #000000;">;
+                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+                str </span>= "declareMethod 3 !"<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> str;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<h3 class="md-end-block md-heading"><span class="md-plain">反射逻辑封装类</span></h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ReflectTest {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">static</span> String TAG = "rtti.reflect.ReflectClass"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        reflectNewInstance();
+        reflectPrivateCons();
+        reflectPrivateField();
+        reflectPrivateMethod();
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">创建对象</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> reflectNewInstance(){
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            Class</span>&lt;?&gt; bookClass = Class.forName("rtti.reflect.Book"<span style="color: #000000;">);
+            Object obj </span>=<span style="color: #000000;"> bookClass.newInstance();
+            Book book </span>=<span style="color: #000000;">(Book)obj;
+            book.setName(</span>"黄金时代"<span style="color: #000000;">);
+            book.setAuthor(</span>"王小波"<span style="color: #000000;">);
+            System.out.println(TAG</span>+",reflectNewInstance book="+<span style="color: #000000;">book.toString());
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">反射私有的构造方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> reflectPrivateCons(){
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            Class</span>&lt;?&gt; bookClass = Class.forName("rtti.reflect.Book"<span style="color: #000000;">);
+            Constructor</span>&lt;?&gt; cons = bookClass.getDeclaredConstructor(String.<span style="color: #0000ff;">class</span>,String.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+            cons.setAccessible(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            Object obj</span>= cons.newInstance("黄金时代","王小波"<span style="color: #000000;">);
+            Book book </span>=<span style="color: #000000;">(Book)obj;
+            System.out.println(TAG</span>+",reflectNewInstance book="+<span style="color: #000000;">book.toString());
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">反射私有属性</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> reflectPrivateField(){
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            Class</span>&lt;?&gt; bookClass = Class.forName("rtti.reflect.Book"<span style="color: #000000;">);
+            Object obj </span>=<span style="color: #000000;"> bookClass.newInstance();
+            Field fieldTag </span>= bookClass.getDeclaredField("TAG"<span style="color: #000000;">);
+            fieldTag.setAccessible(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            Field fieldName </span>= bookClass.getDeclaredField("name"<span style="color: #000000;">);
+            fieldName.setAccessible(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            String tag </span>=<span style="color: #000000;"> (String)fieldTag.get(obj);
+            String name </span>=<span style="color: #000000;"> (String)fieldName.get(obj);
+            System.out.println(TAG</span>+",reflectPrivateField tag,name = "+tag+","+<span style="color: #000000;">name);
+        }</span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e){
+            e.printStackTrace();
+        }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">反射私有方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> reflectPrivateMethod(){
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;">{
+            Class</span>&lt;?&gt; bookClass = Class.forName("rtti.reflect.Book"<span style="color: #000000;">);
+            Object obj </span>=<span style="color: #000000;"> bookClass.newInstance();
+            Method method </span>= bookClass.getDeclaredMethod("declareMethod",<span style="color: #0000ff;">int</span>.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+            method.setAccessible(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            String str </span>= (String) method.invoke(obj,1<span style="color: #000000;">);
+            System.out.println(TAG</span>+",reflectPrivateMethod str ="+<span style="color: #000000;">str);
+        }</span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e){
+            e.printStackTrace();
+        }
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<h2 class="md-end-block md-heading"><span class="md-plain">反射应用</span></h2>
+<ol class="ol-list">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">访问一些不能访问的变量或者属性：破解别人代码</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">数据库JDBC中通过Class.froName(Driver)来获取数据库连接驱动</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">分析类文件</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">工厂模式，Factory类中用反射的话，添加一个新类，就不需要修改工厂类Factory了。、</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">远程方法调用</span></p>
+</li>
+</ol>
+<p class="md-end-block md-p"><span class="md-plain">参考文献</span></p>
+<p class="md-end-block md-p"><span class="md-link"><a href="https://www.jianshu.com/p/9be58ee20dee">https://www.jianshu.com/p/9be58ee20dee</a></span></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

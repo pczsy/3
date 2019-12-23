@@ -1,0 +1,329 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JDBC学习笔记二' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JDBC学习笔记二</center></div><div class='banquan'>原文出处:本文由博客园博主只是一个APIGUY提供。<br/>
+原文连接:https://www.cnblogs.com/ys1109/p/11446974.html</div><br>
+    <h1 id="jdbc学习笔记二">JDBC学习笔记二</h1>
+<h2 id="execute方法执行sql语句">4.execute()方法执行SQL语句</h2>
+<p>execute几乎可以执行任何SQL语句，当execute执行过SQL语句之后会返回一个布尔类型的值，代表是否返回了ResultSet对象。</p>
+<p>以下两个方法分别获得结果集或受影响的行数：</p>
+<pre><code><code>getResultSet(): 获取该Statement执行查询语句返回的ResultSet对象
+getUpdateCount(): 获取该Statement执行DML语句所影响的记录行数</code></code></pre>
+<p>部分示例代码：</p>
+<pre><code><code>//stmt即为Connection对象创建的Statement
+boolean hasResult = stmt.execute(sql);
+if(hasResult){
+    //获取结果集
+    ResultSet rs = stmt.getResultSet;
+}
+else{
+    //获取受影响的行数
+    int count = stmt.getUpdateCount&#39;
+}</code></code></pre>
+<h2 id="preparedstatement">5.PreparedStatement</h2>
+<p>PerparedStatement时Statement的子接口，允许使用<code>?</code>占位符来代替具体值，在通过Connection对象创建PreparedStatement对象时需要传入SQL语句来进行预编译：</p>
+<pre><code><code>PreparedStatement pstmt = conn.prepareStatement(&quot;允许带占位符的sql语句&quot;);</code></code></pre>
+<p>PerparedStatement在执行SQL语句之前，要通过之前提到过的setXxx(int parameterIndex, Xxx value)方法来对占位符进行赋值。执行语句时的方法跟Statement方法相同，只是不需要传入SQL语句。</p>
+<p>PreparedStatement还可以防止SQL注入，Statement如果要使用变量就需要拼接字符串，所以存在SQL注入的风险。</p>
+<p>测试代码(使用之前的工具类以及Junit单元测试)：</p>
+<pre><code><code>@Test
+    public void pstmtTest() throws Exception{
+        String sql = &quot;select * from test where One &gt; ?&quot;;
+        Connection conn = JDBC2.getConnection();
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        //给占位符赋值
+        pstmt.setInt(1, 1);
+        //执行SQL语句
+        ResultSet rs = pstmt.executeQuery();
+        while(rs.next()){
+            System.out.println(rs.getInt(1) + &quot; &quot;
+                    + rs.getString(2) + &quot; &quot; + rs.getString(3));
+        }
+        //关闭连接
+        JDBC2.close(conn, pstmt, rs);
+    }</code></code></pre>
+<p>结果测试成功，这里就不再贴出</p>
+<h2 id="callablestatement">6.CallableStatement</h2>
+<p>调用存储过程使用CallableStatement,通过Connection的prepareCall方法来创建CallableStatement对象，创建该对象时需要传入调用存储过程的SQL语句，示例如下：</p>
+<pre><code><code>CallabeStatement cstmt = conn.prepareCall(&quot;call 存储过程名(?, ?, ?)&quot;);</code></code></pre>
+<p>可以通过CallableStatement的SetXxx(int indix, Xxx valie)方法为传入参数设置值，传出参数需要调用registerOutParameter方法来注册参数，示例如下：</p>
+<pre><code><code>cstmt.registerOutParameter(int index, Types.数据类型)</code></code></pre>
+<p>简单示例：</p>
+<p>SQL中的存储过程</p>
+<pre class="sql"><code>CREATE PROCEDURE simple_test(IN a int ,in b int, out sum int)
+BEGIN
+SET sum = a + b;
+END;</code></code></pre>
+<p>JAVA代码</p>
+<pre><code><code>@Test
+    public void cstmtTest()throws Exception{
+        Connection conn = JDBC2.getConnection();
+        //创建CallableStatement对象
+        CallableStatement cstmt = conn.prepareCall(&quot;call simple_test(?, ?, ?)&quot;);
+        //为传入参数设置值
+        cstmt.setInt(1, 6);
+        cstmt.setInt(2, 2);
+        //注册参数
+        cstmt.registerOutParameter(3,Types.INTEGER);
+        cstmt.execute();
+        System.out.println(cstmt.getInt(3));
+    }</code></code></pre>
+<p>测试结果为8，这里就不再贴出</p>
+<h2 id="resultset">7.ResultSet</h2>
+<p>ResultSet为结果集，其中包含一个指针指向结果集中的某一行，可以利用内置的各种方法来移动指针，常用方法在之前的2.5中已经给出。</p>
+<p>在JDK1.4之前的版本中，默认打开的ResultSet是不可滚动的，必须在创建Statement过PreStatement时需要传入额外参数，JDK1.5以后默认打开了ResultSet就是可滚动的，无需传入额外参数。</p>
+<p>传入的参数有以下两种类型：</p>
+<pre><code><code>resultSetType：控制ResultSet的类型，该参数可以是三个值：
+    ResultSet.TYPE_FORWARD_ONLY: 该常量控制记录指针只能向前移动
+    ResultSet.TYPE_SCROLL_INSENSITIVE：可滚动结果集，但底层数据的改变不会影响ResultSet的值
+    ResultSet.TYPE_SCROLL_SENSITIVE：可滚动结果集，底层数据的改变会影响ResultSet的值
+resultSetConcurrency：控制ResultSet的并发类型，该参数可以是以下两个值：
+    ResultSet.CONCUR_READ_ONLY：该常量指示ResultSet是只读的并发模式(默认)
+    ResultSet.CONCUR_UPDATABLE：该常量指示ResultSet是可更新的并发模式</code></code></pre>
+<p>如果要创建可更新的结果集，查询语句查询的数据通常只能来自于同一个数据表，而且查询结果集中的数据列必须包含主键列，否则将会引起更新失败。</p>
+<p>示例代码：</p>
+<pre><code><code> @Test
+    public void rsTest() throws Exception
+    {
+        Connection conn = JDBC2.getConnection();
+        //创建可更新可滚动的ResultSet对象
+        PreparedStatement pstmt = conn
+                .prepareStatement(&quot;select * from test where One &gt; ?&quot;,
+                        ResultSet.TYPE_SCROLL_INSENSITIVE,
+                        ResultSet.CONCUR_UPDATABLE);
+        //给占位符赋值
+        pstmt.setInt(1, 1);
+        //执行SQL语句
+        ResultSet rs = pstmt.executeQuery();
+        //移动到最后
+        rs.last();
+        //获取指针当前所在的行数
+        int rowCount = rs.getRow();
+        System.out.println(&quot;修改前从后往前遍历：&quot;);
+        for(int i = rowCount; i &gt; 0; i--){
+            //移动到第i行
+            rs.absolute(i);
+            System.out.println(rs.getInt(1) + &quot; &quot;
+                    + rs.getString(2) + &quot; &quot; + rs.getString(3));
+            //修改指针所在行的第二列的记录
+            rs.updateString(2, &quot;修改后的&quot;+ i);
+            //提交修改
+            rs.updateRow();
+        }
+        //正序输出修改后的数据
+        System.out.println(&quot;修改后从前往后遍历&quot;);
+        for(int i = 1; i &lt;= rowCount; i++){
+            rs.absolute(i);
+            System.out.println(rs.getInt(1) + &quot; &quot;
+                    + rs.getString(2) + &quot; &quot; + rs.getString(3));
+        }
+        JDBC2.close(conn, pstmt, rs);
+    }
+}</code></code></pre>
+<p>数据库表中的数据也会随之更改。</p>
+<h2 id="resultsetmetadata">8.ResultSetMetaData</h2>
+<p>MetaData的意思是元数据，即描述其他数据的数据，ResultSetMetaData封装了描述ResultSet对象的数据。</p>
+<p>根据Result的getMetaDate()方法来获取ResultSetMetaData对象</p>
+<p>常用方法如下：</p>
+<pre><code><code>int getColumnCount(): 返回该ResultSet的列数量
+String getColumnName(int column): 返回指定索引的列名
+int getColumnType(int column): 返回指定索引的列类型</code></code></pre>
+<p>使用过ResultSetMetaData对象后也要释放资源</p>
+<h2 id="事务">9.事务</h2>
+<p>常用方法在中已经在2.2中写出</p>
+<p>下面就贴一下简单的示例代码：</p>
+<pre><code><code>@Test
+    public void transaction() throws Exception{
+        Connection conn = JDBC2.getConnection();
+        //关闭自动提交，开启事务
+        conn.setAutoCommit(false);
+        Statement stmt = conn.createStatement();
+        //执行sql语句
+        stmt.executeUpdate(&quot;insert into test values(4, &#39;测试commit4&#39;, &#39;测试commit4&#39;)&quot;);
+        //设置回滚点
+        //Savepoint savepoint1 = conn.setSavepoint(&quot;savepoint1&quot;);
+        stmt.executeUpdate(&quot;insert into test values(5, &#39;测试commit5&#39;, &#39;测试commit5&#39;)&quot;);
+        //回滚事务，不填写回滚点的话则撤销之前所有操作
+        //conn.rollback(savepoint1);
+        //提交事务（回滚之后也要提交）
+        //conn.commit();
+        JDBC2.close(conn, stmt, null);
+    }</code></code></pre>
+<h2 id="批量更新">10.批量更新</h2>
+<p>多条SQL语句将会被作为一批操作被同时收集，并同时提交。</p>
+<p>使用批量更新需要先创建一个Statement对象，然后使用该对象的addBatch方法将多条SQL语句同时收集起来，最后调用Statement对象的executeBatch同时执行这些sql语句，如下所示：</p>
+<pre><code><code>Statement stmt = conn.createStatement();
+//收集多条SQL语句
+stmt.addBatch(sql1);
+stmt.addBatch(sql2);
+stmt.addBatch(sql3);
+...
+//同时执行所有SQL语句
+stmt.executeBatch();</code></code></pre>
+<p>执行executeBatch()方法将返回一个int[]数组，返回每次执行的所影响的行数，因此如果addBatch()时添加查询语句运行时会出现错误。因此可以在执行批处理前开启事务，当出现错误时回滚到初始状态。</p>
+<h2 id="连接池">11.连接池</h2>
+<p>数据库的连接及关闭非常耗费系统资源，为了减少资源浪费，提高程序运行效率，可以采用数据库连接池。</p>
+<p>数据库连接池：当程序启动时，系统自动建立足够的数据库连接，并将这些连接组成一个连接池。每次应用程序请求数据库连接时，无须重新打开连接，而是从池中取出已有的连接使用，当使用完后，不再关闭数据库连接，而是将连接归还给连接池。连接池就类似于之前所学的对象工厂(也是在程序开始运行时，将properties文件中的类实例化)</p>
+<p>C3P0和DBCP对比：</p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th style="text-align: center;">DBCP</th>
+<th style="text-align: center;">C3P0</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>对数据连接处理的方式</td>
+<td style="text-align: center;">提供最大连接数</td>
+<td style="text-align: center;">提供最大空闲时间</td>
+</tr>
+<tr class="even">
+<td>什么时候挂断</td>
+<td style="text-align: center;">当连接超过最大连接数</td>
+<td style="text-align: center;">自动回收连接</td>
+</tr>
+<tr class="odd">
+<td>连接资源是否释放</td>
+<td style="text-align: center;">需要自己手动释放资源</td>
+<td style="text-align: center;">需要自己手动释放资源</td>
+</tr>
+<tr class="even">
+<td>效率</td>
+<td style="text-align: center;">效率比较高</td>
+<td style="text-align: center;">效率没有DBCP高</td>
+</tr>
+<tr class="odd">
+<td>推荐使用</td>
+<td style="text-align: center;">spring开发</td>
+<td style="text-align: center;">hibernate开发</td>
+</tr>
+</tbody>
+</table>
+<h3 id="dbcp">11.1.DBCP</h3>
+<p>需要jar包:<code>common-dbcp</code>，<code>common-pool</code>， <code>common-collections</code></p>
+<p>maven依赖：</p>
+<pre class="xml"><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-dbcp2&lt;/artifactId&gt;
+    &lt;version&gt;2.1.1&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-pool2&lt;/artifactId&gt;
+    &lt;version&gt;2.6.1&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-collections4&lt;/artifactId&gt;
+    &lt;version&gt;4.1&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>简单模板：</p>
+<pre><code><code>import org.apache.commons.dbcp2.BasicDataSource;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Properties;
+
+public class DBCP {
+    private static BasicDataSource ds;
+    static{
+        try{
+            ds = new BasicDataSource();
+            //读取配置文件
+            Properties prop = new Properties();
+            prop.load(new FileInputStream(&quot;src/main/resources/datasource.properties&quot;));
+            //设置驱动，高版本jar包不需要这一步，如果写的话写成“com.mysql.jdbc.Driver”
+            //ds.setDriverClassName(prop.getProperty(&quot;driver&quot;));
+            //设置url
+            ds.setUrl(prop.getProperty(&quot;url&quot;));
+            //用户名
+            ds.setUsername(prop.getProperty(&quot;username&quot;));
+            //密码
+            ds.setPassword(prop.getProperty(&quot;password&quot;));
+            //设置连接池初始连接数
+            ds.setInitialSize(Integer.parseInt(prop.getProperty(&quot;initialsize&quot;)));
+            //设置最大活动连接数
+            ds.setMaxTotal(Integer.parseInt(prop.getProperty(&quot;maxactive&quot;)));
+            //设置最小空闲连接
+            ds.setMinIdle(Integer.parseInt(prop.getProperty(&quot;minidle&quot;)));
+        }catch (IOException e){
+            e.printStackTrace();
+        }
+        System.out.println(&quot;finish init&quot;);
+    }
+
+    public static Connection getConnetion(){
+        try {
+            return ds.getConnection();
+        }catch (SQLException e){
+            e.printStackTrace();
+            return null;
+        }
+    }
+}</code></code></pre>
+<p>上面的属性配置只是常用配置，完整的配置请参考官方文档。</p>
+<p>测试代码：</p>
+<pre><code><code>@Test
+    public void DBCPTest() {
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        try{
+            conn = DBCP.getConnetion();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(&quot;select * from test&quot;);
+            while(rs.next())
+                System.out.println(rs.getInt(1) + &quot; &quot;
+                        + rs.getString(2) + &quot; &quot; + rs.getString(3));
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+        finally {
+            //关闭连接
+            try {
+                if(rs != null)
+                    rs.close();
+                if(stmt != null)
+                    stmt.close();
+                if(conn != null)
+                    conn.close();
+            }catch (SQLException e){
+                e.printStackTrace();
+            }
+        }
+    }</code></code></pre>
+<h3 id="c3p0">11.2.C3P0</h3>
+<p>需要jar包：<code>c3p0</code>;</p>
+<p>maven依赖：</p>
+<pre class="xml"><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.mchange&lt;/groupId&gt;
+    &lt;artifactId&gt;c3p0&lt;/artifactId&gt;
+    &lt;version&gt;0.9.5.2&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>简单模板：</p>
+<p>将DBCP中的BasicDataSource替换为ComboPooledDataSource</p>
+<p>驱动，url，用户名和密码设置方式相同，剩余的请参考官方文档</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

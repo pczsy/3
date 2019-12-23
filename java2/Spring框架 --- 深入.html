@@ -1,0 +1,674 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring框架 --- 深入' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring框架 --- 深入</center></div><div class='banquan'>原文出处:本文由博客园博主张泽提供。<br/>
+原文连接:https://www.cnblogs.com/zhangze-lifetime/p/11768566.html</div><br>
+    <h1>1.Spring IOC</h1>
+<p>　<span style="font-family: 楷体; font-size: 18px;">　IOC技术： 控制反转，也叫（依赖注入） </span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　控制反转：Bean的生命周期不受你控制，而是交给Spring容器管理。</span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　Spring框架如何利用IOC ？：</span><br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; 　　实现了控制反转，Spring容器能帮我们实例化对象，但是并没有做到DI（依赖注入）。</span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　作用：<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; (1) 构建Bean<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; (2) Bean之间有依赖关系的话，可以自动帮我们注入<br />&nbsp;&nbsp;&nbsp; 优势：<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; 解耦：低耦合，实现面向接口的编程思想</span></p>
+<h1>2.Spring AOP</h1>
+<p>　　<span style="font-family: 楷体; font-size: 18px;">动态代理设计模式<br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;　　原理和静态代理设计模式没有本质区别：<br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; 　　&nbsp;被代理类、代理类、被代理和代理类是同一个接口<br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　代理类的创建过程有区别：<br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　（1）静态代理：<br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; 　　&nbsp;自己编写代理类，代理类自己实现接口<br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　（2）动态代理：<br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; 　　&nbsp;代理类不需要自己编写，他Proxy.newProxyinstance(xx)静态方法<br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　在程序执行过程中，动态产生代理类<br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　InvocationHandler：里边含有被代理类的引用</span></span></span></span></span></span></span></span></span></span></p>
+<p>　　 <span style="font-family: 楷体; font-size: 18px;">AOP：面向切面的编程</span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　代理模式主要的作用：</span><br /><span style="font-family: 楷体; font-size: 18px;">&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; 　　&nbsp;在业务代码不之情的情况下，切入额外的功能。</span><span style="font-family: 楷体; font-size: 18px;"><br />&nbsp;&nbsp;&nbsp; 原理：Spring框架具有IOC的功能，所以我们可以利用该功能配置业务Bean 。<span style="font-family: 楷体; font-size: 18px;">代理设计模式（动态）</span><br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;例如： AccountServiceImpl<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&lt;bean id="AccountServiceImpl" class="service.AccountServiceImpl"&gt;&lt;/bean&gt;<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;然后，Spring框架利用动态代理设计模式创建一个AccountServiceImpl的动态代理对象<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;然后就可以在AccountServiceImpl的业务方法的基础上增加相应的功能。<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;那Spring把这种技术称为AOP面向切面的编程，其实就是在程序员不知情的情况下在其业务方法上切入额外的功能。<br /></span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　<span style="font-family: 楷体; font-size: 18px;">使用 XML 配置实现具体的操作：<br />&nbsp;&nbsp; &nbsp;　　（1）使用Spring的AOP功能，就需要引入jar&nbsp; pom.xml<br />&nbsp;&nbsp; &nbsp;　　（2）自己编写切面。很类似于InvocationHandler<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　被代理接口&nbsp;&nbsp; ：&nbsp; 业务接口<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　被代理类： 实现了被代理口，被代理类也叫业务实现类；<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　例子：<span style="font-family: times new roman, times;">class CalFfabImpl implements ICalFab</span></span></span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">代码示例：<br /></span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　Maven项目</span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　<span style="font-family: times new roman, times;">pom.xml</span> 添加的插件　　</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.aspectj/aspectjrt </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.aspectj<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>aspectjrt<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.8.10<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>       
+ <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/aopalliance/aopalliance </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>aopalliance<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>aopalliance<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.aspectj/aspectjrt </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.aspectj<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>aspectjweaver<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.8.10<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.springframework/spring-aop </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-aop<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${spring.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>            </code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　添加资源配置文件 <span style="font-family: times new roman, times;">beans.xml</span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">beans </span><span style="color: #ff0000;">xmlns</span><span style="color: #0000ff;">="http://www.springframework.org/schema/beans"</span><span style="color: #ff0000;">
+    xmlns:xsi</span><span style="color: #0000ff;">="http://www.w3.org/2001/XMLSchema-instance"</span><span style="color: #ff0000;">
+    xmlns:context</span><span style="color: #0000ff;">="http://www.springframework.org/schema/context"</span><span style="color: #ff0000;">
+    xmlns:aop</span><span style="color: #0000ff;">="http://www.springframework.org/schema/aop"</span><span style="color: #ff0000;">
+    xsi:schemaLocation</span><span style="color: #0000ff;">="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Spring IOC </span><span style="color: #008000;">--&gt;</span> 
+   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="calFab"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="day02.aop.CalFabImpl"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span>
+   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="selfAspectRef"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="day02.aop.SelfAspect"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span>
+   
+   <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Spring Aop 配置切面 </span><span style="color: #008000;">--&gt;</span>
+   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">aop:config</span><span style="color: #0000ff;">&gt;</span>
+           <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 配置切面 </span><span style="color: #008000;">--&gt;</span>
+           <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">aop:aspect </span><span style="color: #ff0000;">ref</span><span style="color: #0000ff;">="selfAspectRef"</span><span style="color: #0000ff;">&gt;</span>
+               <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 切点  在CalFabImpl类的任何方法上加通知 </span><span style="color: #008000;">--&gt;</span>
+               <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">aop:pointcut </span><span style="color: #ff0000;">expression</span><span style="color: #0000ff;">="execution(* day02.aop.CalFabImpl.*(..))"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="selfPointcut"</span><span style="color: #0000ff;">/&gt;</span>
+               <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 通知 </span><span style="color: #008000;">--&gt;</span>
+               <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">aop:before </span><span style="color: #ff0000;">method</span><span style="color: #0000ff;">="testBefore"</span><span style="color: #ff0000;"> pointcut-ref</span><span style="color: #0000ff;">="selfPointcut"</span><span style="color: #0000ff;">/&gt;</span>
+               <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">aop:after </span><span style="color: #ff0000;">method</span><span style="color: #0000ff;">="testAfter"</span><span style="color: #ff0000;"> pointcut-ref</span><span style="color: #0000ff;">="selfPointcut"</span><span style="color: #0000ff;">/&gt;</span>
+               <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">aop:around </span><span style="color: #ff0000;">method</span><span style="color: #0000ff;">="testAround"</span><span style="color: #ff0000;"> pointcut-ref</span><span style="color: #0000ff;">="selfPointcut"</span><span style="color: #0000ff;">/&gt;</span>
+           <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">aop:aspect</span><span style="color: #0000ff;">&gt;</span>
+   <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">aop:config</span><span style="color: #0000ff;">&gt;</span>
+   
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">beans</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　新建接口 <span style="font-family: times new roman, times;">ICalFab.java</span><br /></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 2</span> <span style="color: #008000;"> * 业务接口
+</span><span style="color: #008080;"> 3</span> <span style="color: #008000;"> * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+</span><span style="color: #008080;"> 4</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 5</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> ICalFab {
+</span><span style="color: #008080;"> 6</span>     
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">int</span> calFaByLoop(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n);
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">int</span> calFabByRecursion(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n); 
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span> }</code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　新建类实现接口：</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 业务实现类：被代理类
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span> CalFabImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> ICalFab{
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> calFaByLoop(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n) {
+        </span><span style="color: #0000ff;">int</span> n1=1,n2= 1,n3=0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 3; i &lt; n; i++<span style="color: #000000;">) {
+            n3</span>=n1+<span style="color: #000000;">n2;
+            n1</span>=<span style="color: #000000;">n2;
+            n2</span>=<span style="color: #000000;">n3;
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> n3;
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> calFabByRecursion(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n) {
+        </span><span style="color: #0000ff;">if</span>(n==1||n==2) <span style="color: #0000ff;">return</span> 1<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">return</span> calFabByRecursion(n-1)+calFabByRecursion(n-2<span style="color: #000000;">);
+        
+    }
+    
+    
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　新建类：<span style="font-family: times new roman, times;">SelfAspect.java</span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.ProceedingJoinPoint;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 自定义功能性切面：利用xml配置实现。
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ *
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SelfAspect {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">--通知：Before类型的Advice</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> testBefore() {
+        System.out.println(</span>"before do something..."<span style="color: #000000;">);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">--通知：after类型的通知</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> testAfter() {
+        System.out.println(</span>"after do Something..."<span style="color: #000000;">);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 通知：Around环绕   通知方法的执行点</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> testAround(ProceedingJoinPoint jp) {
+        </span><span style="color: #0000ff;">int</span> result = 0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">long</span> start =<span style="color: #000000;"> System.currentTimeMillis();
+            result </span>= (<span style="color: #0000ff;">int</span>)jp.proceed();    <span style="color: #008000;">//</span><span style="color: #008000;">-- 执行业务方法</span>
+            <span style="color: #0000ff;">long</span> end =<span style="color: #000000;"> System.currentTimeMillis();
+            System.out.println(end</span>-start+"ms"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable e) {
+            e.printStackTrace();
+        }    
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+    }
+} </span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　新建调用类：<span style="font-family: times new roman, times;">Invoker.java</span></span></p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.ApplicationContext;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.support.ClassPathXmlApplicationContext;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * Invoker类
+ * 功能切入更加灵活
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ *
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Invoker {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 1. Spring容器</span>
+        ApplicationContext ctx =
+                <span style="color: #0000ff;">new</span> ClassPathXmlApplicationContext("application.xml"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 2. 获取业务类</span>
+        ICalFab calFab= (ICalFab)ctx.getBean("calFab"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 3. 调用业务方法</span>
+        System.out.println(calFab.calFaByLoop(40<span style="color: #000000;">));
+        System.out.println(calFab.calFabByRecursion(</span>40<span style="color: #000000;">));
+        System.out.println(calFab </span><span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> ICalFab);
+        
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　使用 注解 配置实现具体的操作：<br /></span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　　　（1） Config类来代替xml的配置 <br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; 　　&nbsp;@EnableAspectJAutoProxy //-- 启用SpringAop的功能<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　//-- 启用Spring的IOC功能<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　@Configuration<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;　　@ComponentScan({"package1","package2"})<br />&nbsp;&nbsp; &nbsp;　　（2）编写切面。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">代码示例：</span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　新建接口 <span style="font-family: times new roman, times; font-size: 16px;">ICalFab.java&nbsp;</span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 业务接口
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ *
+ </span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> ICalFab {
+    
+    </span><span style="color: #0000ff;">int</span> calFaByLoop(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n);
+    </span><span style="color: #0000ff;">int</span> calFabByRecursion(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n); 
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　新建实现类 <span style="font-family: times new roman, times;">CalFabImpl.java</span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Component;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 业务实现类：被代理类
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Component    </span><span style="color: #008000;">//</span><span style="color: #008000;">-- Spring IOC</span>
+<span style="color: #0000ff;">class</span> CalFabImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> ICalFab{
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> calFaByLoop(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n) {
+        </span><span style="color: #0000ff;">int</span> n1=1,n2= 1,n3=0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 3; i &lt; n; i++<span style="color: #000000;">) {
+            n3</span>=n1+<span style="color: #000000;">n2;
+            n1</span>=<span style="color: #000000;">n2;
+            n2</span>=<span style="color: #000000;">n3;
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> n3;
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> calFabByRecursion(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n) {
+        </span><span style="color: #0000ff;">if</span>(n==1||n==2) <span style="color: #0000ff;">return</span> 1<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">return</span> calFabByRecursion(n-1)+calFabByRecursion(n-2<span style="color: #000000;">);
+        
+    }
+    
+    
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　新建配置类 <span style="color: #000000;"><span style="font-family: times new roman, times;">AppConfig.java</span> </span><br /></span></p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.ComponentScan;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Configuration;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.EnableAspectJAutoProxy;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 配置类
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ * 实现IOC功能
+ * 
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Configuration
+@EnableAspectJAutoProxy </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 启用SpringAop的功能</span>
+@ComponentScan("day.annocation")<span style="color: #008000;">//</span><span style="color: #008000;">-- 包名</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AppConfig {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    @Bean
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    public ICalFab calFabBean() {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        return new CalFabImpl();
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    }</span>
+}</code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　新建类：<span style="color: #000000;"><span style="font-family: times new roman, times;">SelfAspect.java</span> </span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.ProceedingJoinPoint;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.annotation.After;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.annotation.Around;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.annotation.Aspect;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.annotation.Before;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.annotation.Pointcut;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Component;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 利用标注自定义切面
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ *
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Aspect
+@Component
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SelfAspect {
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 1. 自定义切点，指定目标方法的位置</span>
+    @Pointcut("execution(* day02.annocation.CalFabImpl.*(..))"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> selfPointcut() {
+        
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 2. 通知</span>
+    @Before("selfPointcut()"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> testBefore() {
+        System.out.println(</span>"before do something..."<span style="color: #000000;">);
+    }
+    
+    @After(</span>"selfPointcut()"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> testAfter() {
+        System.out.println(</span>"After do something..."<span style="color: #000000;">);
+    }
+    @Around(</span>"selfPointcut()"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> testAround(ProceedingJoinPoint jp) {
+        </span><span style="color: #0000ff;">int</span> result = 0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">long</span> start =<span style="color: #000000;"> System.currentTimeMillis();
+            result </span>= (<span style="color: #0000ff;">int</span>)jp.proceed();    <span style="color: #008000;">//</span><span style="color: #008000;">-- 执行业务方法</span>
+            <span style="color: #0000ff;">long</span> end =<span style="color: #000000;"> System.currentTimeMillis();
+            System.out.println(end</span>-start+"ms"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable e) {
+            e.printStackTrace();
+        }    
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体; font-size: 18px;">　　新建类：<span style="color: #000000;"><span style="font-family: times new roman, times;">Invoker.java</span> </span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.ApplicationContext;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Invoker {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 1.构造Spring容器</span>
+        ApplicationContext ctx = 
+                <span style="color: #0000ff;">new</span> AnnotationConfigApplicationContext(AppConfig.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 2.获取Beans</span>
+        ICalFab calFab =(ICalFab)ctx.getBean("calFabImpl");<span style="color: #008000;">//</span><span style="color: #008000;">-- 默认是类名首字母小写</span>
+        calFab.calFabByRecursion(40<span style="color: #000000;">);
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- Web服务器启动的时候实例化一个Spring容器，在Web服务器关闭的时候关闭Spring容器
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- Servlet的监听
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 容器关闭</span>
+<span style="color: #000000;">        ((AnnotationConfigApplicationContext)ctx).close();
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1>3.Spring Test</h1>
+<p><br />&nbsp;&nbsp;<span style="font-family: 楷体; font-size: 18px;"> &nbsp;　Spring 的测试框架建立在JUnit测试框架基础上的,</span><span style="font-family: 楷体; font-size: 18px;">它是对JUnit的再次封装。</span></p>
+<p><span style="font-family: 楷体; font-size: 18px;">使用:</span></p>
+<p>　　<span style="font-family: 楷体; font-size: 18px;">配置文件 pom.xml 引入插件</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/junit/junit </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>junit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>junit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>4.12-beta-3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Spring Test </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.springframework/spring-test </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>5.1.7.RELEASE<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p>示例测试工程的代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 业务接口
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ *
+ </span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> IUserService {
+    </span><span style="color: #0000ff;">void</span><span style="color: #000000;"> login();
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Component;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 业务实现类
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ *
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Component
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserServiceImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> IUserService {
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> login() {
+        System.out.println(</span>"login success"<span style="color: #000000;">);
+        
+    }
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Bean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.ComponentScan;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Configuration;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * Spring配置
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ *
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Configuration
+@ComponentScan(</span>"day03"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AppConfig {
+    
+    @Bean(</span>"hello"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String hello() {
+        </span><span style="color: #0000ff;">return</span> "hello"<span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.ApplicationContext;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 调用
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ *
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Invoker {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- Spring COntainer</span>
+        ApplicationContext ctx = 
+                <span style="color: #0000ff;">new</span> AnnotationConfigApplicationContext(AppConfig.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-- 2.</span>
+        System.out.println(ctx.getBean("hello"<span style="color: #000000;">));
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 黑体; font-size: 18px;">JUnit测试代码：</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 1. 先利用JUnit做单元测试
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 张泽
+ *
+ </span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Before;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.ApplicationContext;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.AnnotationConfigApplicationContext;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestDemo {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> ApplicationContext ctx;
+    
+    @Before
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> before() {
+        ctx </span>= <span style="color: #0000ff;">new</span> AnnotationConfigApplicationContext(AppConfig.<span style="color: #0000ff;">class</span><span style="color: #000000;">);    
+    }
+    
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test() {
+        System.out.println(ctx.getBean(</span>"hello"<span style="color: #000000;">));
+    }
+    
+    
+<span style="color: #333300;">}</span></span></code></pre>
+
+<p>&nbsp;</p>
+<pre><code><span style="font-family: 黑体; font-size: 18px; color: #000000;">利用Spring test 框架测试：</span></code></pre>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.runner.RunWith;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.context.ContextConfiguration;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 2. 利用Spring test 框架
+ * 
+ * @RunWith: 实例化Spring容器
+ * @ContextConfiguration: 指定Spring容器需要的配置类
+ * 以后你会很少看到Spring容器了
+ * 
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@RunWith(SpringJUnit4ClassRunner.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+@ContextConfiguration(classes</span>= {AppConfig.<span style="color: #0000ff;">class</span><span style="color: #000000;">})
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestSpringDemo {
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String hi;
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> IUserService userService;
+    
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test() {
+        System.out.println(hi);
+    }
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test1() {
+        userService.login();
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 黑体; font-size: 18px;">该项目的配置文件：pom.xml</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project </span><span style="color: #ff0000;">xmlns</span><span style="color: #0000ff;">="http://maven.apache.org/POM/4.0.0"</span><span style="color: #ff0000;">
+    xmlns:xsi</span><span style="color: #0000ff;">="http://www.w3.org/2001/XMLSchema-instance"</span><span style="color: #ff0000;">
+    xsi:schemaLocation</span><span style="color: #0000ff;">="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">modelVersion</span><span style="color: #0000ff;">&gt;</span>4.0.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">modelVersion</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.uek.course<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-app<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>0.0.1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">packaging</span><span style="color: #0000ff;">&gt;</span>war<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">packaging</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 2. 项目属性配置 </span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 项目编码使用UTF-8 </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>UTF-8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 忽略掉web.xml文件 ，因为我们使用servlet3.0开发web项目 </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">failOnMissingWebXml</span><span style="color: #0000ff;">&gt;</span>false<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">failOnMissingWebXml</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">spring.version</span><span style="color: #0000ff;">&gt;</span>5.1.7.RELEASE<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">spring.version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 3. 配置项目所需要的第三方jar 包 </span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> servlet api </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>javax.servlet<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>javax.servlet-api<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>3.1.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>provided<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>javax.servlet<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>jstl<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> MySQL数据库连接池 </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/mysql/mysql-connector-java </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>mysql<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>mysql-connector-java<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>5.1.48<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Druid </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/com.alibaba/druid </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.alibaba<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>druid<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.1.20<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 单元测试 </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/junit/junit </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>junit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>junit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>4.12-beta-3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Spring Test </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.springframework/spring-test </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${spring.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        
+        
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.springframework/spring-context </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-context<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${spring.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.springframework/spring-core </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-core<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${spring.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        
+        
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.aspectj/aspectjrt </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.aspectj<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>aspectjrt<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.8.10<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        
+        
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/aopalliance/aopalliance </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>aopalliance<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>aopalliance<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.aspectj/aspectjrt </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.aspectj<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>aspectjweaver<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.8.10<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.springframework/spring-aop </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-aop<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${spring.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        
+    
+    
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+
+
+
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 配置构建插件 </span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 编译插件 </span><span style="color: #008000;">--&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>maven-compiler-plugin<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>3.5.1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">source</span><span style="color: #0000ff;">&gt;</span>1.8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">source</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">target</span><span style="color: #0000ff;">&gt;</span>1.8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">target</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Tomcat 插件 </span><span style="color: #008000;">--&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.apache.tomcat.maven<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>tomcat7-maven-plugin<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">port</span><span style="color: #0000ff;">&gt;</span>8080<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">port</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">path</span><span style="color: #0000ff;">&gt;</span>/airsys<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">path</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 实现热部署，不需要每次修改代码后都重新启动Tomcat </span><span style="color: #008000;">--&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">contextReloadable</span><span style="color: #0000ff;">&gt;</span>true<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">contextReloadable</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+
+
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

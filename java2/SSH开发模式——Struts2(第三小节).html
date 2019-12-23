@@ -1,0 +1,275 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SSH开发模式——Struts2(第三小节)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SSH开发模式——Struts2(第三小节)</center></div><div class='banquan'>原文出处:本文由博客园博主#Temptation提供。<br/>
+原文连接:https://www.cnblogs.com/blizzawang/p/11411778.html</div><br>
+    <p><strong>struts2框架的知识点，虽然分了几个小节，感觉内容还是挺多的，但是你仅仅是入门了而已，想要进一步地提升自己，你得有一颗持之以恒的学习的心，最后的内容我都将在这篇博客中讲到，所以篇幅可能会有点长，希望大家能够耐心阅读。</strong></p>
+<p>首先介绍一下struts2的配置。<br />
+还记得我们创建的test.jsp文件吗？直接看到这篇博客的同学们也不用去翻阅我之前的博客，因为我在之前的博客中只是简单地介绍了使用，而并没有深入，我并没有讲解每一步的作用，和为什么要这样写。所以，直接从该篇博客开始阅读学习也是可以的，我将从最基础的配置开始重新进行讲解，并讲述每一步的作用、原因。</p>
+<p>那么test.jsp文件里的代码很简单，就是一个超链接。</p>
+<pre><code><code>&lt;%@ page language=&quot;java&quot; pageEncoding=&quot;utf-8&quot; contentType=&quot;text/html; charset=utf-8&quot;%&gt;
+&lt;%@ taglib uri=&quot;/struts-tags&quot;   prefix=&quot;s&quot;%&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;My JSP &#39;index.jsp&#39; starting page&lt;/title&gt;
+    &lt;/head&gt;
+  &lt;body&gt;
+       入门的路径:&lt;br&gt;  
+      &lt;a href=&quot;${pageContext.request.contextPath}/primer/helloWorldAction.action&quot;&gt;helloWorld&lt;/a&gt;&lt;br&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></code></pre>
+<p>那就介绍一下访问helloWorld应用的路径的设置。<br />
+在struts2中，访问struts2中action的URL路径由两部份组成：<br />
+包的命名空间+action的名称<br />
+例如: 访问本例子HelloWorldAction的URL路径为： /primer/helloWorldAction.action (注意：完整路径为：http://localhost:端口/内容路径/primer/helloWorldAction.action)。另外我们也可以加上.action后缀访问此Action。</p>
+<pre class="xml"><code> &lt;package name=&quot;primer&quot; namespace=“/primer“   extends=&quot;struts-default&quot;&gt;
+      &lt;action name=&quot;helloWorldAction&quot; class=&quot;cn.itcast.primer.HelloWorldAction&quot;&gt;
+        &lt;result name=&quot;success&quot; type=&quot;dispatcher&quot;&gt;/success.jsp&lt;/result&gt;
+      &lt;/action&gt;
+ &lt;/package&gt;</code></code></pre>
+<p>路径中的action名称必须和你在package标签下配置的action标签的name属性一致。</p>
+<p>接下来我们在test.jsp文件中加入如下代码。</p>
+<pre><code><code>       测试Action名称的搜索顺序:&lt;br&gt;
+        &lt;a href=&quot;${pageContext.request.contextPath}/primer/primer/primer/helloWorldAction.action&quot;&gt;helloWorld&lt;/a&gt;&lt;br&gt;
+        &lt;a href=&quot;${pageContext.request.contextPath}/primer/primer/helloWorldAction.action&quot;&gt;helloWorld&lt;/a&gt;&lt;br&gt;
+        &lt;a href=&quot;${pageContext.request.contextPath}/primer/helloWorldAction.action&quot;&gt;helloWorld&lt;/a&gt;&lt;br&gt;
+ 
+     没有为action指定class&lt;br&gt;
+        &lt;a href=&quot;${pageContext.request.contextPath}/primer/actionNoClass.action&quot;&gt;helloWorld&lt;/a&gt;&lt;br&gt;
+       
+      测试struts2 输出没有命名空间helloworld:&lt;br&gt;
+        &lt;a href=&quot;${pageContext.request.contextPath}/primer/userAction.action&quot;&gt;helloWorld&lt;/a&gt;&lt;br&gt;</code></code></pre>
+<p>如果我们去点击这三个请求链接会发生什么呢？<br />
+你们试着点击一下就会发现，这三个请求链接都能被正确地处理运行。那我们就想，为什么没有配置却能够正确运行呢？这是因为在struts2中，当你点击请求链接时，它会对Action进行一个搜索。以第一个链接为例，<code>&lt;a href=&quot;${pageContext.request.contextPath}/primer/primer/primer/helloWorldAction.action&quot;&gt;helloWorld&lt;/a&gt;</code>，当你点击链接时，会去搜索/primer/primer/primer/helloWorldAction.action，当查询不到时，会搜索/primer/primer/helloWorldAction.action，查询不到时，会搜索/primer/helloWorldAction.action，以此类推，直到Action被找到。所以如果我这么写，<code>&lt;a href=&quot;${pageContext.request.contextPath}/primer/primer/aaa/helloWorldAction.action&quot;&gt;helloWorld&lt;/a&gt;</code>，程序就会报错。</p>
+<p>那如果没有为action标签配置class属性，程序会有问题吗？<br />
+在package标签中添加一个action标签。</p>
+<pre class="xml"><code>&lt;action name=&quot;actionNoClass&quot;&gt;
+        &lt;result name=&quot;success&quot;&gt;/primer/success.jsp&lt;/result&gt;
+&lt;/action&gt;</code></code></pre>
+<p>此时我们运行并点击，会发现程序仍然正确运行了，那问题来了，我连class都没配置，它是如何运行得到结果success，并跳转页面的呢？<br />
+我们查阅struts-default.xml文件，看到最后几行的配置</p>
+<pre class="xml"><code> &lt;default-class-ref class=&quot;com.opensymphony.xwork2.ActionSupport&quot; /&gt;</code></code></pre>
+<p>你明白了吗？在没有为action指定class的时候，struts2框架默认会执行该Action。而我们查阅ActionSupport类的源码时，找到了一个方法。</p>
+<pre class="java"><code>public static final String SUCCESS = &quot;success&quot;;
+
+public String execute() throws Exception {
+        return SUCCESS;
+}</code></code></pre>
+<p>这个方法再熟悉不过了吧，所以为什么没有配置class属性也能正常运行，相信你已经明白了。</p>
+<p>如果请求的路径查找不到action的情况下,程序运行会抛出异常 ,可以通过配置当找不到action的情况下,会执行默认的action</p>
+<pre class="xml"><code>&lt;package name=&quot;primer&quot;  namespace=&quot;/&quot;  extends=&quot;struts-default&quot;&gt;
+     &lt;!--指定默认的action引用,如果该包下没有对应action配置,则启用该配置--&gt;
+     &lt;default-action-ref name=&quot;helloWorldAction&quot;&gt;&lt;/default-action-ref&gt;
+
+     &lt;action name=&quot;helloWorldAction&quot; class=&quot;cn.itcast.primer.HelloWorldAction&quot;&gt;
+            &lt;result name=&quot;success&quot; type=&quot;dispatcher&quot;&gt;/success.jsp&lt;/result&gt;
+      &lt;/action&gt;
+     &lt;action name=&quot;actionNoClass&quot;&gt;
+          &lt;result&gt;/success.jsp&lt;/result&gt;
+     &lt;/action&gt;
+ &lt;/package&gt;</code></code></pre>
+<p>接下来我们来了解一下ActionSupport类，它是我们没有指定class执行的默认Action。<br />
+它远比Action接口强大，所以我们在编写Action类时可以改为继承ActionSupport类。</p>
+<p>相信很多同学在开始的时候对这个.action的后缀表示无法理解，为什么写.action？我们来了解一下。<br />
+StrutsPrepareAndExecuteFilter是Struts 2框架的核心控制器，它负责拦截由<url-pattern>/*</url-pattern>指定的所有用户请求，当用户请求到达时，该Filter会过滤用户的请求。默认情况下，如果用户请求的路径不带后缀或者后缀以.action结尾，这时请求将被转入Struts 2框架处理，否则Struts 2框架将略过该请求的处理。</p>
+<p>根据配置文件:struts2-core-2.1.8.1.jar包下的 org.apache.struts2/default.properties文件定义的常量决定<br />
+struts.action.extension=action,,</p>
+<p>默认处理的后缀是可以通过常量”struts.action.extension“进行修改的，如下面配置Struts 2只处理以.do为后缀的请求路径：</p>
+<pre class="xml"><code>&lt;struts&gt;
+    &lt;constant name=&quot;struts.action.extension&quot; value=&quot;do&quot;/&gt;
+&lt;/struts&gt;</code></code></pre>
+<p>如果用户需要指定多个请求后缀，则多个后缀之间以英文逗号（,）隔开。如：</p>
+<pre class="xml"><code> &lt;constant name=&quot;struts.action.extension&quot; value=&quot;do,go&quot;/&gt;</code></code></pre>
+<p>我们还有第二种方式来修改后缀。<br />
+在struts.properties中配置常量, (struts.properties文件放置在src下)<br />
+struts.action.extension=do.go<br />
+既然有两种方式，那么如果我两种方式都实现了，它会启用哪个配置呢？我就不卖关子了，如果你两种方式都实现了，struts2框架会启用struts.properties的配置。那这是为什么呢？我可以给你解释一下。<br />
+因为常量可以在多个配置文件中进行定义，所以我们需要了解下struts2加载常量的搜索顺序:<br />
+1 struts-default.xml<br />
+2 struts-plugin.xml<br />
+3 struts.xml<br />
+4 struts.properties(自己创建)<br />
+5 web.xml<br />
+如果在多个文件中配置了同一个常量，则后一个文件中配置的常量值会覆盖前面文件中配置的常量值。<br />
+通俗点说，越后执行的文件优先级越高。<br />
+虽然实现方式有两种，但是不建议大家使用第二种自己创建配置文件的方式。</p>
+<p>然后是常用的常量介绍。<br />
+指定默认编码集,作用于HttpServletRequest的setCharacterEncoding方法 和freemarker 、velocity的输出<br />
+<constant name="struts.i18n.encoding" value="UTF-8"/><br />
+该属性指定需要Struts 2处理的请求后缀，该属性的默认值是action，即所有匹配*.action的请求都由Struts2处理。<br />
+如果用户需要指定多个请求后缀，则多个后缀之间以英文逗号（,）隔开<br />
+<constant name="struts.action.extension" value="do"/><br />
+设置浏览器是否缓存静态内容,默认值为true(生产环境下使用),开发阶段最好关闭<br />
+<constant name="struts.serve.static.browserCache" value="false"/><br />
+配置当国际化文件修改时,重新加载该国际化资源文件,默认值是false(不重新加载),true为重新加载<br />
+<constant name="struts.i18n.reload" value="true"/><br />
+当struts的配置文件修改后,系统是否自动重新加载该文件,默认值是false(不重新加载),true为重新加载<br />
+<constant name="struts.configuration.xml.reload" value="true"/><br />
+开发模式下使用,这样可以打印出更详细的错误信息,默认值为false(生产环境下使用),开发阶段最好打开<br />
+<constant name="struts.devMode" value="true" /><br />
+默认的视图主题<br />
+<constant name="struts.ui.theme" value="simple" /><br />
+与spring集成时，指定由spring负责action对象的创建<br />
+<constant name="struts.objectFactory" value="spring" /><br />
+该属性设置Struts 2是否支持动态方法调用，该属性的默认值是true。如果需要关闭动态方法调用，则可设置该属性<br />
+为 false<br />
+<constant name="struts.enable.DynamicMethodInvocation" value="false"/><br />
+上传文件的大小限制<br />
+<constant name="struts.multipart.maxSize" value=“10701096"/></p>
+<p>接下来是第二个部分，struts2的结果类型。<br />
+我们新建文件夹resulttype，然后创建form.jsp文件</p>
+<pre><code><code>&lt;%@ page language=&quot;java&quot; pageEncoding=&quot;utf-8&quot; contentType=&quot;text/html; charset=utf-8&quot;%&gt;
+&lt;%@ taglib uri=&quot;/struts-tags&quot;   prefix=&quot;s&quot;%&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;My JSP &#39;index.jsp&#39; starting page&lt;/title&gt;
+    &lt;/head&gt;
+  &lt;body&gt;
+    &lt;form action=&quot;${pageContext.request.contextPath}/resulttype/resulttypeAction.action&quot; 
+          name=&quot;form1&quot;  method=&quot;post&quot;&gt;
+      &lt;input type=&quot;submit&quot; value=&quot;提交&quot;&gt;
+    &lt;/form&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></code></pre>
+<p>然后我们创建出对应的Action，这次我们不实现Action接口了，而是继承ActionSupport类。</p>
+<pre class="java"><code>public class ResultTypeAction extends ActionSupport {
+    @Override
+    public String execute() throws Exception {
+        System.out.println(&quot;ResultTypeAction ...&quot;);
+        
+        HttpServletRequest request = ServletActionContext.getRequest();
+        request.setAttribute(&quot;username&quot;, &quot;username_request&quot;);
+        
+        return &quot;success&quot;;
+    }
+}</code></code></pre>
+<p>对其进行配置，在struts.xml文件中添加</p>
+<pre class="xml"><code>&lt;package name=&quot;resulttype&quot; namespace=&quot;/resulttype&quot; extends=&quot;struts-default&quot;&gt;
+        &lt;action name=&quot;resulttypeAction&quot; class=&quot;cn.itcast.action.ResultTypeAction&quot;&gt;
+            &lt;result name=&quot;success&quot;&gt;/resulttype/success.jsp&lt;/result&gt;
+        &lt;/action&gt;
+&lt;/package&gt;</code></code></pre>
+<p>转向的success.jsp页面如下</p>
+<pre><code><code>&lt;%@ page language=&quot;java&quot; pageEncoding=&quot;utf-8&quot; contentType=&quot;text/html; charset=utf-8&quot;%&gt;
+&lt;%@ taglib uri=&quot;/struts-tags&quot;   prefix=&quot;s&quot;%&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;My JSP &#39;index.jsp&#39; starting page&lt;/title&gt;
+    &lt;/head&gt;
+  &lt;body&gt;
+            resulttype :   ${requestScope.username}
+  &lt;/body&gt;
+&lt;/html&gt;</code></code></pre>
+<p>点击提交按钮，页面成功显示保存在request范围的数据，这说明了什么？说明我的转向方式一定是转发，如果是重定向的话数据就取不到了。其实，在result标签里有一个type属性，它可以用来设置转向方式，只不过它默认是&quot;dispatcher&quot;。<br />
+这是第一种设置转向的方式，我们也有第二种。</p>
+<pre class="xml"><code>&lt;result name=&quot;success&quot; type=&quot;dispatcher&quot;&gt;
+        &lt;param name=&quot;location&quot;&gt;/resulttype/success.jsp&lt;/param&gt;
+&lt;/result&gt;</code></code></pre>
+<p>这样配置result标签也能实现转向。这个location指的是要转发到的页面。这种方式的实现原理在struts-default.xml文件中也能被找到，我就不带大家看了，感兴趣的同学可以自己研究一下。了解了转发，那重定向如何实现？这太简单了，将type值改为&quot;redirect&quot;即可。<br />
+注意了，重定向中，转向到jsp才能这样写，而如果想转向到action，你需要这样配置：</p>
+<pre class="xml"><code>&lt;result name=&quot;success&quot; type=&quot;redirectAction&quot;&gt;
+    &lt;param name=&quot;actionName&quot;&gt;helloWorldAction&lt;/param&gt;
+    &lt;param name=&quot;namespace&quot;&gt;/primer&lt;/param&gt;
+&lt;/result&gt;</code></code></pre>
+<p>最后一个部分就是struts2通配符与动态方法的调用。<br />
+在说这个之前先来拓展一个知识点。<br />
+我们先新建一个test.jsp文件。</p>
+<pre><code><code>&lt;%@ page language=&quot;java&quot; contentType=&quot;text/html; charset=UTF-8&quot;
+    pageEncoding=&quot;UTF-8&quot;%&gt;
+&lt;!DOCTYPE html PUBLIC &quot;-//W3C//DTD HTML 4.01 Transitional//EN&quot; &quot;http://www.w3.org/TR/html4/loose.dtd&quot;&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt;
+&lt;title&gt;Insert title here&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;a href=&quot;${pageContext.request.contextPath }/bookAction.action&quot;&gt;提交&lt;/a&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></code></pre>
+<p>里面只有一个超链接，然后配置struts.xml文件，相信配置已经难不倒各位了，那我就对action作如下配置。</p>
+<pre class="xml"><code>&lt;action name=&quot;bookAction&quot; class=&quot;cn.itcast.action.BookAction&quot;&gt;
+    &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;
+    &lt;result name=&quot;add&quot;&gt;/bookaction.jsp&lt;/result&gt;
+&lt;/action&gt;</code></code></pre>
+<p>然后创建BookAction.java文件。</p>
+<pre class="java"><code>public class BookAction extends ActionSupport{
+    @Override
+    public String execute() throws Exception {
+        System.out.println(&quot;BookAction ...&quot;);
+        return &quot;success&quot;;
+    }
+    
+    public String add(){
+        System.out.println(&quot;add ...&quot;);
+        return &quot;add&quot;;
+    }
+}</code></code></pre>
+<p>我们运行项目，然后点击提交，页面会转向success.jsp文件，那么我如果想点击页面从而跳转到我们配置的bookaction.jsp文件呢？其实很简单，在action标签中有一个method属性，只需将它的值设置为方法名即可。那这个自定义的方法是不是可以随便编写呢？当然是不行的。它必须由public关键字修饰，必须有返回值，该方法不能传参，总结来说，就是除了方法名和execute方法一样，其它的都必须和它一样。到这里有人就会说了，你这句话有问题，execute方法抛出了异常，而自定义的方法却没有抛出，我解释一下，这是因为我们写的测试代码过于简单，以至于没有异常可供处理，所以你可以不抛异常，但是当代码很复杂的时候，程序或多或少都会有异常，这时候就必须抛出异常了。</p>
+<p>这部分就先这样，回到我们的重点，通配符。<br />
+我们在test.jsp文件中添加三个超链接。</p>
+<pre><code><code>    通配符映射示例(1):&lt;br&gt;
+    &lt;a href=&quot;${pageContext.request.contextPath}/a_add.action&quot;&gt; 通配符映射示例(1)&lt;/a&gt;&lt;br&gt;
+    &lt;a href=&quot;${pageContext.request.contextPath}/b_add.action&quot;&gt; 通配符映射示例(1)&lt;/a&gt;&lt;br&gt;
+    &lt;a href=&quot;${pageContext.request.contextPath}/c_add.action&quot;&gt; 通配符映射示例(1)&lt;/a&gt;&lt;br&gt;
+    &lt;br&gt; 
+    &lt;br&gt;
+    &lt;br&gt;</code></code></pre>
+<p>然后配置struts.xml。</p>
+<pre class="xml"><code>&lt;action name=&quot;a_add&quot; class=&quot;cn.itcast.action.BookAction&quot; method=&quot;add&quot;&gt;
+    &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;
+    &lt;result name=&quot;add&quot;&gt;/bookaction.jsp&lt;/result&gt;
+&lt;/action&gt;
+&lt;action name=&quot;b_add&quot; class=&quot;cn.itcast.action.BookAction&quot; method=&quot;add&quot;&gt;
+    &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;
+    &lt;result name=&quot;add&quot;&gt;/bookaction.jsp&lt;/result&gt;
+&lt;/action&gt;
+&lt;action name=&quot;c_add&quot; class=&quot;cn.itcast.action.BookAction&quot; method=&quot;add&quot;&gt;
+    &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;
+    &lt;result name=&quot;add&quot;&gt;/bookaction.jsp&lt;/result&gt;
+&lt;/action&gt;</code></code></pre>
+<p>运行程序，程序正常运行，但是这样的配置显然很麻烦，有没有什么简单一点的写法呢？这时候通配符就派上用场了，我们把之前的配置都删掉，然后编写如下配置。</p>
+<pre class="xml"><code>&lt;action name=&quot;*_add&quot; class=&quot;cn.itcast.action.BookAction&quot; method=&quot;add&quot;&gt;
+    &lt;result name=&quot;success&quot;&gt;/success.jsp&lt;/result&gt;
+    &lt;result name=&quot;add&quot;&gt;/bookaction.jsp&lt;/result&gt;
+&lt;/action&gt;</code></code></pre>
+<p>运行项目是没有问题的。这个<em>号就是通配符，有些语言基础的同学应该都了解，我就不多说了。<br />
+下面给出struts2通配符的知识点。<br />
+一个 Web 应用可能有成百上千个 action 声明. 可以利用 struts 提供的通配符映射机制把多个彼此相似的映射关系简化为一个映射关系<br />
+通配符映射规则<br />
+若找到多个匹配, 没有通配符的那个将胜出<br />
+若指定的动作不存在, Struts 将会尝试把这个 URI 与任何一个包含着通配符 </em> 的动作名及进行匹配<br />
+若 Struts 找到的带有通配符的匹配不止一个, 最后一个匹配将胜出<br />
+被通配符匹配到的 URI 字符串的子串可以用 {1}, {2} 来引用. {1} 匹配第一个子串, {2} 匹配第二个子串…{0} 匹配整个 URI</p>
+<ul>
+<li>可以匹配零个或多个字符, 但不包括 / 字符. 如果想把 / 字符包括在内, 需要使用 **. 如果需要对某个字符进行转义, 需要使用 。</li>
+</ul>
+<p>最后就是动态方法调用了。<br />
+动态方法调用: 通过 url 动态调用 Action 中的方法<br />
+如果Action中存在多个方法时，我们可以使用!+方法名调用指定方法<br />
+默认情况下, Struts 的动态方法调用处于激活状态, 若想禁用该功能, 则可以在 struts.xml 文件中添加如下 constant 元素:<br />
+<constant name="struts.enable.DynamicMethodInvocation" value="false"/><br />
+以上面的项目为例，我可以不再action中配置method，而在超链接的url地址中作如下修改：</p>
+<pre><code><code>&lt;a href=&quot;${pageContext.request.contextPath }/bookAction!add.action&quot;&gt;提交&lt;/a&gt;</code></code></pre>
+<p>这样我也能在点击提交按钮后调用配置action中的add方法。这就是动态方法调用。</p>
+<p>到这里，struts2框架的学习就结束了，当然，struts2框架的知识远不止如此，感兴趣的同学可以继续深入学习，我这里就先告一段落了。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

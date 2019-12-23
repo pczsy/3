@@ -1,0 +1,632 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring系列__04AOP' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring系列__04AOP</center></div><div class='banquan'>原文出处:本文由博客园博主本墨提供。<br/>
+原文连接:https://www.cnblogs.com/JackHou/p/11530932.html</div><br>
+    <h1 id="aop简介">AOP简介</h1>
+<p>今天来介绍一下AOP。AOP，中文常被翻译为“面向切面编程”，其作为OOP的扩展，其思想除了在Spring中得到了应用，也是不错的设计方法。通常情况下，一个软件系统，除了正常的业务逻辑代码，往往还有一些功能性的代码，比如：记录日志、数据校验等等。最原始的办法就是直接在你的业务逻辑代码中编写这些功能性代码，但是，这样除了当时开发的时候比较方便以外；代码的阅读性、可维护性都会大大降低。而且，当你需要频繁使用一个功能的时候（比如记录日志），你还需要重复编写。而使用AOP的好处，简单来说就是，它能把这种重复性的功能代码抽离出来，在需要的时候，通过动态代理技术，在不修改源代码的情况下提供增强性功能。<br />
+优势：</p>
+<ul>
+<li>减少重复代码</li>
+<li>提高开发效率</li>
+<li>代码更加整洁，提高了可维护性<br />
+说了这么多，简单演示一下，我们假定现在要实现一个账户转账的功能，这里面会涉及到一些事务的控制，从代码的合理性角度出发，我们将其放在service层。</li>
+</ul>
+<pre><code><code>@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@ToString
+@EqualsAndHashCode
+public class Account implements Serializable {
+    private Integer id;
+    private String name;
+    private Float money;
+}
+
+public interface AccountDao {
+    /**
+     * 查询所有
+     * @return
+     */
+    List&lt;Account&gt; findAllAccount();
+
+    /**
+     * 查询一个
+     * @return
+     */
+    Account findAccountById(Integer accountId);
+
+    /**
+     * 保存
+     * @param account
+     */
+    void saveAccount(Account account);
+
+    /**
+     * 更新
+     * @param account
+     */
+    void updateAccount(Account account);
+
+    /**
+     * 删除
+     * @param acccountId
+     */
+    void deleteAccount(Integer acccountId);
+
+    /**
+     * 根据名称查询账户
+     * @param accountName
+     * @return  如果有唯一的一个结果就返回，如果没有结果就返回null
+     *          如果结果集超过一个就抛异常
+     */
+    Account findAccountByName(String accountName);
+}
+
+public class AccountServiceImpl_OLD implements AccountService {
+
+    private AccountDao accountDao;
+    private TransactionManager txManager;
+
+    public void setTxManager(TransactionManager txManager) {
+        this.txManager = txManager;
+    }
+
+    public void setAccountDao(AccountDao accountDao) {
+        this.accountDao = accountDao;
+    }
+
+    @Override
+    public List&lt;Account&gt; findAllAccount() {
+        try {
+            //1.开启事务
+            txManager.beginTransaction();
+            //2.执行操作
+            List&lt;Account&gt; accounts = accountDao.findAllAccount();
+            //3.提交事务
+            txManager.commit();
+            //4.返回结果
+            return accounts;
+        }catch (Exception e){
+            //5.回滚操作
+            txManager.rollback();
+            throw new RuntimeException(e);
+        }finally {
+            //6.释放连接
+            txManager.release();
+        }
+
+    }
+
+    @Override
+    public Account findAccountById(Integer accountId) {
+        try {
+            //1.开启事务
+            txManager.beginTransaction();
+            //2.执行操作
+            Account account = accountDao.findAccountById(accountId);
+            //3.提交事务
+            txManager.commit();
+            //4.返回结果
+            return account;
+        }catch (Exception e){
+            //5.回滚操作
+            txManager.rollback();
+            throw new RuntimeException(e);
+        }finally {
+            //6.释放连接
+            txManager.release();
+        }
+    }
+
+    @Override
+    public void saveAccount(Account account) {
+        try {
+            //1.开启事务
+            txManager.beginTransaction();
+            //2.执行操作
+            accountDao.saveAccount(account);
+            //3.提交事务
+            txManager.commit();
+        }catch (Exception e){
+            //4.回滚操作
+            txManager.rollback();
+        }finally {
+            //5.释放连接
+            txManager.release();
+        }
+
+    }
+
+    @Override
+    public void updateAccount(Account account) {
+        try {
+            //1.开启事务
+            txManager.beginTransaction();
+            //2.执行操作
+            accountDao.updateAccount(account);
+            //3.提交事务
+            txManager.commit();
+        }catch (Exception e){
+            //4.回滚操作
+            txManager.rollback();
+        }finally {
+            //5.释放连接
+            txManager.release();
+        }
+
+    }
+
+    @Override
+    public void deleteAccount(Integer acccountId) {
+        try {
+            //1.开启事务
+            txManager.beginTransaction();
+            //2.执行操作
+            accountDao.deleteAccount(acccountId);
+            //3.提交事务
+            txManager.commit();
+        }catch (Exception e){
+            //4.回滚操作
+            txManager.rollback();
+        }finally {
+            //5.释放连接
+            txManager.release();
+        }
+
+    }
+
+    @Override
+    public void transfer(String sourceName, String targetName, Float money) {
+        try {
+            //1.开启事务
+            txManager.beginTransaction();
+            //2.执行操作
+
+            //2.1根据名称查询转出账户
+            Account source = accountDao.findAccountByName(sourceName);
+            //2.2根据名称查询转入账户
+            Account target = accountDao.findAccountByName(targetName);
+            //2.3转出账户减钱
+            source.setMoney(source.getMoney()-money);
+            //2.4转入账户加钱
+            target.setMoney(target.getMoney()+money);
+            //2.5更新转出账户
+            accountDao.updateAccount(source);
+
+            int i=1/0;
+
+            //2.6更新转入账户
+            accountDao.updateAccount(target);
+            //3.提交事务
+            txManager.commit();
+
+        }catch (Exception e){
+            //4.回滚操作
+            txManager.rollback();
+            e.printStackTrace();
+        }finally {
+            //5.释放连接
+            txManager.release();
+        }
+
+
+    }</code></code></pre>
+<p>在这里，我们看见了很恶心的代码：大量重复性的记录日志的代码，而且，当你更改的时候，你发现并不方便。后续我们会对这个代码进行改写。</p>
+<h1 id="aop的实现方式">AOP的实现方式</h1>
+<p>AOP通过动态代理的来实现。</p>
+<h2 id="动态代理简介">动态代理简介</h2>
+<p>在这里先简单介绍一下动态代理：使用一个代理将对象包装起来, 然后用该代理对象取代原始对象.。任何对原始对象的调用都要通过代理. 代理对象决定是否以及何时将方法调用转到原始对象上。其调用过程如下图所示：<br />
+<img src="./images/Spring系列__04AOP0.png" /></p>
+<h3 id="特点">特点：</h3>
+<ul>
+<li>字节码随用随创建，随用随加载。</li>
+<li>它与静态代理的区别也在于此。因为静态代理是字节码一上来就创建好，并完成加载。</li>
+<li><p>装饰者模式就是静态代理的一种体现。</p>
+<h2 id="动态代理有两种形式">动态代理有两种形式</h2></li>
+<li>基于接口的动态代理<br />
+提供者： JDK 官方的 Proxy 类。<br />
+要求：被代理类最少实现一个接口</li>
+<li><p>基于子类的动态代理<br />
+提供者：第三方的 CGLib，如果报 asmxxxx 异常，需要导入 asm.jar。<br />
+要求：被代理类不能用 final 修饰的类（最终类）。<br />
+下面结合示例来解释一下这两种动态代理的实现方式：<br />
+笔者最近更换了一台新的电脑，就以买电脑来举个例子吧。现在大家买电脑，已经很少去实体店了，多半是通过电商渠道。不管是什么，都是从中间商来买，这一行为，在无形中就体现了代理模式的思想。<br />
+电脑生产商最开始的时候，除了生产和组装电脑，同时还可以将电脑出售给消费者或者经销商(代理商)，而他对顾客来说，需要完成两种服务：销售商品和售后服务。当行业发展到一定阶段，电脑生产商不断增多，人们就会制定一些行业规范来让大家共同遵守（也就是抽象出来的接口）。而且，电脑生产商为了节约成本，不再提供直接和消费者销售的服务，我们消费者也因此只能从代理商那里购买新的电脑。这便是典型的代理模式。</p>
+<h3 id="使用-jdk-官方的-proxy-类创建代理对象">使用 JDK 官方的 Proxy 类创建代理对象</h3></li>
+</ul>
+<pre><code><code>public interface IProducer {
+ 
+    public void saleProduct(float money);
+
+    public void afterService(float money);
+}
+
+public class Producer implements IProducer {
+ 
+    @Override
+    public void saleProduct(float money) {
+        System.out.println(&quot;销售产品，并拿到钱：&quot; + money);
+    }
+
+  
+    @Override
+    public void afterService(float money) {
+        System.out.println(&quot;提供售后服务，并拿到钱：&quot; + money);
+    }
+}
+
+//消费者
+public class Client {
+    public static void main(String[] args) {
+        final Producer producer = new Producer();
+        /**
+         *  如何创建代理对象：
+         *  使用Proxy类中的newProxyInstance方法
+         *  创建代理对象的要求：
+         *      被代理类最少实现一个接口，如果没有则不能使用
+         *  newProxyInstance方法的参数：
+         *      ClassLoader：类加载器
+         *          它是用于加载代理对象字节码的。和被代理对象使用相同的类加载器。固定写法。
+         *      Class[]：字节码数组
+         *          它是用于让代理对象和被代理对象有相同方法。固定写法。
+         *     InvocationHandler：用于提供增强的代码
+         *          它是让我们写如何代理。我们一般都是些一个该接口的实现类，通常情况下都是匿名内部类，但不是必须的。
+         *          此接口的实现类都是谁用谁写。
+         */
+
+        IProducer proxyProducer = (IProducer) Proxy.newProxyInstance(producer.getClass().getClassLoader(),
+                producer.getClass().getInterfaces(), new InvocationHandler() {
+                    /**
+                     * 作用：执行被代理对象的任何接口方法都会经过该方法
+                     * 方法参数的含义
+                     * @param proxy   代理对象的引用
+                     * @param method  当前执行的方法
+                     * @param args    当前执行方法所需的参数
+                     * @return 和被代理对象方法有相同的返回值
+                     * @throws Throwable
+                     */
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+                        //提供增强的代码
+                        Object returnValue = null;
+
+                        //1.获取方法执行的参数
+                        Float money = (Float)args[0];
+                        //2.判断当前方法是不是销售,如果是的话，打八折
+                        if(&quot;saleProduct&quot;.equals(method.getName())) {
+                            returnValue = method.invoke(producer, money*0.8f);
+                        }
+                        return returnValue;
+                    }
+                });
+        proxyProducer.saleProduct(10000f);
+
+
+    }
+}
+</code></code></pre>
+<p>使用jdk提供的Proxy来创建代理对象的时候，要求别代理对象至少要实现一个接口，代理类需要实现同样的接口并由同一类加载器加载。如果没有这样，就不能使用这种方式了。其他具体内容，请参考官方文档。</p>
+<h3 id="cglib方式来实现动态代理">cglib方式来实现动态代理</h3>
+<p>其实，说AOP是OOP的延伸，还是很容易证明的：jdk提供动态代理的方式是实现接口，而cglib的实现方式就是利用了OOP的继承。原理大同小异，主要区别就是不用实现接口而是改用继承，也因此具备继承的限制：被代理的类不能是被final修饰。</p>
+<pre><code><code>public class Client {
+    public static void main(String[] args) {
+        final Producer producer = new Producer();
+        /**
+         *  create方法的参数：
+         *      Class：字节码
+         *          它是用于指定被代理对象的字节码。
+         *
+         *      Callback：用于提供增强的代码
+         *          它是让我们写如何代理。我们一般都是些一个该接口的实现类，通常情况下都是匿名内部类，但不是必须的。
+         *          此接口的实现类都是谁用谁写。
+         *          我们一般写的都是该接口的子接口实现类：MethodInterceptor
+         */
+        Producer proxyProducer = (Producer) Enhancer.create(producer.getClass(), new MethodInterceptor() {
+            @Override
+            public Object intercept(Object o, Method method, Object[] objects,
+                                    MethodProxy methodProxy) throws Throwable {
+                Object result = null;
+                Float price = (Float) objects[0];
+                if (&quot;saleProduct&quot;.equals(method.getName())) {
+                    result = method.invoke(o, price * 0.8f);
+                }
+                return result;
+            }
+        });
+
+        proxyProducer.saleProduct(10000f);
+    }
+}
+
+ublic class Client {
+    public static void main(String[] args) {
+        final Producer producer = new Producer();
+        /**
+         *  create方法的参数：
+         *      Class：字节码
+         *          它是用于指定被代理对象的字节码。
+         *
+         *      Callback：用于提供增强的代码
+         *          它是让我们写如何代理。我们一般都是些一个该接口的实现类，通常情况下都是匿名内部类，但不是必须的。
+         *          此接口的实现类都是谁用谁写。
+         *          我们一般写的都是该接口的子接口实现类：MethodInterceptor
+         */
+        Producer proxyProducer = (Producer) Enhancer.create(producer.getClass(), new MethodInterceptor() {
+            @Override
+            public Object intercept(Object o, Method method, Object[] objects,
+                                    MethodProxy methodProxy) throws Throwable {
+                Object result = null;
+                Float price = (Float) objects[0];
+                if (&quot;saleProduct&quot;.equals(method.getName())) {
+                    result = method.invoke(o, price * 0.8f);
+                }
+                return result;
+            }
+        });
+
+        proxyProducer.saleProduct(10000f);
+    }
+}</code></code></pre>
+<h1 id="spring中的aop">Spring中的AOP</h1>
+<p>以上所述的两种生成代理对象的方法，在Spring中都会应用：默认优先使用jdk自带的方式，当发现别代理类没有实现接口时改用cglib方式。</p>
+<h2 id="专业术语直白翻译">专业术语直白翻译</h2>
+<ul>
+<li>Joinpoint(连接点)：<br />
+所谓的连击点，就是你的业务逻辑中的每一个方法，都被称作连接点。而且，和AspectJ和JBoss不同，Spring不支持字段和构造器连接点，只支持方法级别的连接点。</li>
+<li>Pointcut(切入点):<br />
+当你要对一个连接点进行额外的功能添加时，这个连接点就是切入点。</li>
+<li>Advice(通知/增强):<br />
+通知就是你拦截了切点后要做的事情。根据你要做的时机，分为：前置通知、后置通知、返回通知、异常通知和环绕通知。</li>
+<li>Introduction(引介):<br />
+引介是一种特殊的通知在不修改类代码的前提下, Introduction 可以在运行期为类动态地添加一些方法或 Field。</li>
+<li>Target(目标对象):<br />
+代理的目标对象。</li>
+<li>Weaving(织入):<br />
+是指把增强应用到目标对象来创建新的代理对象的过程。spring 采用动态代理织入，而 AspectJ 采用编译期织入和类装载期织入。</li>
+<li>Proxy（代理） :<br />
+一个类被 AOP 织入增强后，就产生一个结果代理类。</li>
+<li><p>Aspect(切面):<br />
+是切入点和通知（引介）的结合。</p>
+<h2 id="实战演练">实战演练</h2>
+<p>这次我们打算做一个简单一点的功能：实现一个能够进行加减乘除运算的计算器，并进行相应的日志记录<br />
+过程主要是以下几步：<br />
+1.开发业务逻辑代码<br />
+2.开发切面代码<br />
+3.配置ioc,将计算器和切面配置到Spring容器中<br />
+4.切面配置，开启AOP<br />
+对于配置的方式，主要是还是两种方式：</p>
+<h3 id="java配置">Java配置：</h3></li>
+</ul>
+<pre><code><code>public interface ArithmeticCalculator {
+
+    int add(int i, int j);
+    int sub(int i, int j);
+    
+    int mul(int i, int j);
+    int div(int i, int j);
+    
+}
+
+@Component(&quot;arithmeticCalculator&quot;)
+public class ArithmeticCalculatorImpl implements ArithmeticCalculator {
+
+    @Override
+    public int add(int i, int j) {
+        int result = i + j;
+        return result;
+    }
+
+    @Override
+    public int sub(int i, int j) {
+        int result = i - j;
+        return result;
+    }
+
+    @Override
+    public int mul(int i, int j) {
+        int result = i * j;
+        return result;
+    }
+
+    @Override
+    public int div(int i, int j) {
+        int result = i / j;
+        return result;
+    }
+
+}
+
+
+package com.spring.demo.springaop;
+
+import org.aspectj.lang.JoinPoint;
+import org.aspectj.lang.annotation.*;
+import org.springframework.stereotype.Component;
+
+import java.util.Arrays;
+
+/**
+ * 可以使用 @Order 注解指定切面的优先级, 值越小优先级越高
+ */
+@Aspect
+@Component
+public class LoggingAspect {
+    @Pointcut(&quot;execution(public int com.spring.demo.springaop.ArithmeticCalculator.*(..))&quot;)
+    public void declareJoinPoint() {}
+
+    @Before(&quot;declareJoinPoint()&quot;)
+    public void beforeMehtod(JoinPoint joinPoint) {
+        String methodName = joinPoint.getSignature().getName();
+        Object[] args = joinPoint.getArgs();
+        System.out.println(&quot;the &quot; + methodName + &quot; begins with &quot; + Arrays.asList(args));
+    }
+
+
+    @AfterReturning(value = &quot;declareJoinPoint()&quot;, returning = &quot;result&quot;)
+    public void afterMethod(JoinPoint joinPoint, Object result) {
+        String methodName = joinPoint.getSignature().getName();
+        System.out.println(&quot;the &quot; + methodName + &quot; ends successfully with result is &quot; + result);
+    }
+
+    @AfterThrowing(value = &quot;declareJoinPoint()&quot;, throwing = &quot;e&quot;)
+    public void afterException(JoinPoint joinPoint, Exception e) {
+        String methodName = joinPoint.getSignature().getName();
+        System.out.println(&quot;the &quot; + methodName + &quot;occurs a Exception by&quot; + e.getMessage());
+    }
+
+    /**
+     * 环绕通知需要携带 ProceedingJoinPoint 类型的参数.
+     * 环绕通知类似于动态代理的全过程: ProceedingJoinPoint 类型的参数可以决定是否执行目标方法.
+     * 且环绕通知必须有返回值, 返回值即为目标方法的返回值
+     */
+    /*
+    @Around(&quot;execution(public int com.spring.demo.springaop.ArithmeticCalculator.*(..))&quot;)
+    public Object aroundMethod(ProceedingJoinPoint pjd){
+
+        Object result = null;
+        String methodName = pjd.getSignature().getName();
+
+        try {
+            //前置通知
+            System.out.println(&quot;The method &quot; + methodName + &quot; begins with &quot; + Arrays.asList(pjd.getArgs()));
+            //执行目标方法
+            result = pjd.proceed();
+            //返回通知
+            System.out.println(&quot;The method &quot; + methodName + &quot; ends with &quot; + result);
+        } catch (Throwable e) {
+            //异常通知
+            System.out.println(&quot;The method &quot; + methodName + &quot; occurs exception:&quot; + e);
+            throw new RuntimeException(e);
+        }
+        //后置通知
+        System.out.println(&quot;The method &quot; + methodName + &quot; ends&quot;);
+
+        return result;
+    }
+    */
+}
+
+
+
+@Order(1)
+@Aspect
+@Component
+public class VlidationAspect {
+
+    @Before(&quot;com.spring.demo.springaop.LoggingAspect.declareJoinPoint()&quot;)
+    public void validateArgs(JoinPoint joinPoint){
+        System.out.println(&quot;--&gt;validate:&quot; + Arrays.asList(joinPoint.getArgs()));
+    }
+    
+}
+
+@EnableAspectJAutoProxy
+@Configuration
+@ComponentScan
+public class MainConcig {
+
+}
+
+
+public class Main {
+    public static void main(String[] args) {
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(&quot;com.spring.demo&quot; +
+                &quot;.springaop&quot;);
+        ArithmeticCalculator arithmeticCalculator = (ArithmeticCalculator) context.getBean(&quot;arithmeticCalculator&quot;);
+        int add = arithmeticCalculator.add(100, 200);
+    }
+}
+</code></code></pre>
+<h3 id="xml文件配置">xml文件配置</h3>
+<p>JavaBean还是这些，只是将各个注解删除即可，而bean的配置和aop功能的开启，由配置文件来声明。要引入aop命名空间。</p>
+<pre><code><code>&lt;!-- 配置 bean --&gt;
+    &lt;bean id=&quot;arithmeticCalculator&quot; 
+        class=&quot;com.spring.demo.springaop.xml.ArithmeticCalculatorImpl&quot;&gt;&lt;/bean&gt;
+
+    &lt;!-- 配置切面的 bean. --&gt;
+    &lt;bean id=&quot;loggingAspect&quot;
+        class=&quot;com.spring.demo.springaop.xml.LoggingAspect&quot;&gt;&lt;/bean&gt;
+
+    &lt;bean id=&quot;vlidationAspect&quot;
+        class=&quot;com.spring.demo.springaop.xml.VlidationAspect&quot;&gt;&lt;/bean&gt;
+
+    &lt;!-- 配置 AOP --&gt;
+    &lt;aop:config&gt;
+        &lt;!-- 配置切点表达式 --&gt;
+        &lt;aop:pointcut expression=&quot;execution(* com.spring.demo.springaop.ArithmeticCalculator.*(int, int))&quot;
+            id=&quot;pointcut&quot;/&gt;
+        &lt;!-- 配置切面及通知 --&gt;
+        &lt;aop:aspect ref=&quot;loggingAspect&quot; order=&quot;2&quot;&gt;
+            &lt;aop:before method=&quot;beforeMethod&quot; pointcut-ref=&quot;pointcut&quot;/&gt;
+            &lt;aop:after method=&quot;afterMethod&quot; pointcut-ref=&quot;pointcut&quot;/&gt;
+            &lt;aop:after-throwing method=&quot;afterThrowing&quot; pointcut-ref=&quot;pointcut&quot; throwing=&quot;e&quot;/&gt;
+            &lt;aop:after-returning method=&quot;afterReturning&quot; pointcut-ref=&quot;pointcut&quot; returning=&quot;result&quot;/&gt;
+            &lt;!--  
+            &lt;aop:around method=&quot;aroundMethod&quot; pointcut-ref=&quot;pointcut&quot;/&gt;
+            --&gt;
+        &lt;/aop:aspect&gt;   
+        &lt;aop:aspect ref=&quot;vlidationAspect&quot; order=&quot;1&quot;&gt;
+            &lt;aop:before method=&quot;validateArgs&quot; pointcut-ref=&quot;pointcut&quot;/&gt;
+        &lt;/aop:aspect&gt;
+    &lt;/aop:config&gt;</code></code></pre>
+<h2 id="切入点表达式说明引用别人的懒得写了">切入点表达式说明(引用别人的，懒得写了)</h2>
+<p>execution:匹配方法的执行(常用)<br />
+execution(表达式)<br />
+表达式语法： execution([修饰符] 返回值类型 包名.类名.方法名(参数))<br />
+写法说明：<br />
+全匹配方式：<br />
+public void com.itheima.service.impl.AccountServiceImpl.saveAccount(com.itheima.domain.Account)<br />
+访问修饰符可以省略<br />
+void com.itheima.service.impl.AccountServiceImpl.saveAccount(com.itheima.domain.Account)<br />
+返回值可以使用*号，表示任意返回值</p>
+<ul>
+<li>com.itheima.service.impl.AccountServiceImpl.saveAccount(com.itheima.domain.Account)<br />
+包名可以使用<em>号，表示任意包，但是有几级包，需要写几个</em></li>
+<li><em>.</em>.<em>.</em>.AccountServiceImpl.saveAccount(com.itheima.domain.Account)<br />
+使用..来表示当前包，及其子包</li>
+<li>com..AccountServiceImpl.saveAccount(com.itheima.domain.Account)<br />
+类名可以使用*号，表示任意类</li>
+<li>com..<em>.saveAccount(com.itheima.domain.Account)<br />
+方法名可以使用</em>号，表示任意方法</li>
+<li>com..<em>.</em>( com.itheima.domain.Account)<br />
+参数列表可以使用*，表示参数可以是任意数据类型，但是必须有参数</li>
+<li>com..<em>.</em>(*)<br />
+参数列表可以使用..表示有无参数均可，有参数可以是任意类型</li>
+<li>com..<em>.</em>(..)<br />
+全通配方式：</li>
+<li><em>..</em>.<em>(..)<br />
+注：<br />
+通常情况下，我们都是对业务层的方法进行增强，所以切入点表达式都是切到业务层实现类。<br />
+execution(</em> com.itheima.service.impl.<em>.</em>(..))</li>
+</ul>
+<p><strong><em>补充说明： 引入通知</em></strong><br />
+引入通知是一种特殊的通知类型. 它通过为接口提供实现类, 允许对象动态地实现接口, 就像对象已经在运行时扩展了实现类一样。<br />
+<img src="./images/Spring系列__04AOP1.png" /></p>
+<p>引入通知可以使用两个实现类 MaxCalculatorImpl 和 MinCalculatorImpl, 让 ArithmeticCalculatorImpl 动态地实现 MaxCalculator 和 MinCalculator 接口. 而这与从 MaxCalculatorImpl 和 MinCalculatorImpl 中实现多继承的效果相同. 但却不需要修改 ArithmeticCalculatorImpl 的源代码。<br />
+引入通知也必须在切面中声明。</p>
+<p><strong><em>代码演示</em></strong><br />
+<img src="./images/Spring系列__04AOP2.png" /><br />
+<img src="./images/Spring系列__04AOP3.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,47 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修RandomAccessFile（）实现用户注册功能, 新增，查询，更新' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>RandomAccessFile（）实现用户注册功能, 新增，查询，更新</center></div><div class='banquan'>原文出处:本文由博客园博主宗策提供。<br/>
+原文连接:https://www.cnblogs.com/xingsir/p/12018091.html</div><br>
+    <p>package seday03.raf;<br />import java.io.IOException;<br />import java.io.RandomAccessFile;<br />import java.util.Arrays;<br />import java.util.Scanner;</p>
+<p>/**<br />* @author xingsir<br /> * 用户注册功能<br /> * 程序启动后，用户输入用户名，密码，年龄<br /> * 然后将信息写入到文件text2.txt中。其中用户名，密码，为字符串，年龄为int值。<br /> * <br /> * 格式:<br /> * 每条记录占用固定的100字节<br /> * 其中用户名，密码  各占32字节，为字符串。年龄是int值，固定为4字节。<br /> * <br />*/<br />public class RegDemo {</p>
+<p>	public static void main(String[] args) throws IOException {<br />		//控制台輸入<br />		Scanner scanner=new Scanner(System.in);<br />		System.out.println("请输入用户名:");<br />		String username= scanner.nextLine();<br />		System.out.println("请输入密码:");<br />		String password=scanner.nextLine();<br />		System.out.println("请输入年龄:");<br />		int age = Integer.parseInt(scanner.nextLine());<br />		<br />		RandomAccessFile raf=new RandomAccessFile("test2.txt", "rw");<br />		//将指针移动到文件末尾<br />		raf.seek(raf.length());<br />		//写用户名<br />		byte[]data=username.getBytes("utf-8");<br />		data=Arrays.copyOf(data,32);//各占32字节<br />		raf.write(data);<br />		//写密码<br />		data =password.getBytes("utf-8");<br />		data =Arrays.copyOf(data, 32);//各占32字节<br />		raf.write(data);<br />		<br />		//写年龄<br />		raf.writeInt(age);<br />		System.out.println("注册完毕!");<br />		raf.close();<br />		<br />	}</p>
+<p>}</p>
+<p>//=====================================================================================</p>
+<p>package seday03.raf;</p>
+<p>import java.io.IOException;<br />import java.io.RandomAccessFile;</p>
+<p>/**<br /> * @author xingsir<br /> *  将test2.txt文件中的所有用户信息输出到控制台<br /> */<br />public class ShowAllUserDemo {</p>
+<p>	public static void main(String[] args) throws IOException {<br />		RandomAccessFile raf =new RandomAccessFile("test2.txt","r");<br />		//读取用户名<br />		for(int i=0;i&lt;raf.length()/100;i++) {<br />			byte[] data=new byte[32];//定义数组，32位<br />			//读取<br />			raf.read(data);<br />			//转换为字符串格式<br />			String username= new String(data,"utf-8").trim();</p>
+<p>			raf.read(data);<br />			String password =new String(data,"utf-8").trim();</p>
+<p>			//转换为int格式<br />			int age = raf.readInt();<br />			//输出<br />			System.out.println(username+","+password+","+age);</p>
+<p>		}<br />		raf.close();<br />	}</p>
+<p>}</p>
+<p>//==============================================================================</p>
+<p>package seday06;</p>
+<p>import java.io.IOException;<br />import java.io.RandomAccessFile;<br />import java.util.Arrays;<br />import java.util.Scanner;</p>
+<p>/**<br />* @author xingsir<br />* 程序启动后，要求用户输入用户名和新密碼。<br />* 然后将test2.txt文件中对应用户的密码更改。<br />* 如果输入的用户不存在，则提示沒有該用戶。<br />*/<br />public class UpdateDemo {</p>
+<p>	public static void main(String[] args) throws IOException{</p>
+<p>		Scanner scanner	=new Scanner(System.in);<br />		System.out.println("请输入用户名");		<br />		String username= scanner.nextLine();<br />		System.out.println("请输入新的密码");		<br />		String password= scanner.nextLine();<br />		<br />		RandomAccessFile raf =new RandomAccessFile("test2.txt", "rw");<br />		boolean update =false;//初始值为false<br />		for(int i=0;i&lt;raf.length()/100;i++) {<br />			raf.seek(i*100);<br />			//读取用户名<br />			byte[] data= new byte[32];<br />			raf.read(data);<br />			String name = new String(data,"UTF-8").trim();<br />			//判断输出的名字是否有<br />			if(name.equals(username)) {<br />				//改密碼<br />				raf.seek(i*100+32);<br />				data =password.getBytes("utf-8");<br />				data=Arrays.copyOf(data, 32);<br />				raf.write(data);<br />				System.out.println("修改完毕!");<br />				update = true;<br />				break;<br />			}</p>
+<p>		}<br />		if(!update) {<br />			System.out.println("沒有該用戶");<br />		<br />	}</p>
+<p>}<br />}</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

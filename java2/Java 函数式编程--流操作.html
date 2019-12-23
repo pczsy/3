@@ -1,0 +1,103 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java 函数式编程--流操作' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java 函数式编程--流操作</center></div><div class='banquan'>原文出处:本文由博客园博主浮云Cloud提供。<br/>
+原文连接:https://www.cnblogs.com/cloudfloating/p/11728453.html</div><br>
+    <p>GitHub Page: <a href="http://blog.cloudli.top/posts/Java-函数式编程-流操作/" class="uri">http://blog.cloudli.top/posts/Java-函数式编程-流操作/</a></p>
+<h2 id="外部迭代到内部迭代">外部迭代到内部迭代</h2>
+<p>在使用集合类时，通用的方式是在使用 <code>for</code> 循环集合上进行迭代，然后处理每一个元素。比如计算集合中来自上海的用户：</p>
+<pre><code><code>int count = 0;
+for (User user : allUsers) {
+    if (user.isFrom(&quot;Shanghai&quot;)) {
+        count++;
+    }
+}</code></code></pre>
+<p>以上代码为外部迭代，这样的方式要写很多样板代码。</p>
+<p>另一种方式是内部迭代：</p>
+<pre><code><code>long count = allUsers.stream()
+                     .filter(user -&gt; user.isFrom(&quot;Shanghai&quot;))
+                     .count();</code></code></pre>
+<p>整个过程变成了函数调用，且被分解为两个简单的操作：</p>
+<ul>
+<li>找出所有来自上海的用户。</li>
+<li>计算他们的数量。</li>
+</ul>
+<p>每种操作都对应 <code>Stream</code> 接口的一个方法。为了找出来自上海的用户，需要对 <code>Stream</code> 对象进行过滤：<code>filter()</code> 方法，该方法接受一个 lambda 表达式，最后由 <code>count()</code> 方法计算给定的 <code>Stream</code> 中包含多少对象。</p>
+<p>只调用 <code>filter()</code> 方法并不会做任何操作：</p>
+<pre><code><code>allUsers.stream()
+        .filter(user -&gt; {
+            out.println(user.name);
+            return user.isFrom(&quot;Shanghai&quot;)
+        });</code></code></pre>
+<p>以上代码不会产生任何输出，只有最后调用了 <code>count()</code> 方法，才能看到输出。<code>filter</code> 方法返回的是一个 <code>Stream</code> 对象，这个过程和建造者模式相似。</p>
+<p>建造者模式通过一系列的操作设置属性，只有最后调用了 <code>build()</code> 方法对象才会被创建。在这里 <code>filter()</code> 方法只是传递了一个 lambda 表达式，只有在 <code>count()</code> 方法被调用时才会去执行它。</p>
+<h2 id="常用的流操作">常用的流操作</h2>
+<h3 id="filter">filter</h3>
+<p><code>filter()</code> 方法在上一部分已经出现过，它使用给定的 lambda 表达式检查流中的元素，并过滤出符合条件的元素。</p>
+<pre><code><code>List&lt;User&gt; usersFromShanghai = allUsers.stream()
+                // 过滤出来自上海的用户
+                .filter(user -&gt; user.isFrom(&quot;Shanghai&quot;))
+                .collect(Collectors.toList());</code></code></pre>
+<p><code>filter()</code> 方法的参数是 <code>Predicate</code> 接口：</p>
+<p><img src="./images/Java 函数式编程--流操作0.png" alt="Predicate" /></p>
+<h3 id="collect">collect</h3>
+<p>该方法接受一个 <code>Collector</code> 类型的函数式接口。可以结合 <code>Collectors</code> 提供的方法来完成操作。</p>
+<p>将所有来自上海的用户存入一个列表中：</p>
+<pre><code><code>List&lt;User&gt; usersFromShanghai = allUsers.stream()
+                .filter(user -&gt; user.isFrom(&quot;Shanghai&quot;))
+                .collect(Collectors.toList());</code></code></pre>
+<p>统计每个地区用户的数量，这个操作与 SQL 中的 <code>group by</code> 类似。：</p>
+<pre><code><code>Map&lt;String, Long&gt; userMap = allUsers.stream()
+            // 以 User 的 location 进行分组，对每个分组计数
+            .collect(Collectors.groupingBy(User::getLocation, Collectors.counting()));</code></code></pre>
+<p><code>collect()</code> 方法还可以完成很多操作，以上只是其中一种。</p>
+<h3 id="map">map</h3>
+<p><code>map()</code> 可以将一个流中的值转换为一个新的流。</p>
+<p>将一个字符串列表全部转为大写：</p>
+<pre><code><code>List&lt;String&gt; list = Stream.of(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;)
+                          // 将每个字符串转换成大写
+                          .map(str -&gt; str.toUpperCase())
+                          // 转换为列表
+                          .collect(Collectors.toList());</code></code></pre>
+<p>这里传给 <code>map()</code> 的 lambda 表达式接受一个 <code>String</code> 类型的参数，返回一个新的 <code>String</code>。参数和返回值可以不属于同一种类型。</p>
+<p><code>map()</code> 方法的参数是 <code>Function</code> 函数式接口：</p>
+<p><img src="./images/Java 函数式编程--流操作1.png" alt="Function" /></p>
+<h3 id="flatmap">flatMap</h3>
+<p><code>flatMap()</code> 将一个流中每一个值都转换为 <code>Stream</code> 对象。</p>
+<p>可以使用该方法将多个列表合并：</p>
+<pre><code><code>List&lt;Integer&gt; together = Stream.of(Arrays.asList(1, 2, 3), Arrays.asList(4, 5, 6))
+                               // 将每个列表都转换成 Stream
+                               .flatMap(numbers -&gt; numbers.stream())
+                               // 转换成列表
+                               .collect(Collectors.toList());</code></code></pre>
+<p><code>flatMap()</code> 方法的参数也是 <code>Function</code> 接口，唯一的区别在于返回值限定为 <code>Stream</code> 类型。</p>
+<p><img src="./images/Java 函数式编程--流操作2.png" alt="flatMap Function" /></p>
+<h3 id="reduce">reduce</h3>
+<p><code>reduce()</code> 方法可以实现从一组值中生成一个值。</p>
+<p>对一个列表进行求和：</p>
+<pre><code><code>int sum = Stream.of(1, 2, 3, 4)
+                .reduce(0, (acc, e) -&gt; acc + e);</code></code></pre>
+<p>对一个列表求阶乘：</p>
+<pre><code><code>int sum = together.stream()
+                  .reduce(1, (acc, e) -&gt; acc * e);</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

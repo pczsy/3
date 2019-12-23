@@ -1,0 +1,825 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修1.3Security权限管理，过滤、监听、拦截' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>1.3Security权限管理，过滤、监听、拦截</center></div><div class='banquan'>原文出处:本文由博客园博主wm根mw提供。<br/>
+原文连接:https://www.cnblogs.com/sovy/p/11531609.html</div><br>
+    <p><span style="font-size: 14pt; color: #800000;"><strong>Security:权限管理</strong></span></p>
+<ul>
+<li>常用权限拦截器
+<ul>
+<li>SecurityContextPersistenceFilter
+<ul>
+<li>以前是HttpSesstionContextIntegrationFilter,位于过滤器的顶端，是第一个起作用的过滤器</li>
+<li>第一个用途：在执行其他过滤器之前，率先判断用户的session是否已经存在了一个spring security上下文的securityContext,如果存在，就把securityContext拿出来，放在securityContextHolder中，供security的其他部分使用。如果不存在，就创建一个securityContext出来，放在securityContextHolder中，供security的其他部分使用。</li>
+<li>第二个用途：在所有过滤器执行完毕后，清空securityContextHolder中的内容，因为securityContextHolder是基于ThreadLocal的，如果不清空，会受到服务器线程池机制的影响。</li>
+<li>ThreadLocal存放的值是线程内共享的，线程间互斥的，主要用于线程内共享一些数据，避免通过参数来传递。这样处理后，能够解决实际中的一些并发问题。ThreadLocalMap是ThreadLocal的一个内部类，是不对外使用的。当使用ThreadLocal存值时，首先获取到当前线程对象，然后获取到当前线程本地对象，本地变量map,最后将当前使用的所有local和传入的值放在map中。也就是说ThreadLocalMap中的key是ThreadLocal对象。这样，每个线程都对应一个本地的map,所以，一个线程可以存在多个线程本地变量。</li>
+<li>ThreadLocal是解决线程并发问题的一个很好的思路，通过对每个线程提供一个独立的变量副本，解决线程并发访问变量的一个冲突问题</li>
+<li>当一个线程结束的时候，记得把ThreadLocal里的变量移除掉remove();</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>LogoutFilter
+<ul>
+<li>只处理注销请求。在用户发送注销请求时，销毁用户的session,清空securityContextHolder,重定向到注销成功页面</li>
+</ul>
+</li>
+<li>AbstractAuthenticationProcessingFilter
+<ul>
+<li>处理form登录的过滤器，与form登录有关的操作都在此进行。</li>
+</ul>
+</li>
+<li>DefaultLoginPageGeneratingFilter
+<ul>
+<li>用来生成一个默认的登录页面，默认的访问地址为spring_security_login,这个登录页面虽然支持用户输入用户名密码，也支持remember me等功能，但是因为太难看了，只能在演示时做个样子，不能直接在实际项目中使用</li>
+</ul>
+</li>
+<li>BasicAutenticationFilter
+<ul>
+<li>用来进行basic验证</li>
+</ul>
+</li>
+<li>SecurityContextHolderAwareRequestFilter
+<ul>
+<li>用来包装客户的请求，目的是在原来请求的基础上，为后续程序提供一些额外的数据，比如getRomoteUser时，直接返回当前登录的用户名</li>
+</ul>
+</li>
+<li>RememberMeAuthenticationFilter
+<ul>
+<li>实现Remember me功能，当用户cookie中存在remember me标记时，它会根据标记自动实现用户登录，并创建securityContext,授予对应的权限。spring security中的remember me依赖cookie实现，用户在登录时选择remember me,系统就会在登录成功后为用户生成一个唯一的标识，并将这个标识保存进cookie中，我们可以通过浏览器查看用户电脑中的cookie</li>
+</ul>
+</li>
+<li>AnonymousAutenticationFilter
+<ul>
+<li>当用户没有登录时，默认为用户分配匿名用户的权限</li>
+</ul>
+</li>
+<li>ExceptionTranslationFilter
+<ul>
+<li>处理filterSecurityInterceptor中抛出的异常，然后将请求重定向到对应页面，或返回应用的错误代码</li>
+</ul>
+</li>
+<li>SessionManagementFilter
+<ul>
+<li>在用户登录成功之后，销毁用户的当前session，并重新生成一个session</li>
+</ul>
+</li>
+<li>filterSecurityInterceptor
+<ul>
+<li>用户的权限控制都包含在这个过滤器中</li>
+<li>第一个功能，如果用户尚未登录，抛出尚未认证的异常</li>
+<li>第二个功能，如果用户已登录，但是没有访问当前资源的权限，会抛出拒绝访问的异常</li>
+<li>第三个功能，如果用户已登录，也具有访问当前资源的权限，那么放行</li>
+</ul>
+</li>
+<li>FilterChainProxy
+<ul>
+<li>按照顺序调用一组filter,使他们既能完成验证授权的本职工作，又能相应spring Ioc的功能来很方便地得到其他依赖的资源</li>
+</ul>
+</li>
+</ul>
+<p>&nbsp;</p>
+<ul>
+<li>将用户、权限、资源（url）采用数据库存储</li>
+<li>自定义过滤器，代替原有的 FilterSecurityInterceptor</li>
+<li>自定义实现 UserDetailsService、AccessDecisionManager和InvocationSecurityMetadataSourceService，并在配置文件进行相应的配置</li>
+</ul>
+<src id="cnblogs_post_body" class="blogpost-body ">
+<ul style="text-align: left;">
+<li>用户表(base_user)</li>
+</ul>
+<table>
+<thead>
+<tr class="header"><th style="text-align: left;">code</th><th>type</th><th>length</th></tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+<tr class="even">
+<td>USER_NAME</td>
+<td>varchar</td>
+<td>50</td>
+</tr>
+<tr class="odd">
+<td>USER_PASSWORD</td>
+<td>varchar</td>
+<td>100</td>
+</tr>
+<tr class="even">
+<td>NIKE_NAME</td>
+<td>varchar</td>
+<td>50</td>
+</tr>
+<tr class="odd">
+<td>STATUS</td>
+<td>int</td>
+<td>11</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>用户角色表(base_user_role)
+<table>
+<thead>
+<tr class="header"><th>code</th><th>type</th><th>length</th></tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+<tr class="even">
+<td>USER_ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+<tr class="odd">
+<td>ROLE_ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+<ul>
+<li>角色表(base_role)
+<table>
+<thead>
+<tr class="header"><th>code</th><th>type</th><th>length</th></tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+<tr class="even">
+<td>ROLE_CODE</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+<tr class="odd">
+<td>ROLE_NAME</td>
+<td>varchar</td>
+<td>64</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+<ul>
+<li>角色菜单表(base_role_menu)
+<table>
+<thead>
+<tr class="header"><th>code</th><th>type</th><th>length</th></tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+<tr class="even">
+<td>ROLE_ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+<tr class="odd">
+<td>MENU_ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+<ul>
+<li>菜单表(base_menu)
+<table>
+<thead>
+<tr class="header"><th>code</th><th>type</th><th>length</th></tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+<tr class="even">
+<td>MENU_URL</td>
+<td>varchar</td>
+<td>120</td>
+</tr>
+<tr class="odd">
+<td>MENU_SEQ</td>
+<td>varchar</td>
+<td>120</td>
+</tr>
+<tr class="even">
+<td>MENU_PARENT_ID</td>
+<td>varchar</td>
+<td>32</td>
+</tr>
+<tr class="odd">
+<td>MENU_NAME</td>
+<td>varchar</td>
+<td>50</td>
+</tr>
+<tr class="even">
+<td>MENU_ICON</td>
+<td>varchar</td>
+<td>20</td>
+</tr>
+<tr class="odd">
+<td>MENU_ORDER</td>
+<td>int</td>
+<td>11</td>
+</tr>
+<tr class="even">
+<td>IS_LEAF</td>
+<td>varchar</td>
+<td>20</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+<h2 id="实现主要配置类">实现主要配置类</h2>
+<h3 id="实现abstractauthenticationprocessingfilter">实现AbstractAuthenticationProcessingFilter</h3>
+<p>用于用户表单验证，内部调用了authenticationManager完成认证，根据认证结果执行successfulAuthentication或者unsuccessfulAuthentication，无论成功失败，一般的实现都是转发或者重定向等处理。</p>
+<pre><code><code class="hljs java">   <span class="hljs-meta">@Override
+    <span class="hljs-function"><span class="hljs-keyword">public Authentication <span class="hljs-title">attemptAuthentication<span class="hljs-params">(HttpServletRequest request, HttpServletResponse response) <span class="hljs-keyword">throws AuthenticationException, IOException, ServletException {
+        <span class="hljs-keyword">if (postOnly &amp;&amp; !request.getMethod().equals(<span class="hljs-string">"POST")) {
+            <span class="hljs-keyword">throw <span class="hljs-keyword">new AuthenticationServiceException(
+                    <span class="hljs-string">"Authentication method not supported: " + request.getMethod());
+        }
+        <span class="hljs-comment">//获取表单中的用户名和密码
+        String username = obtainUsername(request);
+        String password = obtainPassword(request);
+        <span class="hljs-keyword">if (username == <span class="hljs-keyword">null) {
+            username = <span class="hljs-string">"";
+        }
+        <span class="hljs-keyword">if (password == <span class="hljs-keyword">null) {
+            password = <span class="hljs-string">"";
+        }
+        username = username.trim();
+        <span class="hljs-comment">//组装成username+password形式的token
+        UsernamePasswordAuthenticationToken authRequest = <span class="hljs-keyword">new UsernamePasswordAuthenticationToken(
+                username, password);
+        <span class="hljs-comment">// Allow subclasses to set the "details" property
+        setDetails(request, authRequest);
+        <span class="hljs-comment">//交给内部的AuthenticationManager去认证，并返回认证信息
+        <span class="hljs-keyword">return <span class="hljs-keyword">this.getAuthenticationManager().authenticate(authRequest);
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<h3 id="authenticationmanager">AuthenticationManager</h3>
+<p>AuthenticationManager是一个用来处理认证（Authentication）请求的接口。在其中只定义了一个方法authenticate()，该方法只接收一个代表认证请求的Authentication对象作为参数，如果认证成功，则会返回一个封装了当前用户权限等信息的Authentication对象进行返回。<br /><code>Authentication authenticate(Authentication authentication) throws AuthenticationException;</code><br />在Spring Security中，AuthenticationManager的默认实现是ProviderManager，而且它不直接自己处理认证请求，而是委托给其所配置的AuthenticationProvider列表，然后会依次使用每一个AuthenticationProvider进行认证，如果有一个AuthenticationProvider认证后的结果不为null，则表示该AuthenticationProvider已经认证成功，之后的AuthenticationProvider将不再继续认证。然后直接以该AuthenticationProvider的认证结果作为ProviderManager的认证结果。如果所有的AuthenticationProvider的认证结果都为null，则表示认证失败，将抛出一个ProviderNotFoundException。<br />校验认证请求最常用的方法是根据请求的用户名加载对应的UserDetails，然后比对UserDetails的密码与认证请求的密码是否一致，一致则表示认证通过。<br />Spring Security内部的DaoAuthenticationProvider就是使用的这种方式。其内部使用UserDetailsService来负责加载UserDetails。在认证成功以后会使用加载的UserDetails来封装要返回的Authentication对象，加载的UserDetails对象是包含用户权限等信息的。认证成功返回的Authentication对象将会保存在当前的SecurityContext中。</p>
+<h3 id="实现userdetailsservice">实现UserDetailsService</h3>
+<p>UserDetailsService只定义了一个方法 loadUserByUsername，根据用户名可以查到用户并返回的方法。</p>
+<pre><code><code class="hljs groovy"><span class="hljs-meta">@Override
+    <span class="hljs-keyword">public UserDetails loadUserByUsername(String username) <span class="hljs-keyword">throws UsernameNotFoundException {
+        logger.debug(<span class="hljs-string">"权限框架-加载用户");
+        List&lt;GrantedAuthority&gt; auths = <span class="hljs-keyword">new ArrayList&lt;&gt;();
+
+        BaseUser baseUser = <span class="hljs-keyword">new BaseUser();
+        baseUser.setUserName(username);
+        baseUser = baseUserService.selectOne(baseUser);
+
+        <span class="hljs-keyword">if (baseUser == <span class="hljs-literal">null) {
+            logger.debug(<span class="hljs-string">"找不到该用户 用户名:{}", username);
+            <span class="hljs-keyword">throw <span class="hljs-keyword">new UsernameNotFoundException(<span class="hljs-string">"找不到该用户！");
+        }
+        <span class="hljs-keyword">if(baseUser.getStatus()==<span class="hljs-number">2)
+        {
+            logger.debug(<span class="hljs-string">"用户被禁用，无法登陆 用户名:{}", username);
+            <span class="hljs-keyword">throw <span class="hljs-keyword">new UsernameNotFoundException(<span class="hljs-string">"用户被禁用！");
+        }
+        List&lt;BaseRole&gt; roles = baseRoleService.selectRolesByUserId(baseUser.getId());
+        <span class="hljs-keyword">if (roles != <span class="hljs-literal">null) {
+            <span class="hljs-comment">//设置角色名称
+            <span class="hljs-keyword">for (BaseRole <span class="hljs-string">role : roles) {
+                SimpleGrantedAuthority authority = <span class="hljs-keyword">new SimpleGrantedAuthority(role.getRoleCode());
+                auths.add(authority);
+            }
+        }
+
+        <span class="hljs-keyword">return <span class="hljs-keyword">new org.springframework.security.core.userdetails.User(baseUser.getUserName(), baseUser.getUserPassword(), <span class="hljs-literal">true, <span class="hljs-literal">true, <span class="hljs-literal">true, <span class="hljs-literal">true, auths);
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<h3 id="实现abstractsecurityinterceptor">实现AbstractSecurityInterceptor</h3>
+<p>访问url时，会被AbstractSecurityInterceptor拦截器拦截，然后调用FilterInvocationSecurityMetadataSource的方法来获取被拦截url所需的全部权限，再调用授权管理器AccessDecisionManager鉴权。</p>
+<pre><code><code class="hljs java"><span class="hljs-keyword">public <span class="hljs-class"><span class="hljs-keyword">class <span class="hljs-title">CustomSecurityInterceptor <span class="hljs-keyword">extends <span class="hljs-title">AbstractSecurityInterceptor <span class="hljs-keyword">implements <span class="hljs-title">Filter {
+    <span class="hljs-keyword">private FilterInvocationSecurityMetadataSource securityMetadataSource;
+    <span class="hljs-meta">@Override
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">void <span class="hljs-title">init<span class="hljs-params">(FilterConfig filterConfig) <span class="hljs-keyword">throws ServletException {
+    }
+    <span class="hljs-meta">@Override
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">void <span class="hljs-title">doFilter<span class="hljs-params">(ServletRequest request, ServletResponse response, FilterChain chain) <span class="hljs-keyword">throws IOException, ServletException {
+        FilterInvocation fi = <span class="hljs-keyword">new FilterInvocation(request, response, chain);
+        invoke(fi);
+    }
+    <span class="hljs-meta">@Override
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">void <span class="hljs-title">destroy<span class="hljs-params">() {
+    }
+    <span class="hljs-meta">@Override
+    <span class="hljs-keyword">public Class&lt;?&gt; getSecureObjectClass() {
+        <span class="hljs-keyword">return FilterInvocation.class;
+    }
+    <span class="hljs-meta">@Override
+    <span class="hljs-function"><span class="hljs-keyword">public SecurityMetadataSource <span class="hljs-title">obtainSecurityMetadataSource<span class="hljs-params">() {
+        <span class="hljs-keyword">return <span class="hljs-keyword">this.securityMetadataSource;
+    }
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">void <span class="hljs-title">invoke<span class="hljs-params">(FilterInvocation fi) <span class="hljs-keyword">throws IOException {
+        InterceptorStatusToken token = <span class="hljs-keyword">super.beforeInvocation(fi);
+        <span class="hljs-keyword">try {
+            fi.getChain().doFilter(fi.getRequest(), fi.getResponse());
+        } <span class="hljs-keyword">catch (ServletException e) {
+            <span class="hljs-keyword">super.afterInvocation(token, <span class="hljs-keyword">null);
+        }
+    }
+    <span class="hljs-function"><span class="hljs-keyword">public FilterInvocationSecurityMetadataSource <span class="hljs-title">getSecurityMetadataSource<span class="hljs-params">() {
+        <span class="hljs-keyword">return securityMetadataSource;
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">public <span class="hljs-keyword">void <span class="hljs-title">setSecurityMetadataSource<span class="hljs-params">(FilterInvocationSecurityMetadataSource securityMetadataSource) {
+        <span class="hljs-keyword">this.securityMetadataSource = securityMetadataSource;
+    }
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<h3 id="filterinvocationsecuritymetadatasource-获取所需权限">FilterInvocationSecurityMetadataSource 获取所需权限</h3>
+<pre><code><code class="hljs dart">    <span class="hljs-meta">@Override
+    public Collection&lt;ConfigAttribute&gt; getAttributes(<span class="hljs-built_in">Object object) throws IllegalArgumentException {
+        <span class="hljs-comment">//获取当前访问url
+        <span class="hljs-built_in">String url = ((FilterInvocation) object).getRequestUrl();
+        <span class="hljs-built_in">int firstQuestionMarkIndex = url.indexOf(<span class="hljs-string">"?");
+        <span class="hljs-keyword">if (firstQuestionMarkIndex != <span class="hljs-number">-1) {
+            url = url.substring(<span class="hljs-number">0, firstQuestionMarkIndex);
+        }
+        <span class="hljs-built_in">List&lt;ConfigAttribute&gt; result = <span class="hljs-keyword">new ArrayList&lt;&gt;();
+
+        <span class="hljs-keyword">try {
+            <span class="hljs-comment">//设置不拦截
+            <span class="hljs-keyword">if (propertySourceBean.getProperty(<span class="hljs-string">"security.ignoring") != <span class="hljs-keyword">null) {
+                <span class="hljs-built_in">String[] paths = propertySourceBean.getProperty(<span class="hljs-string">"security.ignoring").toString().split(<span class="hljs-string">",");
+                <span class="hljs-comment">//判断是否符合规则
+                <span class="hljs-keyword">for (<span class="hljs-built_in">String path: paths) {
+                    <span class="hljs-built_in">String temp = StringUtil.clearSpace(path);
+                    <span class="hljs-keyword">if (matcher.match(temp, url)) {
+                        <span class="hljs-keyword">return SecurityConfig.createList(<span class="hljs-string">"ROLE_ANONYMOUS");
+                    }
+                }
+            }
+
+            <span class="hljs-comment">//如果不是拦截列表里的, 默认需要ROLE_ANONYMOUS权限
+            <span class="hljs-keyword">if (!isIntercept(url)) {
+                <span class="hljs-keyword">return SecurityConfig.createList(<span class="hljs-string">"ROLE_ANONYMOUS");
+            }
+
+            <span class="hljs-comment">//查询数据库url匹配的菜单
+            <span class="hljs-built_in">List&lt;BaseMenu&gt; menuList = baseMenuService.selectMenusByUrl(url);
+            <span class="hljs-keyword">if (menuList != <span class="hljs-keyword">null &amp;&amp; menuList.size() &gt; <span class="hljs-number">0) {
+                <span class="hljs-keyword">for (BaseMenu menu : menuList) {
+                    <span class="hljs-comment">//查询拥有该菜单权限的角色列表
+                    <span class="hljs-built_in">List&lt;BaseRole&gt; roles = baseRoleService.selectRolesByMenuId(menu.getId());
+                    <span class="hljs-keyword">if (roles != <span class="hljs-keyword">null &amp;&amp; roles.size() &gt; <span class="hljs-number">0) {
+                        <span class="hljs-keyword">for (BaseRole role : roles) {
+                            ConfigAttribute conf = <span class="hljs-keyword">new SecurityConfig(role.getRoleCode());
+                            result.add(conf);
+                        }
+                    }
+                }
+            }
+        } <span class="hljs-keyword">catch (Exception e) {
+            e.printStackTrace();
+        }
+        <span class="hljs-keyword">return result;
+    }
+
+     <span class="hljs-comment"><span class="markdown">/**
+<span class="hljs-code">     * 判断是否需要过滤
+<span class="hljs-code">     * @param url
+<span class="hljs-code">     * @return
+<span class="hljs-code">     */
+    public boolean isIntercept(<span class="hljs-built_in">String url) {
+        <span class="hljs-built_in">String[] filterPaths = propertySourceBean.getProperty(<span class="hljs-string">"security.intercept").toString().split(<span class="hljs-string">",");
+        <span class="hljs-keyword">for (<span class="hljs-built_in">String filter: filterPaths) {
+            <span class="hljs-keyword">if (matcher.match(StringUtil.clearSpace(filter), url) &amp; !matcher.match(indexUrl, url)) {
+                <span class="hljs-keyword">return <span class="hljs-keyword">true;
+            }
+        }
+
+        <span class="hljs-keyword">return <span class="hljs-keyword">false;
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<h3 id="accessdecisionmanager-鉴权">AccessDecisionManager 鉴权</h3>
+<pre><code><code class="hljs groovy">    <span class="hljs-meta">@Override
+    <span class="hljs-keyword">public <span class="hljs-keyword">void decide(Authentication authentication, Object o, Collection&lt;ConfigAttribute&gt; collection) <span class="hljs-keyword">throws AccessDeniedException, InsufficientAuthenticationException {
+        <span class="hljs-keyword">if (collection == <span class="hljs-literal">null) {
+            <span class="hljs-keyword">return;
+        }
+        <span class="hljs-keyword">for (ConfigAttribute <span class="hljs-string">configAttribute : collection) {
+            String needRole = configAttribute.getAttribute();
+            <span class="hljs-keyword">for (GrantedAuthority <span class="hljs-string">ga : authentication.getAuthorities()) {
+                <span class="hljs-keyword">if (needRole.trim().equals(ga.getAuthority().trim()) || needRole.trim().equals(<span class="hljs-string">"ROLE_ANONYMOUS")) {
+                    <span class="hljs-keyword">return;
+                }
+            }
+        }
+        <span class="hljs-keyword">throw <span class="hljs-keyword">new AccessDeniedException(<span class="hljs-string">"无权限！");
+    }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<h3 id="配置-websecurityconfigureradapter">配置 WebSecurityConfigurerAdapter</h3>
+<pre><code><code class="hljs java"><span class="hljs-comment">/**
+ * spring-security配置
+ */
+<span class="hljs-meta">@Configuration
+<span class="hljs-meta">@EnableWebSecurity
+<span class="hljs-keyword">public <span class="hljs-class"><span class="hljs-keyword">class <span class="hljs-title">WebSecurityConfig <span class="hljs-keyword">extends <span class="hljs-title">WebSecurityConfigurerAdapter {
+
+    <span class="hljs-keyword">private <span class="hljs-keyword">final Logger logger = LoggerFactory.getLogger(<span class="hljs-keyword">this.getClass());
+
+    <span class="hljs-meta">@Autowired
+    <span class="hljs-keyword">private UserDetailsService userDetailsService;
+
+    <span class="hljs-meta">@Autowired
+    <span class="hljs-keyword">private PropertySource propertySourceBean;
+
+    <span class="hljs-meta">@Override
+    <span class="hljs-function"><span class="hljs-keyword">protected <span class="hljs-keyword">void <span class="hljs-title">configure<span class="hljs-params">(HttpSecurity http) <span class="hljs-keyword">throws Exception {
+        logger.debug(<span class="hljs-string">"权限框架配置");
+
+        String[] paths = <span class="hljs-keyword">null;
+        <span class="hljs-comment">//设置不拦截
+        <span class="hljs-keyword">if (propertySourceBean.getProperty(<span class="hljs-string">"security.ignoring") != <span class="hljs-keyword">null) {
+            paths = propertySourceBean.getProperty(<span class="hljs-string">"security.ignoring").toString().split(<span class="hljs-string">",");
+            paths = StringUtil.clearSpace(paths);
+        }
+
+        <span class="hljs-comment">//设置过滤器
+        http    <span class="hljs-comment">// 根据配置文件放行无需验证的url
+                .authorizeRequests().antMatchers(paths).permitAll()
+                .and()
+                .httpBasic()
+                <span class="hljs-comment">// 配置验证异常处理
+                .authenticationEntryPoint(getCustomLoginAuthEntryPoint())
+                <span class="hljs-comment">// 配置登陆过滤器
+                .and().addFilterAt(getCustomLoginFilter(), UsernamePasswordAuthenticationFilter.class)
+                <span class="hljs-comment">// 配置 AbstractSecurityInterceptor
+                .addFilterAt(getCustomSecurityInterceptor(), FilterSecurityInterceptor.class)
+                <span class="hljs-comment">// 登出成功处理
+                .logout().logoutSuccessHandler(getCustomLogoutSuccessHandler())
+                <span class="hljs-comment">// 关闭csrf
+                .and().csrf().disable()
+                <span class="hljs-comment">// 其他所有请求都需要验证
+                .authorizeRequests().anyRequest().authenticated()
+                <span class="hljs-comment">// 配置登陆url, 登陆页面并无需验证
+                .and().formLogin().loginProcessingUrl(<span class="hljs-string">"/login").loginPage(<span class="hljs-string">"/login.ftl").permitAll()
+                <span class="hljs-comment">// 登出
+                .and().logout().logoutUrl(<span class="hljs-string">"/logout").permitAll();
+        
+        logger.debug(<span class="hljs-string">"配置忽略验证url");
+
+    }
+
+    <span class="hljs-meta">@Autowired
+    <span class="hljs-meta">@Override
+    <span class="hljs-function"><span class="hljs-keyword">protected <span class="hljs-keyword">void <span class="hljs-title">configure<span class="hljs-params">(AuthenticationManagerBuilder auth) <span class="hljs-keyword">throws Exception {
+            auth.authenticationProvider(getDaoAuthenticationProvider());
+    }
+
+
+    <span class="hljs-comment">/**
+     * spring security 配置
+     * <span class="hljs-doctag">@return
+     */
+    <span class="hljs-meta">@Bean
+    <span class="hljs-function"><span class="hljs-keyword">public CustomLoginAuthEntryPoint <span class="hljs-title">getCustomLoginAuthEntryPoint<span class="hljs-params">() {
+        <span class="hljs-keyword">return <span class="hljs-keyword">new CustomLoginAuthEntryPoint();
+    }
+
+    <span class="hljs-comment">/**
+     * 用户验证
+     * <span class="hljs-doctag">@return
+     */
+    <span class="hljs-meta">@Bean
+    <span class="hljs-function"><span class="hljs-keyword">public DaoAuthenticationProvider <span class="hljs-title">getDaoAuthenticationProvider<span class="hljs-params">() {
+        DaoAuthenticationProvider provider = <span class="hljs-keyword">new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setHideUserNotFoundExceptions(<span class="hljs-keyword">false);
+        provider.setPasswordEncoder(<span class="hljs-keyword">new BCryptPasswordEncoder());
+        <span class="hljs-keyword">return provider;
+    }
+
+    <span class="hljs-comment">/**
+     * 登陆
+     * <span class="hljs-doctag">@return
+     */
+    <span class="hljs-meta">@Bean
+    <span class="hljs-function"><span class="hljs-keyword">public CustomLoginFilter <span class="hljs-title">getCustomLoginFilter<span class="hljs-params">() {
+        CustomLoginFilter filter = <span class="hljs-keyword">new CustomLoginFilter();
+        <span class="hljs-keyword">try {
+            filter.setAuthenticationManager(<span class="hljs-keyword">this.authenticationManagerBean());
+        } <span class="hljs-keyword">catch (Exception e) {
+            e.printStackTrace();
+        }
+        filter.setAuthenticationSuccessHandler(getCustomLoginAuthSuccessHandler());
+        filter.setAuthenticationFailureHandler(<span class="hljs-keyword">new CustomLoginAuthFailureHandler());
+
+        <span class="hljs-keyword">return filter;
+    }
+
+    <span class="hljs-meta">@Bean
+    <span class="hljs-function"><span class="hljs-keyword">public CustomLoginAuthSuccessHandler <span class="hljs-title">getCustomLoginAuthSuccessHandler<span class="hljs-params">() {
+        CustomLoginAuthSuccessHandler handler =  <span class="hljs-keyword">new CustomLoginAuthSuccessHandler();
+        <span class="hljs-keyword">if (propertySourceBean.getProperty(<span class="hljs-string">"security.successUrl")!=<span class="hljs-keyword">null){
+            handler.setAuthSuccessUrl(propertySourceBean.getProperty(<span class="hljs-string">"security.successUrl").toString());
+        }
+        <span class="hljs-keyword">return handler;
+    }
+
+    <span class="hljs-comment">/**
+     * 登出
+     * <span class="hljs-doctag">@return
+     */
+    <span class="hljs-meta">@Bean
+    <span class="hljs-function"><span class="hljs-keyword">public CustomLogoutSuccessHandler <span class="hljs-title">getCustomLogoutSuccessHandler<span class="hljs-params">() {
+        CustomLogoutSuccessHandler handler = <span class="hljs-keyword">new CustomLogoutSuccessHandler();
+        <span class="hljs-keyword">if (propertySourceBean.getProperty(<span class="hljs-string">"security.logoutSuccessUrl")!=<span class="hljs-keyword">null){
+            handler.setLoginUrl(propertySourceBean.getProperty(<span class="hljs-string">"security.logoutSuccessUrl").toString());
+        }
+        <span class="hljs-keyword">return handler;
+    }
+
+    <span class="hljs-comment">/**
+     * 过滤器
+     * <span class="hljs-doctag">@return
+     */
+    <span class="hljs-meta">@Bean
+    <span class="hljs-function"><span class="hljs-keyword">public CustomSecurityInterceptor <span class="hljs-title">getCustomSecurityInterceptor<span class="hljs-params">() {
+        CustomSecurityInterceptor interceptor = <span class="hljs-keyword">new CustomSecurityInterceptor();
+        interceptor.setAccessDecisionManager(<span class="hljs-keyword">new CustomAccessDecisionManager());
+        interceptor.setSecurityMetadataSource(getCustomMetadataSourceService());
+        <span class="hljs-keyword">try {
+            interceptor.setAuthenticationManager(<span class="hljs-keyword">this.authenticationManagerBean());
+        } <span class="hljs-keyword">catch (Exception e) {
+            e.printStackTrace();
+        }
+        <span class="hljs-keyword">return interceptor;
+    }
+    
+    <span class="hljs-meta">@Bean
+    <span class="hljs-function"><span class="hljs-keyword">public CustomMetadataSourceService <span class="hljs-title">getCustomMetadataSourceService<span class="hljs-params">() {
+        CustomMetadataSourceService sourceService = <span class="hljs-keyword">new CustomMetadataSourceService();
+        <span class="hljs-keyword">if (propertySourceBean.getProperty(<span class="hljs-string">"security.successUrl")!=<span class="hljs-keyword">null){
+            sourceService.setIndexUrl(propertySourceBean.getProperty(<span class="hljs-string">"security.successUrl").toString());
+        }
+        <span class="hljs-keyword">return sourceService;
+    }
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+
+<src class="clear">&nbsp;
+<h2 class="header"><span style="color: #800000;"><strong><span style="font-size: 14pt;">spring boot 拦截器、过滤器、监听器、定时器使用</span></strong></span></h2>
+<p>&nbsp;</p>
+
+<p>&nbsp;一、application.java中配置</p>
+<p>&nbsp;</p>
+<p>@EnableTransactionManagement</p>
+<p>自动启用事务</p>
+<p>@SpringBootApplication</p>
+<p>@MapperScan(basePackages={"com.hxkj.waychat.dao"})</p>
+<p>@ServletComponentScan</p>
+<p>拦截器、过滤器、监听器的注解配置</p>
+<p>&nbsp;</p>
+<p>二、监听器配置</p>
+<p>&nbsp;</p>
+<p>package com.hxkj.waychat.intercept.listener;</p>
+<p>&nbsp;</p>
+<p>import javax.servlet.ServletContextEvent;</p>
+<p>import javax.servlet.ServletContextListener;</p>
+<p>import javax.servlet.annotation.WebListener;</p>
+<p>&nbsp;</p>
+<p>import org.slf4j.Logger;</p>
+<p>import org.slf4j.LoggerFactory;</p>
+<p>&nbsp;</p>
+<p>import com.hxkj.waychat.core.config.Constant;</p>
+<p>import com.hxkj.waychat.core.utils.PropertiesUtils;</p>
+<p>&nbsp;</p>
+<p>@WebListener</p>
+<p>public class ThymeleafServletContextListener implements ServletContextListener {</p>
+<p>&nbsp;</p>
+<p>private static Logger logger = LoggerFactory.getLogger(ThymeleafServletContextListener.class);</p>
+<p>&nbsp;</p>
+<p>@Override</p>
+<p>public void contextDestroyed(ServletContextEvent arg0) {</p>
+<p>logger.info("----------:ServletContext销毁");</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>@Override</p>
+<p>public void contextInitialized(ServletContextEvent arg0) {</p>
+<p>logger.info("----------:ServletContext初始化");</p>
+<p>logger.info("----------:baseUrl:"+PropertiesUtils.getPropertiesValue(Constant.BASE_URL)+";fileUrl:"+PropertiesUtils.getPropertiesValue(Constant.FILE_URL));</p>
+<p>arg0.getServletContext().setAttribute("baseUrl", PropertiesUtils.getPropertiesValue(Constant.BASE_URL));</p>
+<p>arg0.getServletContext().setAttribute("fileUrl", PropertiesUtils.getPropertiesValue(Constant.FILE_URL));</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>三、过滤器配置</p>
+<p>&nbsp;</p>
+<p>package com.hxkj.waychat.intercept.fliter;</p>
+<p>&nbsp;</p>
+<p>import java.io.IOException;</p>
+<p>&nbsp;</p>
+<p>import javax.servlet.Filter;</p>
+<p>import javax.servlet.FilterChain;</p>
+<p>import javax.servlet.FilterConfig;</p>
+<p>import javax.servlet.ServletException;</p>
+<p>import javax.servlet.ServletRequest;</p>
+<p>import javax.servlet.ServletResponse;</p>
+<p>import javax.servlet.annotation.WebFilter;</p>
+<p>&nbsp;</p>
+<p>import org.slf4j.Logger;</p>
+<p>import org.slf4j.LoggerFactory;</p>
+<p>&nbsp;</p>
+<p>/*@WebFilter(filterName="MyFilter",urlPatterns="/*")*/</p>
+<p>public class MyFilter implements Filter {</p>
+<p>&nbsp;</p>
+<p>private static Logger logger = LoggerFactory.getLogger(MyFilter.class);</p>
+<p>&nbsp;</p>
+<p>@Override</p>
+<p>public void destroy() {</p>
+<p>logger.info("----------:过滤器销毁");</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>@Override</p>
+<p>public void doFilter(ServletRequest arg0, ServletResponse arg1, FilterChain arg2)</p>
+<p>throws IOException, ServletException {</p>
+<p>logger.info("----------:过滤器执行内容");</p>
+<p>&nbsp;</p>
+<p>arg2.doFilter(arg0, arg1);</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>@Override</p>
+<p>public void init(FilterConfig arg0) throws ServletException {</p>
+<p>logger.info("----------:过滤器初始化");</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>四、拦截器配置</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>1.spring boot拦截器默认有&nbsp;</p>
+<p>&nbsp;</p>
+<p>HandlerInterceptorAdapter</p>
+<p>&nbsp;</p>
+<p>AbstractHandlerMapping</p>
+<p>&nbsp;</p>
+<p>UserRoleAuthorizationInterceptor</p>
+<p>&nbsp;</p>
+<p>LocaleChangeInterceptor</p>
+<p>&nbsp;</p>
+<p>ThemeChangeInterceptor</p>
+<p>&nbsp;</p>
+<p>2.配置spring mvc的拦截器WebMvcConfigurerAdapter&nbsp;</p>
+<p>&nbsp;</p>
+<p>public class WebAppConfig extends WebMvcConfigurerAdapter</p>
+<p>3.实现添加拦截器方法&nbsp;</p>
+<p>&nbsp;</p>
+<p>public void addInterceptors(InterceptorRegistry registry){</p>
+<p>&nbsp;</p>
+<p>}</p>
+<p>registry.addInterceptor可以通过此方法添加拦截器, 可以是spring提供的或者自己添加的</p>
+<p>4.实例部分&nbsp;</p>
+<p>&nbsp;</p>
+<p>public class WebAppConfig extends WebMvcConfigurerAdapter{</p>
+<p>&nbsp; &nbsp; public static void main(String[] args) {</p>
+<p>SpringApplication.run(WebAppConfig.class, args);</p>
+<p>}&nbsp;</p>
+<p>&nbsp; &nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; /**</p>
+<p>&nbsp; &nbsp; &nbsp;* 配置拦截器</p>
+<p>&nbsp; &nbsp; &nbsp;* @author lance</p>
+<p>&nbsp; &nbsp; &nbsp;* @param registry</p>
+<p>&nbsp; &nbsp; &nbsp;*/</p>
+<p>&nbsp; &nbsp; public void addInterceptors(InterceptorRegistry registry) {</p>
+<p>&nbsp; &nbsp; registry.addInterceptor(new UserSecurityInterceptor()).addPathPatterns("/user/**");</p>
+<p>}</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>UserSecurityInterceptor代码</p>
+<p>public class UserSecurityInterceptor implements HandlerInterceptor {</p>
+<p>&nbsp;</p>
+<p>@Override</p>
+<p>public boolean preHandle(HttpServletRequest request,</p>
+<p>HttpServletResponse response, Object handler) throws Exception {</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; return true;</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>@Override</p>
+<p>public void postHandle(HttpServletRequest request,</p>
+<p>HttpServletResponse response, Object handler,</p>
+<p>ModelAndView modelAndView) throws Exception {</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>@Override</p>
+<p>public void afterCompletion(HttpServletRequest request,</p>
+<p>HttpServletResponse response, Object handler, Exception ex)</p>
+<p>throws Exception {</p>
+<p>&nbsp;</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p>五、定时器使用</p>
+<p>&nbsp;</p>
+<p>@Component&nbsp;&nbsp;</p>
+<p>public class Scheduler {&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; private final Logger logger = LoggerFactory.getLogger(this.getClass());&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; @Scheduled(cron="0 0/1 * * * ?") //每分钟执行一次&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; public void statusCheck() {&nbsp; &nbsp; &nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; logger.info("每分钟执行一次。开始&hellip;&hellip;");&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; //statusTask.healthCheck();&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; logger.info("每分钟执行一次。结束。");&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; }&nbsp; &nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; @Scheduled(fixedRate=20000)&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; public void testTasks() {&nbsp; &nbsp; &nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; logger.info("每20秒执行一次。开始&hellip;&hellip;");&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; //statusTask.healthCheck();&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; logger.info("每20秒执行一次。结束。");&nbsp;&nbsp;</p>
+<p>&nbsp; &nbsp; }&nbsp; &nbsp;&nbsp;</p>
+<p>}&nbsp;&nbsp;</p>
+<p>&nbsp;</p>
+<p>六、全局异常处理器使用</p>
+<p>&nbsp;</p>
+<p>package com.hxkj.fsslr.controller;</p>
+<p>&nbsp;</p>
+<p>import java.io.FileNotFoundException;</p>
+<p>&nbsp;</p>
+<p>import javax.lang.model.type.UnknownTypeException;</p>
+<p>import javax.servlet.http.HttpServletRequest;</p>
+<p>&nbsp;</p>
+<p>import org.slf4j.Logger;</p>
+<p>import org.slf4j.LoggerFactory;</p>
+<p>import org.springframework.web.bind.annotation.ControllerAdvice;</p>
+<p>import org.springframework.web.bind.annotation.ExceptionHandler;</p>
+<p>import org.springframework.web.bind.annotation.ResponseBody;</p>
+<p>&nbsp;</p>
+<p>import com.hxkj.fsslr.core.utils.PageReturnUtils;</p>
+<p>&nbsp;</p>
+<p>/**</p>
+<p>&nbsp;* @ClassName: GlobalExceptionHandler&nbsp;</p>
+<p>&nbsp;* @Description: 全局异常处理</p>
+<p>&nbsp;* @author huzhihui_c@qq.com</p>
+<p>&nbsp;* @date 2016年7月18日 下午1:17:59</p>
+<p>&nbsp;*/</p>
+<p>@ControllerAdvice</p>
+<p>public class GlobalExceptionHandler {</p>
+<p>&nbsp;</p>
+<p>private static Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);</p>
+<p>&nbsp;</p>
+<p>@ExceptionHandler(value=Exception.class)</p>
+<p>@ResponseBody</p>
+<p>public Object errorHandler(HttpServletRequest request,Exception e){</p>
+<p>logger.info("-----捕获到异常-----");</p>
+<p>//ajax请求异常返回</p>
+<p>if(null != request.getHeader("X-Requested-With") &amp;&amp; "XMLHttpRequest".equals( request.getHeader("X-Requested-With").toString())){</p>
+<p>if (e instanceof NullPointerException) {</p>
+<p>return PageReturnUtils.formatNormal("", PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, "数据参数传入错误");</p>
+<p>} else if (e instanceof FileNotFoundException) {</p>
+<p>return PageReturnUtils.formatNormal("", PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, "数据文件上传出错");</p>
+<p>} else if (e instanceof ClassNotFoundException) {</p>
+<p>return PageReturnUtils.formatNormal("", PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, "系统未找到该jar包");</p>
+<p>} else if (e instanceof UnknownTypeException) {</p>
+<p>return PageReturnUtils.formatNormal("", PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, "未知错误");</p>
+<p>} else{</p>
+<p>return PageReturnUtils.formatNormal("", PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, e.toString());</p>
+<p>}</p>
+<p>}</p>
+<p>return PageReturnUtils.formatNormal("", PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, e.toString());</p>
+<p>}</p>
+<p>}</p>
+<p><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">一、application.java中配置 </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@EnableTransactionManagement</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> 自动启用事务 </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@SpringBootApplication</span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@MapperScan</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">(basePackages={</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"com.hxkj.waychat.dao"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">}) </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@ServletComponentScan</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> 拦截器、过滤器、监听器的注解配置 二、监听器配置 </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">package</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> com.hxkj.waychat.intercept.listener; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.ServletContextEvent; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.ServletContextListener; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.annotation.WebListener; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> org.slf4j.Logger; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> org.slf4j.LoggerFactory; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> com.hxkj.waychat.core.config.Constant; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> com.hxkj.waychat.core.utils.PropertiesUtils; </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@WebListener</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">public</span><span class="hljs-class" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">class</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">ThymeleafServletContextListener</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">implements</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">ServletContextListener</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">private</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">static</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> Logger logger = LoggerFactory.getLogger(ThymeleafServletContextListener.class); </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Override</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">contextDestroyed</span><span class="hljs-params" style="box-sizing: inherit;">(ServletContextEvent arg0)</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"----------:ServletContext销毁"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Override</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">contextInitialized</span><span class="hljs-params" style="box-sizing: inherit;">(ServletContextEvent arg0)</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"----------:ServletContext初始化"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"----------:baseUrl:"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">+PropertiesUtils.getPropertiesValue(Constant.BASE_URL)+</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">";fileUrl:"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">+PropertiesUtils.getPropertiesValue(Constant.FILE_URL)); arg0.getServletContext().setAttribute(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"baseUrl"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">, PropertiesUtils.getPropertiesValue(Constant.BASE_URL)); arg0.getServletContext().setAttribute(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"fileUrl"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">, PropertiesUtils.getPropertiesValue(Constant.FILE_URL)); } } 三、过滤器配置 </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">package</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> com.hxkj.waychat.intercept.fliter; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> java.io.IOException; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.Filter; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.FilterChain; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.FilterConfig; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.ServletException; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.ServletRequest; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.ServletResponse; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.annotation.WebFilter; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> org.slf4j.Logger; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> org.slf4j.LoggerFactory; </span><span class="hljs-comment" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">/*@WebFilter(filterName="MyFilter",urlPatterns="/*")*/</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">public</span><span class="hljs-class" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">class</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">MyFilter</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">implements</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">Filter</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">private</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">static</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> Logger logger = LoggerFactory.getLogger(MyFilter.class); </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Override</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">destroy</span><span class="hljs-params" style="box-sizing: inherit;">()</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"----------:过滤器销毁"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Override</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">doFilter</span><span class="hljs-params" style="box-sizing: inherit;">(ServletRequest arg0, ServletResponse arg1, FilterChain arg2)</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">throws</span> IOException, ServletException </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"----------:过滤器执行内容"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); arg2.doFilter(arg0, arg1); } </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Override</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">init</span><span class="hljs-params" style="box-sizing: inherit;">(FilterConfig arg0)</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">throws</span> ServletException </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"----------:过滤器初始化"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } } 四、拦截器配置 </span><span class="hljs-number" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">1</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">.spring boot拦截器默认有 HandlerInterceptorAdapter AbstractHandlerMapping UserRoleAuthorizationInterceptor LocaleChangeInterceptor ThemeChangeInterceptor </span><span class="hljs-number" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">2</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">.配置spring mvc的拦截器WebMvcConfigurerAdapter </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">public</span><span class="hljs-class" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">class</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">WebAppConfig</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">extends</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">WebMvcConfigurerAdapter</span> 3.实现添加拦截器方法 <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">public</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">addInterceptors</span>(<span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">InterceptorRegistry</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">registry</span>)</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ } registry.addInterceptor可以通过此方法添加拦截器, 可以是spring提供的或者自己添加的 </span><span class="hljs-number" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">4</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">.实例部分 </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">public</span><span class="hljs-class" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">class</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">WebAppConfig</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">extends</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">WebMvcConfigurerAdapter</span></span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ </span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">static</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">main</span><span class="hljs-params" style="box-sizing: inherit;">(String[] args)</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ SpringApplication.run(WebAppConfig.class, args); } </span><span class="hljs-comment" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">/** * 配置拦截器 * <span class="hljs-doctag" style="box-sizing: inherit;">@author</span> lance * <span class="hljs-doctag" style="box-sizing: inherit;">@param</span> registry */</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">addInterceptors</span><span class="hljs-params" style="box-sizing: inherit;">(InterceptorRegistry registry)</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ registry.addInterceptor(</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">new</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> UserSecurityInterceptor()).addPathPatterns(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"/user/**"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } } UserSecurityInterceptor代码 </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">public</span><span class="hljs-class" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">class</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">UserSecurityInterceptor</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">implements</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">HandlerInterceptor</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Override</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">boolean</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">preHandle</span><span class="hljs-params" style="box-sizing: inherit;">(HttpServletRequest request, HttpServletResponse response, Object handler)</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">throws</span> Exception </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">return</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">true</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">; } </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Override</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">postHandle</span><span class="hljs-params" style="box-sizing: inherit;">(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView)</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">throws</span> Exception </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ } </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Override</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">afterCompletion</span><span class="hljs-params" style="box-sizing: inherit;">(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">throws</span> Exception </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ } } 五、定时器使用 </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Component</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">public</span><span class="hljs-class" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">class</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">Scheduler</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">private</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">final</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> Logger logger = LoggerFactory.getLogger(</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">this</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">.getClass()); </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Scheduled</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">(cron=</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"0 0/1 * * * ?"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">) </span><span class="hljs-comment" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">//每分钟执行一次 </span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">statusCheck</span><span class="hljs-params" style="box-sizing: inherit;">()</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"每分钟执行一次。开始&hellip;&hellip;"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); </span><span class="hljs-comment" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">//statusTask.healthCheck(); </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"每分钟执行一次。结束。"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@Scheduled</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">(fixedRate=</span><span class="hljs-number" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">20000</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">) </span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> <span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">void</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">testTasks</span><span class="hljs-params" style="box-sizing: inherit;">()</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"每20秒执行一次。开始&hellip;&hellip;"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); </span><span class="hljs-comment" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">//statusTask.healthCheck(); </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"每20秒执行一次。结束。"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } } 六、全局异常处理器使用 </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">package</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> com.hxkj.fsslr.controller; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> java.io.FileNotFoundException; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.lang.model.type.UnknownTypeException; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> javax.servlet.http.HttpServletRequest; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> org.slf4j.Logger; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> org.slf4j.LoggerFactory; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> org.springframework.web.bind.annotation.ControllerAdvice; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> org.springframework.web.bind.annotation.ExceptionHandler; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> org.springframework.web.bind.annotation.ResponseBody; </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">import</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> com.hxkj.fsslr.core.utils.PageReturnUtils; </span><span class="hljs-comment" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">/** * <span class="hljs-doctag" style="box-sizing: inherit;">@ClassName</span>: GlobalExceptionHandler * <span class="hljs-doctag" style="box-sizing: inherit;">@Description</span>: 全局异常处理 * <span class="hljs-doctag" style="box-sizing: inherit;">@author</span> huzhihui_c@qq.com * <span class="hljs-doctag" style="box-sizing: inherit;">@date</span> 2016年7月18日 下午1:17:59 */</span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@ControllerAdvice</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">public</span><span class="hljs-class" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">class</span> <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">GlobalExceptionHandler</span> </span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">private</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">static</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class); </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@ExceptionHandler</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">(value=Exception.class) </span><span class="hljs-meta" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">@ResponseBody</span><span class="hljs-function" style="box-sizing: inherit; color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;"><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49;">public</span> Object <span class="hljs-title" style="box-sizing: inherit; color: #6f42c1;">errorHandler</span><span class="hljs-params" style="box-sizing: inherit;">(HttpServletRequest request,Exception e)</span></span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ logger.info(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"-----捕获到异常-----"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); </span><span class="hljs-comment" style="box-sizing: inherit; color: #6a737d; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">//ajax请求异常返回</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">if</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">(</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">null</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> != request.getHeader(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"X-Requested-With"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">) &amp;&amp; </span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"XMLHttpRequest"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">.equals( request.getHeader(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"X-Requested-With"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">).toString())){ </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">if</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> (e </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">instanceof</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> NullPointerException) { </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">return</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> PageReturnUtils.formatNormal(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">""</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">, PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, </span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"数据参数传入错误"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">else</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">if</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> (e </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">instanceof</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> FileNotFoundException) { </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">return</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> PageReturnUtils.formatNormal(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">""</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">, PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, </span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"数据文件上传出错"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">else</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">if</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> (e </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">instanceof</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> ClassNotFoundException) { </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">return</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> PageReturnUtils.formatNormal(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">""</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">, PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, </span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"系统未找到该jar包"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">else</span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">if</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> (e </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">instanceof</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> UnknownTypeException) { </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">return</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> PageReturnUtils.formatNormal(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">""</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">, PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, </span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">"未知错误"</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">); } </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">else</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">{ </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">return</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> PageReturnUtils.formatNormal(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">""</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">, PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, e.toString()); } } </span><span class="hljs-keyword" style="box-sizing: inherit; color: #d73a49; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">return</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;"> PageReturnUtils.formatNormal(</span><span class="hljs-string" style="box-sizing: inherit; color: #032f62; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre;">""</span><span style="color: #333333; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 13px; white-space: pre; background-color: #f6f6f6;">, PageReturnUtils.MSG_CODE_111111, PageReturnUtils.MSG_STATE_FALSE, e.toString()); } }</span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

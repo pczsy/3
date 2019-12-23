@@ -1,0 +1,93 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在SpringBoot中使用flyway进行数据库版本管理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在SpringBoot中使用flyway进行数据库版本管理</center></div><div class='banquan'>原文出处:本文由博客园博主字母哥博客提供。<br/>
+原文连接:https://www.cnblogs.com/zimug/p/11796288.html</div><br>
+    <p><img src="./images/在SpringBoot中使用flyway进行数据库版本管理0.png" /></p>
+<h2 id="本文大纲">本文大纲</h2>
+<ul>
+<li>flyway是什么</li>
+<li>能帮助我们解决什么问题</li>
+<li>springboot环境下使用flyway</li>
+<li>flyway的工作原理</li>
+</ul>
+<h2 id="一flyway是什么">一、flyway是什么</h2>
+<p>Flyway是一个开源的数据库版本管理工具，并且极力主张“约定大于配置”，简单、专注、强大。可以使用SQL完成数据同步，或者基于特定数据库的语法（例如PL / SQL，T-SQL等）或Java代码（适用于高级数据转换或处理LOB）的方式编写。并且数据库支持非常广泛：</p>
+<p><img src="./images/在SpringBoot中使用flyway进行数据库版本管理1.png" /></p>
+<h2 id="二能帮助我们解决什么问题">二、能帮助我们解决什么问题</h2>
+<p>那么，我们首先解释一下什么是数据库版本管理？</p>
+<ul>
+<li>大家都知道git是帮助软件项目进行代码版本的管理，方便程序员协同开发</li>
+<li>那么FlyWay就是数据库版本管理的工具，目标是保证多环境下数据库的状态一致性，方便程序员协同开发</li>
+</ul>
+<p><strong>举个简单的例子：</strong></p>
+<ul>
+<li>开发人员通常使用同一个数据库或者自建库进行开发工作，这个数据库通常叫做开发库。</li>
+<li>测试人员为了保障测试数据的有效性，通常自建一个库进行测试，这个数据库叫做测试库。</li>
+<li>销售人员为了保证演示数据的效果，通常也需要一个单独的数据库，这个数据库叫做演示库。</li>
+<li>正式生产上线的库，供给用户使用，这个数据库叫做生产库。</li>
+</ul>
+<p>那么问题就来了：我们如何保证数据库schema的状态一致？某一个开发人员修改了开发库，新增了一个字段，如何能够有效的同步到测试库，测试通过之后如何有效的同步到演示库和生产库？在没有Flyway之前，这个动作通常是由上线程序员自己去执行SQL来完成的，或者比较正规的公司专门有版本管理人员去操作。这种方式通常存在几个问题：</p>
+<ul>
+<li>开发团队内部的沟通成本增加，比如某一个成员修改了一个数据库字段，其他人可能都不知道。</li>
+<li>开发团队和测试团队和其他团队之间的沟通成本增加</li>
+<li>无法完成自动化的持续集成，持续集成的过程代码可以通过git、maven、docker、k8s等工具来实现自动化的代码打包、部署。但是数据库的状态变化没有得到有效的自动变更，持续集成的过程的自动化就无法实现。</li>
+</ul>
+<p>这也就是我们学习Flyway的目的：Flyway能够自动的帮助我们有效的同步各个发布数据库之间的状态，不管你是加了或者删了一个字段，还是新加了一张表，他都能自动化的跟随项目的发布同时发布。</p>
+<h2 id="三-springboot环境下使用flyway">三、 springboot环境下使用flyway</h2>
+<p>首先，我们为SpringBoot项目添加Flyway依赖</p>
+<pre><code><code>
+&lt;dependency&gt;
+    &lt;groupId&gt;org.flywaydb&lt;/groupId&gt;
+    &lt;artifactId&gt;flyway-core&lt;/artifactId&gt;
+    &lt;version&gt;6.0.7&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>然后我们要保证数据库里面有spring.datasource的数据源配置。并且在application.properties中添加如下的配置</p>
+<pre><code><code>
+spring:
+  flyway:
+    enabled: true    #启用flyway
+    encoding: utf-8   #字符编码
+    locations: [&quot;classpath:db/migration&quot;]  #版本控制文件存放目录</code></code></pre>
+<p>然后在resources/db/migration目录下面，加入如下格式的脚本：</p>
+<pre><code><code>
+V1.1__create_table.sql
+V1.2__update_person_table.sql
+V1.3__create_new_table.sql
+V1.4__add_person_comment.sql
+V2.1__modify_person_data.sql</code></code></pre>
+<p>大写V后面紧跟数据库脚本的版本号（递增形式、不能重复），然后两个下划线，之后是对脚本内容进行描述。如：V1.1__create_table.sql是用于创建表结构的数据库脚本，内容是create table之类的DDL。 第二个脚本是对数据库中person表进行了更新。总之脚本里面的内容，就是你希望对spring.datasource代表的数据库进行的操作，可以是表的创建、删除、修改，也可以是对数据的创建删除修改。</p>
+<blockquote>
+<p>当然，我个人不建议将DML-SQL写入脚本，也就是不要在这个脚本里面写insert、update、delete。以免不注意的情况下，造成生产数据的误操作。如果你们公司在生产上线管理方面没有严格的审核程序，在生产环境下，就干脆不要使用flyway，方便开发是一方面，生产安全更为重要！</p>
+</blockquote>
+<p>最后，启动SpringBoot项目，在该目标库范围内没有执行过的SQL脚本被执行。并将脚本执行信息保存在数据库的schema_version_history数据表里面。</p>
+<h2 id="四flyway的工作原理">四、FlyWay的工作原理</h2>
+<p><img src="./images/在SpringBoot中使用flyway进行数据库版本管理2.png" /></p>
+<ul>
+<li>首先项目启动flyway会去db/migration下面扫描文件，获取文件名，并解析版本号</li>
+<li><p>然后去schema_version_history表里面找对应的版本执行信息，如果你的文件版本号大于数据库记录版本，就执行脚本。否则就忽略。</p>
+<h2 id="期待您的关注">期待您的关注</h2></li>
+<li>博主最近新写了一本书：<a href="http://springboot.zimug.com">《手摸手教您学习SpringBoot系列-16章97节》</a></li>
+<li><p>本文转载注明出处（必须带连接，不能只转文字）：<a href="http://www.zimug.com">字母哥博客</a>。</p></li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

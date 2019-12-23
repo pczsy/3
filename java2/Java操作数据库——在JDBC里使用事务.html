@@ -1,0 +1,91 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java操作数据库——在JDBC里使用事务' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java操作数据库——在JDBC里使用事务</center></div><div class='banquan'>原文出处:本文由博客园博主鲨猫提供。<br/>
+原文连接:https://www.cnblogs.com/shamao/p/11917928.html</div><br>
+    <h1>Java操作数据库&mdash;&mdash;在JDBC里使用事务</h1>
+<p>摘要：本文主要学习了如何在JDBC里使用事务。</p>
+<h2>使用Connection的事务控制方法</h2>
+<p>当JDBC程序向数据库获得一个Connection对象时，默认情况下这个Connection对象会自动向数据库提交发送的SQL语句。若想关闭这种默认提交方式，让多条SQL在一个事务中执行，可使用JDBC提供的事务控制方法。</p>
+<h3>常用方法</h3>
+<p>查询自动提交的状态：boolean getAutoCommit() throws SQLException;</p>
+<p>设置自动提交的状态：void setAutoCommit(boolean autoCommit) throws SQLException;</p>
+<p>设置还原点：Savepoint setSavepoint() throws SQLException;</p>
+<p>设置指定名称的还原点：Savepoint setSavepoint(String name) throws SQLException;</p>
+<p>删除指定名称的还原点：void releaseSavepoint(Savepoint savepoint) throws SQLException;</p>
+<p>提交：void commit() throws SQLException;</p>
+<p>回滚：void rollback() throws SQLException;</p>
+<p>回滚到指定名称的还原点：void rollback(Savepoint savepoint) throws SQLException;</p>
+<p>查询隔离级别：int getTransactionIsolation() throws SQLException;</p>
+<p>设置隔离级别：void setTransactionIsolation(int level) throws SQLException;</p>
+<h3>使用实例</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;"> 2</span>     Properties pros = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Properties();
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 4</span>         pros.load(TestConnection.<span style="color: #0000ff;">class</span>.getClassLoader().getResourceAsStream("jdbc.properties"<span style="color: #000000;">));
+</span><span style="color: #008080;"> 5</span>     } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException e) {
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">        e.printStackTrace();
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 9</span>         Class.forName(pros.getProperty("driverClass"<span style="color: #000000;">));
+</span><span style="color: #008080;">10</span>     } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (ClassNotFoundException e) {
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        e.printStackTrace();
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">13</span>     Connection conn = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">14</span>     PreparedStatement pstmt = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">15</span>     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">16</span>         String url = pros.getProperty("url"<span style="color: #000000;">);
+</span><span style="color: #008080;">17</span>         String user = pros.getProperty("user"<span style="color: #000000;">);
+</span><span style="color: #008080;">18</span>         String password = pros.getProperty("password"<span style="color: #000000;">);
+</span><span style="color: #008080;">19</span>         conn =<span style="color: #000000;"> DriverManager.getConnection(url, user, password);
+</span><span style="color: #008080;">20</span>         <span style="color: #0000ff;">boolean</span> status =<span style="color: #000000;"> conn.getAutoCommit();
+</span><span style="color: #008080;">21</span>         System.out.println("AutoCommit = " +<span style="color: #000000;"> status);
+</span><span style="color: #008080;">22</span>         conn.setAutoCommit(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">23</span>         pstmt = conn.prepareStatement("delete from student where id = 906"<span style="color: #000000;">);
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">        pstmt.executeUpdate();
+</span><span style="color: #008080;">25</span>         <span style="color: #0000ff;">int</span> e = 1 / 0;<span style="color: #008000;">//</span><span style="color: #008000;"> 模拟出现异常</span>
+<span style="color: #008080;">26</span>         pstmt = conn.prepareStatement("delete from student where id = 907"<span style="color: #000000;">);
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">        pstmt.executeUpdate();
+</span><span style="color: #008080;">28</span>         conn.commit();<span style="color: #008000;">//</span><span style="color: #008000;"> 手动提交，不能省略</span>
+<span style="color: #008080;">29</span>     } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">        e.printStackTrace();
+</span><span style="color: #008080;">31</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">32</span>             conn.rollback();<span style="color: #008000;">//</span><span style="color: #008000;"> 手动回滚，可以省略，系统会自动回滚</span>
+<span style="color: #008080;">33</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException ex) {
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">            ex.printStackTrace();
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">36</span>     } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">37</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">            pstmt.close();
+</span><span style="color: #008080;">39</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">42</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">            conn.close();
+</span><span style="color: #008080;">44</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">48</span> }</code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

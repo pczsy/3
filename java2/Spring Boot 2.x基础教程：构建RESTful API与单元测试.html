@@ -1,0 +1,208 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring Boot 2.x基础教程：构建RESTful API与单元测试' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring Boot 2.x基础教程：构建RESTful API与单元测试</center></div><div class='banquan'>原文出处:本文由博客园博主程序猿DD提供。<br/>
+原文连接:https://www.cnblogs.com/didispace/p/11606136.html</div><br>
+    <p>首先，回顾并详细说明一下在<a href="http://blog.didispace.com/spring-boot-learning-21-1-1/">快速入门</a>中使用的<code>@Controller</code>、<code>@RestController</code>、<code>@RequestMapping</code>注解。如果您对Spring MVC不熟悉并且还没有尝试过快速入门案例，建议先看一下<a href="http://blog.didispace.com/spring-boot-learning-21-1-1/">快速入门</a>的内容。</p>
+<ul>
+<li><code>@Controller</code>：修饰class，用来创建处理http请求的对象</li>
+<li><code>@RestController</code>：Spring4之后加入的注解，原来在<code>@Controller</code>中返回json需要<code>@ResponseBody</code>来配合，如果直接用<code>@RestController</code>替代<code>@Controller</code>就不需要再配置<code>@ResponseBody</code>，默认返回json格式</li>
+<li><code>@RequestMapping</code>：配置url映射。现在更多的也会直接用以Http Method直接关联的映射注解来定义，比如：<code>GetMapping</code>、<code>PostMapping</code>、<code>DeleteMapping</code>、<code>PutMapping</code>等</li>
+</ul>
+<p>下面我们通过使用Spring MVC来实现一组对User对象操作的RESTful API，配合注释详细说明在Spring MVC中如何映射HTTP请求、如何传参、如何编写单元测试。</p>
+<p>** RESTful API具体设计如下：**</p>
+<p><img src="./images/Spring Boot 2.x基础教程：构建RESTful API与单元测试0.png" /></p>
+<h2 id="定义user实体">定义User实体</h2>
+<pre><code><code>@Data
+public class User {
+
+    private Long id;
+    private String name;
+    private Integer age;
+
+}</code></code></pre>
+<p>注意：相比<a href="http://blog.didispace.com/springbootrestfulapi/">1.x版本教程</a>中自定义set和get函数的方式，这里使用<code>@Data</code>注解可以实现在编译器自动添加set和get函数的效果。该注解是lombok提供的，只需要在pom中引入加入下面的依赖就可以支持：</p>
+<pre class="xml"><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.projectlombok&lt;/groupId&gt;
+    &lt;artifactId&gt;lombok&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></code></pre>
+<h2 id="实现对user对象的操作接口">实现对User对象的操作接口</h2>
+<pre><code><code>@RestController
+@RequestMapping(value = &quot;/users&quot;)     // 通过这里配置使下面的映射都在/users下
+public class UserController {
+
+    // 创建线程安全的Map，模拟users信息的存储
+    static Map&lt;Long, User&gt; users = Collections.synchronizedMap(new HashMap&lt;Long, User&gt;());
+
+    /**
+     * 处理&quot;/users/&quot;的GET请求，用来获取用户列表
+     *
+     * @return
+     */
+    @GetMapping(&quot;/&quot;)
+    public List&lt;User&gt; getUserList() {
+        // 还可以通过@RequestParam从页面中传递参数来进行查询条件或者翻页信息的传递
+        List&lt;User&gt; r = new ArrayList&lt;User&gt;(users.values());
+        return r;
+    }
+
+    /**
+     * 处理&quot;/users/&quot;的POST请求，用来创建User
+     *
+     * @param user
+     * @return
+     */
+    @PostMapping(&quot;/&quot;)
+    public String postUser(@RequestBody User user) {
+        // @RequestBody注解用来绑定通过http请求中application/json类型上传的数据
+        users.put(user.getId(), user);
+        return &quot;success&quot;;
+    }
+
+    /**
+     * 处理&quot;/users/{id}&quot;的GET请求，用来获取url中id值的User信息
+     *
+     * @param id
+     * @return
+     */
+    @GetMapping(&quot;/{id}&quot;)
+    public User getUser(@PathVariable Long id) {
+        // url中的id可通过@PathVariable绑定到函数的参数中
+        return users.get(id);
+    }
+
+    /**
+     * 处理&quot;/users/{id}&quot;的PUT请求，用来更新User信息
+     *
+     * @param id
+     * @param user
+     * @return
+     */
+    @PutMapping(&quot;/{id}&quot;)
+    public String putUser(@PathVariable Long id, @RequestBody User user) {
+        User u = users.get(id);
+        u.setName(user.getName());
+        u.setAge(user.getAge());
+        users.put(id, u);
+        return &quot;success&quot;;
+    }
+
+    /**
+     * 处理&quot;/users/{id}&quot;的DELETE请求，用来删除User
+     *
+     * @param id
+     * @return
+     */
+    @DeleteMapping(&quot;/{id}&quot;)
+    public String deleteUser(@PathVariable Long id) {
+        users.remove(id);
+        return &quot;success&quot;;
+    }
+
+}</code></code></pre>
+<blockquote>
+<p>这里相较<a href="http://blog.didispace.com/springbootrestfulapi/">1.x版本教程</a>中，用更细化的<code>@GetMapping</code>、<code>@PostMapping</code>等系列注解替换了以前的<code>@RequestMaping</code>注解；另外，还使用<code>@RequestBody</code>替换了<code>@ModelAttribute</code>的参数绑定。</p>
+</blockquote>
+<h2 id="编写单元测试">编写单元测试</h2>
+<p>下面针对该Controller编写测试用例验证正确性，具体如下。当然也可以通过浏览器插件等进行请求提交验证。</p>
+<pre><code><code>@RunWith(SpringRunner.class)
+@SpringBootTest
+public class Chapter21ApplicationTests {
+
+    private MockMvc mvc;
+
+    @Before
+    public void setUp() {
+        mvc = MockMvcBuilders.standaloneSetup(new UserController()).build();
+    }
+
+    @Test
+    public void testUserController() throws Exception {
+        // 测试UserController
+        RequestBuilder request;
+
+        // 1、get查一下user列表，应该为空
+        request = get(&quot;/users/&quot;);
+        mvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(content().string(equalTo(&quot;[]&quot;)));
+
+        // 2、post提交一个user
+        request = post(&quot;/users/&quot;)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(&quot;{\&quot;id\&quot;:1,\&quot;name\&quot;:\&quot;测试大师\&quot;,\&quot;age\&quot;:20}&quot;);
+        mvc.perform(request)
+                .andExpect(content().string(equalTo(&quot;success&quot;)));
+
+        // 3、get获取user列表，应该有刚才插入的数据
+        request = get(&quot;/users/&quot;);
+        mvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(content().string(equalTo(&quot;[{\&quot;id\&quot;:1,\&quot;name\&quot;:\&quot;测试大师\&quot;,\&quot;age\&quot;:20}]&quot;)));
+
+        // 4、put修改id为1的user
+        request = put(&quot;/users/1&quot;)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(&quot;{\&quot;name\&quot;:\&quot;测试终极大师\&quot;,\&quot;age\&quot;:30}&quot;);
+        mvc.perform(request)
+                .andExpect(content().string(equalTo(&quot;success&quot;)));
+
+        // 5、get一个id为1的user
+        request = get(&quot;/users/1&quot;);
+        mvc.perform(request)
+                .andExpect(content().string(equalTo(&quot;{\&quot;id\&quot;:1,\&quot;name\&quot;:\&quot;测试终极大师\&quot;,\&quot;age\&quot;:30}&quot;)));
+
+        // 6、del删除id为1的user
+        request = delete(&quot;/users/1&quot;);
+        mvc.perform(request)
+                .andExpect(content().string(equalTo(&quot;success&quot;)));
+
+        // 7、get查一下user列表，应该为空
+        request = get(&quot;/users/&quot;);
+        mvc.perform(request)
+                .andExpect(status().isOk())
+                .andExpect(content().string(equalTo(&quot;[]&quot;)));
+
+    }
+
+}</code></code></pre>
+<p>对MockMvc不熟悉的读者，可能会碰到一些函数不存在而报错。必须引入下面这些静态函数的引用：</p>
+<pre><code><code>import static org.hamcrest.Matchers.equalTo;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;</code></code></pre>
+<blockquote>
+<p>这里相较<a href="http://blog.didispace.com/springbootrestfulapi/">1.x版本教程</a>中，主要有两个地方不同。测试类采用<code>@RunWith(SpringRunner.class)</code>和<code>@SpringBootTest</code>修饰启动；另外，由于POST和PUT接口的参数采用<code>@RequestBody</code>注解，所以提交的会是一个json字符串，而不是之前的参数形式，这里在定义请求的时候使用<code>contentType(MediaType.APPLICATION_JSON)</code>指定提交内容为json格式，使用<code>content</code>传入要提交的json字符串。如果用@ModelAttribute的话就得用<code>param</code>方法添加参数，具体可以看<a href="http://blog.didispace.com/springbootrestfulapi/">1.x版本的教程</a>。</p>
+</blockquote>
+<p>至此，我们通过引入web模块（没有做其他的任何配置），就可以轻松利用Spring MVC的功能，以非常简洁的代码完成了对User对象的RESTful API的创建以及单元测试的编写。其中同时介绍了Spring MVC中最为常用的几个核心注解：<code>@RestController</code>,<code>RequestMapping</code>以及一些参数绑定的注解：<code>@PathVariable</code>,<code>@RequestBody</code>等。</p>
+<h2 id="代码示例">代码示例</h2>
+<p>本文的相关例子可以查看下面仓库中的<code>chapter2-1</code>目录：</p>
+<ul>
+<li>Github：<a href="https://github.com/dyc87112/SpringBoot-Learning/tree/2.x" class="uri">https://github.com/dyc87112/SpringBoot-Learning/tree/2.x</a></li>
+<li>Gitee：<a href="https://gitee.com/didispace/SpringBoot-Learning/tree/2.x" class="uri">https://gitee.com/didispace/SpringBoot-Learning/tree/2.x</a></li>
+</ul>
+<p><strong>如果您觉得本文不错，欢迎<code>Star</code>支持，您的关注是我坚持的动力！</strong></p>
+<blockquote>
+<p>欢迎关注我的公众号：程序猿DD，获得独家整理的学习资源和日常干货推送。如果您对我的专题内容感兴趣，也可以关注我的博客：<a href="http://blog.didispace.com">didispace.com</a></p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

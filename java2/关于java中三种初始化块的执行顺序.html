@@ -1,0 +1,76 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于java中三种初始化块的执行顺序' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于java中三种初始化块的执行顺序</center></div><div class='banquan'>原文出处:本文由博客园博主Recouar提供。<br/>
+原文连接:https://www.cnblogs.com/huxiaoyang/p/11823444.html</div><br>
+    <p>许多小伙伴对于java中的三种初始化块的执行顺序一直感到头疼，接下来我们就来分析一下这三种初始化块到底是怎么运行的。有些公司也会将这个问题作为笔试题目。</p>
+<p>下面通过一段代码来看看创建对象时这么初始化块是如何运行的</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.hxy;
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CodeBlock{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> HelloB();
+       </span><span style="color: #008000;">//</span><span style="color: #008000;"> new HelloB();</span>
+<span style="color: #000000;">    }
+
+}
+</span><span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloA{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">无参构造器</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> HelloA(){
+        System.out.println(</span>"Hello A"<span style="color: #000000;">);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">初始化块</span>
+<span style="color: #000000;">    {
+        System.out.println(</span>"I'm A"<span style="color: #000000;">);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">静态初始化块</span>
+    <span style="color: #0000ff;">static</span><span style="color: #000000;">{
+        System.out.println(</span>"Static A"<span style="color: #000000;">);
+    }
+}
+</span><span style="color: #0000ff;">class</span> HelloB <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HelloA{
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> HelloB(){
+        System.out.println(</span>"Hello B"<span style="color: #000000;">);
+    }
+    {
+        System.out.println(</span>"I'm B"<span style="color: #000000;">);
+    }
+    </span><span style="color: #0000ff;">static</span><span style="color: #000000;">{
+        System.out.println(</span>"Static B"<span style="color: #000000;">);
+    }
+}<br /></span></code></pre>
+
+<p>运行结果如下图所示：</p>
+<p>&nbsp;</p>
+<p><img src="./images/关于java中三种初始化块的执行顺序0.png" alt="" width="689" height="208" /></p>
+<p>&nbsp;从运行结果来看，在新创建一个对象的时候，程序先执行初始化块，再执行构造器。</p>
+<p>当普通初始化块被static修饰后就变成了<em><strong>静态初始化块，也被称作类初始化块</strong></em>。</p>
+<p>普通初始化块是对对象进行初始化，而静态初始化块是对类进行初始化。所以静态初始化块要比普通初始化块先执行。</p>
+<p>从上面的运行结果看。当第一次创建HelloB对象时，要先加载并初始化HelloB类。初始化HelloB类会先执行它父类的静态初始块（Static A），然后再执行它的静态初始化块。</p>
+<p>综上所述：初始化块的执行顺序为：<strong>静态初始化块、普通初始化块、构造器。</strong></p>
+<p>接下来再看创建两个HelloB对象时它们又是怎么运行的。下面是运行结果：</p>
+<p><img src="./images/关于java中三种初始化块的执行顺序1.png" alt="" width="1312" height="443" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;从运行结果来看，可能出乎一些小伙伴的预料。</p>
+<p>静态初始化块只在第一次创建对象时执行，也就是说不管创建几次对象。静态初始化块都只会执行一次。普通代码块和构造器则是创建几次执行几次，且普通代码块比构造器先执行。</p>
+<p><strong>&nbsp;</strong></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,306 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringMVC参数绑定学习总结【前后端数据参数传递】' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringMVC参数绑定学习总结【前后端数据参数传递】</center></div><div class='banquan'>原文出处:本文由博客园博主宜春提供。<br/>
+原文连接:https://www.cnblogs.com/yichunguo/p/11974573.html</div><br>
+    <src class="toc">
+    <p class="toc-title">目录</p>
+    <src class="toc-list">
+        <ul>
+        <li><a href="#绑定机制">1. 绑定机制</a></li>
+        <li><a href="#支持的数据类型">2. 支持的数据类型</a></li>
+        <li><a href="#参数请求中文乱码解决">3. 参数请求中文乱码解决</a></li>
+        <li><a href="#自定义类型转换器">4.自定义类型转换器</a></li>
+        <li><a href="#最后参数绑定学习小结">5、最后参数绑定学习小结</a></li>
+        </ul>
+    
+
+<p>SpringMVC作为Controller层（等价servlet和struts中的action）专门用来处理页面的一些请求，然后将数据再通过视图返回给用户的，因此可见前后端数据参数传递相对springmvc的重要性，这篇文章将总结一下springmvc中如何接收前台页面的参数，即springmvc中的参数绑定问题。<br />
+@</p>
+<h2 id="绑定机制">1. 绑定机制</h2>
+<p>表单提交的数据都是k=v格式的，SpringMVC的参数绑定过程是把表单提交的请求参数，作为控制器中方法的参数进行绑定的，但要注意一点，提交<font color=red><strong>表单的name</strong></font>和controller方法的<font color=red><strong>参数名称</strong></font>是相同的</p>
+<h2 id="支持的数据类型">2. 支持的数据类型</h2>
+<p>springmvc中，有支持的默认类型的绑定,可见springmvc框架的强大~框架就是强~。也就是说，直接在controller方法形参上定义默认支持的类型对象，就可以使用下面这些对象。</p>
+<blockquote>
+<p>HttpServletRequest对象<br />
+HttpServletResponse对象<br />
+HttpSession对象<br />
+Model/ModelMap对象</p>
+</blockquote>
+<p>支持的数据类型有基本数据类型、包装类、字符串类型、实体类型（JavaBean） 、集合数据类型（List、map集合等），那么下面就来具体分析分析。</p>
+<h4 id="基本数据类型字符串">2.1、基本数据类型、字符串</h4>
+<p>其实下面测试类我已经包括基本数据类型、包装类、字符串类型了！<br />
+controller测试代码</p>
+<pre><code><code>@Controller
+@RequestMapping(&quot;/param&quot;)
+public class ParamController {
+    @RequestMapping(&quot;/testBaseParam&quot;)
+    public String testParam(String username,int password,Integer san){
+        System.out.println(&quot;testParam执行了...&quot;);
+        System.out.println(&quot;用户名：&quot;+username);
+        System.out.println(&quot;密码：&quot;+password);
+        System.out.println(&quot;密码：&quot;+san);
+        return &quot;success&quot;;
+    }</code></code></pre>
+<p>index.jsp测试代码</p>
+<pre><code><code>&lt;%@ page contentType=&quot;text/html;charset=UTF-8&quot; language=&quot;java&quot; %&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h3&gt;测试基础类型&lt;/h3&gt;
+    &lt;a href=&quot;param/testBaseParam?username=刘备胎&amp;password=123&amp;san=456&quot;&gt;请求参数绑定&lt;/a&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></code></pre>
+<p>运行效果<br />
+<img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】0.png" alt="在这里插入图片描述" /><br />
+<strong>再次强调，注意提交表单的name和参数的名称必须相同，否则绑定失败</strong><br />
+<img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】1.png" alt="在这里插入图片描述" /><br />
+<font color=red>基本数据类型、包装类、字符串类型总结：1、提交表单的name和参数的名称必须相同。2、严格区分大小写</font></p>
+<h4 id="实体类型javabean">2.2、实体类型（JavaBean）</h4>
+<h6 id="第一种情况正常实体类">第一种情况：正常实体类</h6>
+<p>dao测试代码</p>
+<pre><code><code>//实现可序列化接口
+public class Account implements Serializable{
+//Account数据库字段
+    private String username;
+    private String password;
+    private Double money;
+
+
+...省去getset方法和toString方法</code></code></pre>
+<p>controller测试代码</p>
+<pre><code><code>//请求参数绑定把数据封装到JavaBean的类中
+    @RequestMapping(&quot;/saveAccount&quot;)
+    public String saveAccount(Account account){
+        System.out.println(&quot;saveAccount执行了...&quot;);
+        System.out.println(account);
+        return &quot;success&quot;;
+    }</code></code></pre>
+<p>这里用index.jsp转发到了param.jsp，代码如下：</p>
+<pre><code><code>&lt;jsp:forward page=&quot;param.jsp&quot;&gt;&lt;/jsp:forward&gt;</code></code></pre>
+<p>param.jsp测试代码如下：</p>
+<pre><code><code>&lt;%@ page contentType=&quot;text/html;charset=UTF-8&quot; language=&quot;java&quot; %&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    把数据封装Account类中
+    &lt;form action=&quot;param/saveAccount&quot; method=&quot;post&quot;&gt;
+        姓名：&lt;input type=&quot;text&quot; name=&quot;username&quot; /&gt;&lt;br/&gt;
+        密码：&lt;input type=&quot;text&quot; name=&quot;password&quot; /&gt;&lt;br/&gt;
+        金额：&lt;input type=&quot;text&quot; name=&quot;money&quot; /&gt;&lt;br/&gt;
+        &lt;input type=&quot;submit&quot; value=&quot;提交&quot; /&gt;
+    &lt;/form&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></code></pre>
+<p>测试效果<br />
+<img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】2.png" alt="在这里插入图片描述" /><br />
+<font color=red> 第一种情况总结：注意提交表单的name和参数的名称必须相同，否则绑定失败</font>~强调n次了~</p>
+<h6 id="第二种情况实体类包含对象属性">第二种情况：实体类包含对象属性</h6>
+<p>dao测试代码，注意<strong>Account</strong>实体类中包含<strong>User对象</strong>属性</p>
+<pre><code><code>//实现可序列化接口
+public class Account implements Serializable{
+//Account数据库字段
+    private String username;
+    private String password;
+    private Double money;
+//User对象属性
+    private User user;
+    
+...省去getset方法和toString方法</code></code></pre>
+<p>User实体类代码</p>
+<pre><code><code>//实现可序列化接口
+public class User implements Serializable{
+    private String uname;
+    private Integer age;
+    private Date date;
+
+...省去getset方法和toString方法</code></code></pre>
+<p>controller测试代码没变，所以就不贴出来了。<br />
+param.jsp测试代码如下：</p>
+<pre><code><code>&lt;%@ page contentType=&quot;text/html;charset=UTF-8&quot; language=&quot;java&quot; %&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    把数据封装Account类中
+    &lt;form action=&quot;param/saveAccount&quot; method=&quot;post&quot;&gt;
+        姓名：&lt;input type=&quot;text&quot; name=&quot;username&quot; /&gt;&lt;br/&gt;
+        密码：&lt;input type=&quot;text&quot; name=&quot;password&quot; /&gt;&lt;br/&gt;
+        金额：&lt;input type=&quot;text&quot; name=&quot;money&quot; /&gt;&lt;br/&gt;
+        用户姓名：&lt;input type=&quot;text&quot; name=&quot;user.uname&quot; /&gt;&lt;br/&gt;
+        用户年龄：&lt;input type=&quot;text&quot; name=&quot;user.age&quot; /&gt;&lt;br/&gt;
+        &lt;input type=&quot;submit&quot; value=&quot;提交&quot; /&gt;
+    &lt;/form&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></code></pre>
+<p>测试效果<br />
+<img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】3.png" alt="在这里插入图片描述" /><br />
+细心的同学可能发现了，date属性为null，因为我没有在jsp中给date传值所以为null。<br />
+<font color=red> 第二种情况总结:实体类包含对象属性这种情况，前后端传参jsp格式：<strong>实体对象.对应实体类属性字段</strong></font></p>
+<h4 id="集合数据类型listmap集合等">2.3、集合数据类型（List、map集合等）</h4>
+<p>dao测试类代码：</p>
+<pre><code><code> //实现可序列化接口 
+public class Account implements Serializable{
+//Account数据库字段
+    private String username;
+    private String password;
+    private Double money;
+//集合对象属性
+    private List&lt;User&gt; list;
+    private Map&lt;String,User&gt; map;
+  
+...省去getset方法和toString方法</code></code></pre>
+<p>controller测试代码</p>
+<pre><code><code>//请求参数绑定把数据封装到带集合类型的JavaBean的类中
+    @RequestMapping(&quot;/saveAccount&quot;)
+    public String saveAccount(Account account){
+        System.out.println(&quot;saveAccount执行了...&quot;);
+        System.out.println(account);
+        return &quot;success&quot;;
+    }</code></code></pre>
+<p>param.jsp测试代码如下：</p>
+<pre><code><code>&lt;%@ page contentType=&quot;text/html;charset=UTF-8&quot; language=&quot;java&quot; %&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+     把数据封装Account类中，类中存在list和map的集合
+    &lt;form action=&quot;param/saveAccount&quot; method=&quot;post&quot;&gt;
+        姓名：&lt;input type=&quot;text&quot; name=&quot;username&quot; /&gt;&lt;br/&gt;
+        密码：&lt;input type=&quot;text&quot; name=&quot;password&quot; /&gt;&lt;br/&gt;
+        金额：&lt;input type=&quot;text&quot; name=&quot;money&quot; /&gt;&lt;br/&gt;
+
+        用户姓名：&lt;input type=&quot;text&quot; name=&quot;list[0].uname&quot; /&gt;&lt;br/&gt;
+        用户年龄：&lt;input type=&quot;text&quot; name=&quot;list[0].age&quot; /&gt;&lt;br/&gt;
+
+        用户姓名：&lt;input type=&quot;text&quot; name=&quot;map[&#39;one&#39;].uname&quot; /&gt;&lt;br/&gt;
+        用户年龄：&lt;input type=&quot;text&quot; name=&quot;map[&#39;one&#39;].age&quot; /&gt;&lt;br/&gt;
+        &lt;input type=&quot;submit&quot; value=&quot;提交&quot; /&gt;
+    &lt;/form&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+</code></code></pre>
+<p>测试效果<br />
+<img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】4.png" alt="在这里插入图片描述" /><br />
+<font color=red>总结：集合类型jsp格式：list[0].属性</font></p>
+<h2 id="参数请求中文乱码解决">3. 参数请求中文乱码解决</h2>
+<p>经过上面测试，有的同学可能会出现中文乱码问题，这是很正常的，因为我们没有设置类似<code>request.setCharacterEncoding(&quot;UTF-8&quot;)</code> 操作，为了防止中文乱码解决，我们可以统一设置全局编码过滤器。<br />
+在web.xml中配置Spring提供的过滤器类</p>
+<pre><code><code>&lt;!--配置解决中文乱码的过滤器--&gt;
+  &lt;filter&gt;
+    &lt;filter-name&gt;characterEncodingFilter&lt;/filter-name&gt;
+    &lt;filter-class&gt;org.springframework.web.filter.CharacterEncodingFilter&lt;/filter-class&gt;
+    &lt;init-param&gt;
+      &lt;param-name&gt;encoding&lt;/param-name&gt;
+      &lt;param-value&gt;UTF-8&lt;/param-value&gt;
+    &lt;/init-param&gt;
+  &lt;/filter&gt;
+  &lt;filter-mapping&gt;
+    &lt;filter-name&gt;characterEncodingFilter&lt;/filter-name&gt;
+    &lt;url-pattern&gt;/*&lt;/url-pattern&gt;
+  &lt;/filter-mapping&gt;</code></code></pre>
+<h2 id="自定义类型转换器">4.自定义类型转换器</h2>
+<p>既然springmvc强大到提供默认支持很多类型，但是还是存在瑕疵，例如我们在保存date日期类型的数据时，springmvc只支持<code>2019/9/18</code> 该种格式，如果换成<code>2019-8-18</code> 则将报错，那我也不能光说不做鸭，下面我就再来踩一次坑，让大家LookLook，这里会报The server cannot or will not process the request due to something that is perceived to be a client error异常，不过没事，我也写了专门决绝该异常的一篇文章，<a href="https://blog.csdn.net/qq_44543508/article/details/101015595">点击进入</a>，不扯了，开始测试<br />
+jsp关键代码</p>
+<pre><code><code> 用户生日：&lt;input type=&quot;date&quot; name=&quot;user.date&quot; /&gt;&lt;br/&gt;</code></code></pre>
+<p>报错效果：<br />
+<img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】5.png" alt="在这里插入图片描述" /><br />
+为了跟有力的证明我刚说的springmvc只支持<code>2019/9/18</code> 该种格式，如果换成<code>2019-8-18</code> 则将报错，那么我就把jsp关键代码更改了一下，把type=date改成了type=text，如下</p>
+<pre><code><code>    用户生日：&lt;input type=&quot;text&quot; name=&quot;user.date&quot; /&gt;&lt;br/&gt;</code></code></pre>
+<p>效果如下<br />
+<img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】6.png" alt="在这里插入图片描述" /><br />
+我们想想，表单提交的任何数据类型全部都是字符串类型，但是后台定义Integer类型，数据也可以封装上，说明Spring框架内部会默认进行数据类型转换。如果想自定义数据类型转换，该怎么实现呢？</p>
+<h4 id="创建一个普通类实现converter接口">4.1创建一个普通类实现Converter接口</h4>
+<p>1、创建一个普通类实现Converter接口，并添加相应格式转换方法，代码如下</p>
+<pre><code><code>import org.springframework.core.convert.converter.Converter;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+/**
+ * 把字符串转换日期
+ */
+public class StringToDateConverter implements Converter&lt;String,Date&gt;{
+
+    /**
+     * String 传入进来字符串
+     */
+    public Date convert(String source) {
+        // 判断
+        if(source == null){
+            throw new RuntimeException(&quot;请您传入数据呐&quot;);
+        }
+        DateFormat df = new SimpleDateFormat(&quot;yyyy-MM-dd&quot;);
+
+        try {
+            // 把字符串转换日期
+            return df.parse(source);
+        } catch (Exception e) {
+            throw new RuntimeException(&quot;完蛋~数据类型转换出现错误&quot;);
+        }
+    }
+
+}
+</code></code></pre>
+<h4 id="springmvc.xml中配置自定义类型转换器">4.2Springmvc.xml中配置自定义类型转换器</h4>
+<ol>
+<li>注册自定义类型转换器，在springmvc.xml配置文件中编写配置</li>
+</ol>
+<pre><code><code>&lt;!--配置自定义类型转换器--&gt;
+    &lt;bean id=&quot;conversionService&quot; class=&quot;org.springframework.context.support.ConversionServiceFactoryBean&quot;&gt;
+        &lt;property name=&quot;converters&quot;&gt;
+            &lt;set&gt;
+                &lt;bean class=&quot;com.gx.utils.StringToDateConverter&quot;/&gt;
+            &lt;/set&gt;
+        &lt;/property&gt;
+    &lt;/bean&gt;
+
+
+    &lt;!-- 开启SpringMVC框架注解的支持 --&gt;
+    &lt;mvc:annotation-driven conversion-service=&quot;conversionService&quot;/&gt;</code></code></pre>
+<p>效果如下：<br />
+<img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】7.png" alt="在这里插入图片描述" /><br />
+<font color=red>自定义类型转换器步骤总结</font>：<br />
+1、创建一个普通类实现Converter接口，并添加相应格式转换方法<br />
+2、注册自定义类型转换器，在springmvc.xml配置文件中编写配置</p>
+<p>千万别忘了配置之后要在<font color=red><strong>注解驱动中注册</strong></font>，也就是这一句</p>
+<pre><code><code> &lt;mvc:annotation-driven conversion-service=&quot;conversionService&quot;/&gt;</code></code></pre>
+<h2 id="最后参数绑定学习小结">5、最后参数绑定学习小结</h2>
+<p><img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】8.png" alt="在这里插入图片描述" /></p>
+<p><strong>如果本文对你有一点点帮助，那么请点个赞呗，谢谢~</strong></p>
+<blockquote>
+<p><strong>最后，若有不足或者不正之处，欢迎指正批评，感激不尽！如果有疑问欢迎留言，绝对第一时间回复！</strong></p>
+</blockquote>
+<p>欢迎各位关注我的公众号，一起探讨技术，向往技术，追求技术，说好了来了就是盆友喔...</p>
+<p><img src="./images/SpringMVC参数绑定学习总结【前后端数据参数传递】9.png" alt="在这里插入图片描述" /></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,421 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringMVC(AbstractController，拦截器，注解)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringMVC(AbstractController，拦截器，注解)</center></div><div class='banquan'>原文出处:本文由博客园博主Magic_Li提供。<br/>
+原文连接:https://www.cnblogs.com/Magic-Li/p/11775965.html</div><br>
+    <p><span style="color: #3366ff; font-size: 14pt;"><strong>1.Controller接口及其实现类</strong></span><br />	Controller是控制器/处理器接口,只有一个方法handleRequest,用于进行请求的功能处理(功能处理方法),处理完请求后返回ModelAndView对象(Model模型数据部分 和 View视图部分)。<br />	<br />	如果想直接在处理器/控制器里使用response向客户端写回数据,可以通过返回null来告诉DispatcherServlet我们已经写出响应了,不需要它进行视图解析</p>
+<p>	Spring默认提供了一些Controller接口的实现类以方便我们使用,在Eclipse中选择Controller接口然后右键open type Hierarchy即可查看该接口的实现类,每个实现类都有自己特殊的功能,这里以实现类AbstractController为例简单介绍下。<br />	查看AbstractController类中代码可知,我们写一个Controller的时候可以继承AbstractController然后实现handleRequestInternal方法即可。</p>
+<p><span style="color: #ff0000;"><strong> 提供了【可选】的会话(session)的串行化访问功能,例如:</strong></span><br /><strong>即同一会话,线程同步</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> HelloWorldController <span style="color: #0000ff;">extends</span><span style="color: #000000;"> AbstractController{
+　　@Override
+　　</span><span style="color: #0000ff;">protected</span> ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response)<span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+
+　　String name </span>= request.getParameter("name"<span style="color: #000000;">);
+
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">ModelAndView对象中包括了要返回的逻辑视图,以及数据模型</span>
+　　ModelAndView mv = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ModelAndView();
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">设置视图名称,可以是字符串 也可以是视图对象</span>
+　　mv.setViewName("hello"<span style="color: #000000;">);
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">设置数据模型</span>
+　　mv.addObject("name"<span style="color: #000000;">, name);
+
+　　</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mv;
+　　}
+}
+
+</span>&lt;bean name="/hello" <span style="color: #0000ff;">class</span>="com.briup.web.controller.HelloWorldController"&gt;
+　　&lt;property name="synchronizeOnSession" value="true"&gt;&lt;/property&gt;
+&lt;/bean&gt;</code></pre>
+
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong> 直接通过response写响应,例如:</strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> HelloWorldController <span style="color: #0000ff;">extends</span><span style="color: #000000;"> AbstractController{
+@Override
+</span><span style="color: #0000ff;">protected</span><span style="color: #000000;"> ModelAndView handleRequestInternal(HttpServletRequest request, HttpServletResponse response)
+</span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+
+response.getWriter().write(</span>"Hello World!!"<span style="color: #000000;">);    
+</span><span style="color: #008000;">//</span><span style="color: #008000;">如果想直接在该处理器/控制器写响应 可以通过返回null告诉DispatcherServlet自己已经写出响应了,不需要它进行视图解析</span>
+<span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+}
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong> 强制请求方法类型,例如:</strong></span><br />只支持post和get方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="/hello"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="com.briup.web.controller.HelloWorldController"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="supportedMethods"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="POST,GET"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">property</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong> 当前请求的session前置条件检查,如果当前请求无session将抛出HttpSessionRequiredException异常,例如:</strong></span><br />在进入该控制器时,一定要有session存在,否则抛出HttpSessionRequiredException异常。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="/hello"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="com.briup.web.controller.HelloWorldController"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="requireSession"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="true"</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 14pt; color: #3366ff;"><strong>2.SpringMvc中的拦截器</strong></span></p>
+<p>SpringMVC的处理器拦截器类似于Servlet 开发中的过滤器Filter,用于对处理器进行预处理和后处理。拦截器的作用有局限性只可以作用于处理器</p>
+<p> <strong>1)常见应用场景</strong><br />		1、日志记录<br />		2、权限检查<br />		3、性能监控<br />		4、通用行为 例如读取用户cookie等</p>
+<p><strong> 2)拦截器接口</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> HandlerInterceptor {
+　　</span><span style="color: #0000ff;">boolean</span> preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)<span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+　　</span><span style="color: #0000ff;">void</span> postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView)<span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+　　</span><span style="color: #0000ff;">void</span> afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)<span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p> preHandle方法 <br />			　　预处理回调方法,实现处理器的预处理,第三个参数为的处理器(本次请求要访问的那个Controller)<br />			　　返回值:true表示继续流程(如调有下一个拦截器或处理器)<br />			　　false表示流程中断(如登录检查失败),不会继续调用其他的拦截器或处理器,此时我们需要通过response来产生响应<br />		<br />		postHandle方法<br />			　　后处理回调方法,实现处理器的后处理(但在渲染视图之前),此时我们可以通过modelAndView对模型数据进行处理或对视图进行处理,modelAndView也可能为null。	<br />		<br />		afterCompletion方法<br />			　　整个请求处理完毕回调方法,即在视图渲染完毕时回调<br />	<br />	<strong>3)拦截器适配器</strong><br />		有时候我们可能只需要实现三个回调方法中的某一个,如果实现HandlerInterceptor 接口的话,三个方法必须实现,不管你需不需要,此时spring 提供了一个HandlerInterceptorAdapter 适配器(适配器模式),允许我们只实现需要的回调方法。<br />		在HandlerInterceptorAdapter中,对HandlerInterceptor 接口中的三个方法都进行了空实现,其中preHandle方法的返回值,默认是true<br />	<br />	<strong>4)测试一个拦截器</strong><br />		拦截器代码:</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> MyInterceptor1 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HandlerInterceptorAdapter{
+　　@Override
+　　</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)<span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+　　　　System.out.println(</span>"MyInterceptor1 preHandle"<span style="color: #000000;">);
+　　　　</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+　　}
+　　@Override
+　　</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,ModelAndView modelAndView) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+　　　　System.out.println(</span>"MyInterceptor1 postHandle"<span style="color: #000000;">);
+　　}
+　　@Override
+　　</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)<span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+　　　　System.out.println(</span>"MyInterceptor1 afterCompletion"<span style="color: #000000;">);
+　　}
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>配置文件:(注意此配置在文件中的配置顺序,要写在配置文件的上面)</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="handlerInterceptor1"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="包名.MyInterceptor1"</span><span style="color: #0000ff;">/&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping"</span><span style="color: #0000ff;">&gt;</span>
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="interceptors"</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">list</span><span style="color: #0000ff;">&gt;</span>
+　　　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ref </span><span style="color: #ff0000;">bean</span><span style="color: #0000ff;">="handlerInterceptor1"</span><span style="color: #0000ff;">/&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">list</span><span style="color: #0000ff;">&gt;</span>
+　　<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">property</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p> 访问一个测试的Controller查看结果:<br />		MyInterceptor1 preHandle<br />		TestController执行<br />		MyInterceptor1 postHandle<br />		MyInterceptor1 afterCompletion</p>
+<p><strong> 5)测试俩个拦截器</strong><br />		俩个拦截器的代码和上面类似,只是每个输出的内容不同<br />		配置文件:</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="handlerInterceptor1"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="com.briup.web.interceptor.MyInterceptor1"</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="handlerInterceptor2"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="com.briup.web.interceptor.MyInterceptor2"</span><span style="color: #0000ff;">/&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="org.springframework.web.servlet.handler.BeanNameUrlHandlerMapping"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="interceptors"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">list</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ref </span><span style="color: #ff0000;">bean</span><span style="color: #0000ff;">="handlerInterceptor1"</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ref </span><span style="color: #ff0000;">bean</span><span style="color: #0000ff;">="handlerInterceptor2"</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">list</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">property</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p> 访问一个测试的Controller查看结果:<br />		MyInterceptor1 preHandle<br />		MyInterceptor2 preHandle<br />		TestController执行<br />		MyInterceptor2 postHandle<br />		MyInterceptor1 postHandle<br />		MyInterceptor2 afterCompletion<br />		MyInterceptor1 afterCompletion</p>
+<p>		<span style="color: #ff0000;">注意:&lt;list&gt;标签中引用拦截器的顺序会影响结果输出的顺序</span></p>
+<p><strong> 6)拦截器mvc标签进行配置</strong><br />		注意:每个&lt;mvc:interceptor&gt;只能配置一个拦截器</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:interceptors</span><span style="color: #0000ff;">&gt;</span>
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:mapping </span><span style="color: #ff0000;">path</span><span style="color: #0000ff;">="/**"</span><span style="color: #0000ff;">/&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ref </span><span style="color: #ff0000;">bean</span><span style="color: #0000ff;">="handlerInterceptor1"</span><span style="color: #0000ff;">/&gt;</span>
+　　<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mvc:interceptors</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p> 例如1: 注意/*和/**的区别<br />		</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="myInter1"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="com.briup.web.interceptor.MyInterceptor1"</span> <span style="color: #0000ff;">/&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="com.briup.web.interceptor.MyInterceptor2"</span> <span style="color: #0000ff;">/&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="com.briup.web.interceptor.MyInterceptor3"</span> <span style="color: #0000ff;">/&gt;</span>
+
+<span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> mvc提供的拦截器配置方式 </span><span style="color: #008000;">--&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:interceptors</span><span style="color: #0000ff;">&gt;</span>
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:mapping </span><span style="color: #ff0000;">path</span><span style="color: #0000ff;">="/**"</span><span style="color: #0000ff;">/&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ref </span><span style="color: #ff0000;">bean</span><span style="color: #0000ff;">="myInter1"</span><span style="color: #0000ff;">/&gt;</span>
+　　<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:mapping </span><span style="color: #ff0000;">path</span><span style="color: #0000ff;">="/**"</span><span style="color: #0000ff;">/&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:exclude-mapping </span><span style="color: #ff0000;">path</span><span style="color: #0000ff;">="/test"</span><span style="color: #0000ff;">/&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ref </span><span style="color: #ff0000;">bean</span><span style="color: #0000ff;">="myInter2"</span><span style="color: #0000ff;">/&gt;</span>
+　　<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:mapping </span><span style="color: #ff0000;">path</span><span style="color: #0000ff;">="/**"</span><span style="color: #0000ff;">/&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ref </span><span style="color: #ff0000;">bean</span><span style="color: #0000ff;">="timeInter"</span><span style="color: #0000ff;">/&gt;</span>
+　　<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mvc:interceptors</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p><strong> 7)拦截器是单例</strong><br />		因此不管多少用户请求多少次都只有一个拦截器实现,即线程不安全。<br />		所以在必要时可以在拦截器中使用ThreadLocal,它是和线程绑定,一个线程一个ThreadLocal,A 线程的ThreadLocal只能看到A线程的ThreadLocal,不能看到B线程的ThreadLocal。<br />		举个例子：<br />记录执行Controller所用时间</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> TimeInterceptor <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HandlerInterceptorAdapter{
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">拦截器是单例,不是线程安全的,所以这里使用ThreadLocal</span>
+　　<span style="color: #0000ff;">private</span> ThreadLocal&lt;Long&gt; local = <span style="color: #0000ff;">new</span> ThreadLocal&lt;&gt;<span style="color: #000000;">();
+
+　　@Override
+　　</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)<span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+　　　　</span><span style="color: #0000ff;">long</span> start =<span style="color: #000000;"> System.currentTimeMillis();
+　　　　local.set(start);
+　　　　</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+　　}
+　　@Override
+　　</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)<span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+　　　　</span><span style="color: #0000ff;">long</span> end =<span style="color: #000000;"> System.currentTimeMillis();
+　　　　System.out.println(</span>"共耗时:"+(end-<span style="color: #000000;">local.get()));
+　　}
+}</span></code></pre>
+
+<p><strong>8)登录检查</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> LoginInterceptor <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HandlerInterceptorAdapter{
+　　@Override
+　　</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)<span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">请求到登录页面放行</span>
+　　　　<span style="color: #0000ff;">if</span>(request.getServletPath().startsWith("/login"<span style="color: #000000;">)) {
+　　　　　　</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+　　　　}
+
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">如果用户已经登录放行</span>
+　　　　<span style="color: #0000ff;">if</span>(request.getSession().getAttribute("username") != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+　　　　　　</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+　　　　}
+
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">其他没有登录的情况则重定向到登录页面</span>
+　　response.sendRedirect(request.getContextPath() + "/login"<span style="color: #000000;">);
+
+　　</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+　　}
+}</span></code></pre>
+
+<p><strong><span style="color: #ff0000;"> 注意:推荐能使用servlet规范中的过滤器Filter实现的功能就用Filter实现,因为HandlerInteceptor只有在SpringWebMVC环境下才能使用,因此Filter是最通用的、最先应该使用的。</span></strong></p>
+<p><span style="color: #0000ff; font-size: 14pt;"><strong>3.基于注解的SpringMVC</strong></span></p>
+<p><span style="color: #ff6600; font-size: 16px;"><strong> 1)用于支持注解的配置</strong></span><br />		使用基于注解的配置可以省略很多操作,更方便。我们之前所看到的所有的xml配置,如果替换成基于注解只需要在spring的xml文件中做如下配置:<br />		<strong>&lt;mvc:annotation-driven/&gt;</strong><br />		在Spring中<br />		处理器类可以使用   @Controller注解<br />		业务逻辑层可以使用 @Service注解<br />		数据持久层可以使用 @Repository注解</p>
+<p>		如果在处理器上使用 @Controller注解,那么还需要在配置文件中指定哪个包下面的类使用了该注解:<br />		<strong>&lt;context:component-scan base-package="com.briup.web.controller"&gt;&lt;/context:component-scan&gt;</strong></p>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 使容器可以识别mvc的注解 </span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:annotation-driven</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">mvc:annotation-driven</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 扫描指定包及其子包下所有的注解 </span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">context:component-scan </span><span style="color: #ff0000;">base-package</span><span style="color: #0000ff;">="com.briup.annotation"</span><span style="color: #0000ff;">/&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="color: #ff6600; font-size: 16px;"><strong> 2)基于注解的Controller</strong></span><br />		使用注解后,就不需要再实现特定的接口,任意一个javaBean对象都可以当做处理器对象,对象中任意一个方法都可以作为处理器方法。<br />		只需<br />			在类上加上 @Controller注解<br />			方法上加上 @RequestMapping注解<br />		即可</p>
+<p> 例如:<br />		web.xml中:</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>SpringMVC<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>org.springframework.web.servlet.DispatcherServlet<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">init-param</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">param-name</span><span style="color: #0000ff;">&gt;</span>contextConfigLocation<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">param-name</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">param-value</span><span style="color: #0000ff;">&gt;</span>classpath:spring-web-mvc.xml<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">param-value</span><span style="color: #0000ff;">&gt;</span>
+　　<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">init-param</span><span style="color: #0000ff;">&gt;</span>
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">load-on-startup</span><span style="color: #0000ff;">&gt;</span>1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">load-on-startup</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>SpringMVC<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>/<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>src下面的spring-web-mvc.xml中:</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:annotation-driven</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">context:component-scan </span><span style="color: #ff0000;">base-package</span><span style="color: #0000ff;">="com.briup.web.controller"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">context:component-scan</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="org.springframework.web.servlet.view.InternalResourceViewResolver"</span><span style="color: #0000ff;">&gt;</span> 
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="viewClass"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="org.springframework.web.servlet.view.JstlView"</span><span style="color: #0000ff;">/&gt;</span> 
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="prefix"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="/WEB-INF/jsp/"</span><span style="color: #0000ff;">/&gt;</span> 
+　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="suffix"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">=".jsp"</span><span style="color: #0000ff;">/&gt;</span> 
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>自定义的Controller中:</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Controller
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HomeController {
+　　@RequestMapping(</span>"/home"<span style="color: #000000;">)
+　　</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ModelAndView home(){
+　　　　ModelAndView mv </span>= <span style="color: #0000ff;">new</span> ModelAndView("index"<span style="color: #000000;">);
+　　　　</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mv;
+　　}
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p> 如上代码,使用 @Controller表明HomeController类是一个处理器类,通过 @RequestMapping("/home")表明当url请求名为/home时,调用home方法执行处理,当处理完成之后返回ModelAndView对象。因为在spring-web-mvc.xml中配置了视图解析器的前缀和后缀,所以最后视图home.jsp被返回<br />	</p>
+<p><span style="font-size: 16px; color: #ff6600;"><strong>	3)基于注解的Controller的返回值</strong></span></p>
+<p>		<strong>1.返回ModelAndView,和之前一样</strong></p>
+<p><strong> 2.返回String,表示跳转的逻辑视图名字,模型可以通过参数传过来</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Controller
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HomeController {
+　　@RequestMapping(</span>"/home"<span style="color: #000000;">)
+　　</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String home(Model model){
+　　　　model.addAttribute(</span>"msg", "hello world"<span style="color: #000000;">);
+　　　　</span><span style="color: #0000ff;">return</span> "index"<span style="color: #000000;">;
+　　}
+}</span></code></pre>
+
+<p> <strong>3.声明返回类型为void</strong><br />			可以通过参数获取request和response，分别使用服务器内部跳转和重定向，自己来决定要跳转的位置。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Controller
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HomeController {
+@RequestMapping(</span>"/home"<span style="color: #000000;">)
+　　</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> home(HttpServletRequest request,HttpServletResponse response){
+　　　　String username </span>= request.getParameter("username"<span style="color: #000000;">);
+　　　　response.setContentType(</span>"text/html;charset=utf-8"<span style="color: #000000;">);
+　　　　response.getWriter().write(</span>"hello world! "+<span style="color: #000000;">username);
+　　　　</span><span style="color: #008000;">//</span><span style="color: #008000;">或者使用servlet的方式进行跳转/重定向</span>
+　　<span style="color: #000000;">}
+}</span></code></pre>
+
+<p><strong><span style="color: #ff6600;">可以写一个类来测试所有方法：</span></strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Controller
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloController {
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">@RequestMapping("/test1")
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">@RequestMapping(value = "/test1")</span>
+    @RequestMapping(value= {"/test1","/annotest1"<span style="color: #000000;">})
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ModelAndView test1(HttpServletRequest req,
+            HttpServletResponse reqs) </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        
+        ModelAndView mv </span>= <span style="color: #0000ff;">new</span> ModelAndView("test"<span style="color: #000000;">);
+        mv.addObject(</span>"name", "李四"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mv;
+    }
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果方法返回值的类型为String，则表示返回的逻辑视图名</span>
+    @RequestMapping("/test2"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> String test2() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        </span><span style="color: #0000ff;">return</span> "hello"<span style="color: #000000;">;
+    }
+    
+    @RequestMapping(</span>"/test3"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> String test3(Model model) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        model.addAttribute(</span>"name", "王五"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span> "hello"<span style="color: #000000;">;
+    }
+    
+    @RequestMapping(</span>"/test4"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> test4(HttpServletResponse response) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        response.getWriter().write(</span>"hello world!"<span style="color: #000000;">);
+        response.getWriter().flush();
+    }
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+     * 如果方法没有返回值，并且不通过响应用流的方式给客户端写回数据。
+     * 那么，SpringMVC会自动将@RequestMapping里面的参数，作为逻辑视图名
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @RequestMapping(</span>"/test5"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> test5() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        System.out.println(</span>"--------------"<span style="color: #000000;">);
+    }
+    
+    @RequestMapping(</span>"/test6"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test6(HttpServletRequest request,
+            HttpServletResponse response) </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        String path </span>= "/WEB-INF/jsp/hello.jsp"<span style="color: #000000;">;
+        request.setAttribute(</span>"name", "赵四"<span style="color: #000000;">);
+        request.getRequestDispatcher(path).forward(request, response);
+    }
+    
+    @RequestMapping(</span>"/test7"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test7(HttpServletRequest request,
+            HttpServletResponse response) </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        String path </span>= "/WEB-INF/jsp/hello.jsp"<span style="color: #000000;">;
+        response.sendRedirect(request.getContextPath()</span>+"/test6"<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="color: #ff6600;"><strong><span style="font-size: 16px;">4)Spring2.5中引入注解对控制器/处理器(controller/handler)支持</span></strong></span><br />	@Controller<br />		用于标识是控制器/处理器类；<br />	@RequestMapping<br />		请求到处理器功能方法的映射规则；<br />	@RequestParam<br />		请求参数到处理器功能处理方法的方法参数上的绑定；<br />	@ModelAttribute<br />		请求参数到命令对象的绑定；<br />	@SessionAttributes<br />		用于声明session 级别存储的属性,放置在处理器类上,通常列出模型属性(如@ModelAttribute)对应的名称,则这些属性会透明的保存到session 中<br />	@InitBinder<br />		自定义数据绑定注册支持,用于将请求参数转换到命令对象属性的对应类型；</p>
+<p><br /><span style="color: #ff6600;"><strong><span style="font-size: 16px;">5).Spring3引入了更多的注解,其中包含了对RESTful架构风格的支持</span></strong></span><br />	@CookieValue<br />		cookie数据到处理器功能处理方法的方法参数上的绑定；<br />	@RequestHeader<br />		请求头数据到处理器功能处理方法的方法参数上的绑定；<br />	@RequestBody<br />		请求的body体的绑定<br />	@ResponseBody<br />		处理器功能处理方法的返回值作为响应体<br />	@ResponseStatus<br />		定义处理器功能处理方法/异常处理器返回的状态码和原因；<br />	@ExceptionHandler<br />		注解式声明异常处理器；<br />	@PathVariable<br />		请求URI 中的模板变量部分到处理器功能处理方法的方法参数上的绑定,从而支持RESTful架构风格的URI；</p>
+<p><span style="color: #ff6600;"><strong><span style="font-size: 16px;">6).Spring3中引入的mvc命名空间</span></strong></span><br />	mvc这个命名空间是在Spring3中引入的,其作用是用来支持mvc的配置<br />	需要在&lt;beans&gt;中声明出这个命名空间及其对应的schemaLocation中的值<br />	<strong>&lt;mvc:annotation-driven&gt;</strong><br />		自动注册基于注解风格的映射器和适配器:(也就是说这个mvc标签是基于注解的)<br />		在spring2.5中是DefaultAnnotationHandlerMapping和AnnotationMethodHandlerAdapter</p>
+<p>		在spring3中是RequestMappingHandlerMapping和RequestMappingHandlerAdapter.<br />		同时还支持各种数据的转换器.</p>
+<p><strong> 配置自定义的处理器拦截器,例如:</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:interceptors</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+　　　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:mapping </span><span style="color: #ff0000;">path</span><span style="color: #0000ff;">="/**"</span><span style="color: #0000ff;">/&gt;</span>
+　　　　　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ref </span><span style="color: #ff0000;">bean</span><span style="color: #0000ff;">="handlerInterceptor1"</span><span style="color: #0000ff;">/&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mvc:interceptor</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mvc:interceptors</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p><strong> 收到相应请求后直接选择相应的视图,例如:</strong><br />		&lt;mvc:view-controller path="/hello" view-name="test"&gt;&lt;/mvc:view-controller&gt;</p>
+<p><strong> 逻辑静态资源路径到物理静态资源路径的对应.例如:解决了静态资源拦截的问题</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:resources </span><span style="color: #ff0000;">mapping</span><span style="color: #0000ff;">="/images/**"</span><span style="color: #ff0000;"> location</span><span style="color: #0000ff;">="/images/"</span><span style="color: #0000ff;">/&gt;</span> 
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:resources </span><span style="color: #ff0000;">mapping</span><span style="color: #0000ff;">="/js/**"</span><span style="color: #ff0000;"> location</span><span style="color: #0000ff;">="/js/"</span><span style="color: #0000ff;">/&gt;</span> 
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:resources </span><span style="color: #ff0000;">mapping</span><span style="color: #0000ff;">="/css/**"</span><span style="color: #ff0000;"> location</span><span style="color: #0000ff;">="/css/"</span><span style="color: #0000ff;">/&gt;</span> 
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:default-servlet-handler</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>当在web.xml中DispatcherServlet使用&lt;url-pattern&gt;/&lt;/url-pattern&gt; 映射的时候,会静态资源也映射了,如果配置了这个mvc标签,那么再访问静态资源的时候就转交给默认的Servlet来响应静态文件,否则报404 找不到静态资源错误。</p>
+<p><strong><span style="font-size: 16px; color: #ff6600;">7).@Controller和@RequestMapping注解</span></strong><br />	</p>
+<p><strong>1声明处理器</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Controller
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloWorldController {
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><strong> 2映射处理器中的【功能处理方法】</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Controller
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloWorldController {
+　　@RequestMapping(</span>"/home"<span style="color: #000000;">)
+　　</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ModelAndView home(){
+　　　　ModelAndView mv </span>= <span style="color: #0000ff;">new</span> ModelAndView("index"<span style="color: #000000;">);
+　　　　</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mv;
+　　}
+}</span></code></pre>
+
+<p>表明该方法映射的url路径为/home</p>
+<p><strong> 3@RequestMapping也可以写在处理器类上</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> /test/home</span>
+@RequestMapping("/test"<span style="color: #000000;">)
+@Controller
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HomeController {
+　　@RequestMapping(</span>"/home"<span style="color: #000000;">)
+　　</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ModelAndView home(){
+　　　　ModelAndView mv </span>= <span style="color: #0000ff;">new</span> ModelAndView("index"<span style="color: #000000;">);
+　　　　</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mv;
+　　}
+}</span></code></pre>
+
+<p> 表明该方法映射的url路径为/test/home<br />	</p>
+<p><span style="color: #ff6600;"><strong><span style="font-size: 16px;">8)请求映射@RequestMapping</span></strong></span><br />	假设浏览器发送了一个请求如下:<br />	-------------------------------<br />	POST /login	HTTP1.1<br />	Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8<br />	Accept-Encoding: gzip, deflate<br />	Accept-Language: zh-CN,en;q=0.8,zh;q=0.5,en-US;q=0.3<br />	Connection: keep-alive<br />	Cookie: JSESSIONID=DBC6367DEB1C024A836F3EA35FCFD5A2<br />	Host: 127.0.0.1:8989<br />	Upgrade-Insecure-Requests: 1<br />	User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64; rv:49.0) Gecko/20100101 Firefox/49.0</p>
+<p>	username=tom&amp;password=123<br />	--------------------------------</p>
+<p><br />	http协议的请求格式如下:<br />	---------------------------------<br />	请求方法 URL 协议版本号<br />	请求头信息<br />	请求头信息<br />	请求头信息<br />	..<br />	回车换行<br />	请求正文<br />	---------------------------------</p>
+<p>	<br />	从格式中我们可以看到【请求方法、URL、请求头信息、请求正文】这四部分一般是可变的,因此我们可以把请求中的这些信息在处理器的【功能处理方法】中进行的映射,因此请求的映射分为如下几种:<br />		URL路径映射<br />			使用URL映射到处理器的功能处理方法；<br />		请求方法映射限定<br />			例如限定功能处理方法只处理GET请求；<br />		请求参数映射限定<br />			例如限定只处理包含username参数的请求；<br />		请求头映射限定<br />			例如限定只处理"Accept=application/json"的请求。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

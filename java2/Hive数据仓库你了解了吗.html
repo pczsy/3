@@ -1,0 +1,329 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Hive数据仓库你了解了吗' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Hive数据仓库你了解了吗</center></div><div class='banquan'>原文出处:本文由博客园博主喜讯XiCent提供。<br/>
+原文连接:https://www.cnblogs.com/xicent/p/11835476.html</div><br>
+    <blockquote>
+<p>在工作中我们经常使用的数据库，数据库一般存放的我们系统中常用的数据，一般为百万级别。如果数据量庞大，达到千万级、亿级又需要对他们进行关联运算，该怎么办呢？<br />
+前面我们已经介绍了HDFS和MapReduce了，它俩结合起来能够进行各种运算，可是MapReduce的学习成本太高了，如果有一种工具可以直接使用sql将hdfs中的数据查出来，并自动编写mapreduce进行运算，这就需要使用到我们的hive数据仓库。</p>
+</blockquote>
+<h1 id="hive基本概念">Hive基本概念</h1>
+<h2 id="什么是hive">什么是Hive</h2>
+<pre><code><code>Hive是基于Hadoop的一个数据仓库工具，可以将结构化的数据文件映射为一张数据库表，并提供类SQL查询功能。</code></code></pre>
+<h2 id="为什么使用hive">为什么使用Hive</h2>
+<ul>
+<li>直接使用hadoop所面临的问题<br />
+人员学习成本太高<br />
+项目周期要求太短<br />
+MapReduce实现复杂查询逻辑开发难度太大</li>
+<li>为什么要使用Hive<br />
+操作接口采用类SQL语句，提供快速开发的能力。<br />
+避免了去写MapReduce，减少开发人员的学习成本。<br />
+扩展功能很方便</li>
+</ul>
+<h2 id="hive的特点">Hive的特点</h2>
+<ul>
+<li>可扩展<br />
+Hive可以自由的扩展集群的规模，一般情况下不需要重启服务。</li>
+<li>延展性<br />
+Hive支持用户自定义函数，用户可以根据自己的需求来实现自己的函数。注意:这里说的函数可不是存储过程噢。</li>
+<li>容错<br />
+良好的容错行，节点出现问题SQL仍可以完成执行</li>
+</ul>
+<h2 id="基本组成">基本组成</h2>
+<ul>
+<li><pre><code><code>用户接口:包括CLI、JDBC/ODBC、WebGUI</code></code></pre></li>
+<li><pre><code><code>元数据存储:通常是存储在关系数据库如 mysql,derby中。</code></code></pre></li>
+<li><pre><code><code>解释器、编译器、优化器、执行器</code></code></pre></li>
+</ul>
+<h3 id="各组件的基本功能">各组件的基本功能</h3>
+<ul>
+<li>用户接口主要有三个:CLI、JDBC/ODBC和WebGUI。其中，CLI为shell命令行；JDBC/ODBC是Hive的JAVA实现，与传统数据库JDBC类似;WebGUI是通过浏览器访问Hive</li>
+<li>元数据存储:Hive将元数据存储在数据库中。Hive中的元数据包括表的名字，表的列和分区及其属性，是否为外部表，表的数据所在的目录等等。</li>
+<li>解释器、编译器、优化器完成HQL查询语句从此法分析、语法分析、编译、优化以及查询计划的生成。生成的查询计划存储在HDFS中，并且随后使用MapReduce执行。</li>
+</ul>
+<h2 id="hive与hadoop的关系">Hive与Hadoop的关系</h2>
+<pre><code><code>sequenceDiagram
+客户端-&gt;&gt;Hive处理转换成MapReduce: 发送HSQL语句
+Hive处理转换成MapReduce-&gt;&gt;MapReduce运行: 提交任务到Hadoop
+MapReduce运行-&gt;&gt;执行结果文件放到HDFS或本地: 执行结果</code></code></pre>
+<h2 id="hive与传统数据库对比">Hive与传统数据库对比</h2>
+<table>
+<thead>
+<tr class="header">
+<th>---</th>
+<th>Hive</th>
+<th>RDBMS</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>查询语言</td>
+<td>HQL</td>
+<td>SQL</td>
+</tr>
+<tr class="even">
+<td>数据存储</td>
+<td>HDFS</td>
+<td>Raw Device or Local FS</td>
+</tr>
+<tr class="odd">
+<td>执行</td>
+<td>MapReduce</td>
+<td>Excutor</td>
+</tr>
+<tr class="even">
+<td>执行延迟</td>
+<td>高</td>
+<td>低</td>
+</tr>
+<tr class="odd">
+<td>处理数据规模</td>
+<td>大</td>
+<td>小</td>
+</tr>
+<tr class="even">
+<td>索引</td>
+<td>0.8版本后加入位图索引</td>
+<td>有复杂的索引</td>
+</tr>
+</tbody>
+</table>
+<p>==hive中具有sql数据库，用来存储元数据信息(如:表的属性，数据的位置)。hive只适合用来做批量数据统计分析。读多写少==</p>
+<h2 id="hive的数据存储">Hive的数据存储</h2>
+<ol>
+<li>Hive中所有的数据都存储在HDFS中，没有专门的数据存储格式(可支持Text,SequenceFile,ParqueFile,RCFile等)</li>
+<li>只需要在创建表的时候告诉Hive数据中的列分隔符和行分隔符。默认列分隔符为ascii码的控制符\001,行分隔符为换行符。</li>
+<li>Hive中包含以下数据模型:DB、Table、External Table、Partition、Bucket。</li>
+</ol>
+<ul>
+<li><pre><code><code>db:在hdfs中表现为hive.metastore.warehouse.dir目录下的一个文件夹</code></code></pre></li>
+<li><pre><code><code>table:在hdfs中表现为所属db目录下的一个文件夹</code></code></pre></li>
+<li><pre><code><code>external table:与table类似，不过其数据存放位置可以在任意指定路径。删除表时只会删除元数据，不会删除实际数据</code></code></pre></li>
+<li><pre><code><code>partition:在hdfs中表现为table目录下的子目录</code></code></pre></li>
+<li><pre><code><code>bucket: 在hdfs中表现为同一个表目录下根据hash散列之后的多个文件</code></code></pre></li>
+</ul>
+<h2 id="hive的安装部署">Hive的安装部署</h2>
+<h3 id="安装">安装</h3>
+<pre><code><code>单机版(内置关系型数据库derby)
+元数据库mysql版
+
+这里使用常用的mysql版，使用derby的话不太方便，因为derby会将文件保存在你当前启动的目录。如果下次你换个目录启动，会发现之前保存的数据不见了。</code></code></pre>
+<h3 id="元数据库mysql版安装">元数据库mysql版安装</h3>
+<h4 id="安装mysql数据库">安装mysql数据库</h4>
+<pre><code><code>mysql安装仅供参考，不同版本mysql有各自的安装流程。</code></code></pre>
+<pre><code><code># 删除原有的mysql
+rpm -qa | grep mysql
+rpm -e mysql-libs-5.1.66-2.el6_3.i686 --nodeps
+rpm -ivh MySQL-server-5.1.73-1.glibc23.i386.rpm 
+rpm -ivh MySQL-client-5.1.73-1.glibc23.i386.rpm 
+
+# 修改mysql的密码，并记得设置允许用户远程连接
+/usr/bin/mysql_secure_installation
+
+# 登录mysql
+mysql -u root -p
+</code></code></pre>
+<h3 id="配置hive">配置hive</h3>
+<h4 id="配置hive_home环境变量">配置HIVE_HOME环境变量</h4>
+<pre><code><code>vi conf/hive-env.sh
+#配置其中的$hadoop_home</code></code></pre>
+<h4 id="配置元数据库信息">配置元数据库信息</h4>
+<pre><code><code>vi hive-site.xml
+
+#添加如下内容
+
+
+&lt;configuration&gt;
+&lt;!--配置mysql的连接地址--&gt;
+&lt;property&gt;
+&lt;name&gt;javax.jdo.option.ConnectionURL&lt;/name&gt;
+&lt;value&gt;jdbc:mysql://localhost:3306/hive?createDatabaseIfNotExist=true&lt;/value&gt;
+&lt;description&gt;JDBC connect string for a JDBC metastore&lt;/description&gt;
+&lt;/property&gt;
+
+&lt;!--配置mysql的驱动--&gt;
+&lt;property&gt;
+&lt;name&gt;javax.jdo.option.ConnectionDriverName&lt;/name&gt;
+&lt;value&gt;com.mysql.jdbc.Driver&lt;/value&gt;
+&lt;description&gt;Driver class name for a JDBC metastore&lt;/description&gt;
+&lt;/property&gt;
+
+&lt;!--配置登录用户名--&gt;
+&lt;property&gt;
+&lt;name&gt;javax.jdo.option.ConnectionUserName&lt;/name&gt;
+&lt;value&gt;root&lt;/value&gt;
+&lt;description&gt;username to use against metastore database&lt;/description&gt;
+&lt;/property&gt;
+
+&lt;!--配置登录密码--&gt;
+&lt;property&gt;
+&lt;name&gt;javax.jdo.option.ConnectionPassword&lt;/name&gt;
+&lt;value&gt;root&lt;/value&gt;
+&lt;description&gt;password to use against metastore database&lt;/description&gt;
+&lt;/property&gt;
+&lt;/configuration&gt;</code></code></pre>
+<h4 id="放驱动包">放驱动包</h4>
+<pre><code><code>安装hive和mysql完成后，将mysql的连接jar包拷贝到$HIVE_HOME/lib目录下
+如果出现没有权限的问题，在mysql授权</code></code></pre>
+<pre><code><code>mysql -uroot -p
+
+#执行下面的语句 *.*:表示所有库下的所有表    %:任何ip地址或主机都可以连接
+GRANT ALL PRIVILEGES ON *.* TO &#39;root&#39;@&#39;%&#39; IDENDIFIED BY &#39;root&#39; WITH GRANT OPTION;
+FLUSH PRIVILEGES;</code></code></pre>
+<h4 id="jline包版本不一致问题">Jline包版本不一致问题</h4>
+<pre><code><code>到这一步其实已经安装好了，但是由于hadoop中的jline包版本和我们安装hive的jline包版本不一致，会导致hql无法被执行。
+因此我们还要把hive的lib目录中的jline.2.12.jar替换掉$HADOOP_HOME/share/hadoop/yarn/lib/jline.0.9.94.jar</code></code></pre>
+<h4 id="启动hive">启动hive</h4>
+<pre><code><code>bin/hive</code></code></pre>
+<h4 id="登录hive">登录hive</h4>
+<pre><code><code>1.bin/hive
+
+2.bin/beeline
+!connect jdbc:hive2://server1:10000
+
+3.bin/beeline -u jdbc:hive2://server1:10000 -n hadoop</code></code></pre>
+<h2 id="创建表">创建表</h2>
+<h3 id="创建外部表">创建外部表</h3>
+<pre><code><code>create table tb_external(id int,name string) row format delimited fields terminated by&#39;,&#39; location &#39;hdfs://kris/myhiveexternal&#39;;</code></code></pre>
+<p>在hdfs中已在对应路径存在文件</p>
+<p><img src="./images/Hive数据仓库你了解了吗0.png" alt="image" /></p>
+<p>现在试试直接查询</p>
+<p><img src="./images/Hive数据仓库你了解了吗1.png" alt="image" /></p>
+<p>==为了保证数据的安全，我们一般把源数据表设置为外部表。数据只能通过外部加载导入==</p>
+<h3 id="创建带桶的表">创建带桶的表</h3>
+<pre><code><code>hive&gt; create table student(id INT,age INT,name STRING)
+    &gt; partitioned by(stat_date STRING)
+    &gt; clustered by(id) sorted by(age) into 2 buckets
+    &gt; row format delimited fields terminated by &#39;,&#39;;</code></code></pre>
+<h2 id="修改表">修改表</h2>
+<h3 id="增加分区">增加分区</h3>
+<pre><code><code>alter table student add partition(stat_date=&#39;20190613&#39;) partition(stat_date=&#39;20190614&#39;);
+
+alter table student add partition(stat_date=&#39;20190615&#39;) location &#39;/user/hive/warehouse/student&#39;;</code></code></pre>
+<h3 id="删除分区">删除分区</h3>
+<pre><code><code>alter table student drop partition(stat_date=&#39;20190613&#39;);</code></code></pre>
+<p>创建的分区会在hdfs对应的路径上创建文件夹</p>
+<p><img src="./images/Hive数据仓库你了解了吗2.png" alt="image" /></p>
+<p><img src="./images/Hive数据仓库你了解了吗3.png" alt="image" /></p>
+<p>==如果增加的分区带了路径，那么不会在hdfs的路径上显示对应的文件夹==</p>
+<h2 id="显示表分区">显示表分区</h2>
+<pre><code><code>show partitions student;</code></code></pre>
+<h2 id="重命名表">重命名表</h2>
+<pre><code><code>alter table student rename to students;</code></code></pre>
+<h2 id="增加列">增加列</h2>
+<pre><code><code>alter table students add columns(name1 string);</code></code></pre>
+<p>==增加的列会在所有列后面，在partition列前面==</p>
+<h2 id="替换所有列">替换所有列</h2>
+<pre><code><code>alter table students replace columns(id int,age int,name string);</code></code></pre>
+<h2 id="显示命令">显示命令</h2>
+<pre><code><code>#查看表
+show tables 
+#查看数据库
+show databases
+#查看分区
+show partitions table_name
+#查看方法
+show functions
+#显示表详细信息
+desc extended table_name
+#格式话表信息
+desc formatted table_name</code></code></pre>
+<h1 id="加载数据">加载数据</h1>
+<p>使用load data操作 hive会将文件复制到表对应的hdfs文件夹下</p>
+<h2 id="加载本地数据">加载本地数据</h2>
+<pre><code><code>load data local inpath &quot;students1.txt&quot; [overwrite] into table students partition(stat_date=&quot;20190614&quot;);</code></code></pre>
+<p>加上overwrite会讲原有对应分区的数据清除。<br />
+如果目标表(分区)已经有一个文件，并且文件名和filepath中的文件名冲突，那么现有的文件会被新文件所替代。</p>
+<p><img src="./images/Hive数据仓库你了解了吗4.png" alt="image" /></p>
+<p><img src="./images/Hive数据仓库你了解了吗5.png" alt="image" /></p>
+<h1 id="导出数据">导出数据</h1>
+<p>保存select查询结果的几种方式：</p>
+<p>1、将查询结果保存到一张新的hive表中</p>
+<pre><code><code>create table t_tmp
+as
+select * from t_p;</code></code></pre>
+<p>2、将查询结果保存到一张已经存在的hive表中</p>
+<pre><code><code>insert into  table t_tmp
+select * from t_p;</code></code></pre>
+<p>3、将查询结果保存到指定的文件目录（可以是本地，也可以是hdfs）</p>
+<pre><code><code>insert overwrite local directory &#39;/home/hadoop/test&#39;
+select * from t_p;
+
+insert overwrite directory &#39;/aaa/test&#39;
+select * from t_p;</code></code></pre>
+<h1 id="分桶示例">分桶示例</h1>
+<p>插入分桶表的数据需要是已经分好桶的，创建分桶的表并不会自动帮我们进行分桶。</p>
+<pre><code><code>#设置变量,设置分桶为true, 设置reduce数量是分桶的数量个数
+set mapreduce.job.reduces=2;
+# 或者选择以下方式
+set hive.enforce.bucketing = true;
+
+# 向分桶表中插入数据
+insert into student partition(stat_date=&#39;20190614&#39;)
+select id,age,name from tmp_stu where stat_date=&#39;20190614&#39; cluster by(id);</code></code></pre>
+<p><img src="./images/Hive数据仓库你了解了吗6.png" alt="image" /></p>
+<p>可见在hdfs上根据id分成了两个桶<br />
+<img src="./images/Hive数据仓库你了解了吗7.png" alt="image" /></p>
+<p>让我们看看其中一个桶的内容<br />
+<img src="./images/Hive数据仓库你了解了吗8.png" alt="image" /></p>
+<p>注意:<br />
+==1.order by 会对输入做全局排序，因此只有一个reducer，会导致当输入规模较大时，需要较长的计算时间。==</p>
+<p>==2.sort by不是全局排序，它是在数据进去reduce task时有序。因此，如果用sort by进行排序，并且设置mapreduce.job.reduces&gt;1,则sort by只保证每个reduce task的输出有序，不保证全局有序。==</p>
+<p>==3.distribute by根据distribute by指定的内容将数据分到同一个reducer==</p>
+<p>==4.cluster by除了具有distribute by的功能外，还会对该字段进行排序。因此我们可以这么认为cluster by=distribute by + sort by==</p>
+<p>==但是cluster by只能指定同一字段，当我们要对某一字段进行分桶，又要对另一字段进行排序时，用distribute by + sort by更加灵活。==</p>
+<p>==分桶表的作用:最大的作用是用来提高join操作的效率;==</p>
+<p>思考:select a.id,a.name,b.addr from a join b on a.id=b.id;<br />
+如果a表和b表已经是分桶表，而且分桶的字段是id字段。做这个join操作时，还需要全表做笛卡尔积吗？(文末给出答案)</p>
+<h2 id="分桶原理">分桶原理</h2>
+<pre><code><code>数据分桶的原理:
+跟MR中的HashPartitioner的原理一模一样
+MR中：按照key的hash值去模除以reductTask的个数
+Hive中：按照分桶字段的hash值去模除以分桶的个数
+Hive也是 针对某一列进行桶的组织。Hive采用对列值哈希，然后除以桶的个数求余的方式决定该条记录存放在哪个桶当中。</code></code></pre>
+<h2 id="数据分桶的作用">数据分桶的作用</h2>
+<pre><code><code>好处：
+1、方便抽样
+2、提高join查询效率</code></code></pre>
+<h2 id="如何将数据插入分桶表">如何将数据插入分桶表</h2>
+<p>将数据导入分桶表主要通过以下步骤</p>
+<p>第一步：</p>
+<pre><code><code>从hdfs或本地磁盘中load数据，导入中间表(也就是上文用到的tmp_stu)</code></code></pre>
+<p>第二步：</p>
+<pre><code><code>通过从中间表查询的方式的完成数据导入
+
+分桶的实质就是对 分桶的字段做了hash 然后存放到对应文件中，所以说如果原有数据没有按key hash ,需要在插入分桶的时候hash, 也就是说向分桶表中插入数据的时候必然要执行一次MAPREDUCE,这也就是分桶表的数据基本只能通过从结果集查询插入的方式进行导入</code></code></pre>
+<p>==我们需要确保reduce 的数量与表中的bucket 数量一致，为此有两种做法==</p>
+<pre><code><code>1.让hive强制分桶，自动按照分桶表的bucket 进行分桶。(推荐)
+set hive.enforce.bucketing = true;
+
+2.手动指定reduce数量
+set mapreduce.job.reduces = num;
+/
+set mapreduce.reduce.tasks = num;
+并在 SELECT 后增加CLUSTER BY 语句
+    
+    觉得不错记得给我点赞加关注喔～
+    公众号:喜讯XiCent</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

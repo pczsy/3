@@ -1,0 +1,278 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修线程安全---Day23' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>线程安全---Day23</center></div><div class='banquan'>原文出处:本文由博客园博主CeliaTodd提供。<br/>
+原文连接:https://www.cnblogs.com/hpcz190911/p/11902148.html</div><br>
+    <p><span style="font-size: 18px;">最近忙着备考大学四年最后的两科,昨天刚考完大学所有的考试,但是大学专业是机械,但是自己热衷于IT行业,想往IT行业走,希望毕业后能成功进入到IT行业,只希望毕业能找到一份Java开发工程师的工作,这样我才能专研和学习到更高深的技术.希望在毕业前能学到一点Java的精髓,让我可以成功进入到IT行业,加油~</span></p>
+<hr />
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>线程问题:</strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.threadsafety;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Ticket <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable{
+</span><span style="color: #008080;"> 4</span>     <span style="color: #008000;">//</span><span style="color: #008000;">定义票数</span>
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> ticket = 100<span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 7</span> <span style="color: #008000;">     * 执行卖票方法
+</span><span style="color: #008080;"> 8</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+</span><span style="color: #008080;">11</span>         <span style="color: #008000;">//</span><span style="color: #008000;">卖票窗口永久开启</span>
+<span style="color: #008080;">12</span>         <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">13</span>             <span style="color: #008000;">//</span><span style="color: #008000;">判断票是否卖完</span>
+<span style="color: #008080;">14</span>             <span style="color: #0000ff;">if</span> (ticket &gt; 0<span style="color: #000000;">) {
+</span><span style="color: #008080;">15</span>                 <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">16</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">三秒卖一张票</span>
+<span style="color: #008080;">17</span>                     Thread.sleep(3000<span style="color: #000000;">);
+</span><span style="color: #008080;">18</span>                 } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                    e.printStackTrace();
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">21</span>                 String name =<span style="color: #000000;"> Thread.currentThread().getName();
+</span><span style="color: #008080;">22</span>                 System.out.println(name+"正在卖:"+ticket--<span style="color: #000000;">);
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">27</span> 
+<span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span> 
+<span style="color: #008080;">31</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.threadsafety;
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TicketTest {
+</span><span style="color: #008080;">34</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;">35</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建线程任务对象</span>
+<span style="color: #008080;">36</span>         Ticket ticket = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Ticket();
+</span><span style="color: #008080;">37</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建三个窗口对象</span>
+<span style="color: #008080;">38</span>         Thread t1 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口1"<span style="color: #000000;">);
+</span><span style="color: #008080;">39</span>         Thread t2 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口2"<span style="color: #000000;">);
+</span><span style="color: #008080;">40</span>         Thread t3 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口3"<span style="color: #000000;">);
+</span><span style="color: #008080;">41</span>         <span style="color: #008000;">//</span><span style="color: #008000;">启用窗口来卖票</span>
+<span style="color: #008080;">42</span> <span style="color: #000000;">        t1.start();
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">        t2.start();
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">        t3.start();
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">46</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;">47</span> <span style="color: #008000;">     * 执行结果
+</span><span style="color: #008080;">48</span> <span style="color: #008000;">     * 窗口2正在卖:79
+</span><span style="color: #008080;">49</span> <span style="color: #008000;">     * 窗口3正在卖:79
+</span><span style="color: #008080;">50</span> <span style="color: #008000;">     * 窗口1正在卖:-1
+</span><span style="color: #008080;">51</span> <span style="color: #008000;">     * 出现重复卖同一张票和负票,在现实中是不允许出现的
+</span><span style="color: #008080;">52</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">53</span> }</span></code></pre>
+
+<p><span style="font-size: 18px;">　　注意:执行结果出现两种问题</span></p>
+<p><span style="font-size: 18px;">　　　　1.出现不同窗口卖同一张票,把票卖了两次</span></p>
+<p><span style="font-size: 18px;">　　　　2.出现卖不存在的票</span></p>
+<p><span style="font-size: 18px;">　　注意:这两种问题称为线程不安全</span></p>
+<p><span style="font-size: 18px;">　　线程安全问题都是由全局变量及静态变量引起的。若每个线程中对全局变量、静态变量只有读操作，而无写 操作，一般来说，这个全局变量是线程安全的；若有多个线程同时执行写操作，一般都需要考虑线程同步， 否则的话就可能影响线程安全</span></p>
+<p><span style="font-size: 18px;"><strong>线程同步</strong></span></p>
+<p><span style="font-size: 18px;">　　当我们使用多个线程访问同一资源的时候，且多个线程中对资源有写的操作，就容易出现线程安全问题。要解决上述多线程并发访问一个资源的安全性问题:也就是解决重复票与不存在票问题，Java中提供了同步机制 (synchronized)来解决</span></p>
+<p><span style="font-size: 18px;">　　方法:</span></p>
+<p><span style="font-size: 18px;">　　　　1. 同步代码块</span></p>
+<p><span style="font-size: 18px;">　　　　2. 同步方法</span></p>
+<p><span style="font-size: 18px;">　　　　3. 锁机制</span></p>
+<p><span style="font-size: 18px;"><strong>同步代码块</strong></span></p>
+<p><span style="font-size: 18px;">　　同步代码块： synchronized 关键字可以用于方法中的某个区块中，表示只对这个区块的资源实行互斥访问</span></p>
+<p><span style="font-size: 18px;">　　格式:</span></p>
+<p><span style="font-size: 18px;">　　　　synchronized(同步锁){</span></p>
+<p><span style="font-size: 18px;">　　　　　　需要同步操作的代码 </span></p>
+<p><span style="font-size: 18px;">　　　　}</span></p>
+<p><span style="font-size: 18px;">　　同步锁：对象的同步锁只是一个概念,可以想象为在对象上标记了一个锁</span></p>
+<p><span style="font-size: 18px;">　　　　1. 锁对象 可以是任意类型。 </span></p>
+<p><span style="font-size: 18px;">　　　　2. 多个线程对象&nbsp; 要使用同一把锁</span></p>
+<p><span style="font-size: 18px;">　　同步锁是谁?</span></p>
+<p><span style="font-size: 18px;">　　　　对于非static方法,同步锁就是this。&nbsp;</span></p>
+<p><span style="font-size: 18px;">　　　　对于static方法,我们使用当前方法所在类的字节码对象(类名.class)。</span></p>
+<p><span style="font-size: 18px;">　　注意：在任何时候,最多允许一个线程拥有同步锁,谁拿到锁就进入代码块,其他的线程只能在外等着 (BLOCKED)</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.threadsafety;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Ticket02 <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #008000;">//</span><span style="color: #008000;">定义票数</span>
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> ticket = 100<span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     Object lock = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Object();
+</span><span style="color: #008080;"> 8</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">     * 执行卖票方法
+</span><span style="color: #008080;">10</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">11</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+</span><span style="color: #008080;">14</span>         <span style="color: #008000;">//</span><span style="color: #008000;">卖票窗口永久开启</span>
+<span style="color: #008080;">15</span>         <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">16</span>             <span style="color: #0000ff;">synchronized</span><span style="color: #000000;"> (lock) {
+</span><span style="color: #008080;">17</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">判断票是否卖完</span>
+<span style="color: #008080;">18</span>                 <span style="color: #0000ff;">if</span> (ticket &gt; 0<span style="color: #000000;">) {
+</span><span style="color: #008080;">19</span>                     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">20</span>                         <span style="color: #008000;">//</span><span style="color: #008000;">三秒卖一张票</span>
+<span style="color: #008080;">21</span>                         Thread.sleep(3000<span style="color: #000000;">);
+</span><span style="color: #008080;">22</span>                     } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">                        e.printStackTrace();
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">25</span>                     String name =<span style="color: #000000;"> Thread.currentThread().getName();
+</span><span style="color: #008080;">26</span>                     System.out.println(name + "正在卖:" + ticket--<span style="color: #000000;">);
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.threadsafety;
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TicketTest02 {
+</span><span style="color: #008080;">36</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;">37</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建线程任务对象</span>
+<span style="color: #008080;">38</span>         Ticket02 ticket = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Ticket02();
+</span><span style="color: #008080;">39</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建三个窗口对象</span>
+<span style="color: #008080;">40</span>         Thread t1 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口1"<span style="color: #000000;">);
+</span><span style="color: #008080;">41</span>         Thread t2 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口2"<span style="color: #000000;">);
+</span><span style="color: #008080;">42</span>         Thread t3 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口3"<span style="color: #000000;">);
+</span><span style="color: #008080;">43</span>         <span style="color: #008000;">//</span><span style="color: #008000;">启用窗口来卖票</span>
+<span style="color: #008080;">44</span> <span style="color: #000000;">        t1.start();
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">        t2.start();
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">        t3.start();
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">48</span> }</span></code></pre>
+
+<p><span style="font-size: 18px;">　　使用了同步代码块可以解决线程安全问题</span></p>
+<p><span style="font-size: 18px;"><strong>同步方法</strong></span></p>
+<p><span style="font-size: 18px;">　　同步方法:使用synchronized修饰的方法,就叫做同步方法,保证A线程执行该方法的时候,其他线程只能在方法外等着。</span></p>
+<p><span style="font-size: 18px;">　　格式：</span></p>
+<p><span style="font-size: 18px;">　　　　public synchronized void method(){&nbsp; &nbsp; &nbsp;</span></p>
+<p><span style="font-size: 18px;">　　　　　　可能会产生线程安全问题的代码&nbsp; &nbsp;</span></p>
+<p><span style="font-size: 18px;">　　　　}</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.threadsafety;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Ticket03 <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> ticket = 100<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 7</span> <span style="color: #008000;">     * 执行卖票方法
+</span><span style="color: #008080;"> 8</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+</span><span style="color: #008080;">11</span>         <span style="color: #008000;">//</span><span style="color: #008000;">卖票窗口永久开启</span>
+<span style="color: #008080;">12</span>         <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            sellTicket();
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> sellTicket() {
+</span><span style="color: #008080;">18</span>         <span style="color: #008000;">//</span><span style="color: #008000;">判断票是否卖完</span>
+<span style="color: #008080;">19</span>         <span style="color: #0000ff;">if</span> (ticket &gt; 0<span style="color: #000000;">) {
+</span><span style="color: #008080;">20</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">21</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">三秒卖一张票</span>
+<span style="color: #008080;">22</span>                 Thread.sleep(3000<span style="color: #000000;">);
+</span><span style="color: #008080;">23</span>             } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">                e.printStackTrace();
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">26</span>             <span style="color: #008000;">//</span><span style="color: #008000;">获取线程名称</span>
+<span style="color: #008080;">27</span>             String name =<span style="color: #000000;"> Thread.currentThread().getName();
+</span><span style="color: #008080;">28</span>             System.out.println(name + "正在卖:" + ticket--<span style="color: #000000;">);
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.threadsafety;
+</span><span style="color: #008080;">36</span> 
+<span style="color: #008080;">37</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TicketTest03 {
+</span><span style="color: #008080;">38</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;">39</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建线程任务对象</span>
+<span style="color: #008080;">40</span>         Ticket03 ticket = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Ticket03();
+</span><span style="color: #008080;">41</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建三个窗口对象</span>
+<span style="color: #008080;">42</span>         Thread t1 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口1"<span style="color: #000000;">);
+</span><span style="color: #008080;">43</span>         Thread t2 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口2"<span style="color: #000000;">);
+</span><span style="color: #008080;">44</span>         Thread t3 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口3"<span style="color: #000000;">);
+</span><span style="color: #008080;">45</span>         <span style="color: #008000;">//</span><span style="color: #008000;">启用窗口来卖票</span>
+<span style="color: #008080;">46</span> <span style="color: #000000;">        t1.start();
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">        t2.start();
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">        t3.start();
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">50</span> }</span></code></pre>
+
+<p><span style="font-size: 18px;"><strong>Lock锁</strong></span></p>
+<p><span style="font-size: 18px;">　　java.util.concurrent.locks.Lock 机制提供了比synchronized代码块和synchronized方法更广泛的锁定操作, 同步代码块/同步方法具有的功能Lock都有,除此之外更强大,更体现面向对象</span></p>
+<p><span style="font-size: 18px;">　　Lock锁也称同步锁，加锁与释放锁方法化了，如下</span></p>
+<p><span style="font-size: 18px;">　　　　public void lock() :加同步锁。 </span></p>
+<p><span style="font-size: 18px;">　　　　public void unlock() :释放同步</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.threadsafety;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.concurrent.locks.Lock;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.concurrent.locks.ReentrantLock;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Ticket04 <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable {
+</span><span style="color: #008080;"> 7</span>     <span style="color: #008000;">//</span><span style="color: #008000;">定义票数</span>
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> ticket = 100<span style="color: #000000;">;
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>     <span style="color: #008000;">//</span><span style="color: #008000;">创建锁对象</span>
+<span style="color: #008080;">11</span>     Lock lock = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ReentrantLock();
+</span><span style="color: #008080;">12</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;">13</span> <span style="color: #008000;">     * 执行卖票方法
+</span><span style="color: #008080;">14</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">15</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+</span><span style="color: #008080;">17</span>         <span style="color: #008000;">//</span><span style="color: #008000;">卖票窗口永久开启</span>
+<span style="color: #008080;">18</span>         <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">19</span>             <span style="color: #008000;">//</span><span style="color: #008000;">给线程加锁</span>
+<span style="color: #008080;">20</span> <span style="color: #000000;">            lock.lock();
+</span><span style="color: #008080;">21</span>             <span style="color: #008000;">//</span><span style="color: #008000;">判断是否邮票可卖</span>
+<span style="color: #008080;">22</span>             <span style="color: #0000ff;">if</span> (ticket &gt; 0<span style="color: #000000;">) {
+</span><span style="color: #008080;">23</span>                 <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">24</span>                     Thread.sleep(1000<span style="color: #000000;">);
+</span><span style="color: #008080;">25</span>                 } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">                    e.printStackTrace();
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">28</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">获取线程当前名称</span>
+<span style="color: #008080;">29</span>                 String name =<span style="color: #000000;"> Thread.currentThread().getName();
+</span><span style="color: #008080;">30</span>                 System.out.println(name+"正在卖"+ticket--<span style="color: #000000;">);
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">32</span>             <span style="color: #008000;">//</span><span style="color: #008000;">释放线程锁</span>
+<span style="color: #008080;">33</span> <span style="color: #000000;">        lock.unlock();
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.threadsafety;
+</span><span style="color: #008080;">39</span> 
+<span style="color: #008080;">40</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TicketTest04 {
+</span><span style="color: #008080;">41</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;">42</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建线程任务对象</span>
+<span style="color: #008080;">43</span>         Ticket04 ticket = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Ticket04();
+</span><span style="color: #008080;">44</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建三个窗口对象</span>
+<span style="color: #008080;">45</span>         Thread t1 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口1"<span style="color: #000000;">);
+</span><span style="color: #008080;">46</span>         Thread t2 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口2"<span style="color: #000000;">);
+</span><span style="color: #008080;">47</span>         Thread t3 = <span style="color: #0000ff;">new</span> Thread(ticket, "窗口3"<span style="color: #000000;">);
+</span><span style="color: #008080;">48</span>         <span style="color: #008000;">//</span><span style="color: #008000;">启用窗口来卖票</span>
+<span style="color: #008080;">49</span> <span style="color: #000000;">        t1.start();
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">        t2.start();
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">        t3.start();
+</span><span style="color: #008080;">52</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">53</span> }</span></code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,1279 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Linux系统装mycat' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Linux系统装mycat</center></div><div class='banquan'>原文出处:本文由博客园博主南瓜不难提供。<br/>
+原文连接:https://www.cnblogs.com/interflow/p/11589226.html</div><br>
+    <p>最近在Linux系统中装载了一下mycut，记录过程以及所遇到的异常</p>
+<p>首先是mycut的压缩包，直接放到linux中解压即可</p>
+<p>链接：https://pan.baidu.com/s/1qo7z4tNvkkK5kFacE_FRjw <br />提取码：rvym <br />也可以自己下载 ：<a href="http://dl.mycat.io/1.6-RELEASE/">http://dl.mycat.io/1.6-RELEASE/</a></p>
+<p>使用mycat做读写分离，分库分表的前提是数据库集群以及配置好主从复制</p>
+<table style="width: 659px;" border="1" cellspacing="0" cellpadding="0">
+<thead>
+<tr>
+<td width="109">
+<p>服务器</p>
+
+
+</td>
+<td width="157">
+<p>IP</p>
+
+
+</td>
+<td width="394">
+<p>说明</p>
+
+
+</td>
+
+
+</tr>
+
+
+</thead>
+<tbody>
+<tr>
+<td width="109">
+<p>Mycat</p>
+
+
+</td>
+<td width="157">
+<p>192.168.87.130</p>
+
+
+</td>
+<td width="394">
+<p>mycat服务器，连接数据库时，连接此服务器</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="109">
+<p>database1</p>
+
+
+</td>
+<td width="157">
+<p>192.168.87.128（主）</p>
+
+
+</td>
+<td width="394">
+<p>物理数据库1，真正存储数据的数据库</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="109">
+<p>database2</p>
+
+
+</td>
+<td width="157">
+<p>192.168.87.129（从）</p>
+
+
+</td>
+<td width="394">
+<p>物理数据库2，真正存储数据的数据库</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="109">
+<p>database3</p>
+
+
+</td>
+<td width="157">
+<p>192.168.87.131（从）</p>
+
+
+</td>
+<td width="394">
+<p>物理数据库3，真正存储数据的数据库</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<h2>JDK</h2>
+<p>mycat是基于java语言编写的，所以我们需要配置jdk</p>
+<h2>目录：</h2>
+<table border="1" cellspacing="0" cellpadding="0">
+<thead>
+<tr>
+<td width="61">
+<p>目录</p>
+
+
+</td>
+<td width="430">
+<p>说明</p>
+
+
+</td>
+
+
+</tr>
+
+
+</thead>
+<tbody>
+<tr>
+<td width="61">
+<p>bin</p>
+
+
+</td>
+<td width="430">
+<p>mycat命令，启动、重启、停止等</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="61">
+<p>catlet</p>
+
+
+</td>
+<td width="430">
+<p>catlet为Mycat的一个扩展功能</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="61">
+<p>conf</p>
+
+
+</td>
+<td width="430">
+<p>Mycat 配置信息,重点关注</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="61">
+<p>lib</p>
+
+
+</td>
+<td width="430">
+<p>Mycat引用的jar包，Mycat是java开发的</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="61">
+<p>logs</p>
+
+
+</td>
+<td width="430">
+<p>日志文件，包括Mycat启动的日志和运行的日志。</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<p>问题一：Linux下部署安装的mysql，默认不忽略表明大小写，需要自己在etc 下的my.cnf中配置&nbsp;lower_case_table_names=1 使得linux环境下musql忽略表明大小写，避免之后找不到表而报错</p>
+<p>主要需要配置的文件有：</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<thead>
+<tr>
+<td width="109">
+<p>文件</p>
+
+
+</td>
+<td width="369">
+<p>说明</p>
+
+
+</td>
+
+
+</tr>
+
+
+</thead>
+<tbody>
+<tr>
+<td width="109">
+<p>server.xml</p>
+
+
+</td>
+<td width="369">
+<p>Mycat的配置文件，设置账号、参数等</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="109">
+<p>schema.xml</p>
+
+
+</td>
+<td width="369">
+<p>Mycat对应的物理数据库和数据库表的配置</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="109">
+<p>rule.xml</p>
+
+
+</td>
+<td width="369">
+<p>Mycat分片（分库分表）规则</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<p><img src="./images/Linux系统装mycat0.png" alt="" /></p>
+<p>&nbsp;</p>
+<h2>环境变量：</h2>
+<p>MyCat在linux中部署启动时，需要在linux系统环境变量中配置MYCAT_HOME，linux中的环境变量配置文件在/etc/profile文件中</p>
+<h2>修改环境变量：</h2>
+<p>如果还在多态linux系统中组建的mycat集群，那需要在myCat Server所在的服务器上配置对其他Ip和主机名字的映射配置方式如下：</p>
+<p>vim /etc/hosts</p>
+<p>ip&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;主机名：</p>
+<p>192.168.136.128&nbsp; &nbsp; &nbsp;zy01</p>
+<p>192.168.136.129&nbsp; &nbsp; &nbsp;zy02</p>
+<p>&nbsp;</p>
+<p>&nbsp;编辑完成后保存文件即可</p>
+<p>MyCut日志：在/logs/mycut.log，我配置过程中主要看的是warapper.log文件，可以查看据图的错误原因。</p>
+<h2>配置过程</h2>
+<table style="width: 548px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="75">
+<p>dept表</p>
+
+
+</td>
+<td valign="top" width="76">
+<p>水平拆分</p>
+
+
+</td>
+<td valign="top" width="397">
+<p>两个物理数据库(192.168.136.128从服务器,192.168.136.129从服务器)中都有dept表,程序执行具体的增删改查时将根据分片规则去确定到底使用哪一个物理数据库</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td valign="top" width="75">
+<p>user表</p>
+
+
+</td>
+<td valign="top" width="76">
+<p>垂直拆分</p>
+
+
+</td>
+<td valign="top" width="397">
+<p>只在一个物理数据库(192.168.136.128从)有,程序执行时会自动去这个数据库执行</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td valign="top" width="75">
+<p>Student表</p>
+
+
+</td>
+<td valign="top" width="76">
+<p>垂直拆分</p>
+
+
+</td>
+<td valign="top" width="397">
+<p>只在一个物理数据库(192.168.136.129从)有,程序执行时会自动去这个数据库执行</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<h2>修改server.xml</h2>
+<src>
+<p>　　&lt;user name="zzy"&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name="password"&gt;123456&lt;/property&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name="schemas"&gt;zzy_table&lt;/property&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name="readOnly"&gt;false&lt;/property&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/user&gt;</p>
+
+
+
+<table border="1" cellspacing="0" cellpadding="0">
+<thead>
+<tr>
+<td width="102">
+<p>参数</p>
+
+
+</td>
+<td width="470">
+<p>说明</p>
+
+
+</td>
+
+
+</tr>
+
+
+</thead>
+<tbody>
+<tr>
+<td width="102">
+<p>user</p>
+
+
+</td>
+<td width="470">
+<p>用户配置节点</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="102">
+<p>--name</p>
+
+
+</td>
+<td width="470">
+<p>登录的用户名，也就是连接Mycat的用户名</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="102">
+<p>--password</p>
+
+
+</td>
+<td width="470">
+<p>登录的密码，也就是连接Mycat的密码</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="102">
+<p>--schemas</p>
+
+
+</td>
+<td width="470">
+<p>数据库名，这里会和schema.xml中的配置关联，多个用逗号分开，例如需要这个用户需要管理两个数据库db1,db2，则配置db1,db2</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="102">
+<p>--privileges</p>
+
+
+</td>
+<td width="470">
+<p>配置用户针对表的增删改查的权限，具体见文档</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<p>说明：在这里的设计的账号：zzy，密码123456，数据库zzy_table（这个是需要与schema.xml文件中的name对应）</p>
+<p>需要将之前的user标签删除自己进行配置&nbsp;</p>
+<p><img src="./images/Linux系统装mycat1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>&nbsp;Schema.xml</h2>
+<p>我是将原来的schema.xml文件改了个名字，然后copy了一份，在新的文件里面进行配置了如下的步骤</p>
+<table border="0">
+<tbody>
+<tr>
+<td>
+<p>&lt;?xml version="1.0"?&gt;<br />&lt;!DOCTYPE mycat:schema SYSTEM "schema.dtd"&gt;<br />&lt;mycat:schema xmlns:mycat="http://io.mycat/"&gt;</p>
+<p>        &lt;!-- 数据库配置，与server.xml中的数据库对应 --&gt;<br />    &lt;schema name="zzy_table" checkSQLschema="false" sqlMaxLimit="100"&gt;<br />        &lt;table name="user" dataNode="dn1"  /&gt;<br />        &lt;table name="student" dataNode="dn2"  /&gt;<br />                &lt;!-- dept进行分片,分为两个数据库存储,分片规则是mod-long,不指定自增 --&gt;<br />        &lt;table name="dept" primaryKey="d_id" dataNode="dn1,dn2"  rule="mod-long" /&gt;<br />    &lt;/schema&gt;</p>
+<p>        &lt;!-- 分片配置 --&gt;<br />    &lt;dataNode name="dn1" dataHost="test1" database="zzy_table" /&gt;<br />    &lt;dataNode name="dn2" dataHost="test2" database="zzy_table" /&gt;</p>
+<p>        &lt;!-- 物理数据库配置 --&gt;<br />    &lt;dataHost name="test1" maxCon="1000" minCon="10" balance="0"  writeType="0" dbType="mysql" dbDriver="native"&gt;<br />        &lt;heartbeat&gt;select user();&lt;/heartbeat&gt;<br />        &lt;writeHost host="zy01"  url="192.168.136.129:3306" user="root" password="123456"&gt;<br />        &lt;/writeHost&gt;<br />    &lt;/dataHost&gt;</p>
+<p>    &lt;dataHost name="test2" maxCon="1000" minCon="10" balance="0" writeType="0" dbType="mysql" dbDriver="native"&gt;<br />        &lt;heartbeat&gt;select user();&lt;/heartbeat&gt;<br />        &lt;writeHost host="zy02"  url="192.168.136.130:3306" user="root" password="123456"&gt;<br />        &lt;/writeHost&gt;<br />    &lt;/dataHost&gt;</p>
+<p>&lt;/mycat:schema&gt;</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<p><img src="./images/Linux系统装mycat2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<thead>
+<tr>
+<td width="93">
+<p>参数</p>
+
+
+</td>
+<td width="479">
+<p>说明</p>
+
+
+</td>
+
+
+</tr>
+
+
+</thead>
+<tbody>
+<tr>
+<td width="93">
+<p>schema</p>
+
+
+</td>
+<td width="479">
+<p>数据库设置，此数据库为逻辑数据库，name与server.xml中schema对应</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="93">
+<p>dataNode</p>
+
+
+</td>
+<td width="479">
+<p>分片信息，也就是分库相关配置</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="93">
+<p>dataHost</p>
+
+
+</td>
+<td width="479">
+<p>物理数据库，真正存储数据的数据库</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<h3><span lang="EN-US">schema:</span></h3>
+<table border="1" cellspacing="0" cellpadding="0">
+<thead>
+<tr>
+<td width="149">
+<p>属性</p>
+
+
+</td>
+<td width="423">
+<p>说明</p>
+
+
+</td>
+
+
+</tr>
+
+
+</thead>
+<tbody>
+<tr>
+<td width="149">
+<p>name</p>
+
+
+</td>
+<td width="423">
+<p>逻辑数据库名，与server.xml中的schema对应</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="149">
+<p>checkSQLschema</p>
+
+
+</td>
+<td width="423">
+<p>数据库前缀相关设置，建议看文档，这里暂时设为false</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="149">
+<p>sqlMaxLimit</p>
+
+
+</td>
+<td width="423">
+<p>select 时默认的limit，避免查询全表</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<h3><span lang="EN-US">table:</span></h3>
+<table border="1" cellspacing="0" cellpadding="0">
+<thead>
+<tr>
+<td width="131">
+<p>属性</p>
+
+
+</td>
+<td width="441">
+<p>说明</p>
+
+
+</td>
+
+
+</tr>
+
+
+</thead>
+<tbody>
+<tr>
+<td width="131">
+<p>name</p>
+
+
+</td>
+<td width="441">
+<p>表名，物理数据库中表名</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="131">
+<p>dataNode</p>
+
+
+</td>
+<td width="441">
+<p>表存储到哪些节点，多个节点用逗号分隔。节点为下文dataNode设置的name</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="131">
+<p>primaryKey</p>
+
+
+</td>
+<td width="441">
+<p>主键字段名，自动生成主键时需要设置</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="131">
+<p>autoIncrement</p>
+
+
+</td>
+<td width="441">
+<p>是否自增</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="131">
+<p>rule</p>
+
+
+</td>
+<td width="441">
+<p>分片规则名，具体规则下文rule详细介绍</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<h3><span lang="EN-US">dataNode</span></h3>
+<table border="1" cellspacing="0" cellpadding="0">
+<thead>
+<tr>
+<td width="88">
+<p>属性</p>
+
+
+</td>
+<td width="352">
+<p>说明</p>
+
+
+</td>
+
+
+</tr>
+
+
+</thead>
+<tbody>
+<tr>
+<td width="88">
+<p>name</p>
+
+
+</td>
+<td width="352">
+<p>节点名，与table中dataNode对应</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="88">
+<p>datahost</p>
+
+
+</td>
+<td width="352">
+<p>物理数据库名，与datahost中name对应</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="88">
+<p>database</p>
+
+
+</td>
+<td width="352">
+<p>物理数据库中数据库名</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<h3><span lang="EN-US">dataHost：</span></h3>
+<table border="1" cellspacing="0" cellpadding="0">
+<thead>
+<tr>
+<td width="94">
+<p>属性</p>
+
+
+</td>
+<td width="548">
+<p>说明</p>
+
+
+</td>
+
+
+</tr>
+
+
+</thead>
+<tbody>
+<tr>
+<td width="94">
+<p>name</p>
+
+
+</td>
+<td width="548">
+<p>物理数据库名，与dataNode中dataHost对应</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="94">
+<p>balance</p>
+
+
+</td>
+<td width="548">
+<p>均衡负载的方式</p>
+<p>balance="0", 不开启读写分离机制，所有读操作都发送到当前可用的writeHost 上。</p>
+<p>balance="1"，全部的 readHost 与 stand by writeHost 参与 select 语句的负载均衡，简单的说，当双主双从模式(M1 -&gt;S1 ， M2-&gt;S2，并且 M1 与 M2 互为主备)，正常情况下， M2,S1,S2 都参与 select 语句的负载均衡。</p>
+<p>balance="2"，所有读操作都随机的在 writeHost、 readhost 上分发。</p>
+<p>balance="3"， 所有读请求随机的分发到 wiriterHost 对应的 readhost 执行,writerHost 不负担读压力，注意 balance=3 只在 1.4 及其以后版本有， 1.3 没有。</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="94">
+<p>writeType</p>
+
+
+</td>
+<td width="548">
+<p>写入方式</p>
+<p>writeType="0", 所有写操作发送到配置的第一个 writeHost，第一个挂了切到还生存的第二个writeHost，重新启动后已切换后的为准，切换记录在配置文件中:dnindex.properties .</p>
+<p>writeType="1"，所有写操作都随机的发送到配置的 writeHost。</p>
+<p>writeType="2"，没实现。</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="94">
+<p>dbType</p>
+
+
+</td>
+<td width="548">
+<p>数据库类型</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td width="94">
+<p>heartbeat</p>
+
+
+</td>
+<td width="548">
+<p>心跳检测语句，注意语句结尾的<strong>分号要加。</strong></p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<h2><span lang="EN-US">rule.xml配置：</span></h2>
+<p>主要关注rule属性，rule属性的内容来源于rule.xml这个文件，Mycat支持10种分表分库的规则，基本能满足你所需要的要求.table中的rule属性对应的就是rule.xml文件中tableRule的name,具体有哪些分表和分库的实现，建议还是看下文档。我这里选择的mod-long就是将数据平均拆分。因为我后端是两台物理库，所以rule.xml中mod-long对应的function count为2，见下面部分代码：</p>
+<p><img src="./images/Linux系统装mycat3.png" alt="" /><img src="./images/Linux系统装mycat4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>测试：</h2>
+<p>&nbsp;</p>
+<p>进入bin目录</p>
+<p>./mycat start</p>
+<p><img src="./images/Linux系统装mycat5.png" alt="" /></p>
+<p>&nbsp;</p>
+<h2>这次安装碰到的异常：</h2>
+<p>1：linux防火墙没有关闭，导致远程连接数据库出问题，这也是一个疏忽。</p>
+<p>2：<img src="./images/Linux系统装mycat6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;图是因为在连接之前没有将实体数据库中的表创建好，可能是由于Navicat的版本问题。</p>
+<p>3 ：<img src="./images/Linux系统装mycat7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>原因:出现此消息的原因通常是你的cpu在大约30秒内达到100％。</p>
+<p>解决:</p>
+<p align="left">到你的wrapper.conf文件，以增加超时时间，从而防止JVM被终止。设置此值后，你需要重新启动服务器。</p>
+<p>wrapper.startup.timeout=300000&nbsp;&nbsp;&nbsp;</p>
+<p align="left">wrapper.ping.timeout=300000</p>
+<p align="left">如果还是报错,就将时间调至最大 1728000</p>
+<p align="left"><img src="./images/Linux系统装mycat8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>4：8066端口占用问题</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>Navicat连接Mycat</h3>
+<p>　　<img src="./images/Linux系统装mycat9.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;这是Navicat中新建mysql连接的配置信息。用户名是自己在server.xml中配置的 端口8066,。</p>
+<h3>写测试程序</h3>
+<p>跟写之前的jdbc一模一样,只不过吧用户名密码换成Mycat的</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p align="left"><strong>package</strong> com.zhiyou100.jdbc;</p>
+<p align="left">&nbsp;</p>
+<p align="left"><strong>import</strong> java.sql.Connection;</p>
+<p align="left"><strong>import</strong> java.sql.DriverManager;</p>
+<p align="left"><strong>import</strong> java.sql.PreparedStatement;</p>
+<p align="left">&nbsp;</p>
+<p align="left"><strong>public</strong> <strong>class</strong> TestMycat {</p>
+<p align="left">&nbsp;</p>
+<p align="left">&nbsp;&nbsp;&nbsp; <strong>public</strong> <strong>static</strong> <strong>void</strong> main(String[] args) <strong>throws</strong> Exception {</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Class.<em>forName</em>("com.mysql.jdbc.Driver");</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // <span style="text-decoration: underline;">mycat</span>的用户名</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String username = "zzy";</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // <span style="text-decoration: underline;">mycat</span>的密码</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String password = "123456";</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // <span style="text-decoration: underline;">mycat</span>的连接地址</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String url = "jdbc:mysql://192.168.136.131:8066/zzy_table";</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Connection conn = DriverManager.<em>getConnection</em>(url,username,password);</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String sql1 = "insert into dept (d_name,d_desc) values ('mycat研发部2','客户端插入2')";</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String sql2 = "insert into user (u_name,u_desc) values ('u_lisi','客户端插入用户lisi')";</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String sql3 = "insert into student (s_name,s_desc) values ('s_zs','客户端插入学生zs')";</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PreparedStatement ps1 = conn.prepareStatement(sql1);</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PreparedStatement ps2 = conn.prepareStatement(sql2);</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; PreparedStatement ps3 = conn.prepareStatement(sql3);</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ps1.execute();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ps2.execute();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ps3.execute();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ps1.close();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ps2.close();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ps3.close();</p>
+<p align="left">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conn.close();</p>
+<p align="left">&nbsp;&nbsp;&nbsp; }</p>
+<p align="left">&nbsp;</p>
+<p align="left">}</p>
+<p>&nbsp;</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td valign="top" width="568">
+<p align="left"><strong>BUG:</strong><strong>插入</strong><strong>dept</strong><strong>表数据时时需要显示的给</strong><strong>d_id</strong><strong>赋值</strong></p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td valign="top" width="568">
+<p align="left"><strong>dept</strong><strong>表在两个逻辑数据库设计为</strong><strong>d_id</strong><strong>主键自增</strong></p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<p>其余的User和Student表自己设置主键自增</p>
+<h2>结果分析</h2>
+<h3>Mycat逻辑库中的数据</h3>
+<p>逻辑库中每个表都有有数据</p>
+<p>下次尝试 : 不让mycat管理主键,即不指定主键,自增属性,只指定分库节点和分片规则</p>
+<p><a href="https://blog.51cto.com/13476134/2114125">https://blog.51cto.com/13476134/2114125</a></p>
+<p>成功!!!</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1>演示 : 读写分离</h1>
+<p><strong>Mycat</strong><strong>实现数据的读写分离需要数据库集群有主从复制</strong></p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="103">
+<p><strong>ip</strong></p>
+
+
+</td>
+<td valign="top" width="103">
+<p><strong>状态</strong></p>
+
+
+</td>
+<td valign="top" width="66">
+<p><strong>表</strong></p>
+
+
+</td>
+<td valign="top" width="296">
+<p><strong>解释</strong></p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td valign="top" width="103">
+<p>192.168.136.128</p>
+
+
+</td>
+<td valign="top" width="103">
+<p>主服务器</p>
+
+
+</td>
+<td valign="top" width="66">
+<p>t_order表</p>
+
+
+</td>
+<td valign="top" width="296">
+<p>主服务器主做写入操作,主服务器,创建了表,从服务器自动复制</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td valign="top" width="103">
+<p>192.168.136.129</p>
+
+
+</td>
+<td valign="top" width="103">
+<p>从服务器</p>
+
+
+</td>
+<td valign="top" width="66">
+<p>t_order表</p>
+
+
+</td>
+<td valign="top" width="296">
+<p>从服务器主做查询操作,</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td valign="top" width="103">
+<p>192.168.136.131</p>
+
+
+</td>
+<td valign="top" width="103">
+<p>从服务器</p>
+
+
+</td>
+<td valign="top" width="66">
+<p>t_order表</p>
+
+
+</td>
+<td valign="top" width="296">
+<p>从服务器主做查询操作,与上一个查询负载均衡</p>
+
+
+</td>
+
+
+</tr>
+<tr>
+<td valign="top" width="103">
+<p>192.168.136.130</p>
+
+
+</td>
+<td valign="top" width="103">
+<p>Mycat逻辑库</p>
+
+
+</td>
+<td valign="top" width="66">
+<p>&nbsp;</p>
+
+
+</td>
+<td valign="top" width="296">
+<p>做读写分离,读操作的负载均衡</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<ol>
+<li>dataHost标签balance=3 读写分离,</li>
+
+
+</ol>
+<p><img src="./images/Linux系统装mycat10.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　2.&lt;writeHost&gt;中配置&lt;readHost&gt;</p>
+<p>&nbsp;<img src="./images/Linux系统装mycat11.png" alt="" /></p>
+<p>　　3.测试读写</p>
+<p>　　4.修改从库,确定是从 从库查询的数据</p>
+<p>　　5.修改Mycat的日志级别:默认为INFO,修改为debug</p>
+<p>&nbsp;<img src="./images/Linux系统装mycat12.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/Linux系统装mycat13.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/Linux系统装mycat14.png" alt="" /></p>
+<h2>Server.xml</h2>
+<src>
+<p>&lt;user name="qsj"&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name="password"&gt;123456&lt;/property&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name="schemas"&gt;zzy_table2&lt;/property&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;property name="readOnly"&gt;false&lt;/property&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/user&gt;</p>
+
+
+
+<p>与上分库分表的一致</p>
+<h2>Schema.xml</h2>
+<p>将之前的分库分表的schema.xml改名字为schema-fenkufenbiao.xml</p>
+<p>&nbsp;</p>
+<p>做读写分离</p>
+<p>再创建一个schema.xml</p>
+<p>vim schema.xml</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p>&lt;?xml version="1.0"?&gt;</p>
+<p>&lt;!DOCTYPE mycat:schema SYSTEM "schema.dtd"&gt;</p>
+<p>&lt;mycat:schema xmlns:mycat="http://io.mycat/"&gt;</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 数据库配置，与server.xml中的数据库对应 --&gt;</p>
+<p>&nbsp;&nbsp;&nbsp; &lt;schema name="zzy_table2" checkSQLschema="false" sqlMaxLimit="100"&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;table name="t_order" dataNode="dn1"&nbsp; /&gt;</p>
+<p>&nbsp;&nbsp;&nbsp; &lt;/schema&gt;</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 分片配置 --&gt;</p>
+<p>&nbsp;&nbsp;&nbsp; &lt;dataNode name="dn1" dataHost="test1" database="zzy_table2" /&gt;</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 物理数据库配置 --&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- balance="3" 读写分离--&gt;</p>
+<p>&nbsp;&nbsp;&nbsp; &lt;dataHost name="test1" maxCon="1000" minCon="10" balance="3"&nbsp; writeType="0" dbType="mysql" dbDriver="native"&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;heartbeat&gt;select user();&lt;/heartbeat&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 写入的服务器:主服务器 --&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;writeHost host="zy01"&nbsp; url="192.168.136.128:3306" user="root" password="123456"&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;!-- 查询的服务器:两个从服务器 --&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;readHost host="zy02"&nbsp; url="192.168.136.129:3306" user="root" password="123456"&gt;&lt;/readHost&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;readHost host="zy04"&nbsp; url="192.168.136.131:3306" user="root" password="123456"&gt;&lt;/readHost&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &lt;/writeHost&gt;</p>
+<p>&nbsp;&nbsp;&nbsp; &lt;/dataHost&gt;</p>
+<p>&nbsp;</p>
+<p>&lt;/mycat:schema&gt;</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>启动Mycat</h2>
+<p>时间比较长</p>
+<p>Navicat连接上</p>
+<p><img src="./images/Linux系统装mycat15.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>效果</h2>
+<p>在mycat中插入数据,查看主服务器中的表,有数据,两个从服务器也都复制了主服务器上的数据.</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 在mycat中查询数据,查看wrapper.log日志确定执行的哪一个数据库</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 或者修改从服务器数据,多次查询查看效果</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>BUG</h2>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 表名 :不用使用关键字 比如说order ,因为关键字 order by的原因,mycat会解析表名出错! 改为t_order</p>
+<p>&nbsp;</p>
+<h1>总结</h1>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 分库分表 : 就是在&lt;schema&gt;中配置table,然后指定数据库节点,和分片规则</p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 读写分离 : 就是在&lt;dataHost&gt;中配置balance&gt;0 和writeType 属性</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

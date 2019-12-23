@@ -1,0 +1,132 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修静态资源上传至远程ftp服务器，ftp工具类封装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>静态资源上传至远程ftp服务器，ftp工具类封装</center></div><div class='banquan'>原文出处:本文由博客园博主小菜鸟大梦想提供。<br/>
+原文连接:https://www.cnblogs.com/ncl-960301-success/p/11421162.html</div><br>
+    <p>工具类，是一个单独的工程项目</p>
+<p><img src="./images/静态资源上传至远程ftp服务器，ftp工具类封装0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>提取必要信息至ftp.properties配置文件中</p>
+<src class="cnblogs_code">
+<pre><code>ftp_host=192.168.110.128<span style="color: #000000;">
+ftp_port</span>=21<span style="color: #000000;">
+ftp_username</span>=<span style="color: #000000;">ftpuser
+ftp_password</span>=<span style="color: #000000;">ftpuser
+ftp_dir</span>=/home/ftpuser/<span style="color: #000000;">jd
+ftp_url</span>=http:<span style="color: #008000;">//</span><span style="color: #008000;">www.images.com</span></code></pre>
+
+<p>&nbsp;</p>
+<p>封装FtpUtils工具类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FtpUtils {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> String ftp_host = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> String ftp_port = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> String ftp_username = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> String ftp_password = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> String ftp_dir = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> String ftp_url = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">1、封装参数</span>
+    <span style="color: #0000ff;">static</span><span style="color: #000000;">{
+        InputStream ris </span>= FtpUtils.<span style="color: #0000ff;">class</span>.getClassLoader().getResourceAsStream("ftp.properties"<span style="color: #000000;">);
+        Properties pp </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Properties();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            pp.load(ris);
+            ftp_host </span>= pp.getProperty("ftp_host"<span style="color: #000000;">);
+            ftp_port </span>= pp.getProperty("ftp_port"<span style="color: #000000;">);
+            ftp_username </span>= pp.getProperty("ftp_username"<span style="color: #000000;">);
+            ftp_password </span>= pp.getProperty("ftp_password"<span style="color: #000000;">);
+            ftp_dir </span>= pp.getProperty("ftp_dir"<span style="color: #000000;">);
+            ftp_url </span>= pp.getProperty("ftp_url"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">**
+     * 实现建文件上传到静态资源服务器
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String uploadFile(String remote,InputStream local) {
+        
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">创建FTPClient对象 </span>
+            FTPClient client=<span style="color: #0000ff;">new</span><span style="color: #000000;"> FTPClient();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">建立和ftp服务的链接</span>
+<span style="color: #000000;">            client.connect(ftp_host, Integer.parseInt(ftp_port));
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">身份验证</span>
+<span style="color: #000000;">            client.login(ftp_username, ftp_password);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置上传的文件类型</span>
+<span style="color: #000000;">            client.setFileType(FTP.BINARY_FILE_TYPE);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">切换工作目录</span>
+            <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">client.changeWorkingDirectory(ftp_dir)) {
+                client.makeDirectory(ftp_dir);
+                client.changeWorkingDirectory(ftp_dir);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">上传</span>
+<span style="color: #000000;">            client.storeFile(remote, local);
+            
+        }</span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(Exception ex) {
+            ex.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span> ftp_url+"/jd/"+<span style="color: #000000;">remote;
+    }
+}</span></code></pre>
+
+<p>导入jar包版本：</p>
+<src class="cnblogs_code">
+<pre><code>&lt;!-- ftpclient客户端  --&gt;
+&lt;!--ftp文件上传--&gt;
+ &lt;dependency&gt;
+       &lt;groupId&gt;commons-net&lt;/groupId&gt;
+       &lt;artifactId&gt;commons-net&lt;/artifactId&gt;
+       &lt;version&gt;3.3&lt;/version&gt;
+ &lt;/dependency&gt;</code></pre>
+
+<p>测试调用：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 处理上传图片请求
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Override
+    </span><span style="color: #0000ff;">public</span> Map&lt;String, Object&gt;<span style="color: #000000;"> uploadImageService(MultipartFile mf) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated method stub</span>
+        HashMap&lt;String, Object&gt; map = <span style="color: #0000ff;">new</span> HashMap&lt;&gt;<span style="color: #000000;">();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">文件重命名</span>
+            String oldName =<span style="color: #000000;"> mf.getOriginalFilename();
+            String remote </span>= IDUtils.genImageName()+oldName.substring(oldName.lastIndexOf("."<span style="color: #000000;">));
+</span><span style="color: #000000;">
+            String url </span>=<span style="color: #000000;"> FtpUtils.uploadFile(remote, mf.getInputStream());
+            map.put(</span>"error", 0<span style="color: #000000;">);
+            map.put(</span>"url"<span style="color: #000000;">, url);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException e) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+            map.put("error", 1<span style="color: #000000;">);
+            map.put(</span>"message", "上传失败"<span style="color: #000000;">);
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> map;
+    }</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>注：使用的是springboot，已经集成了ftp，所以没有配置相应的xml文件。</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

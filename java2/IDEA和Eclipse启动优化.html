@@ -1,0 +1,105 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修IDEA和Eclipse启动优化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>IDEA和Eclipse启动优化</center></div><div class='banquan'>原文出处:本文由博客园博主Mr.Two提供。<br/>
+原文连接:https://www.cnblogs.com/stuhjf/p/11804446.html</div><br>
+    <p>昨天对比了下IDEA和Eclipse的启动速度，发现IDEA启动真的是好慢啊！！！</p>
+<p>&nbsp;</p>
+<p>电脑配置：8G win7&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>IDEA启动配置</strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">-Xms1024m
+-Xmx1024m
+-Xmn500m
+-XX:MetaspaceSize=248m
+-XX:MaxMetaspaceSize=512m
+-XX:PermSize=248m
+-XX:MaxPermSize=512m
+-XX:ReservedCodeCacheSize=512m
+-Xverify:none
+-Xnoclassgc
+-XX:+AlwaysPreTouch
+-XX:+UseG1GC
+-XX:+UseStringDeduplication
+-XX:AutoBoxCacheMax=20000
+-ea
+-server
+-Dsun.io.useCanonCaches=false
+-Dsun.awt.keepWorkingSetOnMinimize=true
+-Djava.net.preferIPv4Stack=true
+-XX:+HeapDumpOnOutOfMemoryError
+-XX:-OmitStackTraceInFastThrow
+-Dfile.encoding=UTF-8
+-XX:+DisableExplicitGC
+-javaagent:E:\IDEA\installl\JetbrainsCrack-2.7-release-str.jar</span></code></pre>
+
+<p>&nbsp;</p>
+<pre><code><span>-javaagent:E:\IDEA\installl\JetbrainsCrack-2.7-release-str.jar是破解文件路径，要改成自己的。</span></code></pre>
+<p><img src="./images/IDEA和Eclipse启动优化0.png" alt="" /></p>
+<p><img src="./images/IDEA和Eclipse启动优化1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18px;">eclipse启动配置</span></strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">-vm
+E:/java64/java8/bin/javaw.exe 
+-startup
+plugins/org.eclipse.equinox.launcher_1.5.500.v20190715-1310.jar
+--launcher.library
+C:/Users/user/.p2/pool/plugins/org.eclipse.equinox.launcher.win32.win32.x86_64_1.1.1100.v20190907-0426
+-product
+org.eclipse.epp.package.jee.product
+-showsplash
+org.eclipse.epp.package.common
+--launcher.defaultAction
+openFile
+--launcher.appendVmargs
+-vmargs
+-Dosgi.requiredJavaVersion=1.8
+-Dosgi.instance.area.default=@user.home/eclipse-workspace
+-XX:+UseG1GC
+-XX:+UseStringDeduplication
+--add-modules=ALL-SYSTEM
+-Dosgi.requiredJavaVersion=1.8
+-Dosgi.dataAreaRequiresExplicitInit=true
+-Xms256m
+-Xmx1024m
+-XX:PermSize=256M 
+-XX:MaxPermSize=512M
+-XX:ReservedCodeCacheSize=256m
+-XX:+TieredCompilation
+-XX:MetaspaceSize=256m
+-XX:MaxMetaspaceSize=512m
+--add-modules=ALL-SYSTEM
+-Declipse.p2.max.threads=10
+-Doomph.update.url=http://download.eclipse.org/oomph/updates/milestone/latest
+-Doomph.redirection.index.redirection=index:/-&gt;http://git.eclipse.org/c/oomph/org.eclipse.oomph.git/plain/setups/</span></code></pre>
+
+<pre><code><span>E:/java64/java8/bin/javaw.exe 是jdk路径，其他路径和链接保持默认即可，修改的是-X开头的jvm参数。</span></code></pre>
+<p><img src="./images/IDEA和Eclipse启动优化2.png" alt="" /></p>
+<p><img src="./images/IDEA和Eclipse启动优化3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>个人并不建议把-Xms和-Xmx设置为一样大。假如同时启动了tomcat，并且tomcat也设置了-Xms和-Xmx，内存不足的时候，tomcat无法从分配给IDEA的内存里获取可用的内存。所以，-Xms应该设置为启动该应用所需的最大内存即可。比如上面第二张图第二个分析图（堆）那里，分配给了IDEA1024m（橙色线），但是实际启动过程中，最多也就用了700m左右（蓝色线）。所以应该设置-Xms=700m，-Xmx=1024。</p>
+<p>以上为个人分析，欢迎各位大佬指教，我将在线回复！</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

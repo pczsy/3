@@ -1,0 +1,2130 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修J.U.C剖析与解读2（AQS的由来）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>J.U.C剖析与解读2（AQS的由来）</center></div><div class='banquan'>原文出处:本文由博客园博主血夜之末提供。<br/>
+原文连接:https://www.cnblogs.com/Tiancheng-Duan/p/12010076.html</div><br>
+    <h1 id="j.u.c剖析与解读2aqs的由来">J.U.C剖析与解读2（AQS的由来）</h1>
+<h2 id="前言">前言</h2>
+<p>前面已经通过实现自定义ReentrantLock与自定义ReentrantReadWriteLock，展示了JDK是如何实现独占锁与共享锁的。</p>
+<p>那么实际JDK源码中的ReentrantLock与ReentrantReadWritreLock是如何实现的呢？我们现有的自定义代码是否可以更进一步呢？</p>
+<p>答案是肯定的。注意看我之前两个Lock的朋友，应该注意到了。自定义ReentrantReadWriteLock的独占锁部分，其实和自定义ReentrantLock是几乎一样的。</p>
+<p>也就是说，不同Lock其实现是差不多的。那么是否可以提取公共的部分，是否可以写得更加优雅一些。</p>
+<p>那么这篇博客，就是通过提取公共代码，引入模板方法设计模式，并利用Java的一些特性，写出一个自定义的AQS。</p>
+<p>当然，最后也会剖析源码中AQS实现与我们自定义AQS的差别所在，并解读源码AQS中一些高级应用，如AQS通过一个state实现读写锁的持有数量（居然通过一个int值的CAS操作，解决了自定义读写锁持有数量的独占操作）。</p>
+<p>如果看过源码的朋友，会发现源码中的ReentrantLock会自定义一个Sync，该Sync会继承一个AbstratQueueSynchronizer（简称AQS）。然后源码中的ReentrantLock的tryLock等方法，则是调用Sync的对应子类（FairSync或NonFairSync，也就是是否为公平锁）来实现对应功能。并且，只有tryAcquire与lock两个方法是由ReentrantLock实现的，其它方法是由AQS提供的。lock是由FairSync与NonFairSync分别实现的。而tryAcquire是由FairSync与NonFairSync父类的Sync实现，NonFairSync的tryLock直接调用父类Sync的nonfairTryAcquire方法。</p>
+<p>而ReentrantReadWriteLock则是增加了ReadLock与WriteLock，其实现，则是调用Sync的不同方法而已。</p>
+<p>有的小伙伴，会觉得这样的关系很复杂，明明一个锁就比较复杂了，还搞得这么抽象。提取一个AQS就够抽象的了，每个锁还整了一个Sync，FairSync，NonFairSync内部类，视情况，还要弄个ReadLock，WriteLock这些内部类。这样做的目的其实是为了封装代码，提高代码复用性。当然，实际源码看多了，反而会觉得这样的代码，看得挺舒服的。比较符合设计理念（想想，你接收的项目中，一个类上千行代码，完全不敢修改）。</p>
+<blockquote>
+<p>关于读源码，简单说一下我的感受。最核心的就是坚持，最重要的是全局观，最需要的是积累。</p>
+<p>我陆陆续续阅读源码（不只是Java），也有差不多两年的经验吧。从最早的Windows内核源码，到后面的前端框架源码，到今年的Java源码阅读。最早的Windows内核源码，那真的是无知者无畏啊，简直是一段极其痛苦的经历。那时候一天可能就二十页样子，还得看运气。但是那段时间给我带来了很多，包括什么系统内存管理，内存的用户态与内核态，以及系统上下文等积累，为我后面的提升带来了很多。而后面的前端源码的阅读，也让我开始接触源码的一些思路。最后到今年的Java源码，有了去年golang一些外文博客的翻译（涉及语言设计部分）铺垫，才渐渐有了一些阅读源码的感觉（自我感觉有点上路了）。所以，最核心的是坚持。</p>
+<p>至于全局观嘛，就是一方面很多时候源码太多，常常迷路，我们需要把握主线，以及自己的目的。如果可以有一个XMIND，或者比较不错的博客等作为指引就更好了。比如这次AQS拆分，我就是从网易云的大佬James学到的。虽然之前就有了JUC学习的积累，但是大佬的AQS拆分，确实令我对AQS有了更为深入的理解。另一方面就是需要把握自己应该研究的深度（在自己能力层级再深入一些即可），而不是抓着源码的每个字不放。我今年年初的时候，就想研究IOC源码，根据一位大佬的<a href="https://javadoop.com/post/spring-ioc">文章</a>，连续啃了两三个星期。但后面陆陆续续就忘了。虽然这段经历对我依旧有着一定的积累价值（对我最近研究SpringApplication的run过程有着不错的价值），但是超出自己能力太多地撸源码，性价比就太低了。</p>
+<p>最后就是积累，我非常看重积累。自从高三后，我就对积累这个词有了更深入的理解。很多时候，我们阅读一些书籍，研究一些原理，虽然后来感觉忘记了，但是积累还是在的。就像我学习编程时，就经常感受到大学时期的计算机网络，计算机原理，分布式课题等经历给我带来的积累。而现在很多人都过于看重即时价值（就是我立马学了，立马就要有效果），而我相信技术的攀登，是离不开经年累月的积累的。</p>
+<p>如果大家对阅读源码，感兴趣的话，可以告诉我。可以考虑写一篇文章，来简单谈谈源码阅读这件事儿。</p>
+</blockquote>
+<h2 id="一简易juc版本一">一，简易JUC（版本一）：</h2>
+<p>这里就是将之前实现的简易版ReentrantLock与ReentrantReadWriteLock展现出来，就当是简单回顾一下。</p>
+<h3 id="jarryreentrantlock">1.JarryReentrantLock：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks2;
+    
+    import java.util.concurrent.LinkedBlockingQueue;
+    import java.util.concurrent.TimeUnit;
+    import java.util.concurrent.atomic.AtomicInteger;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.concurrent.locks.Condition;
+    import java.util.concurrent.locks.Lock;
+    import java.util.concurrent.locks.LockSupport;
+    
+    /**
+     * @Description： 仿ReentrantLock，实现其基本功能及特性
+     * @Author: jarry
+     */
+    public class JarryReentrantLock {
+    
+        private AtomicInteger count = new AtomicInteger(0);
+        private AtomicReference&lt;Thread&gt; owner = new AtomicReference&lt;&gt;();
+        private LinkedBlockingQueue&lt;Thread&gt; waiters = new LinkedBlockingQueue&lt;&gt;();
+    
+        public void lock() {
+            int arg = 1;
+            if (!tryLock(arg)){
+                waiters.offer(Thread.currentThread());
+                while (true){
+                    Thread head = waiters.peek();
+                    if (head == Thread.currentThread()){
+                        if (!tryLock(arg)){
+                            LockSupport.park();
+                        } else {
+                            waiters.poll();
+                            return;
+                        }
+                    } else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        public void unlock() {
+            int arg = 1;
+            if (tryUnlock(arg)){
+                Thread head = waiters.peek();
+                if (head != null){
+                    LockSupport.unpark(head);
+                }
+            }
+        }
+    
+        public boolean tryLock(int acquires) {
+            int countValue = count.get();
+            if (countValue != 0){
+                if (Thread.currentThread() == owner.get()){
+                    count.set(countValue+acquires);
+                    return true;
+                }else{
+                    return false;
+                }
+            }else {
+                if (count.compareAndSet(countValue,countValue+acquires)){
+                    owner.set(Thread.currentThread());
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+    
+        private boolean tryUnlock(int releases) {
+            if (Thread.currentThread() != owner.get()){
+                throw new IllegalMonitorStateException();
+            } else {
+                int countValue = count.get();
+                int countNextValue = countValue - releases;
+                count.compareAndSet(countValue,countNextValue);
+                if (countNextValue == 0){
+                    owner.compareAndSet(Thread.currentThread(),null);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+        }
+    
+        public void lockInterruptibly() throws InterruptedException {
+    
+        }
+    
+        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+            return false;
+        }
+    
+        public Condition newCondition() {
+            return null;
+        }
+    }
+</code></code></pre>
+<h3 id="jarryreadwritelock">2.JarryReadWriteLock：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks2;
+    
+    import java.util.concurrent.LinkedBlockingQueue;
+    import java.util.concurrent.atomic.AtomicInteger;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.concurrent.locks.LockSupport;
+    
+    /**
+     * @Description：
+     * @Author: jarry
+     */
+    public class JarryReadWriteLock {
+    
+        volatile AtomicInteger readCount = new AtomicInteger(0);
+        AtomicInteger writeCount = new AtomicInteger(0);
+        AtomicReference&lt;Thread&gt; owner = new AtomicReference&lt;&gt;();
+        public volatile LinkedBlockingQueue&lt;WaitNode&gt; waiters = new LinkedBlockingQueue&lt;&gt;();
+    
+        class WaitNode{
+            Thread thread = null;
+            // 表示希望争取的锁的类型。0表示写锁（独占锁），1表示读锁（共享锁）
+            int type = 0;
+            int arg = 0;
+    
+            public WaitNode(Thread thread, int type, int arg) {
+                this.type = type;
+                this.thread = thread;
+                this.arg = arg;
+            }
+        }
+    
+        /**
+         * 获取独占锁（针对独占锁）
+         */
+        public void lock(){
+            int arg = 1;
+            if (!tryLock(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(), 0, arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode headNote = waiters.peek();
+                    if (headNote !=null &amp;&amp; headNote.thread == Thread.currentThread()){
+                        if (!tryLock(headNote.arg)){
+                            LockSupport.park();
+                        } else {
+                            waiters.poll();
+                            return;
+                        }
+                    }else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对独占锁）
+         */
+        public void unlock(){
+            int arg = 1;
+            if (tryUnlock(arg)){
+                WaitNode head = waiters.peek();
+                if (head == null){
+                    return;
+                }
+                LockSupport.unpark(head.thread);
+            }
+        }
+    
+        /**
+         * 尝试获取独占锁（针对独占锁）
+         * @param acquires 用于加锁次数。一般传入waitNode.arg（本代码中就是1。为什么不用一个常量1，就不知道了？）
+         * @return
+         */
+        public boolean tryLock(int acquires){
+            if (readCount.get() == 0){
+                int writeCountValue = writeCount.get();
+                if (writeCountValue == 0){
+                    if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                        owner.set(Thread.currentThread());
+                        return true;
+                    }
+                } else {
+                    if (Thread.currentThread() == owner.get()){
+                        writeCount.set(writeCountValue+acquires);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    
+        /**
+         * 尝试解锁（针对独占锁）
+         * @param releases 用于设定解锁次数。一般传入waitNode.arg
+         * @return
+         */
+        public boolean tryUnlock(int releases){
+            if (owner.get() != Thread.currentThread()){
+                throw new IllegalMonitorStateException();
+            }
+            int writeCountValue = writeCount.get();
+            writeCount.set(writeCountValue-releases);
+            if (writeCount.get() == 0){
+                owner.compareAndSet(Thread.currentThread(),null);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    
+        /**
+         * 获取共享锁（针对共享锁）
+         */
+        public void lockShared(){
+            int arg = 1;
+            if (!tryLockShared(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(),1,arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode head = waiters.peek();
+                    if (head != null &amp;&amp; head.thread == Thread.currentThread()){
+                        if (tryLockShared(head.arg)){
+                            waiters.poll();
+    
+                            WaitNode newHead = waiters.peek();
+                            if (newHead != null &amp;&amp; newHead.type == 1){
+                                LockSupport.unpark(newHead.thread);
+                            }
+                            return;
+                        } else {
+                            LockSupport.park();
+                        }
+                    } else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对共享锁）
+         */
+        public boolean unLockShared(){
+            int arg = 1;
+            if (tryUnLockShared(arg)){
+                WaitNode head = waiters.peek();
+                if (head != null){
+                    LockSupport.unpark(head.thread);
+                }
+                return true;
+            }
+            return false;
+        }
+    
+        /**
+         * 尝试获取共享锁（针对共享锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLockShared(int acquires){
+            while (true){
+                if (writeCount.get() == 0 || owner.get() == Thread.currentThread()){
+                    int readCountValue = readCount.get();
+                    if (readCount.compareAndSet(readCountValue, readCountValue+acquires)){
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+    
+        /**
+         * 尝试解锁（针对共享锁）
+         * @param releases
+         * @return
+         */
+        public boolean tryUnLockShared(int releases){
+            while (true){
+                int readCountValue = readCount.get();
+                int readCountNext = readCountValue - releases;
+                if (readCount.compareAndSet(readCountValue,readCountNext)){
+                    return readCountNext == 0;
+                }
+            }
+        }
+    
+    }
+</code></code></pre>
+<h2 id="二简易juc版本二">二，简易JUC（版本二）：</h2>
+<p>很明显，上面的代码中，JarryReentrantLock的tryLock等方法与JarryReadWriteLock中共享锁的tryLock等方法是类似的（本来就是从JarryReentrantLock复制过来的嘛）。那么，这里就需要引入模板方法（详见笔记《设计模式》-模板方法）。通过一个commonMask类，来提取公共方法。</p>
+<h3 id="commonmask">1.CommonMask：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks3;
+    
+    import java.util.concurrent.LinkedBlockingQueue;
+    import java.util.concurrent.atomic.AtomicInteger;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.concurrent.locks.LockSupport;
+    
+    /**
+     * @Description：
+     * @Author: jarry
+     */
+    public class CommonMask {
+    
+        volatile AtomicInteger readCount = new AtomicInteger(0);
+        AtomicInteger writeCount = new AtomicInteger(0);
+        AtomicReference&lt;Thread&gt; owner = new AtomicReference&lt;&gt;();
+        public volatile LinkedBlockingQueue&lt;WaitNode&gt; waiters = new LinkedBlockingQueue&lt;&gt;();
+    
+        class WaitNode{
+            Thread thread = null;
+            // 表示希望争取的锁的类型。0表示写锁（独占锁），1表示读锁（共享锁）
+            int type = 0;
+            int arg = 0;
+    
+            public WaitNode(Thread thread, int type, int arg) {
+                this.type = type;
+                this.thread = thread;
+                this.arg = arg;
+            }
+        }
+    
+        /**
+         * 获取独占锁（针对独占锁）
+         */
+        public void lock(){
+            int arg = 1;
+            if (!tryLock(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(), 0, arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode headNote = waiters.peek();
+                    if (headNote !=null &amp;&amp; headNote.thread == Thread.currentThread()){
+                        if (!tryLock(headNote.arg)){
+                            LockSupport.park();
+                        } else {
+                            waiters.poll();
+                            return;
+                        }
+                    }else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对独占锁）
+         */
+        public void unlock(){
+            int arg = 1;
+            if (tryUnlock(arg)){
+                WaitNode head = waiters.peek();
+                if (head == null){
+                    return;
+                }
+                LockSupport.unpark(head.thread);
+            }
+        }
+    
+        /**
+         * 尝试获取独占锁（针对独占锁）
+         * @param acquires 用于加锁次数。一般传入waitNode.arg（本代码中就是1。为什么不用一个常量1，就不知道了？）
+         * @return
+         */
+        public boolean tryLock(int acquires){
+            if (readCount.get() == 0){
+                int writeCountValue = writeCount.get();
+                if (writeCountValue == 0){
+                    if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                        owner.set(Thread.currentThread());
+                        return true;
+                    }
+                } else {
+                    if (Thread.currentThread() == owner.get()){
+                        writeCount.set(writeCountValue+acquires);
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+    
+        /**
+         * 尝试解锁（针对独占锁）
+         * @param releases 用于设定解锁次数。一般传入waitNode.arg
+         * @return
+         */
+        public boolean tryUnlock(int releases){
+            if (owner.get() != Thread.currentThread()){
+                throw new IllegalMonitorStateException();
+            }
+            int writeCountValue = writeCount.get();
+            writeCount.set(writeCountValue-releases);
+            if (writeCount.get() == 0){
+                owner.compareAndSet(Thread.currentThread(),null);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    
+        /**
+         * 获取共享锁（针对共享锁）
+         */
+        public void lockShared(){
+            int arg = 1;
+            if (!tryLockShared(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(),1,arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode head = waiters.peek();
+                    if (head != null &amp;&amp; head.thread == Thread.currentThread()){
+                        if (tryLockShared(head.arg)){
+                            waiters.poll();
+    
+                            WaitNode newHead = waiters.peek();
+                            if (newHead != null &amp;&amp; newHead.type == 1){
+                                LockSupport.unpark(newHead.thread);
+                            }
+                            return;
+                        } else {
+                            LockSupport.park();
+                        }
+                    } else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对共享锁）
+         */
+        public boolean unLockShared(){
+            int arg = 1;
+            if (tryUnLockShared(arg)){
+                WaitNode head = waiters.peek();
+                if (head != null){
+                    LockSupport.unpark(head.thread);
+                }
+                return true;
+            }
+            return false;
+        }
+    
+        /**
+         * 尝试获取共享锁（针对共享锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLockShared(int acquires){
+            while (true){
+                if (writeCount.get() == 0 || owner.get() == Thread.currentThread()){
+                    int readCountValue = readCount.get();
+                    if (readCount.compareAndSet(readCountValue, readCountValue+acquires)){
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+    
+        /**
+         * 尝试解锁（针对共享锁）
+         * @param releases
+         * @return
+         */
+        public boolean tryUnLockShared(int releases){
+            while (true){
+                int readCountValue = readCount.get();
+                int readCountNext = readCountValue - releases;
+                if (readCount.compareAndSet(readCountValue,readCountNext)){
+                    return readCountNext == 0;
+                }
+            }
+        }
+    }
+</code></code></pre>
+<h3 id="jarryreentrantlock-1">2.JarryReentrantLock：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks3;
+    
+    import java.util.concurrent.LinkedBlockingQueue;
+    import java.util.concurrent.TimeUnit;
+    import java.util.concurrent.atomic.AtomicInteger;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.concurrent.locks.Condition;
+    import java.util.concurrent.locks.Lock;
+    import java.util.concurrent.locks.LockSupport;
+    
+    /**
+     * @Description： 仿ReentrantLock，实现其基本功能及特性
+     * @Author: jarry
+     */
+    public class JarryReentrantLock {
+    
+        private CommonMask commonMask = new CommonMask();
+    
+        public void lock() {
+            commonMask.lock();
+        }
+    
+        public void unlock() {
+            commonMask.unlock();
+        }
+    
+        public boolean tryLock(int acquire) {
+            return commonMask.tryLock(acquire);
+        }
+    
+        private boolean tryUnlock(int release) {
+            return commonMask.tryUnlock(release);
+        }
+    }
+</code></code></pre>
+<h3 id="jarryreadwritelock-1">3.JarryReadWriteLock：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks3;
+    
+    import java.util.concurrent.LinkedBlockingQueue;
+    import java.util.concurrent.atomic.AtomicInteger;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.concurrent.locks.LockSupport;
+    
+    /**
+     * @Description：
+     * @Author: jarry
+     */
+    public class JarryReadWriteLock {
+    
+        private CommonMask commonMask = new CommonMask();
+    
+        /**
+         * 获取独占锁（针对独占锁）
+         */
+        public void lock(){
+            commonMask.lock();
+        }
+    
+        /**
+         * 解锁（针对独占锁）
+         */
+        public void unlock(){
+            commonMask.unlock();
+        }
+    
+        /**
+         * 尝试获取独占锁（针对独占锁）
+         * @param acquires 用于加锁次数。一般传入waitNode.arg（本代码中就是1。为什么不用一个常量1，就不知道了？）
+         * @return
+         */
+        public boolean tryLock(int acquires){
+            return commonMask.tryLock(acquires);
+        }
+    
+        /**
+         * 尝试解锁（针对独占锁）
+         * @param releases 用于设定解锁次数。一般传入waitNode.arg
+         * @return
+         */
+        public boolean tryUnlock(int releases){
+            return commonMask.tryUnlock(releases);
+        }
+    
+        /**
+         * 获取共享锁（针对共享锁）
+         */
+        public void lockShared(){
+            commonMask.lockShared();
+        }
+    
+        /**
+         * 解锁（针对共享锁）
+         */
+        public boolean unLockShared(){
+            return commonMask.unLockShared();
+        }
+    
+        /**
+         * 尝试获取共享锁（针对共享锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLockShared(int acquires){
+            return tryLockShared(acquires);
+        }
+    
+        /**
+         * 尝试解锁（针对共享锁）
+         * @param releases
+         * @return
+         */
+        public boolean tryUnLockShared(int releases){
+            return commonMask.tryUnLockShared(releases);
+        }
+    
+    }
+</code></code></pre>
+<p>到了这里，大家就可以明显看出，总体代码量的下降（这还只是两个Lock）。但是问题也出来了，那就是这样将所有方法都放在父类CommonMask，子类进行调用，是不是显得过于死板（说得直接点，就是这种操作，完全就是将代码往父类一抛而已）。这说明，之前代码公共提取做得并不好。</p>
+<p>重新整理思路，JarryReentrantLock与JarryReadWriteLock的共同之处到底在哪里。细想一下，发现这两个方法的lock，unlock等操作是一致的，只是实际的运行逻辑方法tryLock，tryUnlock，tryLockShared，tryUnLockShared四个方法（在框架源码中，常常用doxxx方法，表示实际运行逻辑的方法）。所以CommonMask应该实现的是这四个方法之外的方法，而这四个方法交由子类，来根据具体需要来实现（CommonMask中，这四个方法直接抛出对应异常）。</p>
+<p>最后，ReentrantLock是有公平锁，非公平锁之分的。而通过上面的调整，现在的JarryReentrantLock可以实现自己对应方法，来展现特性（公平锁/非公平锁的选择）了。</p>
+<h2 id="三简易juc版本三">三，简易JUC（版本三）：</h2>
+<h3 id="commonmask-1">1.CommonMask：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks4;
+    
+    import java.util.concurrent.LinkedBlockingQueue;
+    import java.util.concurrent.atomic.AtomicInteger;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.concurrent.locks.LockSupport;
+    
+    /**
+     * @Description：
+     * @Author: jarry
+     */
+    public class CommonMask {
+    
+        volatile AtomicInteger readCount = new AtomicInteger(0);
+        AtomicInteger writeCount = new AtomicInteger(0);
+        AtomicReference&lt;Thread&gt; owner = new AtomicReference&lt;&gt;();
+        public volatile LinkedBlockingQueue&lt;WaitNode&gt; waiters = new LinkedBlockingQueue&lt;&gt;();
+    
+        class WaitNode{
+            Thread thread = null;
+            // 表示希望争取的锁的类型。0表示写锁（独占锁），1表示读锁（共享锁）
+            int type = 0;
+            int arg = 0;
+    
+            public WaitNode(Thread thread, int type, int arg) {
+                this.type = type;
+                this.thread = thread;
+                this.arg = arg;
+            }
+        }
+    
+        /**
+         * 获取独占锁（针对独占锁）
+         */
+        public void lock(){
+            int arg = 1;
+            if (!tryLock(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(), 0, arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode headNote = waiters.peek();
+                    if (headNote !=null &amp;&amp; headNote.thread == Thread.currentThread()){
+                        if (!tryLock(headNote.arg)){
+                            LockSupport.park();
+                        } else {
+                            waiters.poll();
+                            return;
+                        }
+                    }else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对独占锁）
+         */
+        public void unlock(){
+            int arg = 1;
+            if (tryUnlock(arg)){
+                WaitNode head = waiters.peek();
+                if (head == null){
+                    return;
+                }
+                LockSupport.unpark(head.thread);
+            }
+        }
+    
+    
+        /**
+         * 获取共享锁（针对共享锁）
+         */
+        public void lockShared(){
+            int arg = 1;
+            if (!tryLockShared(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(),1,arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode head = waiters.peek();
+                    if (head != null &amp;&amp; head.thread == Thread.currentThread()){
+                        if (tryLockShared(head.arg)){
+                            waiters.poll();
+    
+                            WaitNode newHead = waiters.peek();
+                            if (newHead != null &amp;&amp; newHead.type == 1){
+                                LockSupport.unpark(newHead.thread);
+                            }
+                            return;
+                        } else {
+                            LockSupport.park();
+                        }
+                    } else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对共享锁）
+         */
+        public boolean unLockShared(){
+            int arg = 1;
+            if (tryUnLockShared(arg)){
+                WaitNode head = waiters.peek();
+                if (head != null){
+                    LockSupport.unpark(head.thread);
+                }
+                return true;
+            }
+            return false;
+        }
+    
+        /**
+         * 尝试获取独占锁（针对独占锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLock(int acquires){
+            throw new UnsupportedOperationException();
+        }
+    
+        /**
+         * 尝试解锁（针对独占锁）
+         * @param releases 用于设定解锁次数。一般传入waitNode.arg
+         * @return
+         */
+        public boolean tryUnlock(int releases){
+            throw new UnsupportedOperationException();
+        }
+    
+        /**
+         * 尝试获取共享锁（针对共享锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLockShared(int acquires){
+            throw new UnsupportedOperationException();
+        }
+    
+        /**
+         * 尝试解锁（针对共享锁）
+         * @param releases
+         * @return
+         */
+        public boolean tryUnLockShared(int releases){
+            throw new UnsupportedOperationException();
+        }
+    }
+</code></code></pre>
+<h3 id="jarryreentrantlock-2">2.JarryReentrantLock：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks4;
+    
+    /**
+     * @Description： 仿ReentrantLock，实现其基本功能及特性
+     * @Author: jarry
+     */
+    public class JarryReentrantLock {
+    
+        private boolean isFair;
+    
+        // 默认采用非公平锁，保证效率（就是参照源码）
+        public JarryReentrantLock() {
+            this.isFair = false;
+        }
+    
+        public JarryReentrantLock(boolean isFair) {
+            this.isFair = isFair;
+        }
+    
+        private CommonMask commonMask = new CommonMask(){
+    
+            @Override
+            public boolean tryLock(int acquires){
+                if (isFair){
+                    return tryFairLock(acquires);
+                } else {
+                    return tryNonFairLock(acquires);
+                }
+            }
+    
+            private boolean tryFairLock(int acquires){
+                // 这里简单注释一下，如何实现公平锁，其关键在于新的线程到来时，不再直接尝试获取锁，而是直接塞入队列（队列为空，也是殊途同归的）
+                // 1.判断读锁（共享锁）是否被占用
+                if (readCount.get() == 0){
+                    // 2.判断写锁（独占锁）是否被占用
+                    int writeCountValue = writeCount.get();
+                    if (writeCountValue == 0){
+                        // 2.1 （核心区别）如果写锁未被占用，需要先对等待队列waiters进行判断
+                        WaitNode head = waiters.peek();
+                        if (head !=null &amp;&amp; head.thread == Thread.currentThread()){
+                            if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                                owner.set(Thread.currentThread());
+                                return true;
+                            }   // 竞争失败就直接返回false了
+                        }
+                    } else {
+                        // 2.2 如果写锁已经被占用了，就判断是否为当前线程持有，是否进行重入操作
+                        if (owner.get() == Thread.currentThread()){
+                            // 如果持有独占锁的线程就是当前线程，那么不需要改变owner，也不需要CAS，只需要修改writeCount的值即可
+                            writeCount.set(writeCountValue + acquires);
+                            return true;
+                        }
+                    }
+                }
+                // 以上操作失败，就返回false，表示竞争锁失败
+                return false;
+            }
+    
+            private boolean tryNonFairLock(int acquires){
+                if (readCount.get() == 0){
+                    int writeCountValue = writeCount.get();
+                    if (writeCountValue == 0){
+                        if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                            owner.set(Thread.currentThread());
+                            return true;
+                        }
+                    } else {
+                        if (Thread.currentThread() == owner.get()){
+                            writeCount.set(writeCountValue+acquires);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+    
+            @Override
+            public boolean tryUnlock(int releases) {
+                if (owner.get() != Thread.currentThread()){
+                    throw new IllegalMonitorStateException();
+                }
+                int writeCountValue = writeCount.get();
+                writeCount.set(writeCountValue-releases);
+                if (writeCount.get() == 0){
+                    owner.compareAndSet(Thread.currentThread(),null);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+    
+            // 其它诸如共享锁的相关操作，就不进行了。如果强行调用，只会发生UnsupportedOperationException
+        };
+    
+        public void lock() {
+            commonMask.lock();
+        }
+    
+        public void unlock() {
+            commonMask.unlock();
+        }
+    
+        public boolean tryLock(int acquire) {
+            return commonMask.tryLock(acquire);
+        }
+    
+        private boolean tryUnlock(int release) {
+            return commonMask.tryUnlock(release);
+        }
+    }
+</code></code></pre>
+<h3 id="jarryreadwritelock-2">3.JarryReadWriteLock：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks4;
+    
+    /**
+     * @Description：
+     * @Author: jarry
+     */
+    public class JarryReadWriteLock {
+    
+        private CommonMask commonMask = new CommonMask(){
+    
+            @Override
+            public boolean tryLock(int acquires){
+                if (readCount.get() == 0){
+                    int writeCountValue = writeCount.get();
+                    if (writeCountValue == 0){
+                        if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                            owner.set(Thread.currentThread());
+                            return true;
+                        }
+                    } else {
+                        if (Thread.currentThread() == owner.get()){
+                            writeCount.set(writeCountValue+acquires);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+    
+            @Override
+            public boolean tryUnlock(int releases) {
+                if (owner.get() != Thread.currentThread()){
+                    throw new IllegalMonitorStateException();
+                }
+                int writeCountValue = writeCount.get();
+                writeCount.set(writeCountValue-releases);
+                if (writeCount.get() == 0){
+                    owner.compareAndSet(Thread.currentThread(),null);
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+    
+            @Override
+            public boolean tryLockShared(int acquires) {
+                while (true){
+                    if (writeCount.get() == 0 || owner.get() == Thread.currentThread()){
+                        int readCountValue = readCount.get();
+                        if (readCount.compareAndSet(readCountValue, readCountValue+acquires)){
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+    
+            @Override
+            public boolean tryUnLockShared(int releases) {
+                while (true){
+                    int readCountValue = readCount.get();
+                    int readCountNext = readCountValue - releases;
+                    if (readCount.compareAndSet(readCountValue,readCountNext)){
+                        return readCountNext == 0;
+                    }
+                }
+            }
+        };
+    
+    
+        /**
+         * 获取独占锁（针对独占锁）
+         */
+        public void lock(){
+            commonMask.lock();
+        }
+    
+        /**
+         * 解锁（针对独占锁）
+         */
+        public void unlock(){
+            commonMask.unlock();
+        }
+    
+        /**
+         * 尝试获取独占锁（针对独占锁）
+         * @param acquires 用于加锁次数。一般传入waitNode.arg（本代码中就是1。为什么不用一个常量1，就不知道了？）
+         * @return
+         */
+        public boolean tryLock(int acquires){
+            return commonMask.tryLock(acquires);
+        }
+    
+        /**
+         * 尝试解锁（针对独占锁）
+         * @param releases 用于设定解锁次数。一般传入waitNode.arg
+         * @return
+         */
+        public boolean tryUnlock(int releases){
+            return commonMask.tryUnlock(releases);
+        }
+    
+        /**
+         * 获取共享锁（针对共享锁）
+         */
+        public void lockShared(){
+            commonMask.lockShared();
+        }
+    
+        /**
+         * 解锁（针对共享锁）
+         */
+        public boolean unLockShared(){
+            return commonMask.unLockShared();
+        }
+    
+        /**
+         * 尝试获取共享锁（针对共享锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLockShared(int acquires){
+            return tryLockShared(acquires);
+        }
+    
+        /**
+         * 尝试解锁（针对共享锁）
+         * @param releases
+         * @return
+         */
+        public boolean tryUnLockShared(int releases){
+            return commonMask.tryUnLockShared(releases);
+        }
+    
+    }
+</code></code></pre>
+<p>这样看来，顺眼不少。但是，还是存在两点问题。一方面，两个Lock并没有如实际源码那样，实现Lock接口与ReadWriteLock接口。另一方面，JarryReadWriteLock并没有如实际源码那样，通过获取对应Lock（如ReadLock与WriteLock），再进行对应锁操作（其实，就是实现ReadWriteLock接口）。</p>
+<p>那么就来进行改造吧。<del>这里直接采用James大佬的最终版CommonMask-JameAQS了。</del> 这里采用自己的AQS，因为自己的AQS有一些关键注解。</p>
+<h2 id="四简易juc版本四">四，简易JUC（版本四）：</h2>
+<h3 id="jarryaqs">1.JarryAQS：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks6;
+    
+    import java.util.concurrent.LinkedBlockingQueue;
+    import java.util.concurrent.atomic.AtomicInteger;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.concurrent.locks.LockSupport;
+    
+    /**
+     * @Description：
+     * @Author: jarry
+     */
+    public class JarryAQS {
+    
+        volatile AtomicInteger readCount = new AtomicInteger(0);
+        AtomicInteger writeCount = new AtomicInteger(0);
+        AtomicReference&lt;Thread&gt; owner = new AtomicReference&lt;&gt;();
+        public volatile LinkedBlockingQueue&lt;WaitNode&gt; waiters = new LinkedBlockingQueue&lt;&gt;();
+    
+        class WaitNode{
+            Thread thread = null;
+            // 表示希望争取的锁的类型。0表示写锁（独占锁），1表示读锁（共享锁）
+            int type = 0;
+            int arg = 0;
+    
+            public WaitNode(Thread thread, int type, int arg) {
+                this.type = type;
+                this.thread = thread;
+                this.arg = arg;
+            }
+        }
+    
+        /**
+         * 获取独占锁（针对独占锁）
+         */
+        public void lock(){
+            int arg = 1;
+            if (!tryLock(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(), 0, arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode headNote = waiters.peek();
+                    if (headNote !=null &amp;&amp; headNote.thread == Thread.currentThread()){
+                        if (!tryLock(headNote.arg)){
+                            LockSupport.park();
+                        } else {
+                            waiters.poll();
+                            return;
+                        }
+                    }else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对独占锁）
+         */
+        public void unlock(){
+            int arg = 1;
+            if (tryUnlock(arg)){
+                WaitNode head = waiters.peek();
+                if (head == null){
+                    return;
+                }
+                LockSupport.unpark(head.thread);
+            }
+        }
+    
+    
+        /**
+         * 获取共享锁（针对共享锁）
+         */
+        public void lockShared(){
+            int arg = 1;
+            if (!tryLockShared(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(),1,arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode head = waiters.peek();
+                    if (head != null &amp;&amp; head.thread == Thread.currentThread()){
+                        if (tryLockShared(head.arg)){
+                            waiters.poll();
+    
+                            WaitNode newHead = waiters.peek();
+                            if (newHead != null &amp;&amp; newHead.type == 1){
+                                LockSupport.unpark(newHead.thread);
+                            }
+                            return;
+                        } else {
+                            LockSupport.park();
+                        }
+                    } else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对共享锁）
+         */
+        public boolean unLockShared(){
+            int arg = 1;
+            if (tryUnLockShared(arg)){
+                WaitNode head = waiters.peek();
+                if (head != null){
+                    LockSupport.unpark(head.thread);
+                }
+                return true;
+            }
+            return false;
+        }
+    
+        /**
+         * 尝试获取独占锁（针对独占锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLock(int acquires){
+            throw new UnsupportedOperationException();
+        }
+    
+        /**
+         * 尝试解锁（针对独占锁）
+         * @param releases 用于设定解锁次数。一般传入waitNode.arg
+         * @return
+         */
+        public boolean tryUnlock(int releases){
+            throw new UnsupportedOperationException();
+        }
+    
+        /**
+         * 尝试获取共享锁（针对共享锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLockShared(int acquires){
+            throw new UnsupportedOperationException();
+        }
+    
+        /**
+         * 尝试解锁（针对共享锁）
+         * @param releases
+         * @return
+         */
+        public boolean tryUnLockShared(int releases){
+            throw new UnsupportedOperationException();
+        }
+    }
+</code></code></pre>
+<h3 id="jarryreentrantlock-3">2.JarryReentrantLock：</h3>
+<pre><code><code>    
+    package tech.jarry.learning.netease.locks6;
+    
+    import java.util.concurrent.TimeUnit;
+    import java.util.concurrent.locks.Condition;
+    import java.util.concurrent.locks.Lock;
+    
+    /**
+     * @Description： 仿ReentrantLock，实现其基本功能及特性
+     * @Author: jarry
+     */
+    public class JarryReentrantLock implements Lock {
+    
+        private boolean isFair;
+    
+        // 默认采用非公平锁，保证效率（就是参照源码）
+        public JarryReentrantLock() {
+            this.isFair = false;
+        }
+    
+        public JarryReentrantLock(boolean isFair) {
+            this.isFair = isFair;
+        }
+    
+        private JarryAQS jarryAQS = new JarryAQS(){
+    
+            @Override
+            // 源码中，则是将FairSync与NonFairSync作为两个单独内布类（extend Sync），来实现的。那样会更加优雅，耦合度更低，扩展性更好（而且实际源码，需要重写的部分也会更多，而不像这个自定义demo，只有一个tryLock方法需要重写）
+            public boolean tryLock(int acquires){
+                if (isFair){
+                    return tryFairLock(acquires);
+                } else {
+                    return tryNonFairLock(acquires);
+                }
+            }
+    
+            private boolean tryFairLock(int acquires){
+                // 这里简单注释一下，如何实现公平锁，其关键在于新的线程到来时，不再直接尝试获取锁，而是直接塞入队列（队列为空，也是殊途同归的）
+                // 1.判断读锁（共享锁）是否被占用
+                if (readCount.get() == 0){
+                    // 2.判断写锁（独占锁）是否被占用
+                    int writeCountValue = writeCount.get();
+                    if (writeCountValue == 0){
+                        // 2.1 （核心区别）如果写锁未被占用，需要先对等待队列waiters进行判断
+                        WaitNode head = waiters.peek();
+                        if (head !=null &amp;&amp; head.thread == Thread.currentThread()){
+                            if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                                owner.set(Thread.currentThread());
+                                return true;
+                            }   // 竞争失败就直接返回false了
+                        }
+                    } else {
+                        // 2.2 如果写锁已经被占用了，就判断是否为当前线程持有，是否进行重入操作
+                        if (owner.get() == Thread.currentThread()){
+                            // 如果持有独占锁的线程就是当前线程，那么不需要改变owner，也不需要CAS，只需要修改writeCount的值即可
+                            writeCount.set(writeCountValue + acquires);
+                            return true;
+                        }
+                    }
+                }
+                // 以上操作失败，就返回false，表示竞争锁失败
+                return false;
+            }
+    
+            private boolean tryNonFairLock(int acquires){
+                if (readCount.get() == 0){
+                    int writeCountValue = writeCount.get();
+                    if (writeCountValue == 0){
+                        if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                            owner.set(Thread.currentThread());
+                            return true;
+                        }
+                    } else {
+                        if (Thread.currentThread() == owner.get()){
+                            writeCount.set(writeCountValue+acquires);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+    
+            @Override
+            /**
+             *
+             先通过临时变量c，判断是否接下来的操作会完全解锁。
+             如果完全解锁，先释放owner，再通过setState将count（源码中为state)修改为0。
+             这样调换了一下顺序，但是避免了owner的原子性问题（毕竟别的线程是通过state来判断是否可以竞争锁，修改owner的）。
+             */
+            public boolean tryUnlock(int releases) {
+                if (owner.get() != Thread.currentThread()){
+                    throw new IllegalMonitorStateException();
+                }
+                int writeCountNextValue = writeCount.get() - releases;
+                boolean result = false;
+                if (writeCountNextValue == 0){
+                    result = true;
+                    owner.set(null);
+                }
+                writeCount.set(writeCountNextValue);
+                return result;
+            }
+    
+            // 其它诸如共享锁的相关操作，就不进行了。如果强行调用，只会发生UnsupportedOperationException
+        };
+    
+        @Override
+        public void lock() {
+            jarryAQS.lock();
+        }
+    
+        @Override
+        public void lockInterruptibly() throws InterruptedException {
+    
+        }
+    
+        @Override
+        public boolean tryLock() {
+            return jarryAQS.tryLock(1);
+        }
+    
+        @Override
+        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+            return false;
+        }
+    
+        @Override
+        public void unlock() {
+            jarryAQS.unlock();
+        }
+    
+        @Override
+        public Condition newCondition() {
+            return null;
+        }
+    
+    }
+</code></code></pre>
+<h3 id="jarryreadwritelock-3">3.JarryReadWriteLock：</h3>
+<pre><code><code>    
+    package tech.jarry.learning.netease.locks6;
+    
+    import java.util.concurrent.TimeUnit;
+    import java.util.concurrent.locks.Condition;
+    import java.util.concurrent.locks.Lock;
+    import java.util.concurrent.locks.ReadWriteLock;
+    
+    /**
+     * @Description：
+     * @Author: jarry
+     */
+    public class JarryReadWriteLock implements ReadWriteLock {
+    
+        private JarryAQS jarryAQS = new JarryAQS(){
+    
+            @Override
+            // 实际源码，是通过Sync类，继承AQS，再进行Override的。
+            public boolean tryLock(int acquires){
+                if (readCount.get() == 0){
+                    int writeCountValue = writeCount.get();
+                    if (writeCountValue == 0){
+                        if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                            owner.set(Thread.currentThread());
+                            return true;
+                        }
+                    } else {
+                        if (Thread.currentThread() == owner.get()){
+                            writeCount.set(writeCountValue+acquires);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+    
+            @Override
+            public boolean tryUnlock(int releases) {
+                if (owner.get() != Thread.currentThread()){
+                    throw new IllegalMonitorStateException();
+                }
+                int writeCountNextValue = writeCount.get() - releases;
+                boolean result = false;
+                if (writeCountNextValue == 0){
+                    result = true;
+                    owner.set(null);
+                }
+                writeCount.set(writeCountNextValue);
+                return result;
+            }
+    
+            @Override
+            public boolean tryLockShared(int acquires) {
+                while (true){
+                    if (writeCount.get() == 0 || owner.get() == Thread.currentThread()){
+                        int readCountValue = readCount.get();
+                        if (readCount.compareAndSet(readCountValue, readCountValue+acquires)){
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+    
+            @Override
+            public boolean tryUnLockShared(int releases) {
+                while (true){
+                    int readCountValue = readCount.get();
+                    int readCountNext = readCountValue - releases;
+                    if (readCount.compareAndSet(readCountValue,readCountNext)){
+                        return readCountNext == 0;
+                    }
+                }
+            }
+        };
+    
+    
+        /**
+         * 获取独占锁（针对独占锁）
+         */
+        public void lock(){
+            jarryAQS.lock();
+        }
+    
+        /**
+         * 解锁（针对独占锁）
+         */
+        public void unlock(){
+            jarryAQS.unlock();
+        }
+    
+        /**
+         * 尝试获取独占锁（针对独占锁）
+         * @param acquires 用于加锁次数。一般传入waitNode.arg（本代码中就是1。为什么不用一个常量1，就不知道了？）
+         * @return
+         */
+        public boolean tryLock(int acquires){
+            return jarryAQS.tryLock(acquires);
+        }
+    
+        /**
+         * 尝试解锁（针对独占锁）
+         * @param releases 用于设定解锁次数。一般传入waitNode.arg
+         * @return
+         */
+        public boolean tryUnlock(int releases){
+            return jarryAQS.tryUnlock(releases);
+        }
+    
+        /**
+         * 获取共享锁（针对共享锁）
+         */
+        public void lockShared(){
+            jarryAQS.lockShared();
+        }
+    
+        /**
+         * 解锁（针对共享锁）
+         */
+        public boolean unLockShared(){
+            return jarryAQS.unLockShared();
+        }
+    
+        /**
+         * 尝试获取共享锁（针对共享锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLockShared(int acquires){
+            return tryLockShared(acquires);
+        }
+    
+        /**
+         * 尝试解锁（针对共享锁）
+         * @param releases
+         * @return
+         */
+        public boolean tryUnLockShared(int releases){
+            return jarryAQS.tryUnLockShared(releases);
+        }
+    
+        @Override
+        public Lock readLock() {
+            return new Lock() {
+                @Override
+                public void lock() {
+                    jarryAQS.lockShared();
+                }
+    
+                @Override
+                public void lockInterruptibly() throws InterruptedException {
+    
+                }
+    
+                @Override
+                public boolean tryLock() {
+                    return jarryAQS.tryLockShared(1);
+                }
+    
+                @Override
+                public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+                    return false;
+                }
+    
+                @Override
+                public void unlock() {
+                    jarryAQS.unLockShared();
+                }
+    
+                @Override
+                public Condition newCondition() {
+                    return null;
+                }
+            };
+        }
+    
+        @Override
+        public Lock writeLock() {
+            return new Lock() {
+                @Override
+                public void lock() {
+                    jarryAQS.lock();
+                }
+    
+                @Override
+                public void lockInterruptibly() throws InterruptedException {
+    
+                }
+    
+                @Override
+                public boolean tryLock() {
+                    return jarryAQS.tryLock(1);
+                }
+    
+                @Override
+                public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+                    return false;
+                }
+    
+                @Override
+                public void unlock() {
+                    jarryAQS.unlock();
+                }
+    
+                @Override
+                public Condition newCondition() {
+                    return null;
+                }
+            };
+        }
+    }
+</code></code></pre>
+<p>到了这里，其实JUC的核心-AQS，已经揭露出来了。通过这个，就可以把握住AQS核心运行机制。而实际的AQS，无非就是修改了存储线程的WaitNodes，采用了Node形成链表。并通过head与tail的应用，来提高效率。当然还有lockInterruptibly等没有提及，也有Condition这样的大头没有说。这部分就留待以后有机会，再深入吧。</p>
+<p>另外，再给出这方面的提升道路。如果希望更加深入理解AQS源码，可以一边阅读源码（思考源码实现与自己实现的区别），一边扩展自定义简易AQS。</p>
+<p>如，我了解到AQS是通过一个state来同时实现独占锁与共享锁的持有数量。那么我就在JarryAQS中，去尝试实现，从而进一步理解它。</p>
+<h2 id="五简易juc版本x-扩展state">五，简易JUC（版本X-扩展state）：</h2>
+<h3 id="jarryaqs-1">1.JarryAQS：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks7;
+    
+    import sun.misc.Unsafe;
+    
+    import java.lang.reflect.Field;
+    import java.util.concurrent.LinkedBlockingQueue;
+    import java.util.concurrent.atomic.AtomicInteger;
+    import java.util.concurrent.atomic.AtomicReference;
+    import java.util.concurrent.locks.LockSupport;
+    
+    /**
+     * @Description：
+     * @Author: jarry
+     */
+    public class JarryAQS {
+    
+        static final int SHARED_SHIFT   = 16;
+        static final int SHARED_UNIT    = (1 &lt;&lt; SHARED_SHIFT);
+        static final int MAX_COUNT      = (1 &lt;&lt; SHARED_SHIFT) - 1;
+        static final int EXCLUSIVE_MASK = (1 &lt;&lt; SHARED_SHIFT) - 1;
+    
+        /** Returns the number of shared holds represented in count  */
+        static int sharedCount(int c)    { return c &gt;&gt;&gt; SHARED_SHIFT; }
+        /** Returns the number of exclusive holds represented in count  */
+        static int exclusiveCount(int c) { return c &amp; EXCLUSIVE_MASK; }
+    
+        /**
+         * The synchronization state.
+         */
+        public volatile int state;
+        private static Unsafe unsafe;
+        private static long stateOffset;
+        static{
+            try {
+                Field field = Unsafe.class.getDeclaredField(&quot;theUnsafe&quot;);
+                field.setAccessible(true);
+                unsafe = (Unsafe) field.get(null);
+    
+                Field fieldi = JarryAQS.class.getDeclaredField(&quot;state&quot;);
+                stateOffset = unsafe.objectFieldOffset(fieldi);
+    
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+        }
+        protected final boolean compareAndSetState(int expect, int update) {
+            // See below for intrinsics setup to support this
+            return unsafe.compareAndSwapInt(this, stateOffset, expect, update);
+        }
+    
+    
+        
+        volatile AtomicInteger readCount = new AtomicInteger(0);
+        AtomicInteger writeCount = new AtomicInteger(0);
+    
+        AtomicReference&lt;Thread&gt; owner = new AtomicReference&lt;&gt;();
+        public volatile LinkedBlockingQueue&lt;WaitNode&gt; waiters = new LinkedBlockingQueue&lt;&gt;();
+    
+        class WaitNode{
+            Thread thread = null;
+            // 表示希望争取的锁的类型。0表示写锁（独占锁），1表示读锁（共享锁）
+            int type = 0;
+            int arg = 0;
+    
+            public WaitNode(Thread thread, int type, int arg) {
+                this.type = type;
+                this.thread = thread;
+                this.arg = arg;
+            }
+        }
+    
+        /**
+         * 获取独占锁（针对独占锁）
+         */
+        public void lock(){
+            int arg = 1;
+            if (!tryLock(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(), 0, arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode headNote = waiters.peek();
+                    if (headNote !=null &amp;&amp; headNote.thread == Thread.currentThread()){
+                        if (!tryLock(headNote.arg)){
+                            LockSupport.park();
+                        } else {
+                            waiters.poll();
+                            return;
+                        }
+                    }else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对独占锁）
+         */
+        public void unlock(){
+            int arg = 1;
+            if (tryUnlock(arg)){
+                WaitNode head = waiters.peek();
+                if (head == null){
+                    return;
+                }
+                LockSupport.unpark(head.thread);
+            }
+        }
+    
+    
+        /**
+         * 获取共享锁（针对共享锁）
+         */
+        public void lockShared(){
+            int arg = 1;
+            if (!tryLockShared(arg)){
+                WaitNode waitNode = new WaitNode(Thread.currentThread(),1,arg);
+                waiters.offer(waitNode);
+    
+                while (true){
+                    WaitNode head = waiters.peek();
+                    if (head != null &amp;&amp; head.thread == Thread.currentThread()){
+                        if (tryLockShared(head.arg)){
+                            waiters.poll();
+    
+                            WaitNode newHead = waiters.peek();
+                            if (newHead != null &amp;&amp; newHead.type == 1){
+                                LockSupport.unpark(newHead.thread);
+                            }
+                            return;
+                        } else {
+                            LockSupport.park();
+                        }
+                    } else {
+                        LockSupport.park();
+                    }
+                }
+            }
+        }
+    
+        /**
+         * 解锁（针对共享锁）
+         */
+        public boolean unLockShared(){
+            int arg = 1;
+            if (tryUnLockShared(arg)){
+                WaitNode head = waiters.peek();
+                if (head != null){
+                    LockSupport.unpark(head.thread);
+                }
+                return true;
+            }
+            return false;
+        }
+    
+        /**
+         * 尝试获取独占锁（针对独占锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLock(int acquires){
+            throw new UnsupportedOperationException();
+        }
+    
+        /**
+         * 尝试解锁（针对独占锁）
+         * @param releases 用于设定解锁次数。一般传入waitNode.arg
+         * @return
+         */
+        public boolean tryUnlock(int releases){
+            throw new UnsupportedOperationException();
+        }
+    
+        /**
+         * 尝试获取共享锁（针对共享锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLockShared(int acquires){
+            throw new UnsupportedOperationException();
+        }
+    
+        /**
+         * 尝试解锁（针对共享锁）
+         * @param releases
+         * @return
+         */
+        public boolean tryUnLockShared(int releases){
+            throw new UnsupportedOperationException();
+        }
+    }
+</code></code></pre>
+<h3 id="jarryreentrantlock-4">2.JarryReentrantLock：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks7;
+    
+    import java.util.concurrent.TimeUnit;
+    import java.util.concurrent.locks.Condition;
+    import java.util.concurrent.locks.Lock;
+    
+    /**
+     * @Description： 仿ReentrantLock，实现其基本功能及特性
+     * @Author: jarry
+     */
+    public class JarryReentrantLock implements Lock {
+    
+        private boolean isFair;
+    
+        // 默认采用非公平锁，保证效率（就是参照源码）
+        public JarryReentrantLock() {
+            this.isFair = false;
+        }
+    
+        public JarryReentrantLock(boolean isFair) {
+            this.isFair = isFair;
+        }
+    
+        // 实际源码，是通过Sync类，继承AQS，再进行Override的。
+        private JarryAQS jarryAQS = new JarryAQS(){
+    
+            @Override
+            // 源码中，则是将FairSync与NonFairSync作为两个单独内布类（extend Sync），来实现的。那样会更加优雅，耦合度更低，扩展性更好（而且实际源码，需要重写的部分也会更多，而不像这个自定义demo，只有一个tryLock方法需要重写）
+            public boolean tryLock(int acquires){
+                if (isFair){
+                    return tryFairLock(acquires);
+                } else {
+                    return tryNonFairLock(acquires);
+                }
+            }
+    
+            private boolean tryFairLock(int acquires){
+                // 这里简单注释一下，如何实现公平锁，其关键在于新的线程到来时，不再直接尝试获取锁，而是直接塞入队列（队列为空，也是殊途同归的）
+                // 1.判断读锁（共享锁）是否被占用
+                if (readCount.get() == 0){
+                    // 2.判断写锁（独占锁）是否被占用
+                    int writeCountValue = writeCount.get();
+                    if (writeCountValue == 0){
+                        // 2.1 （核心区别）如果写锁未被占用，需要先对等待队列waiters进行判断
+                        WaitNode head = waiters.peek();
+                        if (head !=null &amp;&amp; head.thread == Thread.currentThread()){
+                            if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                                owner.set(Thread.currentThread());
+                                return true;
+                            }   // 竞争失败就直接返回false了
+                        }
+                    } else {
+                        // 2.2 如果写锁已经被占用了，就判断是否为当前线程持有，是否进行重入操作
+                        if (owner.get() == Thread.currentThread()){
+                            // 如果持有独占锁的线程就是当前线程，那么不需要改变owner，也不需要CAS，只需要修改writeCount的值即可
+                            writeCount.set(writeCountValue + acquires);
+                            return true;
+                        }
+                    }
+                }
+                // 以上操作失败，就返回false，表示竞争锁失败
+                return false;
+            }
+    
+            private boolean tryNonFairLock(int acquires){
+                if (readCount.get() == 0){
+                    int writeCountValue = writeCount.get();
+                    if (writeCountValue == 0){
+                        if (writeCount.compareAndSet(writeCountValue,writeCountValue+acquires)){
+                            owner.set(Thread.currentThread());
+                            return true;
+                        }
+                    } else {
+                        if (Thread.currentThread() == owner.get()){
+                            writeCount.set(writeCountValue+acquires);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+    
+            @Override
+            /**
+             *
+             先通过临时变量c，判断是否接下来的操作会完全解锁。
+             如果完全解锁，先释放owner，再通过setState将count（源码中为state)修改为0。
+             这样调换了一下顺序，但是避免了owner的原子性问题（毕竟别的线程是通过state来判断是否可以竞争锁，修改owner的）。
+             */
+            public boolean tryUnlock(int releases) {
+                if (owner.get() != Thread.currentThread()){
+                    throw new IllegalMonitorStateException();
+                }
+                int writeCountNextValue = writeCount.get() - releases;
+                boolean result = false;
+                if (writeCountNextValue == 0){
+                    result = true;
+                    owner.set(null);
+                }
+                writeCount.set(writeCountNextValue);
+                return result;
+            }
+    
+            // 其它诸如共享锁的相关操作，就不进行了。如果强行调用，只会发生UnsupportedOperationException
+        };
+    
+        @Override
+        public void lock() {
+            jarryAQS.lock();
+        }
+    
+        @Override
+        public void lockInterruptibly() throws InterruptedException {
+    
+        }
+    
+        @Override
+        public boolean tryLock() {
+            return jarryAQS.tryLock(1);
+        }
+    
+        @Override
+        public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+            return false;
+        }
+    
+        @Override
+        public void unlock() {
+            jarryAQS.unlock();
+        }
+    
+        @Override
+        public Condition newCondition() {
+            return null;
+        }
+    
+    }
+</code></code></pre>
+<h3 id="jarryreadwritelock-4">3.JarryReadWriteLock：</h3>
+<pre><code><code>
+    package tech.jarry.learning.netease.locks7;
+    
+    import java.util.concurrent.TimeUnit;
+    import java.util.concurrent.locks.Condition;
+    import java.util.concurrent.locks.Lock;
+    import java.util.concurrent.locks.ReadWriteLock;
+    
+    /**
+     * @Description：
+     * @Author: jarry
+     */
+    public class JarryReadWriteLock implements ReadWriteLock {
+    
+        // 实际源码，是通过Sync类，继承AQS，再进行Override的。
+        private JarryAQS jarryAQS = new JarryAQS(){
+    
+            @Override
+            public boolean tryLock(int acquires){
+                int stateTemp = state;
+                if (sharedCount(stateTemp) == 0){
+                    int writeCountValue = exclusiveCount(stateTemp);
+                    if (writeCountValue == 0){
+                        if (compareAndSetState(stateTemp,stateTemp+acquires)){
+                            owner.set(Thread.currentThread());
+                            return true;
+                        }
+                    } else {
+                        if (Thread.currentThread() == owner.get()){
+                            compareAndSetState(stateTemp,stateTemp+acquires);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+    
+            @Override
+            public boolean tryUnlock(int releases) {
+                int stateTemp = state;
+                if (owner.get() != Thread.currentThread()){
+                    throw new IllegalMonitorStateException();
+                }
+                int writeCountNextValue = exclusiveCount(stateTemp) - releases;
+                boolean result = false;
+                if (writeCountNextValue == 0){
+                    result = true;
+                    owner.set(null);
+                }
+                compareAndSetState(stateTemp,stateTemp - releases);
+                return result;
+            }
+    
+            @Override
+            public boolean tryLockShared(int acquires) {
+                while (true){
+                    int stateTemp = state;
+                    if (exclusiveCount(stateTemp) == 0 || owner.get() == Thread.currentThread()){
+                        if (compareAndSetState(stateTemp, stateTemp+SHARED_UNIT*acquires)){
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            }
+    
+            @Override
+            public boolean tryUnLockShared(int releases) {
+                while (true){
+                    int stateTemp = state;
+                    int readCountValue = sharedCount(stateTemp);
+                    int readCountNext = readCountValue - releases;
+                    if (compareAndSetState(stateTemp, stateTemp-SHARED_UNIT*readCountNext)){
+                        return readCountNext == 0;
+                    }
+                }
+            }
+        };
+    
+    
+        /**
+         * 获取独占锁（针对独占锁）
+         */
+        public void lock(){
+            jarryAQS.lock();
+        }
+    
+        /**
+         * 解锁（针对独占锁）
+         */
+        public void unlock(){
+            jarryAQS.unlock();
+        }
+    
+        /**
+         * 尝试获取独占锁（针对独占锁）
+         * @param acquires 用于加锁次数。一般传入waitNode.arg（本代码中就是1。为什么不用一个常量1，就不知道了？）
+         * @return
+         */
+        public boolean tryLock(int acquires){
+            return jarryAQS.tryLock(acquires);
+        }
+    
+        /**
+         * 尝试解锁（针对独占锁）
+         * @param releases 用于设定解锁次数。一般传入waitNode.arg
+         * @return
+         */
+        public boolean tryUnlock(int releases){
+            return jarryAQS.tryUnlock(releases);
+        }
+    
+        /**
+         * 获取共享锁（针对共享锁）
+         */
+        public void lockShared(){
+            jarryAQS.lockShared();
+        }
+    
+        /**
+         * 解锁（针对共享锁）
+         */
+        public boolean unLockShared(){
+            return jarryAQS.unLockShared();
+        }
+    
+        /**
+         * 尝试获取共享锁（针对共享锁）
+         * @param acquires
+         * @return
+         */
+        public boolean tryLockShared(int acquires){
+            return tryLockShared(acquires);
+        }
+    
+        /**
+         * 尝试解锁（针对共享锁）
+         * @param releases
+         * @return
+         */
+        public boolean tryUnLockShared(int releases){
+            return jarryAQS.tryUnLockShared(releases);
+        }
+    
+        @Override
+        public Lock readLock() {
+            return new Lock() {
+                @Override
+                public void lock() {
+                    jarryAQS.lockShared();
+                }
+    
+                @Override
+                public void lockInterruptibly() throws InterruptedException {
+    
+                }
+    
+                @Override
+                public boolean tryLock() {
+                    return jarryAQS.tryLockShared(1);
+                }
+    
+                @Override
+                public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+                    return false;
+                }
+    
+                @Override
+                public void unlock() {
+                    jarryAQS.unLockShared();
+                }
+    
+                @Override
+                public Condition newCondition() {
+                    return null;
+                }
+            };
+        }
+    
+        @Override
+        public Lock writeLock() {
+            return new Lock() {
+                @Override
+                public void lock() {
+                    jarryAQS.lock();
+                }
+    
+                @Override
+                public void lockInterruptibly() throws InterruptedException {
+    
+                }
+    
+                @Override
+                public boolean tryLock() {
+                    return jarryAQS.tryLock(1);
+                }
+    
+                @Override
+                public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+                    return false;
+                }
+    
+                @Override
+                public void unlock() {
+                    jarryAQS.unlock();
+                }
+    
+                @Override
+                public Condition newCondition() {
+                    return null;
+                }
+            };
+        }
+    }
+</code></code></pre>
+<h2 id="六总结">六，总结：</h2>
+<p>如果是从ReentrantLock实现，一步步走到这里，手动撸到这里，那么你对AQS的认知，就有了非常坚实的基础。如果能够在学习过程中，对照源码学习（一边自己实现，一边了解源码是怎么解决相关问题的），那么你对AQS的理解就很不错了。即使有所欠缺，也只是AQS阅读积累方面了。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

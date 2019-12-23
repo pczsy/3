@@ -1,0 +1,251 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修并发基础之实现多线线程的正确姿势' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>并发基础之实现多线线程的正确姿势</center></div><div class='banquan'>原文出处:本文由博客园博主Chen博客提供。<br/>
+原文连接:https://www.cnblogs.com/chen88/p/11797182.html</div><br>
+    <h2 id="实现多线程的方式到底是几种">实现多线程的方式到底是几种？</h2>
+<p>针对于JAVA多线程的实现方式，不论是网上还是各种书籍都有同的观点，有的说的两种，有的说有四种，随便百度一下我们就能看到很多种答案：</p>
+<p><img src="./images/并发基础之实现多线线程的正确姿势0.png" alt="image.md.png" /></p>
+<p>那究竟是几种呢？下面我们来查找一下JAVA的API文档：https://docs.oracle.com/javase/9/docs/api/java/lang/Thread.html</p>
+<p>从文档中我们可以清晰的看到，实现多线程有两种方式，一种是将一个类声明为的子类<code>Thread</code>，还有一种是声明一个实现<code>Runnable</code>接口的类。</p>
+<p><img src="./images/并发基础之实现多线线程的正确姿势1.png" alt="imageab3074b7eba1911e.md.png" /></p>
+<h2 id="两种实现方式对比">两种实现方式对比</h2>
+<p>实现runnable接口：</p>
+<pre><code><code>/**
+ * @author Chen
+ * @Description 使用runnable接口实现多线程
+ * @create 2019-11-04 21:38
+ */
+public class RunnableStyle implements Runnable{
+    public static void main(String[] args) {
+        Thread thread = new Thread(new RunnableStyle());
+        thread.start();
+    }
+
+    @Override
+    public void run() {
+        System.out.println(&quot;使用runnable接口实现多线程&quot;);
+    }
+}</code></code></pre>
+<p>继承Thread类：</p>
+<pre><code><code>/**
+ * @author Chen
+ * @Description 使用Thread方式实现多线程
+ * @create 2019-11-04 21:41
+ */
+public class ThreadStyle extends Thread{
+    public static void main(String[] args) {
+        Thread thread = new ThreadStyle();
+        thread.start();
+    }
+
+    @Override
+    public void run() {
+        System.out.println(&quot;使用Thread类实现多线程&quot;);
+    }
+}</code></code></pre>
+<h3 id="使用runable还是thread">使用Runable还是Thread？</h3>
+<p>既然都可以实现多线程，那实际我们应该使用选择一种方式创建还是随便都可以呢？</p>
+<p><strong>答案是实现<code>Runable</code>方式更好。</strong></p>
+<p>原因主要有以下几点：</p>
+<p>1.从<strong>解耦</strong>的角度来说，多线程执行的任务（也就是run方法的内容）应该与<code>Thread</code>类是解耦的，</p>
+<p>而不是都写在一起。</p>
+<p>2.如果使用继承<code>Thread</code>类来实现多线程，我们每次想新创建一个任务只能新建一个独立的线程，而这样的损耗是比较大的，需要去创建，销毁等。而使用<code>Runnable</code>接口的话后续我们可以使用线程池，这样可以<strong>减少新建线程带来的损耗。</strong></p>
+<p>3.因为JAVA是单继承，一旦继承了<code>Thread</code>就不能在去继承其他的类，<strong>限制了程序的可扩展性。</strong></p>
+<h3 id="runable和thread创建线程区别">Runable和Thread创建线程区别？</h3>
+<p>使用<code>Runable</code>的方式创建，我们是使用了一个<code>Thread</code>类一个带参的构造方法，使用<code>Thread</code>方法创建，是使用了<code>Thread</code>类的一个无参的构造方法，这两种方法都重写了<code>Run</code>方法，接下来我们来看一看<code>Thread</code>类中的Run方法是如何实现的：</p>
+<pre><code><code>    /* What will be run. */
+    private Runnable target;
+
+    /**
+     * If this thread was constructed using a separate
+     * &lt;code&gt;Runnable&lt;/code&gt; run object, then that
+     * &lt;code&gt;Runnable&lt;/code&gt; object&#39;s &lt;code&gt;run&lt;/code&gt; method is called;
+     * otherwise, this method does nothing and returns.
+     * &lt;p&gt;
+     * Subclasses of &lt;code&gt;Thread&lt;/code&gt; should override this method.
+     *
+     * @see     #start()
+     * @see     #stop()
+     * @see     #Thread(ThreadGroup, Runnable, String)
+     */
+    @Override
+    public void run() {
+        if (target != null) {
+            target.run();
+        }
+    }</code></code></pre>
+<p>以上是一部分<code>Thread</code>类的源码，我们可以看到执行<code>run</code>方法的时候，会先判断是否传入<code>Runable</code>接口的实现类，如果传入了，就执行接口实现类中的<code>run</code>方法，如果没传入，则会直接执行子类重写的<code>run</code>方法，所以本质上来说，这两种方法本质上都是执行了<code>Run</code>方法，只不过<code>Run</code>方法的来源不同。</p>
+<h2 id="错误观点">错误观点</h2>
+<h3 id="线程池创建线程也算是一种新建线程的方式">线程池创建线程也算是一种新建线程的方式</h3>
+<pre><code><code>/**
+ * @author Chen
+ * @Description 使用线程池创建线程
+ * @create 2019-11-05 9:40
+ */
+public class ThreadPoolStyle {
+    public static void main(String[] args) {
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        for (int i = 0; i &lt;1000 ; i++) {
+            executorService.submit(new Task());
+        }
+    }
+
+    static class  Task implements Runnable{
+        @Override
+        public void run() {
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println(Thread.currentThread().getName());
+        }
+    }
+}</code></code></pre>
+<p>下面简单看一下<code>excutors</code>内部是如何创建线程的：</p>
+<p>可以看到在下面的代码中线程池的内部新建线程也是通过传入一个<code>Runnable</code>，然后在<code>new  thread</code>来创建的，所以虽然外表看起来创建的方式不太一样，但是原理都是通过<code>Runnable</code>接口来实现的多线程。</p>
+<pre><code><code>    /**
+     * The default thread factory
+     */
+    static class DefaultThreadFactory implements ThreadFactory {
+        private static final AtomicInteger poolNumber = new AtomicInteger(1);
+        private final ThreadGroup group;
+        private final AtomicInteger threadNumber = new AtomicInteger(1);
+        private final String namePrefix;
+
+        DefaultThreadFactory() {
+            SecurityManager s = System.getSecurityManager();
+            group = (s != null) ? s.getThreadGroup() :
+                                  Thread.currentThread().getThreadGroup();
+            namePrefix = &quot;pool-&quot; +
+                          poolNumber.getAndIncrement() +
+                         &quot;-thread-&quot;;
+        }
+
+        public Thread newThread(Runnable r) {
+            Thread t = new Thread(group, r,
+                                  namePrefix + threadNumber.getAndIncrement(),
+                                  0);
+            if (t.isDaemon())
+                t.setDaemon(false);
+            if (t.getPriority() != Thread.NORM_PRIORITY)
+                t.setPriority(Thread.NORM_PRIORITY);
+            return t;
+        }
+    }</code></code></pre>
+<h3 id="通过callable和futuretask创建线程也算是一种新建线程的方式">通过Callable和FutureTask创建线程也算是一种新建线程的方式</h3>
+<p>通过<code>Callable</code>和<code>Future</code>：</p>
+<pre><code><code>/**
+ * @author Chen
+ * @Description 使用Callable、Future以及FutureTask
+ * @create 2019-11-05 10:03
+ */
+public class FutureTaskStyle {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        Future&lt;String&gt; future = executorService.submit(new Callable&lt;String&gt;() {
+            @Override
+            public String call() throws Exception {
+                Thread.sleep(500);
+                return &quot;future result&quot;;
+            }
+        });
+        System.out.println(System.currentTimeMillis());
+        System.out.println(future.get());
+        System.out.println(System.currentTimeMillis());
+    }
+}</code></code></pre>
+<p>通过<code>Callable</code>和<code>FutureTask</code>：</p>
+<pre><code><code>/**
+ * @author Chen
+ * @Description 使用Callable、Future以及FutureTask
+ * @create 2019-11-05 10:03
+ */
+public class FutureTaskStyle {
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        ExecutorService executorService = Executors.newCachedThreadPool();
+        FutureTask&lt;String&gt; futureTask = new FutureTask&lt;String&gt;(new Callable&lt;String&gt;() {
+            @Override
+            public String call() throws Exception {
+                Thread.sleep(500);
+                return &quot;future result&quot;;
+            }
+        });
+        new Thread(futureTask).start();
+        System.out.println(System.currentTimeMillis());
+        System.out.println(futureTask.get());
+        System.out.println(System.currentTimeMillis());
+    }
+}</code></code></pre>
+<p>使用<code>ctrl+alt+u</code>查看<code>FutureTask</code>的继承关系图：可以看到<code>RunableFuture</code>继承了<code>Future</code>和<code>Runnable</code>接口，而<code>FutureTask</code>又实现了<code>RunableFuture</code>，所以<code>FutureTask</code>也间接的实现了<code>Runable</code>接口。所以说此种方式和使用<code>Runnable</code>实现的方式原理是相同的。</p>
+<p><img src="./images/并发基础之实现多线线程的正确姿势2.png" alt="image7f03cb1928004065.md.png" /></p>
+<h3 id="通过定时器">通过定时器</h3>
+<pre><code><code>/**
+ * @author Chen
+ * @Description 使用定时器创建新的线程
+ * @create 2019-11-05 10:26
+ */
+public class TimmerStyle {
+    public static void main(String[] args) {
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                System.out.println(Thread.currentThread().getName());
+            }
+        },1000,1000);
+
+    }
+}</code></code></pre>
+<p>看看<code>TimerTask</code>也是实现了<code>Runnable</code>接口，本质上也是使用<code>Runnable</code>接口方式创建。</p>
+<h3 id="通过匿名内部类或lambda表达式">通过匿名内部类或Lambda表达式</h3>
+<pre><code><code>/**
+ * @author Chen
+ * @Description 使用匿名内部类 和lamada表达式实现多线程
+ * @create 2019-11-05 10:36
+ */
+public class AnonymousInnerClassStyle {
+    public static void main(String[] args) {
+        //匿名内部类
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println(Thread.currentThread().getName());
+            }
+        }).start();
+
+        //Lambda 表达式
+        new Thread(()-&gt; System.out.println(Thread.currentThread().getName())).start();
+
+    }
+}</code></code></pre>
+<p>这种形式只是语法改变了一下，其实匿名内部类和Lambda 表达式实现的效果都是一样的，只是更换了一种写法。</p>
+<h2 id="总结">总结</h2>
+<p>实现多线程到底有几种方法？从不同角度看，会有不同的答案，如果从实现多线程的本质上看，一般有两种，一种是实现<code>Runnable</code>接口，一种是继承<code>Thread</code>类；而从代码实现层面看，会有很多种，如线程池，<code>FutureTask</code>匿名内部类和<code>Lambda</code>表达式等。</p>
+<p>其实看原理，本质上的两种实现方式也是一样的，都是调用了<code>Thread</code>类的<code>run</code>方法，而<code>run</code>方法中有一个判断，如果传入的<code>runnable</code>不为空，就执行<code>run</code>方法本身的方法内的代码。</p>
+<p>一般情况下我们会使用<code>Runable</code>接口的方式新建线程，主要出于以下原因：</p>
+<p>从程序耦合的角度来看，把要提交的任务代码和<code>Thread</code>类中的代码分离开，实现低耦合；</p>
+<p>从可拓展角度来看，因为JAVA是单继承的，使用继承<code>Thead</code>类的方式就无法在继承其他的基类，降低了程序的课拓展性；</p>
+<p>从资源消耗的角度看，使用<code>Runnable</code>的方式我们可以使用线程池来管理线程，可以减少新建线程销毁线程等带来的资源损耗。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

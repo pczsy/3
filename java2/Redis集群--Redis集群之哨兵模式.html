@@ -1,0 +1,129 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Redis集群--Redis集群之哨兵模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Redis集群--Redis集群之哨兵模式</center></div><div class='banquan'>原文出处:本文由博客园博主xlecho提供。<br/>
+原文连接:https://www.cnblogs.com/xlecho/p/11842693.html</div><br>
+    <p>echo编辑整理，欢迎转载，转载请声明文章来源。欢迎添加echo微信(微信号：t2421499075)交流学习。 百战不败，依不自称常胜，百败不颓，依能奋力前行。——这才是真正的堪称强大！！！</p>
+<hr />
+<blockquote>
+<p>搭建Redis集群之前请准备好3台已经安装好Redis的服务器，CentOS7下安装Redis请阅读:<a href="https://blog.csdn.net/xlecho/article/details/102975520" class="uri">https://blog.csdn.net/xlecho/article/details/102975520</a></p>
+</blockquote>
+<h3 id="为什么需要redis集群">为什么需要Redis集群</h3>
+<ul>
+<li>Redis 本身的 QPS 已经很高了，但是如果在一些并发量非常高的情况下，性能还是会受到影响。这个时候我们希望有更多的 Redis 服务来完成工作。</li>
+<li>第二个是出于存储的考虑。因为Redis所有的数据都放在内存中，如果数据量大，很容易受到硬件的限制。升级硬件收效和成本比太低，所以我们需要有一种横向扩展的方法。</li>
+<li>第三个是可用性和安全的问题。如果只有一个Redis服务，一旦服务宕机，那么所有的客户端都无法访问，会对业务造成很大的影响。另一个，如果硬件发生故障，而单机的数据无法恢复的话，带来的影响也是灾难性的。可用性、数据安全、性能都可以通过搭建多个 Reids 服务实现。其中有一个是主节点（master），可以有多个从节点(slave)。主从之间通过数据同步，存储完全相同的数据。如果主节点发生故障，则把某个从节点改成主节点，访问新的主节点。</li>
+</ul>
+<h3 id="redis集群的安装环境准备">Redis集群的安装环境准备</h3>
+<table>
+<thead>
+<tr class="header">
+<th>服务器地址</th>
+<th>系统</th>
+<th>Redis版本</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>192.168.222.133</td>
+<td>CentOS7</td>
+<td>5.0.1</td>
+</tr>
+<tr class="even">
+<td>192.168.222.134</td>
+<td>CentOS7</td>
+<td>5.0.1</td>
+</tr>
+<tr class="odd">
+<td>192.168.222.135</td>
+<td>CentOS7</td>
+<td>5.0.1</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>我们以135作为master，其他两个节点全部作为slave节点</p>
+</blockquote>
+<h3 id="在slave中的redis.con配置如下代码">在slave中的redis.con配置如下代码</h3>
+<pre><code><code>slaveof 192.168.222.135 6379
+# 注意，如果你的节点设置了密码访问，你需要配置下面这个配置
+masterauth master密码</code></code></pre>
+<blockquote>
+<p>这里没有将slave设置成为‘只读’，如果实际生产环境如果不设置这个集群就会出现重大问题。</p>
+</blockquote>
+<h3 id="配置完成之后重启redis">配置完成之后重启Redis</h3>
+<pre><code><code>service redis start</code></code></pre>
+<h3 id="查看主节点的集群状态">查看主节点的集群状态</h3>
+<pre><code><code># 启动redis
+redis-server redis.conf
+# 连接redis
+redis-cli -h 192.168.222.135 -p 6379
+# 查看状态
+info replication</code></code></pre>
+<p>配置如果成功我们可以看到如下信息：<br />
+<img src="./images/Redis集群--Redis集群之哨兵模式0.png" alt="image.png" /></p>
+<h3 id="退出集群">退出集群</h3>
+<p>退出集群比较简单，可以直接删除掉上面的配置，也可以执行以下命令</p>
+<pre><code><code> slaveof no one</code></code></pre>
+<blockquote>
+<p>看到这个信息我们就已经完成了我们的主从配置。但是什么是哨兵模式？哨兵模式是基于我们集群的，我们有了集群之后，我们就要来配置我们的哨兵模式了</p>
+</blockquote>
+<h3 id="什么是哨兵模式">什么是哨兵模式</h3>
+<p>哨兵模式英文名Sentinel，它是为了解决Redis集群的高可用应运而生的。Redis集群，一般来说只会有一个master服务，当master挂掉之后，之能手动切换master就会造成一段时间内的服务不可用。sentinel就是专门针对这种情况而产生的一个监听服务。它主要负责监听我们一个组内所有Redis，当我们的master挂掉之后，它就会根据Raft算法进行选举一台新的leader出来，然后将选举出来的leader当成我们的master。</p>
+<h3 id="搭建哨兵模式">搭建哨兵模式</h3>
+<p>哨兵模式的主要作用就是监控弄Redis集群，所以我们搭建哨兵模式之前要确认我们的Redis集群已经成功搭建了。哨兵模式的搭建其实也相对比较简单，只需要配置主节点监控即可。</p>
+<pre><code><code># 找到redis根目录下面的sentinel.conf的配置文件，修改如下配置
+daemonize yes
+port 26379
+protected-mode no
+dir /usr/local/redis/redis-5.0.1/sentinel-tmp
+sentinel monitor mymaster 192.168.222.135 6379 2
+sentinel auth-pass mymaster 48835a9c-7a5a-4ec8-af6a-80af3e87b194
+# 如果哨兵3s内没有收到主节点的心跳，哨兵就认为主节点宕机了，默认是30秒
+sentinel down-after-milliseconds mymaster 3000
+# 如果10秒后,master仍没活过来，则启动failover,默认180s
+sentinel failover-timeout mymaster 10000</code></code></pre>
+<ul>
+<li>先启动Redis服务，然后在启动sentinel服务</li>
+</ul>
+<pre><code><code># 启动redis服务 
+redis-server redis.conf
+# 启动sentinel
+redis-sentinel sentinel.conf</code></code></pre>
+<h3 id="模拟master宕机检测sentinel服务是否成功">模拟master宕机，检测sentinel服务是否成功</h3>
+<p>模拟之前确保我们的redis、sentinel服务都启动了,登录master，直接在master上面进行shutdown。操作完成之后等待一会，然后使用登录我们的从服务器，连接上从服务的redis之后，我们使用命令info replication 查看当前节点是否成为了master</p>
+<ul>
+<li>我这里本来135是master，使用info replication可以看到如下结果</li>
+</ul>
+<p><img src="./images/Redis集群--Redis集群之哨兵模式1.png" alt="在这里插入图片描述" /></p>
+<ul>
+<li>135使用shutdown之后，分别查看134/133两台服务器</li>
+</ul>
+<h3 id="注意采坑">注意：采坑</h3>
+<p><img src="./images/Redis集群--Redis集群之哨兵模式2.png" alt="在这里插入图片描述" /><br />
+这是由于我们的下面两行配置的位置放反了引起的。正确顺序按照下面的顺序即可</p>
+<pre><code><code>sentinel monitor mymaster 192.168.222.135 6379 2
+sentinel auth-pass mymaster 48835a9c-7a5a-4ec8-af6a-80af3e87b194</code></code></pre>
+<hr />
+<p>做一个有底线的博客主</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

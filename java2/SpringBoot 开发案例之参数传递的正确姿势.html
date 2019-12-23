@@ -1,0 +1,303 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot 开发案例之参数传递的正确姿势' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot 开发案例之参数传递的正确姿势</center></div><div class='banquan'>原文出处:本文由博客园博主小柒2012提供。<br/>
+原文连接:https://www.cnblogs.com/smallSevens/p/11758718.html</div><br>
+    <p><img src="./images/SpringBoot 开发案例之参数传递的正确姿势0.png" /></p>
+<h2 id="前言">前言</h2>
+<p>开发这么多年，肯定还有不少小伙伴搞不清各种类型的参数是如何传递的，很多同学都是拿来即用，复制粘贴一把撸，遇到问题还是一脸懵逼。</p>
+<h2 id="姿势">姿势</h2>
+<p>学习参数传递的正确姿势，先说怎么做，再说为什么，本质上还是复制粘贴一把撸，问题是你想问不想问为什么！</p>
+<h2 id="传递">传递</h2>
+<h4 id="用户登录">用户登录</h4>
+<p>前端代码：</p>
+<pre><code><code>var param = {
+    &quot;username&quot;: &quot;admin&quot;,
+    &quot;password&quot;: &quot;admin&quot;
+}
+$.ajax({
+    url: &quot;/sys/login&quot;,
+    data: param,
+    type: &quot;post&quot;,
+    dataType: &quot;json&quot;,
+    success: function(data) {
+
+    }
+});</code></code></pre>
+<p>后端代码：</p>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/sys&quot;)
+public class LoginController {
+
+    private static final Logger logger = LoggerFactory.getLogger(LoginController.class);
+
+    /**
+     * 登录
+     */
+    @PostMapping(&quot;/login&quot;)
+    public Result login(String username, String password){
+        logger.info(&quot;用户登录&quot;+username);
+        //业务逻辑
+        return Result.ok(&quot;登录成功&quot;);
+    }
+}</code></code></pre>
+<p>当然，你也可以这么实现，<code>@RequestParam(value=&quot;username&quot;, required=true)</code> ，<code>required</code> 默认为 <code>true</code>，如果前台不传递此参数，后台会报错。如果设置为 <code>false</code>，如果不传，默认为 <code>null</code>。</p>
+<pre><code><code>/**
+  * 登录
+  * https://blog.52itstyle.vip
+  */
+@PostMapping(&quot;/login&quot;)
+public Result login(@RequestParam(value=&quot;username&quot;, required=true) String username,
+                    @RequestParam(value=&quot;password&quot;, required=true) String password){
+    logger.info(&quot;用户登录&quot;+username);
+    //业务逻辑
+    return Result.ok(&quot;登录成功&quot;);
+}</code></code></pre>
+<h4 id="用户注册">用户注册</h4>
+<p>前端代码，提交方式与登录基本保持一致。</p>
+<p>后端代码：</p>
+<p>用一个对象来接收前台参数，一般后端有对应的实体类。</p>
+<pre><code><code>/**
+  * 注册
+  * https://blog.52itstyle.vip
+  */
+@PostMapping(&quot;/register&quot;)
+public Result register(SysUser user){
+    logger.info(&quot;{}，用户注册&quot;,user.getUsername());
+    //业务逻辑
+    return Result.ok(&quot;注册成功&quot;);
+}</code></code></pre>
+<h4 id="多参数无实体一">多参数无实体一</h4>
+<p>前端代码：</p>
+<pre><code><code>var param = {
+    &quot;title&quot;: &quot;爪哇笔记&quot;,
+    &quot;content&quot;: &quot;一个有趣的公众号&quot;,
+    &quot;author&quot;: &quot;小柒2012&quot;
+}
+param = JSON.stringify(param);
+$.ajax({
+    url: &quot;/sys/multiParameter&quot;,
+    data: param,
+    type: &quot;post&quot;,
+    contentType: &quot;application/json&quot;,
+    dataType: &quot;json&quot;,
+    success: function(data) {
+
+    }
+});</code></code></pre>
+<p>后端实现：</p>
+<pre><code><code>/**
+  * 多参数
+  * https://blog.52itstyle.vip
+  */
+@PostMapping(&quot;/multiParameter&quot;)
+public Result register(@RequestBody Map&lt;String,Object&gt; map){
+    logger.info(&quot;多参数传递:{},{}&quot;,map.get(&quot;title&quot;),map.get(&quot;content&quot;));
+    //业务逻辑
+    return Result.ok(&quot;接收多参数成功&quot;);
+}</code></code></pre>
+<h4 id="多参数无实体二">多参数无实体二</h4>
+<p>前端代码：</p>
+<pre><code><code>var param = {
+    &quot;title&quot;: &quot;爪哇笔记&quot;,
+    &quot;content&quot;: &quot;一个有趣的公众号&quot;,
+    &quot;author&quot;: &quot;小柒2012&quot;
+}
+$.ajax({
+    url: &quot;/sys/multiParameter&quot;,
+    data: param,
+    type: &quot;post&quot;,
+    dataType: &quot;json&quot;,
+    success: function(data) {
+
+    }
+});</code></code></pre>
+<p>后端实现：</p>
+<pre><code><code>/**
+  * 多参数
+  * https://blog.52itstyle.vip
+  */
+@PostMapping(&quot;/multiParameter&quot;)
+public Result register(@RequestParam Map&lt;String,Object&gt; map){
+    logger.info(&quot;多参数传递:{},{}&quot;,map.get(&quot;title&quot;),map.get(&quot;content&quot;));
+    //业务逻辑
+    return Result.ok(&quot;接收多参数成功&quot;);
+}</code></code></pre>
+<h4 id="传递数组">传递数组</h4>
+<p>前端代码：</p>
+<pre><code><code>var param = {
+    &quot;ids&quot;: [1, 2, 3]
+}
+$.ajax({
+    url: &quot;/sys/array&quot;,
+    data: param,
+    type: &quot;post&quot;,
+    dataType: &quot;json&quot;,
+    success: function(data) {
+
+    }
+});</code></code></pre>
+<p>后端实现：</p>
+<pre><code><code>/**
+  * 数组
+  * https://blog.52itstyle.vip
+  */
+@PostMapping(&quot;array&quot;)
+public Result array(@RequestParam(value = &quot;ids[]&quot;) Integer[] ids) {
+    logger.info(&quot;数据{}&quot;, Arrays.asList(ids));
+    //业务逻辑
+    return Result.ok();
+}</code></code></pre>
+<h4 id="传递集合">传递集合</h4>
+<p>前端代码与传递数组保持一致。</p>
+<p>后端实现：</p>
+<pre><code><code>/**
+  * 集合
+  * https://blog.52itstyle.vip
+  */
+@PostMapping(&quot;array&quot;)
+public Result array(@RequestParam(value = &quot;ids[]&quot;) List&lt;Integer&gt; ids) {
+    logger.info(&quot;数据{}&quot;, ids.toString());
+    //业务逻辑
+    return Result.ok();
+}</code></code></pre>
+<h4 id="传递集合实体对象">传递集合实体对象</h4>
+<p>比如，后端想接收一个实体对象集合 <code>List&lt;SysUser&gt;</code></p>
+<p>前端代码：</p>
+<pre><code><code>var list = [];
+list.push({
+    &quot;username&quot;: &quot;小柒2012&quot;,
+    &quot;mobile&quot;: &quot;17762288888&quot;
+});
+list.push({
+    &quot;username&quot;: &quot;小柒2013&quot;,
+    &quot;mobile&quot;: &quot;17762289999&quot;
+});
+$.ajax({
+    url: &quot;/sys/listUser&quot;,
+    data: JSON.stringify(list),
+    type: &quot;post&quot;,
+    contentType: &quot;application/json&quot;,
+    dataType: &quot;json&quot;,
+    success: function(data) {
+
+    }
+});</code></code></pre>
+<p>后端代码：</p>
+<pre><code><code>/**
+  * 爪哇笔记
+  * https://blog.52itstyle.vip
+  */
+@PostMapping(&quot;listUser&quot;)
+public Result listUser(@RequestBody List&lt;SysUser&gt; list) {
+   logger.info(&quot;数据{}&quot;, list.size());
+   list.forEach(user-&gt;{
+      //输出实体对象
+      System.out.println(user.getUsername());
+   });
+   //业务逻辑
+   return Result.ok();
+}</code></code></pre>
+<h4 id="传递集合实体对象一对多">传递集合实体对象一对多</h4>
+<p>比如，一个用户有多个角色 <code>List&lt;SysRole&gt; roleList</code></p>
+<p>前端代码：</p>
+<pre><code><code>var roleList = [];
+roleList.push({
+    &quot;roleSign&quot;: &quot;admin&quot;,
+    &quot;roleName&quot;: &quot;管理员&quot;
+});
+roleList.push({
+    &quot;roleSign&quot;: &quot;user&quot;,
+    &quot;roleName&quot;: &quot;普通用户&quot;
+});
+var list = [];
+var user = {
+    &quot;username&quot;: &quot;小柒2012&quot;,
+    &quot;mobile&quot;: &quot;17762288888&quot;
+};
+user.roleList = roleList;
+list.push(user);
+$.ajax({
+    url: &quot;/sys/listUserRole&quot;,
+    data: JSON.stringify(list),
+    type: &quot;post&quot;,
+    contentType: &quot;application/json&quot;,
+    dataType: &quot;json&quot;,
+    success: function(data) {
+
+    }
+});</code></code></pre>
+<p>后端实现：</p>
+<pre><code><code>/**
+  * 爪哇笔记
+  * https://blog.52itstyle.vip
+  */
+@PostMapping(&quot;listUserRole&quot;)
+public Result listUserRole(@RequestBody List&lt;SysUser&gt; list) {
+    logger.info(&quot;数据{}&quot;, list.size());
+    list.forEach(user-&gt;{
+        List&lt;SysRole&gt; roleList = user.getRoleList();
+        roleList.forEach(role-&gt;{
+          System.out.println(role.getRoleName());
+        });
+    });
+    return Result.ok();
+}</code></code></pre>
+<h4 id="炒鸡复杂">炒鸡复杂</h4>
+<p>传输对象有实体，有集合，有各种类型的数据，这时候最简单的方式就是传递 <code>Key-Value</code> 结构的 <code>JSON</code> 字符串，后台 <code>Map</code> 类型接收，然后通过<code>FastJson</code>的 <code>JSON.parseObject()</code> 和 <code>JSON.parseArray()</code> 方法转化为对应的实体或者集合。</p>
+<pre><code><code> String user = parseMap.get(&quot;user&quot;).toString();
+ SysUser sysUser = JSON.parseObject(user,SysUser.class);
+ String contractClause = parseMap.get(&quot;rules&quot;).toString();
+ List&lt;Rule&gt; ruleList = JSON.parseArray(contractClause,Rule.class);</code></code></pre>
+<h4 id="restful-风格">RESTful 风格</h4>
+<p>比如，访问某篇文章：</p>
+<pre><code><code>/**
+  * 爪哇笔记
+  * https://blog.52itstyle.vip
+  */
+@GetMapping(&quot;article/{id}&quot;)
+public void article(@PathVariable(&quot;id&quot;) String id) {
+    logger.info(&quot;文章{}&quot;,id);
+    //业务逻辑
+}</code></code></pre>
+<h2 id="原则">原则</h2>
+<p>记住一下几点：</p>
+<ul>
+<li><p><code>@RequestBody</code>注解，必须与 <code>contentType</code> 类型<code>application/json</code>配合使用。</p></li>
+<li><p><code>@RequestParam</code>注解，必须与 <code>contentType</code> 类型<code>application/x-www-form-urlencoded</code>配合使用，其为默认类型。</p></li>
+<li><p><code>JSON.stringify()</code> 把对象类型转换为字符串类型，一般配合 <code>@RequestBody</code>注解和<code>contentType</code> 类型<code>application/json</code>使用。</p></li>
+</ul>
+<h2 id="扩展">扩展</h2>
+<p>在以上只涉及了两种 <code>contentType</code> 类型，其实还有两种常见的类型：</p>
+<h4 id="multipartform-data"><code>multipart/form-data</code></h4>
+<p>一般用于表单文件上传，必须让 form 的 enctype 等于这个值。</p>
+<pre><code><code>&lt;form action=&quot;/upload&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;&gt;
+  &lt;input type=&quot;text&quot; name=&quot;description&quot; value=&quot;爪哇笔记，一个神奇的公众号&quot;&gt;
+  &lt;input type=&quot;file&quot; name=&quot;myFile&quot;&gt;
+  &lt;button type=&quot;submit&quot;&gt;Submit&lt;/button&gt;
+&lt;/form&gt;</code></code></pre>
+<h4 id="textxml"><code>text/xml</code></h4>
+<p>做过微信支付的小伙伴一定会知道，微信就喜欢用这种方式，去年还发生过 <code>XXE</code> 漏洞，在解析XML文档时，解析器通过 ENTITY 扩展的功能，读取本地受保护的文件，并且使用扩展功能将受保护的文件发送到远程地址。</p>
+<h2 id="小结">小结</h2>
+<p>不敢说是最完整的传参方案，但绝对敢保证是最正确的，因为所有的传参方式都经过 360° 官方检验。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

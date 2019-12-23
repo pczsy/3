@@ -1,0 +1,270 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringCloud学习笔记(4)：Hystrix容错机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringCloud学习笔记(4)：Hystrix容错机制</center></div><div class='banquan'>原文出处:本文由博客园博主布禾卡斐先生提供。<br/>
+原文连接:https://www.cnblogs.com/seve/p/11535891.html</div><br>
+    <h3 id="简介">简介</h3>
+<p>在微服务架构中，微服务之间的依赖关系错综复杂，难免的某些服务会出现故障，导致服务调用方出现远程调度的线程阻塞。在高负载的场景下，如果不做任何处理，可能会引起级联故障，导致服务调用方的资源耗尽甚至整个系统奔溃。Hystrix是一个由Netflix开源的一个延迟和容错库，它通过添加延迟容忍和容错逻辑来帮助控制这些微服务之间的交互。Hystrix通过隔离服务之间的访问点、停止跨服务的级联故障并提供回退选项来实现这一点，所有这些选项都提高了系统的总体弹性。</p>
+<h3 id="项目介绍">项目介绍</h3>
+<ol>
+<li>sc-parent，父模块(请参照<a href="https://www.cnblogs.com/seve/p/11502579.html">SpringCloud学习笔记(1)：Eureka注册中心</a>)</li>
+<li>sc-eureka，注册中心(请参照<a href="https://www.cnblogs.com/seve/p/11502579.html">SpringCloud学习笔记(1)：Eureka注册中心</a>)</li>
+<li>sc-provider，提供者(请参照<a href="https://www.cnblogs.com/seve/p/11502579.html">SpringCloud学习笔记(1)：Eureka注册中心</a>)</li>
+<li>sc-consumer-hystrix-ribbon，使用Hystrix+Ribbon的消费者</li>
+<li>sc-consumer-hystrix-feign，使用Hystrix+Feign的消费者</li>
+</ol>
+<h3 id="在ribbon上使用hystrix">在Ribbon上使用Hystrix</h3>
+<h4 id="在父模块下创建子模块项目sc-consumer-hystrix-ribbonpom.xml">1.在父模块下创建子模块项目sc-consumer-hystrix-ribbon，pom.xml：</h4>
+<pre><code><code>&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+  &lt;parent&gt;
+    &lt;groupId&gt;com.cf&lt;/groupId&gt;
+    &lt;artifactId&gt;sc-parent&lt;/artifactId&gt;
+    &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+  &lt;/parent&gt;
+  &lt;artifactId&gt;sc-consumer-hystrix-ribbon&lt;/artifactId&gt;
+  
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-client&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-netflix-hystrix&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/project&gt;</code></code></pre>
+<h4 id="创建启动类consumer.consumerapplication">2.创建启动类consumer.ConsumerApplication：</h4>
+<pre><code><code>package consumer;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
+
+@SpringBootApplication
+@EnableCircuitBreaker
+public class ConsumerApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ConsumerApplication.class, args);
+    }
+    
+    //为RestTemplate整合Ribbon，使其具备负载均衡的能力
+    @LoadBalanced
+    @Bean
+    public RestTemplate restTemplate(){
+        return new RestTemplate();
+    }
+}</code></code></pre>
+<h4 id="创建调用提供者服务的controllerconsumer.controller.consumercontroller">3.创建调用提供者服务的Controller：consumer.controller.ConsumerController</h4>
+<pre><code><code>package consumer.controller;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
+
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
+
+@RestController
+public class ConsumerController {
+    @Autowired
+    private RestTemplate restTemplate;
+    
+    @HystrixCommand(fallbackMethod=&quot;getBookListFallBack&quot;)
+    @GetMapping(&quot;/getBookList&quot;)
+    public String getBookList(){
+        return restTemplate.getForObject(&quot;http://sc-provider/book/list&quot;, String.class);
+    }
+    
+    public String getBookListFallBack(){
+        return &quot;[\&quot;Java入门到放弃\&quot;]&quot;;
+    }
+}</code></code></pre>
+<p><strong>@HystrixCommand</strong>：表示将getBookList方法作为hystrix命令调用的方法。<br />
+<strong>fallbackMethod</strong>：指定处理回退逻辑的方法，这里是getBookListFallBack方法，当getBookList方法跑出异常时将会调用getBookListFallBack方法。<br />
+<font color="red">注意：回退方法应该与作为hystrix命令调用的方法具有相同的签名。</font></p>
+<h4 id="创建application.yml">4.创建application.yml：</h4>
+<pre><code><code>server:
+  port: 8083
+
+spring:
+  application:
+    name: sc-consumer-hystrix-ribbon
+    
+eureka:
+  client:
+    registerWithEureka: false
+    serviceUrl:
+      defaultZone: http://localhost:8080/eureka/    </code></code></pre>
+<h4 id="测试">5.测试</h4>
+<p>依次启动注册中心sc-eureka、提供者sc-provider、消费者sc-consumer-hystrix-ribbon，并访问http://localhost:8083/getBookList，结果显示如下：</p>
+<p><img src="./images/SpringCloud学习笔记(4)：Hystrix容错机制0.png" /></p>
+<p>这是提供者正常返回的值，接下来将提供者sc-provider关闭，再次访问http://localhost:8083/getBookList，结果显示如下：</p>
+<p><img src="./images/SpringCloud学习笔记(4)：Hystrix容错机制1.png" /></p>
+<p>因为将提供者sc-provider关闭后，消费者再访问提供者时会报错，Hystrix捕获异常后会直接调用回退方法也就是getBookListFallBack方法。</p>
+<h3 id="在feign上使用hystrix">在Feign上使用Hystrix</h3>
+<h4 id="在父模块下创建子模块项目sc-consumer-hystrix-feignpom.xml">1.在父模块下创建子模块项目sc-consumer-hystrix-feign，pom.xml：</h4>
+<pre><code><code>&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+  &lt;parent&gt;
+    &lt;groupId&gt;com.cf&lt;/groupId&gt;
+    &lt;artifactId&gt;sc-parent&lt;/artifactId&gt;
+    &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+  &lt;/parent&gt;
+  &lt;artifactId&gt;sc-consumer-hystrix-feign&lt;/artifactId&gt;
+  
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-client&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-openfeign&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-netflix-hystrix&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/project&gt;</code></code></pre>
+<h4 id="创建启动类feign.feignapplication">2.创建启动类feign.FeignApplication：</h4>
+<pre><code><code>package feign;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.circuitbreaker.EnableCircuitBreaker;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
+@SpringBootApplication
+@EnableFeignClients
+@EnableCircuitBreaker
+public class FeignApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(FeignApplication.class, args);
+    }
+}</code></code></pre>
+<h4 id="创建feign声明式接口feign.inter.bookservice">3.创建Feign声明式接口：feign.inter.BookService</h4>
+<pre><code><code>package feign.inter;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PostMapping;
+
+import feign.fallback.BookFallBack;
+
+@FeignClient(value=&quot;sc-provider&quot;, fallbackFactory=BookFallBack.class)
+public interface BookService {
+    
+    @GetMapping(&quot;/book/list&quot;)
+    public String getBookList();
+}</code></code></pre>
+<p>@FeignClient注解中的fallbackFactory属性是指定的Feign客户端界面定义回退工厂。</p>
+<h4 id="创建调用提供者服务的controller">4.创建调用提供者服务的Controller：</h4>
+<pre><code><code>package feign.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import feign.inter.BookService;
+
+@RequestMapping(&quot;/feign&quot;)
+@RestController
+public class FeignController {
+    @Autowired
+    private BookService bookService;
+    
+    @GetMapping(&quot;/getBookList&quot;)
+    public String getBookList(){
+        return bookService.getBookList();
+    }
+}</code></code></pre>
+<h4 id="创建application.yml-1">5.创建application.yml：</h4>
+<pre><code><code>server:
+  port: 8084
+
+spring:
+  application:
+    name: sc-consumer-hystrix-feign
+
+eureka:
+  client:
+    registerWithEureka: false
+    serviceUrl:
+      defaultZone: http://localhost:8080/eureka/   
+
+feign:
+  hystrix:
+    enabled: true  #开启hystrix支持     </code></code></pre>
+<h4 id="创建回退工厂类">6.创建回退工厂类：</h4>
+<pre><code><code>package feign.fallback;
+import org.springframework.stereotype.Component;
+
+import feign.hystrix.FallbackFactory;
+import feign.inter.BookService;
+
+@Component
+public class BookFallBack implements FallbackFactory&lt;BookService&gt;{
+    @Override
+    public BookService create(Throwable cause) {
+        return new BookService() {
+            @Override
+            public String getBookList() {
+                return &quot;[\&quot;Java入门到放弃\&quot;]&quot;;
+            }
+        };
+    }
+}</code></code></pre>
+<p>create方法返回一个回退实例，回退实例为Feign声明式接口BookService的实现类，提供了与BookService相对应的回退方法，BookService接口调用失败时将会调用该实现类中的回退方法。</p>
+<h4 id="测试-1">7.测试：</h4>
+<p>依次启动注册中心sc-eureka、提供者sc-provider、消费者sc-consumer-hystrix-feign，并访问http://localhost:8084/feign/getBookList，结果显示如下：</p>
+<p><img src="./images/SpringCloud学习笔记(4)：Hystrix容错机制2.png" /></p>
+<p>这是提供者正常返回的值，接下来将提供者sc-provider关闭，再次访问http://localhost:8084/feign/getBookList，结果显示如下：</p>
+<p><img src="./images/SpringCloud学习笔记(4)：Hystrix容错机制3.png" /></p>
+<h4 id="查看回退原因">8.查看回退原因</h4>
+<p>修改回退工厂类BookFallBack：</p>
+<pre><code><code>@Component
+public class BookFallBack implements FallbackFactory&lt;BookService&gt;{
+    @Override
+    public BookService create(Throwable cause) {
+        return new BookService() {
+            @Override
+            public String getBookList() {
+                //将回退原因输出到控制台
+                cause.printStackTrace(System.out);
+                return &quot;[\&quot;Java入门到放弃\&quot;]&quot;;
+            }
+        };
+    }
+}</code></code></pre>
+<p>依次启动注册中心sc-eureka、消费者sc-consumer-hystrix-feign，并访问http://localhost:8084/feign/getBookList，控制台输出：</p>
+<pre><code><code>com.netflix.hystrix.exception.HystrixTimeoutException
+    at com.netflix.hystrix.AbstractCommand$HystrixObservableTimeoutOperator$1.run(AbstractCommand.java:1142)
+    at com.netflix.hystrix.strategy.concurrency.HystrixContextRunnable$1.call(HystrixContextRunnable.java:41)
+    at com.netflix.hystrix.strategy.concurrency.HystrixContextRunnable$1.call(HystrixContextRunnable.java:37)
+    at com.netflix.hystrix.strategy.concurrency.HystrixContextRunnable.run(HystrixContextRunnable.java:57)
+    at com.netflix.hystrix.AbstractCommand$HystrixObservableTimeoutOperator$2.tick(AbstractCommand.java:1159)
+        ......</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

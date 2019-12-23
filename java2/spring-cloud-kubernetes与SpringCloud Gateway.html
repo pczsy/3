@@ -1,0 +1,663 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修spring-cloud-kubernetes与SpringCloud Gateway' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>spring-cloud-kubernetes与SpringCloud Gateway</center></div><div class='banquan'>原文出处:本文由博客园博主zq2599提供。<br/>
+原文连接:https://www.cnblogs.com/bolingcavalry/p/11462999.html</div><br>
+    <p>本文是《spring-cloud-kubernetes实战系列》的第五篇，主要内容是在kubernetes上部署一个SpringCloud Gateway应用，该应用使用了spring-cloud-kubernetes框架，可以将请求转发到kubernetes环境中的其他服务上；</p>
+<h3 id="系列文章列表">系列文章列表</h3>
+<ol>
+<li><a href="https://blog.csdn.net/boling_cavalry/article/details/91346780">《spring-cloud-kubernetes官方demo运行实战》</a></li>
+<li><a href="https://blog.csdn.net/boling_cavalry/article/details/91351411">《你好spring-cloud-kubernetes》</a></li>
+<li><a href="https://blog.csdn.net/boling_cavalry/article/details/92069486">《spring-cloud-kubernetes背后的三个关键知识点》</a></li>
+<li><a href="https://xinchen.blog.csdn.net/article/details/92394559">《spring-cloud-kubernetes的服务发现和轮询实战(含熔断)》</a></li>
+<li><a href="https://xinchen.blog.csdn.net/article/details/95001691">《spring-cloud-kubernetes与SpringCloud Gateway》</a></li>
+<li><a href="https://xinchen.blog.csdn.net/article/details/95804909">《spring-cloud-kubernetes与k8s的configmap》</a></li>
+</ol>
+<h3 id="本文大纲">本文大纲</h3>
+<p>接下来的内容由以下几部分组成：</p>
+<ol>
+<li>什么是SpringCloud Gateway</li>
+<li>SpringCloud Gateway实战参考</li>
+<li>kubernetes上的SpringCloud Gateway</li>
+<li>实战环境信息</li>
+<li>实战源码下载</li>
+<li>开发webdemo</li>
+<li>开发k8sgatewaydemo</li>
+<li>解决权限问题</li>
+<li><p>最后一个疑问</p>
+<h3 id="什么是springcloud-gateway">什么是SpringCloud Gateway</h3>
+<p>SpringCloud Gateway是SpringCloud技术栈下的网关服务框架，在基于SpringCloud的微服务环境中，外部请求会到达SpringCloud Gateway应用，该应用对请求做转发、过滤、鉴权、熔断等前置操作，一个典型的请求响应流程如下所示：<br />
+<img src="./images/spring-cloud-kubernetes与SpringCloud Gateway0.png" alt="在这里插入图片描述" /></p>
+<h3 id="springcloud-gateway实战参考">SpringCloud Gateway实战参考</h3>
+<p>如果您之前没有使用过SpringCloud Gateway，推荐您阅读<a href="https://xinchen.blog.csdn.net/article/details/94907172">《速体验SpringCloud Gateway》</a>，有时间的话动手实战效果更佳，只需编写少量代码就能快速熟悉这个SpringCloud技术栈中非常重要的功能；</p></li>
+</ol>
+<h3 id="kubernetes上的springcloud-gateway">kubernetes上的SpringCloud Gateway</h3>
+<p>注意以下两个知识点：</p>
+<ol>
+<li>SpringCloud Gateway之所以能将外部请求路由到正确的后台服务上，是因为注册中心的存在，SpringCloud Gateway可以在注册中心取得所有服务的信息，因此它可以根据路径和服务的对应关系，将请求转发到对应的服务上；</li>
+<li>如果您看过本系列的上一篇 <a href="https://xinchen.blog.csdn.net/article/details/92394559">《spring-cloud-kubernetes的服务发现和轮询实战(含熔断)》</a>，您就知道spring-cloud-kubernetes框架可以获取kubernetes环境内的所有服务（这里说的服务就是kubernetes的service）；</li>
+</ol>
+<p>将以上两个知识点结合起来，于是可以推测：<font color="blue">运行在kubernetes环境的SpringCloud Gateway应用，如果使用了spring-cloud-kubernetes框架就能得到kubernetes的service列表，因此可以承担网关的角色，将外部请求转发至kubernetes内的service上，最终到达对应的Pod；</font></p>
+<p>架构如下图所示，请注意黄色背景的对话框，里面标识了关键操作：<br />
+<img src="./images/spring-cloud-kubernetes与SpringCloud Gateway1.png" alt="在这里插入图片描述" /><br />
+至此，理论分析已经完成，我们来实战验证这个理论，接下来我们开发两个java应用：</p>
+<ol>
+<li>先开发一个普通的web服务，名为webdemo，提供一个http接口；</li>
+<li>再开发一个SpringCloud Gateway应用，名为k8sgatewaydemo；</li>
+</ol>
+<h3 id="环境信息">环境信息</h3>
+<p>本次实战的环境和版本信息如下：</p>
+<ol>
+<li>操作系统：CentOS Linux release 7.6.1810</li>
+<li>minikube：1.1.1</li>
+<li>Java：1.8.0_191</li>
+<li>Maven：3.6.0</li>
+<li>fabric8-maven-plugin插件：3.5.37</li>
+<li>spring-cloud-kubernetes：1.0.1.RELEASE</li>
+<li>spring cloud：Greenwich.SR2</li>
+<li>springboot：2.1.6.RELEASE</li>
+</ol>
+<h3 id="源码下载">源码下载</h3>
+<p>如果您不打算写代码，也可以从GitHub上下载本次实战的源码，地址和链接信息如下表所示：</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">名称</th>
+<th style="text-align: left;">链接</th>
+<th style="text-align: left;">备注</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">项目主页</td>
+<td style="text-align: left;">https://github.com/zq2599/blog_demos</td>
+<td style="text-align: left;">该项目在GitHub上的主页</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">git仓库地址(https)</td>
+<td style="text-align: left;">https://github.com/zq2599/blog_demos.git</td>
+<td style="text-align: left;">该项目源码的仓库地址，https协议</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">git仓库地址(ssh)</td>
+<td style="text-align: left;">git@github.com:zq2599/blog_demos.git</td>
+<td style="text-align: left;">该项目源码的仓库地址，ssh协议</td>
+</tr>
+</tbody>
+</table>
+<p></br></p>
+<p>这个git项目中有多个文件夹，本章的两个应用分别在webdemo和k8sgatewaydemo文件夹下；<br />
+下图红框中是webdemo应用的源码：<br />
+<img src="./images/spring-cloud-kubernetes与SpringCloud Gateway2.png" alt="在这里插入图片描述" /><br />
+下图红框中是k8sgatewaydemo应用的源码：<br />
+<img src="./images/spring-cloud-kubernetes与SpringCloud Gateway3.png" alt="在这里插入图片描述" /><br />
+下面是详细的编码过程；</p>
+<h3 id="开发webdemo">开发webdemo</h3>
+<p>webdemo是个极其普通的spring boot应用，<font color="red">和SpringCloud没有任何关系</font>；</p>
+<ol>
+<li>webdemo提供一个http接口，将请求header中名为extendtag的参数返回给请求方，controller类如下：</li>
+</ol>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/hello&quot;)
+public class HelloController {
+
+    @RequestMapping(value = &quot;time&quot;, method = RequestMethod.GET)
+    public String hello(HttpServletRequest request){
+
+        return &quot;hello, &quot;
+                + new SimpleDateFormat(&quot;yyyy-MM-dd HH:mm:ss&quot;).format(new Date())
+                + &quot;, extendtag [&quot;
+                + request.getHeader(&quot;extendtag&quot;)
+                + &quot;]&quot;;
+    }
+}</code></code></pre>
+<ol>
+<li>启动类WebdemoApplication.java：</li>
+</ol>
+<pre><code><code>@SpringBootApplication
+public class WebdemoApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(WebdemoApplication.class, args);
+    }
+}</code></code></pre>
+<ol>
+<li>要注意的是pom.xml，里面通过名为<font color="blue">fabric8-maven-plugin</font>的maven插件，将webdemo快速部署到minikube环境：</li>
+</ol>
+<pre class="xml"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+         xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+    &lt;parent&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+        &lt;version&gt;2.1.6.RELEASE&lt;/version&gt;
+        &lt;relativePath/&gt; &lt;!-- lookup parent from repository --&gt;
+    &lt;/parent&gt;
+    &lt;groupId&gt;com.bolingcavalry&lt;/groupId&gt;
+    &lt;artifactId&gt;webdemo&lt;/artifactId&gt;
+    &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+    &lt;name&gt;webdemo&lt;/name&gt;
+    &lt;description&gt;Demo project for Spring Boot&lt;/description&gt;
+
+    &lt;properties&gt;
+        &lt;java.version&gt;1.8&lt;/java.version&gt;
+        &lt;spring-boot.version&gt;2.1.6.RELEASE&lt;/spring-boot.version&gt;
+        &lt;fabric8.maven.plugin.version&gt;3.5.37&lt;/fabric8.maven.plugin.version&gt;
+    &lt;/properties&gt;
+
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+
+    &lt;build&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+                &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+                &lt;executions&gt;
+                    &lt;execution&gt;
+                        &lt;goals&gt;
+                            &lt;goal&gt;repackage&lt;/goal&gt;
+                        &lt;/goals&gt;
+                    &lt;/execution&gt;
+                &lt;/executions&gt;
+            &lt;/plugin&gt;
+
+            &lt;plugin&gt;
+                &lt;!--skip deploy --&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-deploy-plugin&lt;/artifactId&gt;
+                &lt;version&gt;${maven-deploy-plugin.version}&lt;/version&gt;
+                &lt;configuration&gt;
+                    &lt;skip&gt;true&lt;/skip&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-surefire-plugin&lt;/artifactId&gt;
+                &lt;version&gt;${maven-surefire-plugin.version}&lt;/version&gt;
+                &lt;configuration&gt;
+                    &lt;skipTests&gt;true&lt;/skipTests&gt;
+                    &lt;!-- Workaround for https://issues.apache.org/jira/browse/SUREFIRE-1588 --&gt;
+                    &lt;useSystemClassLoader&gt;false&lt;/useSystemClassLoader&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;io.fabric8&lt;/groupId&gt;
+                &lt;artifactId&gt;fabric8-maven-plugin&lt;/artifactId&gt;
+                &lt;version&gt;${fabric8.maven.plugin.version}&lt;/version&gt;
+                &lt;executions&gt;
+                    &lt;execution&gt;
+                        &lt;id&gt;fmp&lt;/id&gt;
+                        &lt;goals&gt;
+                            &lt;goal&gt;resource&lt;/goal&gt;
+                        &lt;/goals&gt;
+                    &lt;/execution&gt;
+                &lt;/executions&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+
+    &lt;profiles&gt;
+        &lt;profile&gt;
+            &lt;id&gt;kubernetes&lt;/id&gt;
+            &lt;build&gt;
+                &lt;plugins&gt;
+                    &lt;plugin&gt;
+                        &lt;groupId&gt;io.fabric8&lt;/groupId&gt;
+                        &lt;artifactId&gt;fabric8-maven-plugin&lt;/artifactId&gt;
+                        &lt;version&gt;${fabric8.maven.plugin.version}&lt;/version&gt;
+                        &lt;executions&gt;
+                            &lt;execution&gt;
+                                &lt;id&gt;fmp&lt;/id&gt;
+                                &lt;goals&gt;
+                                    &lt;goal&gt;resource&lt;/goal&gt;
+                                    &lt;goal&gt;build&lt;/goal&gt;
+                                &lt;/goals&gt;
+                            &lt;/execution&gt;
+                        &lt;/executions&gt;
+                        &lt;configuration&gt;
+                            &lt;enricher&gt;
+                                &lt;config&gt;
+                                    &lt;fmp-service&gt;
+                                        &lt;type&gt;NodePort&lt;/type&gt;
+                                    &lt;/fmp-service&gt;
+                                &lt;/config&gt;
+                            &lt;/enricher&gt;
+                        &lt;/configuration&gt;
+                    &lt;/plugin&gt;
+                &lt;/plugins&gt;
+            &lt;/build&gt;
+        &lt;/profile&gt;
+    &lt;/profiles&gt;
+&lt;/project&gt;</code></code></pre>
+<ol>
+<li>以上就是webdemo应用的内容了，接下来要编译、构建、部署到minikube环境，在pom.xml执行以下命令即可：</li>
+</ol>
+<pre class="shell"><code>mvn clean install fabric8:deploy -Dfabric8.generator.from=fabric8/java-jboss-openjdk8-jdk -Pkubernetes</code></code></pre>
+<p>部署完成后终端输出类似如下成功信息：</p>
+<pre class="shell"><code>[INFO] 
+[INFO] &lt;&lt;&lt; fabric8-maven-plugin:3.5.37:deploy (default-cli) &lt; install @ webdemo &lt;&lt;&lt;
+[INFO] 
+[INFO] 
+[INFO] --- fabric8-maven-plugin:3.5.37:deploy (default-cli) @ webdemo ---
+[INFO] F8: Using Kubernetes at https://192.168.121.133:8443/ in namespace default with manifest /usr/local/work/k8s/webdemo/target/classes/META-INF/fabric8/kubernetes.yml 
+[INFO] Using namespace: default
+[INFO] Updating a Service from kubernetes.yml
+[INFO] Updated Service: target/fabric8/applyJson/default/service-webdemo.json
+[INFO] Using namespace: default
+[INFO] Updating Deployment from kubernetes.yml
+[INFO] Updated Deployment: target/fabric8/applyJson/default/deployment-webdemo.json
+[INFO] F8: HINT: Use the command `kubectl get pods -w` to watch your pods start up
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  11.804 s
+[INFO] Finished at: 2019-07-07T21:32:26+08:00
+[INFO] ------------------------------------------------------------------------</code></code></pre>
+<ol>
+<li>查看service和pod，确认一切正常：</li>
+</ol>
+<pre class="shell"><code>[root@minikube webdemo]# kubectl get service
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+kubernetes       ClusterIP   10.96.0.1       &lt;none&gt;        443/TCP          29d
+webdemo          NodePort    10.106.98.137   &lt;none&gt;        8080:30160/TCP   115m
+[root@minikube webdemo]# kubectl get pod
+NAME                              READY   STATUS    RESTARTS   AGE
+webdemo-c9f774b9-gsbgx            1/1     Running   0          3m13s</code></code></pre>
+<ol>
+<li>使用minikube命令取得webdemo服务对外暴露的地址：</li>
+</ol>
+<pre class="shell"><code>[root@minikube webdemo]# minikube service webdemo --url
+http://192.168.121.133:30160</code></code></pre>
+<p>可见外部通过地址：http://192.168.121.133:30160 即可访问到webdemo应用；</p>
+<ol>
+<li>在浏览器输入地址：http://192.168.121.133:30160/hello/time ，即可验证webdemo的http接口是否正常，如下图，由于header中没有extendtag属性，因此返回的extendtag为null：<br />
+<img src="./images/spring-cloud-kubernetes与SpringCloud Gateway4.png" alt="在这里插入图片描述" /><br />
+至此，webdemo在minikue上已经正常运行，该开发gateway应用了；</li>
+</ol>
+<h3 id="开发k8sgatewaydemo">开发k8sgatewaydemo</h3>
+<ol>
+<li>基于maven创建一个名为k8sgatewaydemo的springboot应用，pom.xml内容如下：</li>
+</ol>
+<pre class="xml"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+         xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+    &lt;parent&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+        &lt;version&gt;2.1.6.RELEASE&lt;/version&gt;
+        &lt;relativePath/&gt; &lt;!-- lookup parent from repository --&gt;
+    &lt;/parent&gt;
+    &lt;groupId&gt;com.bolingcavalry&lt;/groupId&gt;
+    &lt;artifactId&gt;k8sgatewaydemo&lt;/artifactId&gt;
+    &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+    &lt;name&gt;k8sgatewaydemo&lt;/name&gt;
+    &lt;description&gt;Demo project for Spring Boot&lt;/description&gt;
+
+    &lt;properties&gt;
+        &lt;java.version&gt;1.8&lt;/java.version&gt;
+        &lt;spring-boot.version&gt;2.1.6.RELEASE&lt;/spring-boot.version&gt;
+        &lt;maven-checkstyle-plugin.failsOnError&gt;false&lt;/maven-checkstyle-plugin.failsOnError&gt;
+        &lt;maven-checkstyle-plugin.failsOnViolation&gt;false&lt;/maven-checkstyle-plugin.failsOnViolation&gt;
+        &lt;maven-checkstyle-plugin.includeTestSourceDirectory&gt;false&lt;/maven-checkstyle-plugin.includeTestSourceDirectory&gt;
+        &lt;maven-compiler-plugin.version&gt;3.5&lt;/maven-compiler-plugin.version&gt;
+        &lt;maven-deploy-plugin.version&gt;2.8.2&lt;/maven-deploy-plugin.version&gt;
+        &lt;maven-failsafe-plugin.version&gt;2.18.1&lt;/maven-failsafe-plugin.version&gt;
+        &lt;maven-surefire-plugin.version&gt;2.21.0&lt;/maven-surefire-plugin.version&gt;
+        &lt;fabric8.maven.plugin.version&gt;3.5.37&lt;/fabric8.maven.plugin.version&gt;
+        &lt;springcloud.kubernetes.version&gt;1.0.1.RELEASE&lt;/springcloud.kubernetes.version&gt;
+        &lt;spring-cloud.version&gt;Greenwich.SR2&lt;/spring-cloud.version&gt;
+    &lt;/properties&gt;
+
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-gateway&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-kubernetes-core&lt;/artifactId&gt;
+            &lt;version&gt;${springcloud.kubernetes.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-kubernetes-discovery&lt;/artifactId&gt;
+            &lt;version&gt;${springcloud.kubernetes.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-kubernetes-ribbon&lt;/artifactId&gt;
+            &lt;version&gt;${springcloud.kubernetes.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-commons&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-netflix-ribbon&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-netflix-hystrix&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+
+    &lt;dependencyManagement&gt;
+        &lt;dependencies&gt;
+            &lt;dependency&gt;
+                &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-cloud-dependencies&lt;/artifactId&gt;
+                &lt;version&gt;${spring-cloud.version}&lt;/version&gt;
+                &lt;type&gt;pom&lt;/type&gt;
+                &lt;scope&gt;import&lt;/scope&gt;
+            &lt;/dependency&gt;
+        &lt;/dependencies&gt;
+    &lt;/dependencyManagement&gt;
+
+    &lt;build&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+                &lt;version&gt;${spring-boot.version}&lt;/version&gt;
+                &lt;executions&gt;
+                    &lt;execution&gt;
+                        &lt;goals&gt;
+                            &lt;goal&gt;repackage&lt;/goal&gt;
+                        &lt;/goals&gt;
+                    &lt;/execution&gt;
+                &lt;/executions&gt;
+            &lt;/plugin&gt;
+
+            &lt;plugin&gt;
+                &lt;!--skip deploy --&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-deploy-plugin&lt;/artifactId&gt;
+                &lt;version&gt;${maven-deploy-plugin.version}&lt;/version&gt;
+                &lt;configuration&gt;
+                    &lt;skip&gt;true&lt;/skip&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-surefire-plugin&lt;/artifactId&gt;
+                &lt;version&gt;${maven-surefire-plugin.version}&lt;/version&gt;
+                &lt;configuration&gt;
+                    &lt;skipTests&gt;true&lt;/skipTests&gt;
+                    &lt;!-- Workaround for https://issues.apache.org/jira/browse/SUREFIRE-1588 --&gt;
+                    &lt;useSystemClassLoader&gt;false&lt;/useSystemClassLoader&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;io.fabric8&lt;/groupId&gt;
+                &lt;artifactId&gt;fabric8-maven-plugin&lt;/artifactId&gt;
+                &lt;version&gt;${fabric8.maven.plugin.version}&lt;/version&gt;
+                &lt;executions&gt;
+                    &lt;execution&gt;
+                        &lt;id&gt;fmp&lt;/id&gt;
+                        &lt;goals&gt;
+                            &lt;goal&gt;resource&lt;/goal&gt;
+                        &lt;/goals&gt;
+                    &lt;/execution&gt;
+                &lt;/executions&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+
+    &lt;profiles&gt;
+        &lt;profile&gt;
+            &lt;id&gt;kubernetes&lt;/id&gt;
+            &lt;build&gt;
+                &lt;plugins&gt;
+                    &lt;plugin&gt;
+                        &lt;groupId&gt;io.fabric8&lt;/groupId&gt;
+                        &lt;artifactId&gt;fabric8-maven-plugin&lt;/artifactId&gt;
+                        &lt;version&gt;${fabric8.maven.plugin.version}&lt;/version&gt;
+                        &lt;executions&gt;
+                            &lt;execution&gt;
+                                &lt;id&gt;fmp&lt;/id&gt;
+                                &lt;goals&gt;
+                                    &lt;goal&gt;resource&lt;/goal&gt;
+                                    &lt;goal&gt;build&lt;/goal&gt;
+                                &lt;/goals&gt;
+                            &lt;/execution&gt;
+                        &lt;/executions&gt;
+                        &lt;configuration&gt;
+                            &lt;enricher&gt;
+                                &lt;config&gt;
+                                    &lt;fmp-service&gt;
+                                        &lt;type&gt;NodePort&lt;/type&gt;
+                                    &lt;/fmp-service&gt;
+                                &lt;/config&gt;
+                            &lt;/enricher&gt;
+                        &lt;/configuration&gt;
+                    &lt;/plugin&gt;
+                &lt;/plugins&gt;
+            &lt;/build&gt;
+        &lt;/profile&gt;
+    &lt;/profiles&gt;
+&lt;/project&gt;</code></code></pre>
+<p>上述pom文件中有以下几点需要注意：<br />
+第一、 依赖spring-cloud-kubernetes-core和spring-cloud-kubernetes-discovery，这样能用到spring-cloud-kubernetes提供的服务发现能力；<br />
+第二、依赖spring-cloud-starter-gateway，这样能用上SpringCloud的gateway能力；<br />
+第三、不要依赖spring-boot-starter-web，会和spring-cloud-starter-gateway冲突，启动时抛出以下异常：</p>
+<pre class="shell"><code>2019-07-06 08:12:09.188  WARN 1 --- [           main] ConfigServletWebServerApplicationContext : 
+Exception encountered during context initialization - 
+cancelling refresh attempt: 
+org.springframework.beans.factory.UnsatisfiedDependencyException: 
+Error creating bean with name &#39;routeDefinitionRouteLocator&#39; defined in class path resource [org/springframework/cloud/gateway/config/GatewayAutoConfiguration.class]: 
+Unsatisfied dependency expressed through method &#39;routeDefinitionRouteLocator&#39; parameter 1; 
+nested exception is org.springframework.beans.factory.UnsatisfiedDependencyException: 
+Error creating bean with name &#39;modifyRequestBodyGatewayFilterFactory&#39; defined in class path resource [org/springframework/cloud/gateway/config/GatewayAutoConfiguration.class]: 
+Unsatisfied dependency expressed through method &#39;modifyRequestBodyGatewayFilterFactory&#39; parameter 0; 
+nested exception is org.springframework.beans.factory.NoSuchBeanDefinitionException: No qualifying bean of type &#39;org.springframework.http.codec.ServerCodecConfigurer&#39; available: 
+expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}</code></code></pre>
+<ol>
+<li>开发SpringCloud Gateway的启动类K8sgatewaydemoApplication.java，里面也包含了网关路由配置的实例化，除了配置路径和转发服务的关系，还在请求的header中添加了extendtag属性，请注意注释的内容：</li>
+</ol>
+<pre><code><code>@SpringBootApplication
+@EnableDiscoveryClient
+public class K8sgatewaydemoApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(K8sgatewaydemoApplication.class, args);
+    }
+
+    @Bean
+    public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
+        return builder.routes()
+                //增加一个path匹配，以&quot;/customize/hello/&quot;开头的请求都在此路由
+                .route(r -&gt; r.path(&quot;/customize/hello/**&quot;)
+                        //表示将路径中的第一级参数删除，用剩下的路径与webdemo的路径做拼接，
+                        //这里就是&quot;lb://webdemo/hello/&quot;，能匹配到webdemo的HelloController的路径
+                        .filters(f -&gt; f.stripPrefix(1)
+                                //在请求的header中添加一个key&amp;value
+                                .addRequestHeader(&quot;extendtag&quot;, &quot;geteway-&quot; + System.currentTimeMillis()))
+                        //指定匹配服务webdemo，lb是load balance的意思
+                        .uri(&quot;lb://webdemo&quot;)
+                ).build();
+    }
+}</code></code></pre>
+<p>从上述代码可见，K8sgatewaydemoApplication与普通环境下的SpringCloud Gateway并无差别，都是通过EnableDiscoveryClient注解获取服务列表，配置RouteLocator实现路由逻辑；</p>
+<ol>
+<li>配置文件application.yml的内容：</li>
+</ol>
+<pre class="yml"><code>spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lowerCaseServiceId: true</code></code></pre>
+<ol>
+<li>以上就是k8sgatewaydemo应用的内容了，接下来要编译、构建、部署到minikube环境，在pom.xml执行以下命令即可：</li>
+</ol>
+<pre class="shell"><code>mvn clean install fabric8:deploy -Dfabric8.generator.from=fabric8/java-jboss-openjdk8-jdk -Pkubernetes</code></code></pre>
+<p>部署完成后终端输出类似如下成功信息：</p>
+<pre class="shell"><code>[INFO] 
+[INFO] &lt;&lt;&lt; fabric8-maven-plugin:3.5.37:deploy (default-cli) &lt; install @ k8sgatewaydemo &lt;&lt;&lt;
+[INFO] 
+[INFO] 
+[INFO] --- fabric8-maven-plugin:3.5.37:deploy (default-cli) @ k8sgatewaydemo ---
+[INFO] F8: Using Kubernetes at https://192.168.121.133:8443/ in namespace default with manifest /usr/local/work/k8s/k8sgatewaydemo/target/classes/META-INF/fabric8/kubernetes.yml 
+[INFO] Using namespace: default
+[INFO] Updating a Service from kubernetes.yml
+[INFO] Updated Service: target/fabric8/applyJson/default/service-k8sgatewaydemo.json
+[INFO] Using namespace: default
+[INFO] Updating Deployment from kubernetes.yml
+[INFO] Updated Deployment: target/fabric8/applyJson/default/deployment-k8sgatewaydemo.json
+[INFO] F8: HINT: Use the command `kubectl get pods -w` to watch your pods start up
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  16.538 s
+[INFO] Finished at: 2019-07-07T22:04:48+08:00
+[INFO] ------------------------------------------------------------------------</code></code></pre>
+<ol>
+<li>查看service和pod，确认一切正常：</li>
+</ol>
+<pre class="shell"><code>[root@minikube k8sgatewaydemo]# clear
+[root@minikube k8sgatewaydemo]# kubectl get service
+NAME             TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+k8sgatewaydemo   NodePort    10.97.94.238    &lt;none&gt;        8080:31352/TCP   129m
+kubernetes       ClusterIP   10.96.0.1       &lt;none&gt;        443/TCP          29d
+webdemo          NodePort    10.106.98.137   &lt;none&gt;        8080:30160/TCP   145m
+[root@minikube k8sgatewaydemo]# kubectl get pod
+NAME                              READY   STATUS    RESTARTS   AGE
+k8sgatewaydemo-6fbb79885c-r2jfn   1/1     Running   0          33s
+webdemo-c9f774b9-gsbgx            1/1     Running   0          32m</code></code></pre>
+<ol>
+<li>使用minikube命令取得webdemo服务对外暴露的地址：</li>
+</ol>
+<pre class="shell"><code>[root@minikube k8sgatewaydemo]# minikube service k8sgatewaydemo --url
+http://192.168.121.133:31352</code></code></pre>
+<p>可见外部通过地址：http://192.168.121.133:31352 即可访问到k8sgatewaydemo应用；</p>
+<ol>
+<li>在浏览器输入地址：http://192.168.121.133:31352/customize/hello/time ，即可验证k8sgatewaydemo作为网关应用，能否将路径中带有<font color="blue">customize</font>的请求转发到webdemo应用，并且在请求header中添加名为entendtag的属性，如下图，浏览器展示的内容是webdemo的http接口返回的，并且extendtag的内容也不为空了，而是k8sgatewaydemo在转发前写入的：<br />
+<img src="./images/spring-cloud-kubernetes与SpringCloud Gateway5.png" alt="在这里插入图片描述" /><br />
+上述结果表明已可以证明我们之前的推测是正确的：SpringCloud Gateway应用在使用了spring-cloud-kubernetes提供的注册发现能力后，可以将请求转发到kubernetes环境中的服务上；<br />
+也就是说，借助spring-cloud-kubernetes框架，你在SpringCloud环境开发的SpringCloud Gateway应用，可以以很小的代价迁移到kubernetes环境，与kubernetes环境中的service可以很好的交互，而原有的eureka注册中心也可以不用了；</li>
+</ol>
+<h3 id="解决权限问题">解决权限问题</h3>
+<p>如果您的spring-cloud-kubernetes在向webdemo转发请求时抛出以下错误，那是因为遇到了kubernetes的权限问题：</p>
+<pre><code><code>2019-07-06 04:46:40.042  WARN 1 --- [erListUpdater-1] c.n.l.PollingServerListUpdater           : Failed one update cycle
+io.fabric8.kubernetes.client.KubernetesClientException: Failure executing: GET at: https://10.96.0.1/api/v1/namespaces/default/endpoints/account-service. Message: Forbidden!Configured service account doesn&#39;t have access. Service account may have been revoked. endpoints &quot;account-service&quot; is forbidden: User &quot;system:serviceaccount:default:default&quot; cannot get resource &quot;endpoints&quot; in API group &quot;&quot; in the namespace &quot;default&quot;.
+        at io.fabric8.kubernetes.client.dsl.base.OperationSupport.requestFailure(OperationSupport.java:476) ~[kubernetes-client-4.1.0.jar!/:na]
+        at io.fabric8.kubernetes.client.dsl.base.OperationSupport.assertResponseCode(OperationSupport.java:413) ~[kubernetes-client-4.1.0.jar!/:na]
+        at io.fabric8.kubernetes.client.dsl.base.OperationSupport.handleResponse(OperationSupport.java:381) ~[kubernetes-client-4.1.0.jar!/:na]
+        at io.fabric8.kubernetes.client.dsl.base.OperationSupport.handleResponse(OperationSupport.java:344) ~[kubernetes-client-4.1.0.jar!/:na]
+        at io.fabric8.kubernetes.client.dsl.base.OperationSupport.handleGet(OperationSupport.java:313) ~[kubernetes-client-4.1.0.jar!/:na]
+        at io.fabric8.kubernetes.client.dsl.base.OperationSupport.handleGet(OperationSupport.java:296) ~[kubernetes-client-4.1.0.jar!/:na]
+        at io.fabric8.kubernetes.client.dsl.base.BaseOperation.handleGet(BaseOperation.java:794) ~[kubernetes-client-4.1.0.jar!/:na]
+        at io.fabric8.kubernetes.client.dsl.base.BaseOperation.getMandatory(BaseOperation.java:210) ~[kubernetes-client-4.1.0.jar!/:na]
+
+
+        at io.fabric8.kubernetes.client.dsl.base.BaseOperation.get(BaseOperation.java:177) ~[kubernetes-client-4.1.0.jar!/:na]
+        at org.springframework.cloud.kubernetes.ribbon.KubernetesServerList
+
+
+.getUpdatedListOfServers(KubernetesServerList.java:75) ~[spring-cloud-kubernetes-ribbon-1.0.1.RELEASE.jar!/:1.0.1.RELEASE]
+        at com.netflix.loadbalancer.DynamicServerListLoadBalancer.updateListOfServers(DynamicServerListLoadBalancer.java:240) ~[ribbon-loadbalancer-2.3.0.jar!/:2.3.0]
+        at com.netflix.loadbalancer.DynamicServerListLoadBalancer$1.doUpdate(DynamicServerListLoadBalancer.java:62) ~[ribbon-loadbalancer-2.3.0.jar!/:2.3.0]
+        at com.netflix.loadbalancer.PollingServerListUpdater$1.run(PollingServerListUpdater.java:116) ~[ribbon-loadbalancer-2.3.0.jar!/:2.3.0]
+        at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511) [na:1.8.0_191]
+        at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:308) [na:1.8.0_191]
+        at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$301(ScheduledThreadPoolExecutor.java:180) [na:1.8.0_191]
+        at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:294) [na:1.8.0_191]
+        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149) [na:1.8.0_191]
+        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624) [na:1.8.0_191]
+        at java.lang.Thread.run(Thread.java:748) [na:1.8.0_191]</code></code></pre>
+<p>处理方法是创建ServiceAccount对象，步骤如下：</p>
+<ol>
+<li>创建名为<font color="blue">fabric8-rbac.yaml</font>的文件，内容如下：</li>
+</ol>
+<pre class="yaml"><code># NOTE: The service account `default:default` already exists in k8s cluster.
+# You can create a new account following like this:
+#---
+#apiVersion: v1
+#kind: ServiceAccount
+#metadata:
+#  name: &lt;new-account-name&gt;
+#  namespace: &lt;namespace&gt;
+
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: fabric8-rbac
+subjects:
+  - kind: ServiceAccount
+    # Reference to upper&#39;s `metadata.name`
+    name: default
+    # Reference to upper&#39;s `metadata.namespace`
+    namespace: default
+roleRef:
+  kind: ClusterRole
+  name: cluster-admin
+  apiGroup: rbac.authorization.k8s.io</code></code></pre>
+<ol>
+<li>执行以下命令即可创建ServiceAccount对象：</li>
+</ol>
+<pre class="shell"><code>kubectl apply -f fabric8-rbac.yaml</code></code></pre>
+<ol>
+<li>再在浏览器上继续刚才的验证，可以操作成功；</li>
+</ol>
+<h3 id="最后一个疑问">最后一个疑问</h3>
+<p>再回顾一下k8sgatewaydemo的开发过程，您会发现除了依赖spring-cloud-kubernetes对应的maven库，我们并没有显式调用spring-cloud-kubernetes相关的API或者做相关配置，就获取了所在kubernetes环境的原生服务，这是怎么回事呢？为何成本如此的低？<br />
+答案就在<a href="https://blog.csdn.net/boling_cavalry/article/details/92069486">《spring-cloud-kubernetes背后的三个关键知识点》</a>一文中，推荐您回顾一下此文。</p>
+<p>至此，spring-cloud-kubernetes框架下的SpringCloud Gateway开发实战就完成了，希望本文能帮助您更好的理解和使用spring-cloud-kubernetes，更加高效的将应用向容器化迁移。</p>
+<h3 id="欢迎关注我的公众号程序员欣宸">欢迎关注我的公众号：程序员欣宸</h3>
+<p><img src="./images/spring-cloud-kubernetes与SpringCloud Gateway6.png" alt="在这里插入图片描述" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

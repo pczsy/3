@@ -1,0 +1,166 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Dubbo 2.7新特性之异步化改造' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Dubbo 2.7新特性之异步化改造</center></div><div class='banquan'>原文出处:本文由博客园博主why技术提供。<br/>
+原文连接:https://www.cnblogs.com/thisiswhy/p/12019070.html</div><br>
+    <p>&nbsp;</p>
+<p data-pm-slice="0 0 []">这是why技术的第<strong>1</strong>篇原创文章</p>
+<h1 class="pgc-h-arrow-right">我与Dubbo的二三事</h1>
+<p>我是2016年毕业的，在我毕业之前，我在学校里面学到的框架都是SSH，即struts+spring+hibernate,是的你没有看错，在大学里面的课本里面学的是strusts，这个还没毕业就被基本抛弃的框架。然而我大四出去实习，用的技术是SSM,即Spring，SpringMVC，Mybatis。实习的时候做的项目都是外包项目，非常传统的单体大项目，和学校里面做课程设计一样，所有的功能包括前后端都糅合在一个项目里面，根本不知道什么是分布式架构，不夸张的说，那个时候我对分布式这一块的知识无限趋近于零。</p>
+<p>第一次接触到分布式的概念是我正式参加工作后，第一家公司属于一家互联网公司，做第三方支付。我甚至现在还记得加入这个公司之后,第一次在同事的帮助下，分别把支付服务和账务服务的Demo，两个项目，在两个IDEA中运行起来，然后我在账务服务打了一个断点，运行支付服务的测试用例，最后程序在账务服务的断点处停了下来！程序停下来的时候，我仿佛感觉看到了"神迹"，颠覆了我前4年的大学学习中的固有印象！那个时候，我才知道了还有分布式这么一回事，才第一次接触到Dubbo,那个时候,程序猿的大门才向我徐徐打开，那个时候，我才知道，我一直在新手村待了4年。</p>
+<hr />
+<h1 class="pgc-h-arrow-right">Dubbo的坎坷一生</h1>
+<p>你的一生中总是会碰到几个十分神秘的人，他们看起来或者仙风道骨，或者平平无奇，他们总是问你一些终极的问题，总是会引起你的思考，你也会无情的拒绝，因为你知道，这事，不靠谱，这些人就是&ldquo;算命先生&rdquo;,总是问你:"你从哪里来?你往哪里去？你60岁的时候会有一道坎，了解一下?"</p>
+<p>我不知道我的前世，也无法预知自己今生还没发生的坎，但是我知道Dubbo从哪里来，往哪里去，了解一下？</p>
+<p>出生豪门:</p>
+<blockquote>
+<p>2011 年 10 月 27 日，阿里巴巴开源了自己服务化治理方案的核心框架 Dubbo，服务治理的设计理念开始逐渐在国内软件行业中落地，并被广泛应用。自开源后，许多非阿里系公司选择使用 Dubbo。</p>
+</blockquote>
+<p>半路夭折:</p>
+<blockquote>
+<p>2012 年 10 月 23 日，Dubbo 2.5.3 发布后，在 Dubbo 开源将满一周年之际，阿里基本停止了对 Dubbo 的主要升级。</p>
+<p>2012 年 10 月 23 日，Dubbo 2.5.3 发布后，在 Dubbo 开源将满一周年之际，阿里基本停止了对 Dubbo 的主要升级。2013 年，2014 年，更新了 2 次 Dubbo 2.4 的维护版本，然后停止了所有维护工作。至此，Dubbo 对 Spring 的支持也停留在了 Spring 2.5.6 版本上。</p>
+</blockquote>
+<p>同行续命:</p>
+<blockquote>
+<p>阿里停止维护和升级 Dubbo 期间，当当网开始维护自己的 Dubbo 分支版本 Dubbox，新增支持了新版本的 Spring，支持了 Rest 协议等，并对外开源了 Dubbox。同时，网易考拉也维护了自己的独立分支 Dubbok，可惜并未对外开源。</p>
+</blockquote>
+<p>起死回生:</p>
+<blockquote>
+<p>2017 年 9 月 7 日，Dubbo 悄悄在 GitHub 发布了 2.5.4 版本。随后，又迅速发布了 2.5.5、2.5.6、2.5.7 等版本。在 10 月举行的云栖大会上，阿里宣布 Dubbo 被列入集团重点维护开源项目，这也就意味着 Dubbo 起死回生，开始重新进入快车道。</p>
+</blockquote>
+<p>回归正统:</p>
+<blockquote>
+<p>2018 年 1 月 8 日，Dubbo 2.6.0 版本发布，新版本将之前当当网开源的 Dubbox 进行了合并，实现了 Dubbo 版本的统一整合。</p>
+</blockquote>
+<p>走向巅峰:</p>
+<blockquote>
+<p>2018年2月，阿里巴巴宣布将Dubbo捐献给apache，进入apache孵化器。</p>
+<p>2019 年 1 月，2.7.0 release 版本发布，这个即将毕业的 apache 版本支持了丰富的新特性，全新的 Dubbo Ops 控制台。时至 5 月，Dubbo 来到了 2.7.2 版本，期间积极引入了新的特性，支持 consul，nacos，etcd 等注册中心。</p>
+<p>2019 年 5 月 21 号，经过了漫长的孵化期，Dubbo 迎来了毕业。成为Apache基金会顶级项目。</p>
+</blockquote>
+<p>从Dubbo的历程可以看出，Dubbo的一生是坎坷的一生，虽然半路夭折，但是最后还是走向了巅峰。不知道为什么，这个时候我想起了马云爸爸说的一句话:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造0.png" alt="" data-ic="false" data-width="843" data-height="641" data-ic-uri="" />
+<p>阿里说:我对Dubbo没有兴趣。因为我最快乐的时候，是当当网，帮我续命的时候！</p>
+<p>很有马云爸爸的气质，一脉相承，厉害厉害！</p>
+<hr />
+<h1 class="pgc-h-arrow-right">Dubbo的异步化改造</h1>
+<p>Dubbo2.7新特性包括但不限于如下几点:</p>
+<blockquote>
+<p>1.异步化改造</p>
+<p>2.三大中心改造</p>
+<p>3.服务治理增强</p>
+</blockquote>
+<p>本文主要分享Dubbo2.7新特征之一，异步化改造相关的内容。</p>
+<p>Dubbo的四种调用方式:</p>
+<p>此图是本文的核心，本文分享的内容基本上都是对于此图深入到源码解级别的解析:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造1.png" alt="" data-ic="false" data-width="846" data-height="630" data-ic-uri="" />
+<p>1.oneway --- 有去无回</p>
+<blockquote>
+<p>oneway 指的是客户端发送消息后，不需要接受响应。对于那些不关心服务端响应的请求，比较适合使用 oneway 通信。但是请注意,<strong>返回值定义为void的并不是oneway的调用方式</strong>，void表示的程序上不需要关心返回值，但是对Dubbo框架而言，还是需要构建返回数据的。</p>
+<p>仔细看oneway调用方式的图，可以看出：从客户端到服务端，只有req，没有resp;所以客户端不需要阻塞等待。</p>
+</blockquote>
+<p>2.sync --- 同步调用</p>
+<blockquote>
+<p>sync是最常用的通信方式，也是Dubbo默认的通信方法。</p>
+<p>还是仔细看sync调用方式的图，再想一想你自己写的Dubbo应用，或者公司其他的Dubbo应用，是不是就是你们现在正在使用的通信方式。客服端发起req请求到A服务端，然后在设置的超时时间内，一直等待A服务器的响应resp，这个时候，我们说客户端处于阻塞的状态。当A服务器返回resp后，客户端才会继续运行。</p>
+</blockquote>
+<p>3.future和callback --- 异步调用</p>
+<blockquote>
+<p>future 和 callback 都属于异步调用的范畴，我们放在一起讨论。</p>
+<p>继续仔细看future和callback调用方式的图，可以看出他们的区别是：在接收响应时，future.get() 会导致线程的阻塞;callback 通常会设置一个回调线程，当接收到服务端响应时，自动执行，不会对当前线程造成阻塞。</p>
+</blockquote>
+<h1 class="pgc-h-arrow-right">源码之下无秘密</h1>
+<p>1.Dubbo 2.6.0中体现调用方式的关键代码</p>
+<p>有了前面的四种调用方式的简单介绍铺垫。我们深入到源码中一探究竟:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造2.png" alt="" data-ic="false" data-width="1080" data-height="547" data-ic-uri="" />
+<p>上图是Dubbo2.6.0版本DubboInvoke.doInvoke()方法的截图，先看个全局的代码。</p>
+<p>其中的箭头解释一下:</p>
+<blockquote>
+<p>箭头1：表明这段代码的版本，Dubbo2.6.0版本。</p>
+<p>箭头2：判断调用方式是否是oneway模式,即有去无回调用。</p>
+<p>箭头3：判断调用是否是否是async模式,即异步调用。</p>
+<p>箭头4：既不是有去无回（oneway），也不是 异步调用（async），那么就是sync模式，即同步调用。</p>
+</blockquote>
+<p>对于红框中的代码，放大如下：</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造3.png" alt="" data-ic="false" data-width="709" data-height="285" data-ic-uri="" />
+<p>接下来对关键代码进行解读:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造4.png" alt="" data-ic="false" data-width="1080" data-height="421" data-ic-uri="" />
+<p>1.首先，Dubbo是怎么判断调用方式是前面说的4种调用方式（对于Dubbo2.6.x来说，其实是3种,2.7.0之后才支持了callback的调用方式）的哪一种的呢?</p>
+<p>可以看到这两行代码:</p>
+<pre><code>boolean isAsync = RpcUtils.isAsync(getUrl(), invocation); boolean isOneway = RpcUtils.isOneway(getUrl(), invocation);</code></pre>
+<p>可以对着关键代码解读的图来看，这两行代码的用途，就是判断你的配置文件(注解的方式或者dubbo.xml)中有没有配置async=true或者return=true。</p>
+<p>2.接下来我们重点看一下我说的&ldquo;最骚&rdquo;的这一行代码:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造5.png" alt="" data-ic="false" data-width="746" data-height="513" data-ic-uri="" />
+<p><br />真的"骚"啊，当是异步调用的时候，Dubbo把future放到RpcContext的上下文中,然后构造一个空的RpcResult给调用方,调用方再从上下文中把future取出来，需要用返回的值的时候调用一下future.get()方法。完成异步调用的操作。</p>
+<p>同步调用的时候，dubbo也有拿到了这个future，但是并没有返回，而是直接调用了future.get()方法，这就是同步调用。</p>
+<p><strong>综上:我认为同步调用和异步调用的区别就是谁去调用future.get()方法。如果是Dubbo调用则是同步调用，如果是客户端调用者是异步方法。</strong></p>
+<p>2.Dubbo 2.7.0中体现调用方式的关键代码</p>
+<p>接下来，我们看一下Alibaba提供给Apache的初始版本，即2.7.0版本中体现调用方式的关键代码。</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造6.png" alt="" data-ic="false" data-width="1080" data-height="567" data-ic-uri="" />
+<p>朋友们可以先看左上角，确实是Dubbo2.7.0版本的代码。然后红框中圈起来的代码，看起来和Dubbo2.6.0版本中的差不多，那我们就对比着看。</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造7.png" alt="" data-ic="false" data-width="1080" data-height="547" data-ic-uri="" />
+<p>看到这个地方的时候我曾经走了一点弯路，甚至走上了歧途，一度质疑Dubbo的这个地方的源码是有问题的，毕竟我们搞技术的，就是一个大胆假设，小心求证吧。所以我给Dubbo提了一个issus.如下:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造8.png" alt="" data-ic="false" data-width="1006" data-height="609" data-ic-uri="" />
+<p>这里就不讲我走上歧途的过程了，后面有机会再分享。大家可以去看看，会不会被固化思维给带偏了。</p>
+<p>这里的两个回答，第一个解答了我的问题，我看了后恍然大悟，这题属于当局者迷旁观者清。</p>
+<p>第二个回答，建议我看一下最新版本的代码，当时的最新版本的代码是2.7.3。所以我把2.7.3版本的代码拉了下来。</p>
+<p>3.Dubbo 2.7.3中体现调用方式的关键代码</p>
+<p>接下来，我们就看看2.7.3中体现调用方式的关键代码，请各位朋友坐稳扶好，这里变化较大，车速较快，非常优秀。</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造9.png" alt="" data-ic="false" data-width="1080" data-height="553" data-ic-uri="" />
+<p>&nbsp;</p>
+<p>首先我们可以看到isOneway的判断还是我们熟悉的代码。但是这里只有一个if-else了。Dubbo调用有四种方式，if判断了isOneway,那么剩下的三种都在这个else里面啦。</p>
+<p>看到这里，笔者冷静的思考了一下，剩下的三种调用方式，sync调用，future调用，callback调用。其中sync调用是默认的方式，没有在这个地方体现出来，那么直觉告诉我在某个地方一定有一个异步转同步的调用。于是乎，我发现了这样一个神奇的类:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造10.png" alt="" data-ic="false" data-width="1080" data-height="532" data-ic-uri="" />
+<p>AsyncToSyncInvoker方法中的54行asyncResult.get()，其中asyncResult继承自Future,用源码说话:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造11.png" alt="" data-ic="false" data-width="1080" data-height="441" data-ic-uri="" />
+<p>接着我们说说AsyncToSyncInvoker方法中的53行，getInvokeMode().</p>
+<p>getInvokeMode()是RpcInvocation里InvokeMode的get方法。而且2.6.0里面RpcInvocation是没有invokeMode这个成员变量的。是2.7.0版本后新加的。</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造12.png" alt="" data-ic="false" data-width="909" data-height="643" data-ic-uri="" />
+<p>至此，基本圆满了。感谢大神指引我看最新版本的代码。</p>
+<p>然后在上一个对比图:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造13.png" alt="" data-ic="false" data-width="1080" data-height="590" data-ic-uri="" />
+<h1 class="pgc-h-arrow-right">Show me the code</h1>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造14.png" alt="" data-ic="false" data-width="1047" data-height="493" data-ic-uri="" />
+<p>Dubbo 2.6.0的异步化实现:</p>
+<p>1.dubbo.xml配置，加入<strong>async="true"</strong></p>
+<pre><code>&lt;dubbo:reference id="asyncService" interface="org.apache.dubbo.demo.api.AsyncService" async="true"/&gt;</code></pre>
+<p>2.dubbo接口定义:</p>
+<pre><code>public interface AsyncService{ String sayHello(String name);}</code></pre>
+<p>3.异步调用,从RpcContext上下文中取出future，然后调用这个最"骚"的future.get()方法。还记得之前说的嘛:<strong>同步调用和异步调用的区别就是谁去调用future.get()方法。</strong>这里是客户端调用，所以是异步调用。</p>
+<pre><code>AsyncService.sayHello("hello");Future&lt;String&gt; fooFuture=RpcContext.getContext().getFuture();fooFuture.get();</code></pre>
+<p>有几个弊端:</p>
+<blockquote>
+<p>1.不太符合异步编程的习惯，需要从一个上下文类中获取到 Future</p>
+<p>2.如果多个异步调用，使用不当很容易造成上下文污染</p>
+<p>3.Future 并不支持 callback 的调用方式</p>
+</blockquote>
+<p>Dubbo 2.7.x的异步化实现:</p>
+<p>无需相关配置中进行特殊配置，显示声明异步接口即可:</p>
+<pre><code>public interface AsyncService{ String sayHello(String name); default CompletableFuture&lt;String&gt; sayHiAsync(String name){ return CompletableFuture.completedFuture(sayHello(name)); }}</code></pre>
+<p>使用callback方式处理返回值</p>
+<pre><code>CompletableFuture&lt;String&gt; future = asyncService.sayHiAsync("hi");future.whenComplete((retValue, exception) -&gt; { if (exception == null) { System.out.println(retValue); } else { exception.printStackTrace(); }});</code></pre>
+<p>那么为什么Dubbo2.7.0这样简单的几行代码就能实现异步化了呢？记住,源码之下无秘密:</p>
+<src class="pgc-img"><img src="./images/Dubbo 2.7新特性之异步化改造15.png" alt="" data-ic="false" data-width="1080" data-height="585" data-ic-uri="" />
+<p>完结撒花，关注我吧。下期再见，谢谢大家！</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,54 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBootSecurity学习（16）前后端分离版之 OAuth2.0 加密配置' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBootSecurity学习（16）前后端分离版之 OAuth2.0 加密配置</center></div><div class='banquan'>原文出处:本文由博客园博主程序员郭艺宾提供。<br/>
+原文连接:https://www.cnblogs.com/guos/p/11637644.html</div><br>
+    <h1 id="示例代码的改进">示例代码的改进</h1>
+<p>前面使用spring cloud security和spring cloud oauth2写了一个第三方授权的例子，例子非常的简单，主要目的是用来熟悉OAuth2.0 申请授权的整个流程，这个简单的示例肯定是不能直接用于生产环境的，还有很多需要改进的地方，我们来总结一下：</p>
+<ul>
+<li>1、只演示了授权码的形式，其它的三种（隐藏式，密码式，客户端凭证）并没有熟悉</li>
+<li>2、密码和秘钥是未加密的</li>
+<li>3、oauth的客户端配置，包括id，秘钥等信息是在内存中配置死的，无法动态增加</li>
+<li>4、token也是放在内存中存储的，无法手动废止</li>
+<li>5、jwt的生成使用的是简单的秘钥形式，最好使用非对称加密的方式，更加安全可靠</li>
+<li>6、令牌的申请权限配置不太合理</li>
+<li>7、资源服务中的jwt和令牌验证配置也不太灵活</li>
+<li>8、授权流程应该结合eureka开发和使用</li>
+<li>9、没有验证令牌中继特性，等等等等</li>
+</ul>
+<p>从上面列举的问题可以看出，就算示例代码能运行，流程也清楚，但是要学会使用Spring Cloud Security，尤其要在生产环境使用，还需要对每个细节都能掌握和了解才行。</p>
+<h1 id="加密配置">加密配置</h1>
+<p>首先我们来改进第一个地方，实现加密配置。大家知道用户注册之后，存储用户资料的时候，用户密码在数据库中最好是加密后再保存，同样的道理，oauth的客户端信息最终也是要存储在数据库而不是直接在代码中配置死的，它的secret字段也应该加密后再存储，下面在授权服务中来配置加密，首先修改security配置类，配置加密方式：</p>
+<p><img src="./images/SpringBootSecurity学习（16）前后端分离版之 OAuth2.0 加密配置0.png" alt="file" /></p>
+<p>然后将登陆用户的密码配置为加密：</p>
+<p><img src="./images/SpringBootSecurity学习（16）前后端分离版之 OAuth2.0 加密配置1.png" alt="file" /></p>
+<p>然后修改授权配置类，将客户端配置中的secret配置为加密：</p>
+<p><img src="./images/SpringBootSecurity学习（16）前后端分离版之 OAuth2.0 加密配置2.png" alt="file" /></p>
+<p>这样加密配置就完成了。资源服务不用做任何修改。</p>
+<h1 id="测试">测试</h1>
+<p>配置上面三个加密的地方后，加密就配置好了，下面来测试一下，其实测试流程与前面的一样，客户端感知不到，得到的access_token如下：</p>
+<p><img src="./images/SpringBootSecurity学习（16）前后端分离版之 OAuth2.0 加密配置3.png" alt="file" /></p>
+<p>最终访问结果如下：</p>
+<p><img src="./images/SpringBootSecurity学习（16）前后端分离版之 OAuth2.0 加密配置4.png" alt="file" /></p>
+<p>代码地址：<a href="https://gitee.com/blueses/spring-boot-security" class="uri">https://gitee.com/blueses/spring-boot-security</a> 17 18</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

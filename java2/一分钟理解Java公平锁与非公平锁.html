@@ -1,0 +1,104 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一分钟理解Java公平锁与非公平锁' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一分钟理解Java公平锁与非公平锁</center></div><div class='banquan'>原文出处:本文由博客园博主Java博客手留余香提供。<br/>
+原文连接:https://www.cnblogs.com/yuxiang1/p/12022536.html</div><br>
+    <blockquote>
+<p>本人免费整理了Java高级资料，涵盖了Java、Redis、MongoDB、MySQL、Zookeeper、Spring Cloud、Dubbo高并发分布式等教程，一共30G，需要自己领取。<br />传送门：<a class=" wrap external" href="https://link.zhihu.com/?target=https%3A//links.jianshu.com/go%3Fto%3Dhttps%253A%252F%252Flink.zhihu.com%252F%253Ftarget%253Dhttps%25253A%252F%252Fmp.weixin.qq.com%252Fs%252FJzddfH-7yNudmkjT0IRL8Q" rel="nofollow noreferrer" target="_blank" data-za-detail-view-id="1043">https://mp.weixin.qq.com/s/JzddfH-7yNudmkjT0IRL8Q</a></p>
+</blockquote>
+<p>&nbsp;</p>
+<p>和朋友聊天他提到：ReentrantLock 的构造函数可以传递一个 bool 数据，true 时构造的是&ldquo;公平锁&rdquo;、false 时构造的是&ldquo;非公平锁&rdquo;。我的印象中锁是不区分类型的，所以认为这应该是 Java 发明的概念，于是就恶补了一下。</p>
+<h2>锁的底层实现</h2>
+<p>无论什么语言在操作系统层面锁的操作都会变成系统调用（System Call），以 Linux 为例，就是 futex 函数，可以把它理解为两个函数： futex_wait(s)，对变量 s 加锁；futex_wake(s)释放 s 上的锁，唤醒其他线程。</p>
+<p>在ReentrantLock中很明显可以看到其中同步包括两种，分别是公平的FairSync和非公平的NonfairSync。</p>
+<p>公平锁的作用就是严格按照线程启动的顺序来执行的，不允许其他线程插队执行的；而非公平锁是允许插队的。</p>
+<p class="ztext-empty-paragraph">&nbsp;</p>
+<p>默认情况下ReentrantLock是通过非公平锁来进行同步的，包括synchronized关键字都是如此，因为这样性能会更好。</p>
+<p>因为从线程进入了RUNNABLE状态，可以执行开始，到实际线程执行是要比较久的时间的。</p>
+<p>而且，在一个锁释放之后，其他的线程会需要重新来获取锁。其中经历了持有锁的线程释放锁，其他线程从挂起恢复到RUNNABLE状态，其他线程请求锁，获得锁，线程执行，这一系列步骤。如果这个时候，存在一个线程直接请求锁，可能就避开挂起到恢复RUNNABLE状态的这段消耗，所以性能更优化。</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Creates an instance of {</span><span style="color: #808080;">@code</span><span style="color: #008000;"> ReentrantLock}.
+     * This is equivalent to using {</span><span style="color: #808080;">@code</span><span style="color: #008000;"> ReentrantLock(false)}.
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> ReentrantLock() {
+        sync </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NonfairSync();
+    }</span></code></pre>
+
+<p>&nbsp;</p>
+
+<p>默认状态，使用的ReentrantLock()就是非公平锁。再参考如下代码，我们知道ReentrantLock的获取锁的操作是通过装饰模式代理给sync的。</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Acquires the lock.
+     *
+     * &lt;p&gt;Acquires the lock if it is not held by another thread and returns
+     * immediately, setting the lock hold count to one.
+     *
+     * &lt;p&gt;If the current thread already holds the lock then the hold
+     * count is incremented by one and the method returns immediately.
+     *
+     * &lt;p&gt;If the lock is held by another thread then the
+     * current thread becomes disabled for thread scheduling
+     * purposes and lies dormant until the lock has been acquired,
+     * at which time the lock hold count is set to one.
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> lock() {
+        sync.lock();
+    }</span></code></pre>
+
+<p>&nbsp;</p>
+
+<p>下面参考一下FairSync和NonfairSync对lock方法的实现：</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Sync object for non-fair locks
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">class</span> NonfairSync <span style="color: #0000ff;">extends</span><span style="color: #000000;"> Sync {
+        </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+         * Performs lock.  Try immediate barge, backing up to normal
+         * acquire on failure.
+         </span><span style="color: #008000;">*/</span>
+        <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> lock() {
+            </span><span style="color: #0000ff;">if</span> (compareAndSetState(0, 1<span style="color: #000000;">))
+                setExclusiveOwnerThread(Thread.currentThread());
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                acquire(</span>1<span style="color: #000000;">);
+        }
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Sync object for fair locks
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">class</span> FairSync <span style="color: #0000ff;">extends</span><span style="color: #000000;"> Sync {
+        </span><span style="color: #0000ff;">final</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> lock() {
+            acquire(</span>1<span style="color: #000000;">);
+        }
+    }</span></code></pre>
+
+<p>&nbsp;</p>
+
+<p>当使用非公平锁的时候，会立刻尝试配置状态，成功了就会插队执行，失败了就会和公平锁的机制一样，调用acquire()方法，以排他的方式来获取锁，成功了立刻返回，否则将线程加入队列，知道成功调用为止。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

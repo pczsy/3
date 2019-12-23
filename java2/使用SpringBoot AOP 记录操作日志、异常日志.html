@@ -1,0 +1,283 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用SpringBoot AOP 记录操作日志、异常日志' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用SpringBoot AOP 记录操作日志、异常日志</center></div><div class='banquan'>原文出处:本文由博客园博主咫尺的梦想_w提供。<br/>
+原文连接:https://www.cnblogs.com/wm-dv/p/11735828.html</div><br>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; 平时我们在做项目时经常需要对一些重要功能操作记录日志，方便以后跟踪是谁在操作此功能；我们在操作某些功能时也有可能会发生异常，但是每次发生异常要定位原因我们都要到服务器去查询日志才能找到，而且也不能对发生的异常进行统计，从而改进我们的项目，要是能做个功能专门来记录操作日志和异常日志那就好了， 当然我们肯定有方法来做这件事情，而且也不会很难，我们可以在需要的方法中增加记录日志的代码，和在每个方法中增加记录异常的代码，最终把记录的日志存到数据库中。听起来好像很容易，但是我们做起来会发现，做这项工作很繁琐，而且都是在做一些重复性工作，还增加大量冗余代码，这种方式记录日志肯定是不可行的。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;我们以前学过Spring 三大特性，IOC（控制反转），DI（依赖注入），AOP（面向切面），那其中AOP的主要功能就是将日志记录，性能统计，安全控制，事务处理，异常处理等代码从业务逻辑代码中划分出来。今天我们就来用springBoot Aop 来做日志记录，好了，废话说了一大堆还是上货吧。</p>
+<p><strong>一、创建日志记录表、异常日志表，表结构如下：</strong></p>
+<p><strong>&nbsp; &nbsp; &nbsp;&nbsp;<img src="./images/使用SpringBoot AOP 记录操作日志、异常日志0.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;操作日志表</p>
+<p>&nbsp; &nbsp; &nbsp;&nbsp;<img src="./images/使用SpringBoot AOP 记录操作日志、异常日志1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; 异常日志表</p>
+<p><strong>二、添加Maven依赖</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">2</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">3</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-aop<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">4</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p><strong>三、创建操作日志注解类OperLog.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.hyd.zcar.cms.common.utils.annotation;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.annotation.Documented;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.annotation.ElementType;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.annotation.Retention;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.annotation.RetentionPolicy;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.annotation.Target;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;"> * 自定义操作日志注解
+</span><span style="color: #008080;">11</span> <span style="color: #008000;"> * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> wu
+</span><span style="color: #008080;">12</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;">13</span> @Target(ElementType.METHOD) <span style="color: #008000;">//</span><span style="color: #008000;">注解放置的目标位置,METHOD是可注解在方法级别上</span>
+<span style="color: #008080;">14</span> @Retention(RetentionPolicy.RUNTIME) <span style="color: #008000;">//</span><span style="color: #008000;">注解在哪个阶段执行</span>
+<span style="color: #008080;">15</span> <span style="color: #000000;">@Documented 
+</span><span style="color: #008080;">16</span> <span style="color: #0000ff;">public</span> @<span style="color: #0000ff;">interface</span><span style="color: #000000;"> OperLog {
+</span><span style="color: #008080;">17</span>     String operModul() <span style="color: #0000ff;">default</span> ""; <span style="color: #008000;">//</span><span style="color: #008000;"> 操作模块</span>
+<span style="color: #008080;">18</span>     String operType() <span style="color: #0000ff;">default</span> "";  <span style="color: #008000;">//</span><span style="color: #008000;"> 操作类型</span>
+<span style="color: #008080;">19</span>     String operDesc() <span style="color: #0000ff;">default</span> "";  <span style="color: #008000;">//</span><span style="color: #008000;"> 操作说明</span>
+<span style="color: #008080;">20</span> }</code></pre>
+
+<p><strong>四、创建切面类记录操作日志</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.hyd.zcar.cms.common.utils.aop;
+</span><span style="color: #008080;">  2</span> 
+<span style="color: #008080;">  3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.reflect.Method;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Date;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.HashMap;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Map;
+</span><span style="color: #008080;">  7</span> 
+<span style="color: #008080;">  8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #008080;">  9</span> 
+<span style="color: #008080;"> 10</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.JoinPoint;
+</span><span style="color: #008080;"> 11</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.annotation.AfterReturning;
+</span><span style="color: #008080;"> 12</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.annotation.AfterThrowing;
+</span><span style="color: #008080;"> 13</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.annotation.Aspect;
+</span><span style="color: #008080;"> 14</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.annotation.Pointcut;
+</span><span style="color: #008080;"> 15</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.aspectj.lang.reflect.MethodSignature;
+</span><span style="color: #008080;"> 16</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #008080;"> 17</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Value;
+</span><span style="color: #008080;"> 18</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Component;
+</span><span style="color: #008080;"> 19</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.context.request.RequestAttributes;
+</span><span style="color: #008080;"> 20</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.context.request.RequestContextHolder;
+</span><span style="color: #008080;"> 21</span> 
+<span style="color: #008080;"> 22</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.gexin.fastjson.JSON;
+</span><span style="color: #008080;"> 23</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.hyd.zcar.cms.common.utils.IPUtil;
+</span><span style="color: #008080;"> 24</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.hyd.zcar.cms.common.utils.annotation.OperLog;
+</span><span style="color: #008080;"> 25</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.hyd.zcar.cms.common.utils.base.UuidUtil;
+</span><span style="color: #008080;"> 26</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.hyd.zcar.cms.common.utils.security.UserShiroUtil;
+</span><span style="color: #008080;"> 27</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.hyd.zcar.cms.entity.system.log.ExceptionLog;
+</span><span style="color: #008080;"> 28</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.hyd.zcar.cms.entity.system.log.OperationLog;
+</span><span style="color: #008080;"> 29</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.hyd.zcar.cms.service.system.log.ExceptionLogService;
+</span><span style="color: #008080;"> 30</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.hyd.zcar.cms.service.system.log.OperationLogService;
+</span><span style="color: #008080;"> 31</span> 
+<span style="color: #008080;"> 32</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 33</span> <span style="color: #008000;"> * 切面处理类，操作日志异常日志记录处理
+</span><span style="color: #008080;"> 34</span> <span style="color: #008000;"> * 
+</span><span style="color: #008080;"> 35</span> <span style="color: #008000;"> * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> wu
+</span><span style="color: #008080;"> 36</span> <span style="color: #008000;"> * @date 2019/03/21
+</span><span style="color: #008080;"> 37</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 38</span> <span style="color: #000000;">@Aspect
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">@Component
+</span><span style="color: #008080;"> 40</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> OperLogAspect {
+</span><span style="color: #008080;"> 41</span> 
+<span style="color: #008080;"> 42</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 43</span> <span style="color: #008000;">     * 操作版本号
+</span><span style="color: #008080;"> 44</span> <span style="color: #008000;">     * &lt;p&gt;
+</span><span style="color: #008080;"> 45</span> <span style="color: #008000;">     * 项目启动时从命令行传入，例如：java -jar xxx.war --version=201902
+</span><span style="color: #008080;"> 46</span> <span style="color: #008000;">     * &lt;/p&gt;
+</span><span style="color: #008080;"> 47</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 48</span>     @Value("${version}"<span style="color: #000000;">)
+</span><span style="color: #008080;"> 49</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String operVer;
+</span><span style="color: #008080;"> 50</span> 
+<span style="color: #008080;"> 51</span> <span style="color: #000000;">    @Autowired
+</span><span style="color: #008080;"> 52</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> OperationLogService operationLogService;
+</span><span style="color: #008080;"> 53</span> 
+<span style="color: #008080;"> 54</span> <span style="color: #000000;">    @Autowired
+</span><span style="color: #008080;"> 55</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> ExceptionLogService exceptionLogService;
+</span><span style="color: #008080;"> 56</span> 
+<span style="color: #008080;"> 57</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 58</span> <span style="color: #008000;">     * 设置操作日志切入点 记录操作日志 在注解的位置切入代码
+</span><span style="color: #008080;"> 59</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 60</span>     @Pointcut("@annotation(com.hyd.zcar.cms.common.utils.annotation.OperLog)"<span style="color: #000000;">)
+</span><span style="color: #008080;"> 61</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> operLogPoinCut() {
+</span><span style="color: #008080;"> 62</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 63</span> 
+<span style="color: #008080;"> 64</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 65</span> <span style="color: #008000;">     * 设置操作异常切入点记录异常日志 扫描所有controller包下操作
+</span><span style="color: #008080;"> 66</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 67</span>     @Pointcut("execution(* com.hyd.zcar.cms.controller..*.*(..))"<span style="color: #000000;">)
+</span><span style="color: #008080;"> 68</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> operExceptionLogPoinCut() {
+</span><span style="color: #008080;"> 69</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 70</span> 
+<span style="color: #008080;"> 71</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 72</span> <span style="color: #008000;">     * 正常返回通知，拦截用户操作日志，连接点正常执行完成后执行， 如果连接点抛出异常，则不会执行
+</span><span style="color: #008080;"> 73</span> <span style="color: #008000;">     * 
+</span><span style="color: #008080;"> 74</span> <span style="color: #008000;">     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> joinPoint 切入点
+</span><span style="color: #008080;"> 75</span> <span style="color: #008000;">     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> keys      返回结果
+</span><span style="color: #008080;"> 76</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 77</span>     @AfterReturning(value = "operLogPoinCut()", returning = "keys"<span style="color: #000000;">)
+</span><span style="color: #008080;"> 78</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> saveOperLog(JoinPoint joinPoint, Object keys) {
+</span><span style="color: #008080;"> 79</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 获取RequestAttributes</span>
+<span style="color: #008080;"> 80</span>         RequestAttributes requestAttributes =<span style="color: #000000;"> RequestContextHolder.getRequestAttributes();
+</span><span style="color: #008080;"> 81</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 从获取RequestAttributes中获取HttpServletRequest的信息</span>
+<span style="color: #008080;"> 82</span>         HttpServletRequest request =<span style="color: #000000;"> (HttpServletRequest) requestAttributes
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">                .resolveReference(RequestAttributes.REFERENCE_REQUEST);
+</span><span style="color: #008080;"> 84</span> 
+<span style="color: #008080;"> 85</span>         OperationLog operlog = <span style="color: #0000ff;">new</span><span style="color: #000000;"> OperationLog();
+</span><span style="color: #008080;"> 86</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 87</span>             operlog.setOperId(UuidUtil.get32UUID()); <span style="color: #008000;">//</span><span style="color: #008000;"> 主键ID
+</span><span style="color: #008080;"> 88</span> 
+<span style="color: #008080;"> 89</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 从切面织入点处通过反射机制获取织入点处的方法</span>
+<span style="color: #008080;"> 90</span>             MethodSignature signature =<span style="color: #000000;"> (MethodSignature) joinPoint.getSignature();
+</span><span style="color: #008080;"> 91</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取切入点所在的方法</span>
+<span style="color: #008080;"> 92</span>             Method method =<span style="color: #000000;"> signature.getMethod();
+</span><span style="color: #008080;"> 93</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取操作</span>
+<span style="color: #008080;"> 94</span>             OperLog opLog = method.getAnnotation(OperLog.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 95</span>             <span style="color: #0000ff;">if</span> (opLog != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 96</span>                 String operModul =<span style="color: #000000;"> opLog.operModul();
+</span><span style="color: #008080;"> 97</span>                 String operType =<span style="color: #000000;"> opLog.operType();
+</span><span style="color: #008080;"> 98</span>                 String operDesc =<span style="color: #000000;"> opLog.operDesc();
+</span><span style="color: #008080;"> 99</span>                 operlog.setOperModul(operModul); <span style="color: #008000;">//</span><span style="color: #008000;"> 操作模块</span>
+<span style="color: #008080;">100</span>                 operlog.setOperType(operType); <span style="color: #008000;">//</span><span style="color: #008000;"> 操作类型</span>
+<span style="color: #008080;">101</span>                 operlog.setOperDesc(operDesc); <span style="color: #008000;">//</span><span style="color: #008000;"> 操作描述</span>
+<span style="color: #008080;">102</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">103</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取请求的类名</span>
+<span style="color: #008080;">104</span>             String className =<span style="color: #000000;"> joinPoint.getTarget().getClass().getName();
+</span><span style="color: #008080;">105</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取请求的方法名</span>
+<span style="color: #008080;">106</span>             String methodName =<span style="color: #000000;"> method.getName();
+</span><span style="color: #008080;">107</span>             methodName = className + "." +<span style="color: #000000;"> methodName;
+</span><span style="color: #008080;">108</span> 
+<span style="color: #008080;">109</span>             operlog.setOperMethod(methodName); <span style="color: #008000;">//</span><span style="color: #008000;"> 请求方法
+</span><span style="color: #008080;">110</span> 
+<span style="color: #008080;">111</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 请求的参数</span>
+<span style="color: #008080;">112</span>             Map&lt;String, String&gt; rtnMap =<span style="color: #000000;"> converMap(request.getParameterMap());
+</span><span style="color: #008080;">113</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 将参数所在的数组转换成json</span>
+<span style="color: #008080;">114</span>             String params =<span style="color: #000000;"> JSON.toJSONString(rtnMap);
+</span><span style="color: #008080;">115</span> 
+<span style="color: #008080;">116</span>             operlog.setOperRequParam(params); <span style="color: #008000;">//</span><span style="color: #008000;"> 请求参数</span>
+<span style="color: #008080;">117</span>             operlog.setOperRespParam(JSON.toJSONString(keys)); <span style="color: #008000;">//</span><span style="color: #008000;"> 返回结果</span>
+<span style="color: #008080;">118</span>             operlog.setOperUserId(UserShiroUtil.getCurrentUserLoginName()); <span style="color: #008000;">//</span><span style="color: #008000;"> 请求用户ID</span>
+<span style="color: #008080;">119</span>             operlog.setOperUserName(UserShiroUtil.getCurrentUserName()); <span style="color: #008000;">//</span><span style="color: #008000;"> 请求用户名称</span>
+<span style="color: #008080;">120</span>             operlog.setOperIp(IPUtil.getRemortIP(request)); <span style="color: #008000;">//</span><span style="color: #008000;"> 请求IP</span>
+<span style="color: #008080;">121</span>             operlog.setOperUri(request.getRequestURI()); <span style="color: #008000;">//</span><span style="color: #008000;"> 请求URI</span>
+<span style="color: #008080;">122</span>             operlog.setOperCreateTime(<span style="color: #0000ff;">new</span> Date()); <span style="color: #008000;">//</span><span style="color: #008000;"> 创建时间</span>
+<span style="color: #008080;">123</span>             operlog.setOperVer(operVer); <span style="color: #008000;">//</span><span style="color: #008000;"> 操作版本</span>
+<span style="color: #008080;">124</span> <span style="color: #000000;">            operationLogService.insert(operlog);
+</span><span style="color: #008080;">125</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">126</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">127</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">128</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">129</span> 
+<span style="color: #008080;">130</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;">131</span> <span style="color: #008000;">     * 异常返回通知，用于拦截异常日志信息 连接点抛出异常后执行
+</span><span style="color: #008080;">132</span> <span style="color: #008000;">     * 
+</span><span style="color: #008080;">133</span> <span style="color: #008000;">     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> joinPoint 切入点
+</span><span style="color: #008080;">134</span> <span style="color: #008000;">     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> e         异常信息
+</span><span style="color: #008080;">135</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">136</span>     @AfterThrowing(pointcut = "operExceptionLogPoinCut()", throwing = "e"<span style="color: #000000;">)
+</span><span style="color: #008080;">137</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> saveExceptionLog(JoinPoint joinPoint, Throwable e) {
+</span><span style="color: #008080;">138</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 获取RequestAttributes</span>
+<span style="color: #008080;">139</span>         RequestAttributes requestAttributes =<span style="color: #000000;"> RequestContextHolder.getRequestAttributes();
+</span><span style="color: #008080;">140</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 从获取RequestAttributes中获取HttpServletRequest的信息</span>
+<span style="color: #008080;">141</span>         HttpServletRequest request =<span style="color: #000000;"> (HttpServletRequest) requestAttributes
+</span><span style="color: #008080;">142</span> <span style="color: #000000;">                .resolveReference(RequestAttributes.REFERENCE_REQUEST);
+</span><span style="color: #008080;">143</span> 
+<span style="color: #008080;">144</span>         ExceptionLog excepLog = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ExceptionLog();
+</span><span style="color: #008080;">145</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">146</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 从切面织入点处通过反射机制获取织入点处的方法</span>
+<span style="color: #008080;">147</span>             MethodSignature signature =<span style="color: #000000;"> (MethodSignature) joinPoint.getSignature();
+</span><span style="color: #008080;">148</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取切入点所在的方法</span>
+<span style="color: #008080;">149</span>             Method method =<span style="color: #000000;"> signature.getMethod();
+</span><span style="color: #008080;">150</span> <span style="color: #000000;">            excepLog.setExcId(UuidUtil.get32UUID());
+</span><span style="color: #008080;">151</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取请求的类名</span>
+<span style="color: #008080;">152</span>             String className =<span style="color: #000000;"> joinPoint.getTarget().getClass().getName();
+</span><span style="color: #008080;">153</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取请求的方法名</span>
+<span style="color: #008080;">154</span>             String methodName =<span style="color: #000000;"> method.getName();
+</span><span style="color: #008080;">155</span>             methodName = className + "." +<span style="color: #000000;"> methodName;
+</span><span style="color: #008080;">156</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 请求的参数</span>
+<span style="color: #008080;">157</span>             Map&lt;String, String&gt; rtnMap =<span style="color: #000000;"> converMap(request.getParameterMap());
+</span><span style="color: #008080;">158</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 将参数所在的数组转换成json</span>
+<span style="color: #008080;">159</span>             String params =<span style="color: #000000;"> JSON.toJSONString(rtnMap);
+</span><span style="color: #008080;">160</span>             excepLog.setExcRequParam(params); <span style="color: #008000;">//</span><span style="color: #008000;"> 请求参数</span>
+<span style="color: #008080;">161</span>             excepLog.setOperMethod(methodName); <span style="color: #008000;">//</span><span style="color: #008000;"> 请求方法名</span>
+<span style="color: #008080;">162</span>             excepLog.setExcName(e.getClass().getName()); <span style="color: #008000;">//</span><span style="color: #008000;"> 异常名称</span>
+<span style="color: #008080;">163</span>             excepLog.setExcMessage(stackTraceToString(e.getClass().getName(), e.getMessage(), e.getStackTrace())); <span style="color: #008000;">//</span><span style="color: #008000;"> 异常信息</span>
+<span style="color: #008080;">164</span>             excepLog.setOperUserId(UserShiroUtil.getCurrentUserLoginName()); <span style="color: #008000;">//</span><span style="color: #008000;"> 操作员ID</span>
+<span style="color: #008080;">165</span>             excepLog.setOperUserName(UserShiroUtil.getCurrentUserName()); <span style="color: #008000;">//</span><span style="color: #008000;"> 操作员名称</span>
+<span style="color: #008080;">166</span>             excepLog.setOperUri(request.getRequestURI()); <span style="color: #008000;">//</span><span style="color: #008000;"> 操作URI</span>
+<span style="color: #008080;">167</span>             excepLog.setOperIp(IPUtil.getRemortIP(request)); <span style="color: #008000;">//</span><span style="color: #008000;"> 操作员IP</span>
+<span style="color: #008080;">168</span>             excepLog.setOperVer(operVer); <span style="color: #008000;">//</span><span style="color: #008000;"> 操作版本号</span>
+<span style="color: #008080;">169</span>             excepLog.setOperCreateTime(<span style="color: #0000ff;">new</span> Date()); <span style="color: #008000;">//</span><span style="color: #008000;"> 发生异常时间</span>
+<span style="color: #008080;">170</span> 
+<span style="color: #008080;">171</span> <span style="color: #000000;">            exceptionLogService.insert(excepLog);
+</span><span style="color: #008080;">172</span> 
+<span style="color: #008080;">173</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e2) {
+</span><span style="color: #008080;">174</span> <span style="color: #000000;">            e2.printStackTrace();
+</span><span style="color: #008080;">175</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">176</span> 
+<span style="color: #008080;">177</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">178</span> 
+<span style="color: #008080;">179</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;">180</span> <span style="color: #008000;">     * 转换request 请求参数
+</span><span style="color: #008080;">181</span> <span style="color: #008000;">     * 
+</span><span style="color: #008080;">182</span> <span style="color: #008000;">     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> paramMap request获取的参数数组
+</span><span style="color: #008080;">183</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">184</span>     <span style="color: #0000ff;">public</span> Map&lt;String, String&gt; converMap(Map&lt;String, String[]&gt;<span style="color: #000000;"> paramMap) {
+</span><span style="color: #008080;">185</span>         Map&lt;String, String&gt; rtnMap = <span style="color: #0000ff;">new</span> HashMap&lt;String, String&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">186</span>         <span style="color: #0000ff;">for</span><span style="color: #000000;"> (String key : paramMap.keySet()) {
+</span><span style="color: #008080;">187</span>             rtnMap.put(key, paramMap.get(key)[0<span style="color: #000000;">]);
+</span><span style="color: #008080;">188</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">189</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> rtnMap;
+</span><span style="color: #008080;">190</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">191</span> 
+<span style="color: #008080;">192</span>     <span style="color: #008000;">/**</span>
+<span style="color: #008080;">193</span> <span style="color: #008000;">     * 转换异常信息为字符串
+</span><span style="color: #008080;">194</span> <span style="color: #008000;">     * 
+</span><span style="color: #008080;">195</span> <span style="color: #008000;">     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> exceptionName    异常名称
+</span><span style="color: #008080;">196</span> <span style="color: #008000;">     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> exceptionMessage 异常信息
+</span><span style="color: #008080;">197</span> <span style="color: #008000;">     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> elements         堆栈信息
+</span><span style="color: #008080;">198</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">199</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String stackTraceToString(String exceptionName, String exceptionMessage, StackTraceElement[] elements) {
+</span><span style="color: #008080;">200</span>         StringBuffer strbuff = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuffer();
+</span><span style="color: #008080;">201</span>         <span style="color: #0000ff;">for</span><span style="color: #000000;"> (StackTraceElement stet : elements) {
+</span><span style="color: #008080;">202</span>             strbuff.append(stet + "\n"<span style="color: #000000;">);
+</span><span style="color: #008080;">203</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">204</span>         String message = exceptionName + ":" + exceptionMessage + "\n\t" +<span style="color: #000000;"> strbuff.toString();
+</span><span style="color: #008080;">205</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> message;
+</span><span style="color: #008080;">206</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">207</span> }</code></pre>
+
+<p><strong>五、在Controller层方法添加@OperLog注解</strong></p>
+<p><img src="./images/使用SpringBoot AOP 记录操作日志、异常日志2.png" alt="" width="1345" height="487" /></p>
+<p><strong>&nbsp;六、操作日志、异常日志查询功能</strong></p>
+<p><strong><img src="./images/使用SpringBoot AOP 记录操作日志、异常日志3.png" alt="" width="1358" height="792" /></strong></p>
+<p><img src="./images/使用SpringBoot AOP 记录操作日志、异常日志4.png" alt="" width="1359" height="751" /></p>
+<p><img src="./images/使用SpringBoot AOP 记录操作日志、异常日志5.png" alt="" width="1358" height="840" /></p>
+<p><img src="./images/使用SpringBoot AOP 记录操作日志、异常日志6.png" alt="" width="1354" height="509" /></p>
+<p><img src="./images/使用SpringBoot AOP 记录操作日志、异常日志7.png" alt="" width="1360" height="607" /></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

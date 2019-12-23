@@ -1,0 +1,161 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java 网络爬虫，就是这么的简单' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java 网络爬虫，就是这么的简单</center></div><div class='banquan'>原文出处:本文由博客园博主平头哥的技术博文提供。<br/>
+原文连接:https://www.cnblogs.com/jamaler/p/11640131.html</div><br>
+    <p>这是 Java 网络爬虫系列文章的第一篇，如果你还不知道 Java 网络爬虫系列文章，请参看 <a href="https://www.cnblogs.com/jamaler/p/11621633.html">学 Java 网络爬虫，需要哪些基础知识</a>。第一篇是关于 Java 网络爬虫入门内容，在该篇中我们以采集虎扑列表新闻的新闻标题和详情页为例，需要提取的内容如下图所示：</p>
+<p><img src="./images/Java 网络爬虫，就是这么的简单0.png" /></p>
+<p>我们需要提取图中圈出来的文字及其对应的链接，在提取的过程中，我们会使用两种方式来提取，一种是 Jsoup 的方式，另一种是 httpclient + 正则表达式的方式，这也是 Java 网络爬虫常用的两种方式，你不了解这两种方式没关系，后面会有相应的使用手册。在正式编写提取程序之前，我先交代一下 Java 爬虫系列博文的环境，该系列博文所有的 demo 都是使用 SpringBoot 搭建的，不管你使用哪种环境，只需要正确的导入相应的包即可。</p>
+<h3 id="jsoup-方式提取信息">Jsoup 方式提取信息</h3>
+<p>我们先来使用 Jsoup 的方式提取新闻信息，如果你还不知道 Jsoup ，请参考 <a href="https://jsoup.org/" class="uri">https://jsoup.org/</a></p>
+<p>先建立一个 Springboot 项目，名字就随意啦，在 pom.xml 中引入 Jsoup 的依赖</p>
+<pre><code><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.jsoup&lt;/groupId&gt;
+    &lt;artifactId&gt;jsoup&lt;/artifactId&gt;
+    &lt;version&gt;1.12.1&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>好了，接下来我们一起分析页面吧，想必你还没浏览过吧，<a href="https://voice.hupu.com/nba">点击这里浏览虎扑新闻</a>。在列表页中，我们利用 F12 审查元素查看页面结构，经过我们分析发现列表新闻在 <code>&lt;div class=&quot;news-list&quot;&gt;</code>标签下，每一条新闻都是一个<code>li</code>标签，分析结果如下图所示：</p>
+<p><img src="./images/Java 网络爬虫，就是这么的简单1.png" /></p>
+<p>由于我们前面已经知道了 css 选择器，我们结合浏览器的 Copy 功能，编写出我们 <code>a</code>标签的 css 选择器代码：<code>div.news-list &gt; ul &gt; li &gt; div.list-hd &gt; h4 &gt; a</code> ，一切都准备好了，我们一起来编写 Jsoup 方式提取信息的代码：</p>
+<pre><code><code>/**
+ * jsoup方式 获取虎扑新闻列表页
+ * @param url 虎扑新闻列表页url
+ */
+public void jsoupList(String url){
+    try {
+        Document document = Jsoup.connect(url).get();
+        // 使用 css选择器 提取列表新闻 a 标签
+        // &lt;a href=&quot;https://voice.hupu.com/nba/2484553.html&quot; target=&quot;_blank&quot;&gt;霍华德：夏休期内曾节食30天，这考验了我的身心&lt;/a&gt;
+        Elements elements = document.select(&quot;div.news-list &gt; ul &gt; li &gt; div.list-hd &gt; h4 &gt; a&quot;);
+        for (Element element:elements){
+//                System.out.println(element);
+            // 获取详情页链接
+            String d_url = element.attr(&quot;href&quot;);
+            // 获取标题
+            String title = element.ownText();
+
+            System.out.println(&quot;详情页链接：&quot;+d_url+&quot; ,详情页标题：&quot;+title);
+
+        }
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
+}</code></code></pre>
+<p>使用 Jsoup 方式提取还是非常简单的，就5、6行代码就完成了，关于更多 Jsoup 如何提取节点信息的方法可以参考 jsoup 的官网教程。我们编写 main 方法，来执行 jsoupList 方法，看看 jsoupList 方法是否正确。</p>
+<pre><code><code>public static void main(String[] args) {
+    String url = &quot;https://voice.hupu.com/nba&quot;;
+    CrawlerBase crawlerBase = new CrawlerBase();
+    crawlerBase.jsoupList(url);
+}</code></code></pre>
+<p>执行 main 方法，得到如下结果：</p>
+<p><img src="./images/Java 网络爬虫，就是这么的简单2.png" /><br />
+从结果中可以看出，我们已经正确的提取到了我们想要的信息，如果你想采集详情页的信息，只需要编写一个采集详情页的方法，在方法中提取详情页相应的节点信息，然后将列表页提取的链接传入提取详情页方法即可。</p>
+<h3 id="httpclient-正则表达式">httpclient + 正则表达式</h3>
+<p>上面我们使用了 Jsoup 方式正确提取了虎扑列表新闻，接下来我们使用 httpclient + 正则表达式的方式来提取，看看使用这种方式又会涉及到哪些问题？httpclient + 正则表达式的方式涉及的知识点还是蛮多的，它涉及到了正则表达式、Java 正则表达式、httpclient。如果你还不知道这些知识，可以点击下方链接简单了解一下：</p>
+<p>正则表达式：<a href="https://www.w3cschool.cn/zhengzebiaodashi/regexp-syntax.html">正则表达式</a></p>
+<p>Java 正则表达式：<a href="https://www.w3cschool.cn/java/java-regex-quantifiers.html">Java 正则表达式</a></p>
+<p>httpclient：<a href="http://hc.apache.org/">httpclient</a></p>
+<p>我们在 pom.xml 文件中，引入 httpclient 相关 Jar 包</p>
+<pre><code><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.apache.httpcomponents&lt;/groupId&gt;
+    &lt;artifactId&gt;httpclient&lt;/artifactId&gt;
+    &lt;version&gt;4.5.10&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.apache.httpcomponents&lt;/groupId&gt;
+    &lt;artifactId&gt;httpcore&lt;/artifactId&gt;
+    &lt;version&gt;4.4.10&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.apache.httpcomponents&lt;/groupId&gt;
+    &lt;artifactId&gt;httpmime&lt;/artifactId&gt;
+    &lt;version&gt;4.5.10&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>关于虎扑列表新闻页面，我们在使用 Jsoup 方式的时候进行了简单的分析，这里我们就不在重复分析了。对于使用正则表达式方式提取，我们需要找到能够代表列表新闻的结构体，比如：<code>&lt;div class=&quot;list-hd&quot;&gt; &lt;h4&gt; &lt;a href=&quot;https://voice.hupu.com/nba/2485508.html&quot; target=&quot;_blank&quot;&gt;直上云霄！魔术官方社媒晒富尔茨扣篮炫酷特效图&lt;/a&gt;&lt;/h4&gt;&lt;/div&gt;</code>这段结构体，每个列表新闻只有链接和标题不一样，其他的都一样，而且 <code>&lt;div class=&quot;list-hd&quot;&gt;</code>是列表新闻特有的。最好不要直接正则匹配 <code>a</code>标签，因为 <code>a</code>标签在其他地方也有，这样我们就还需要做其他的处理，增加我们的难度。现在我们了解了正则结构体的选择，我们一起来看看 httpclient + 正则表达式方式提取的代码：</p>
+<pre><code><code>/**
+ * httpclient + 正则表达式 获取虎扑新闻列表页
+ * @param url 虎扑新闻列表页url
+ */
+public void httpClientList(String url){
+    try {
+        CloseableHttpClient httpclient = HttpClients.createDefault();
+        HttpGet httpGet = new HttpGet(url);
+        CloseableHttpResponse response = httpclient.execute(httpGet);
+        if (response.getStatusLine().getStatusCode() == 200) {
+            HttpEntity entity = response.getEntity();
+            String body = EntityUtils.toString(entity,&quot;utf-8&quot;);
+   
+            if (body!=null) {
+                 /*
+                 * 替换掉换行符、制表符、回车符，去掉这些符号，正则表示写起来更简单一些
+                 * 只有空格符号和其他正常字体
+                 */
+                Pattern p = Pattern.compile(&quot;\t|\r|\n&quot;);
+                Matcher m = p.matcher(body);
+                body = m.replaceAll(&quot;&quot;);
+                /*
+                 * 提取列表页的正则表达式
+                 * 去除换行符之后的 li
+                 * &lt;div class=&quot;list-hd&quot;&gt;                                    &lt;h4&gt;                                        &lt;a href=&quot;https://voice.hupu.com/nba/2485167.html&quot;  target=&quot;_blank&quot;&gt;与球迷亲切互动！凯尔特人官方晒球队开放训练日照片&lt;/a&gt;                                    &lt;/h4&gt;                                &lt;/div&gt;
+                 */
+                Pattern pattern = Pattern
+                        .compile(&quot;&lt;div class=\&quot;list-hd\&quot;&gt;\\s* &lt;h4&gt;\\s* &lt;a href=\&quot;(.*?)\&quot;\\s* target=\&quot;_blank\&quot;&gt;(.*?)&lt;/a&gt;\\s* &lt;/h4&gt;\\s* &lt;/div&gt;&quot; );
+
+                Matcher matcher = pattern.matcher(body);
+                // 匹配出所有符合正则表达式的数据
+                while (matcher.find()){
+//                        String info = matcher.group(0);
+//                        System.out.println(info);
+                    // 提取出链接和标题
+                    System.out.println(&quot;详情页链接：&quot;+matcher.group(1)+&quot; ,详情页标题：&quot;+matcher.group(2));
+                }
+            }else {
+                System.out.println(&quot;处理失败！！！获取正文内容为空&quot;);
+            }
+        } else {
+            System.out.println(&quot;处理失败！！！返回状态码：&quot; + response.getStatusLine().getStatusCode());
+        }
+    }catch (Exception e){
+        e.printStackTrace();
+    }
+
+}</code></code></pre>
+<p>从代码的行数可以看出，比 Jsoup 方式要多不少，代码虽然多，但是整体来说比较简单，在上面方法中我做了一段特殊处理，我先替换了 httpclient 获取的字符串 body 中的换行符、制表符、回车符，因为这样处理，在编写正则表达式的时候能够减少一些额外的干扰。接下来我们修改 main 方法，运行 httpClientList 方法。</p>
+<pre><code><code>public static void main(String[] args) {
+    String url = &quot;https://voice.hupu.com/nba&quot;;
+    CrawlerBase crawlerBase = new CrawlerBase();
+//        crawlerBase.jsoupList(url);
+    crawlerBase.httpClientList(url);
+}</code></code></pre>
+<p>运行结果如下图所示：</p>
+<p><img src="./images/Java 网络爬虫，就是这么的简单3.png" /></p>
+<p>使用 httpclient + 正则表达式的方式同样正确的获取到了列表新闻的标题和详情页链接。到此 Java 爬虫系列博文第一篇就写完了，这一篇主要是 Java 网络爬虫的入门，我们使用了 jsoup 和 httpclient + 正则的方式提取了虎扑列表新闻的新闻标题和详情页链接。当然这里还有很多没有完成，比如采集详情页信息存入数据库等。</p>
+<p>希望以上内容对你有所帮助，下一篇是模拟登陆相关的，如果你对 Java 网络爬虫感兴趣，不妨关注一波，一起学习，一起进步。</p>
+<p>源代码：<a href="https://github.com/BinaryBall/java-base/blob/master/crawler/src/main/java/com/jamal/crawler/CrawlerBase.java">点击这里</a></p>
+<blockquote>
+<p>文章不足之处，望大家多多指点，共同学习，共同进步</p>
+</blockquote>
+<h3 id="最后">最后</h3>
+<p>打个小广告，欢迎扫码关注微信公众号：「平头哥的技术博文」，一起进步吧。<br />
+<img src="./images/Java 网络爬虫，就是这么的简单4.png" alt="平头哥的技术博文" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

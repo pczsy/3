@@ -1,0 +1,95 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot2.x升级踩坑，一个下划线引发的血案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot2.x升级踩坑，一个下划线引发的血案</center></div><div class='banquan'>原文出处:本文由博客园博主Coder小黑提供。<br/>
+原文连接:https://www.cnblogs.com/coderxiaohei/p/11713032.html</div><br>
+    <p>最近公司项目在做SpringBoot的升级，在升级过程中遇到了一些问题，简单记录一下，做个分享。另外，本文中的程序只为示例代码，并非公司生产环境代码。</p>
+<h2 id="遇到什么问题">遇到什么问题</h2>
+<p>从SpringBoot1.x升级到SpringBoot2.x之后，解决完编译异常，运行程序，在程序启动时报错：</p>
+<p><img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案0.png" alt="报错信息" /></p>
+<p>报错信息就已经很直白的告诉了我们错误原因：</p>
+<blockquote>
+<p>配置属性名称“com_shen”无效</p>
+<p>无效字符： '_'， 原因：规范名称应为kebab-case（用'-'分隔），小写字母数字字符，并且必须以字母开头</p>
+</blockquote>
+<h2 id="怎么解决">怎么解决</h2>
+<p>经过排查，是因为在<code>application.properties</code>文件中有如下一个配置项：</p>
+<pre><code><code>com_shen.name=xiaohei</code></code></pre>
+<p>对应Java程序代码：</p>
+<pre class="java"><code>@Getter
+@Setter
+@ConfigurationProperties(prefix = &quot;com_shen&quot;)
+public class Service {
+    private String name;
+}
+</code></code></pre>
+<p>结合报错日志，我们可以很容易的解决这个问题，去掉配置项中的<code>_</code>，将配置项name修改为<code>com.shen.name</code>即可。</p>
+<h2 id="源码解析">源码解析</h2>
+<p>你以为文章写到这里就结束了吗？其实并没有。hhhhhh，通过这个问题，我们来看一下SpringBoot2.x的内部源码。什么，你不知道该从哪里入手来看这个源码，没关系，我们一步一步来。</p>
+<p>点开<code>@ConfigurationProperties</code>源码，</p>
+<p><img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案1.png" alt="@ConfigurationProperties源码" /></p>
+<p>在Spring中，大量的功能都是通过<code>BeanPostProcessor</code>来实现的。而且，Spring中的源码注释写的非常的仔细。通过源码注释我们可以猜到可能是<code>ConfigurationPropertiesBindingPostProcessor</code>这个类在负责<code>@ConfigurationProperties</code>注解的背后支持。</p>
+<p>点开<code>ConfigurationPropertiesBindingPostProcessor</code>类源码，发现在该类中Override了<code>BeanPostProcessor</code>的<code>postProcessBeforeInitialization</code>方法：<br />
+<img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案2.png" alt="ConfigurationPropertiesBindingPostProcessor#postProcessBeforeInitialization" /><br />
+在这个方法中，调用了<code>bind(bean, beanName, annotation);</code>方法。这个方法名叫&quot;绑定&quot;，方法中传入了bean、beanName和annotation的信息，经验告诉我这个方法大概率就是在负责解析<code>@ConfigurationProperties</code>，进行属性绑定。</p>
+<p>于是，在这里打一个条件断点，debug运行项目：</p>
+<p><img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案3.png" alt="条件断点" /></p>
+<p>通过debug发现的确是这个方法在进行属性绑定。而且底层调用了<code>org.springframework.boot.context.properties.bind.Binder#bind(String, Bindable&lt;T&gt;, BindHandler)</code> 方法：</p>
+<p><img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案4.png" alt="bind方法" /></p>
+<p>在这个<code>bind</code>方法中，又调用了另一个方法<code>bind(ConfigurationPropertyName.of(name), target, handler);</code>，而且通过<code>name</code>生成了<code>ConfigurationPropertyName</code>对象<code>ConfigurationPropertyName.of(name)</code>，通过方法名我们可以猜测，这个方法可能是在负责解析Configuration Property Name，项目启动的报错信息很有可能是这个方法中抛出的。点开源码：</p>
+<p><img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案5.png" alt="org.springframework.boot.context.properties.source.ConfigurationPropertyName#of" /></p>
+<p>发现在这个方法中，调用了<code>InvalidConfigurationPropertyNameException.throwIfHasInvalidChars(name,ElementValidator.getInvalidChars(elementValue));</code>。Spring代码命名真的是太优雅了，虽然名称很长，但是让源码阅读者一看就能明白这个方法在做什么。</p>
+<p><img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案6.png" alt="InvalidConfigurationPropertyNameException.throwIfHasInvalidChars方法" /></p>
+<p><img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案7.png" alt="ElementValidator.getInvalidChars(elementValue)方法" /></p>
+<p>通过源码，我们可以看到，在SpringBoot中对Configuration property name中的字符进行了有效性的判断，判断规则如上图所示。</p>
+<p><code>ElementValidator</code>类是<code>ConfigurationPropertyName</code>的一个内部类。<code>ConfigurationPropertyName</code>是SpringBoot2.0新增的一个类，让我们一起来阅读一下类中注释，了解一下这个类：</p>
+<p><img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案8.png" alt="ConfigurationPropertyName" /></p>
+<p>机器翻译结果如下：</p>
+<blockquote>
+<p>由点分隔的元素组成的配置属性名称。 用户创建的名称可以包含字符“ a-z”，“ 0-9”）和“-”，它们必须为小写字母，并且必须以字母数字字符开头。 “-”仅用于格式化，即“ foo-bar”和“ foobar”被认为是等效的。<br />
+“ [”和“]”字符可用于表示关联索引（即Map键或Collection索引。索引名称不受限制，并且区分大小写。</p>
+<p>以下是一些典型示例：</p>
+<p>spring.main.banner-mode<br />
+server.hosts [0]。名称<br />
+日志[org.springboot] .level</p>
+</blockquote>
+<h2 id="使用value">使用@Value</h2>
+<p>我们知道，SpringBoot中除了可以使用<code>@ConfigurationProperties</code>之外，还可以使用<code>@Value</code>。</p>
+<p>Demo程序如下：</p>
+<pre class="java"><code>@Getter
+@Setter
+@Component
+public class Service {
+
+    @Value(&quot;${com_shen.name}&quot;)
+    private String name;
+}</code></code></pre>
+<p><code>application.properties</code>文件:</p>
+<pre><code><code>com_shen.name=xiaohei</code></code></pre>
+<p>在这种情况下，项目依旧启动成功了，而且成功的获取到了<code>com_shen.name</code>的属性值。也就是说，<code>@Value</code>注解中并没有表达式做限制。</p>
+<h2 id="拓展阅读">拓展阅读</h2>
+<p>Property Binding in Spring Boot 2.0 ： https://spring.io/blog/2018/03/28/property-binding-in-spring-boot-2-0</p>
+<hr />
+<p>欢迎关注公众号，大家一起学习成长。</p>
+<p><img src="./images/SpringBoot2.x升级踩坑，一个下划线引发的血案9.png" alt="Coder小黑" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

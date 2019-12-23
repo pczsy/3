@@ -1,0 +1,445 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修HandlerMethodArgumentResolver(三)：基于消息转换器的参数处理器【享学Spring MVC】' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>HandlerMethodArgumentResolver(三)：基于消息转换器的参数处理器【享学Spring MVC】</center></div><div class='banquan'>原文出处:本文由博客园博主_YourBatman提供。<br/>
+原文连接:https://www.cnblogs.com/fangshixiang/p/11423622.html</div><br>
+    <h4 id="每篇一句">每篇一句</h4>
+<blockquote>
+<p>一个事实是：对于大多数技术，了解只需要一天，简单搞起来只需要一周。入门可能只需要一个月</p>
+</blockquote>
+<h4 id="前言">前言</h4>
+<p>通过 <a href="https://blog.csdn.net/f641385712/article/details/99980042">前面两篇文章</a> 的介绍，相信你对<code>HandlerMethodArgumentResolver</code>了解已经很深刻了。但是你或许和我一样还有一种感觉，似乎还缺点什么：<br />
+我们使用非常频繁的<code>@RequestBody</code>是怎么封装请求体的呢？？？这块使用非常广泛的地方却还木有讲解到，因为它的处理方式和前面的不太一样，因此单摘出来到本文进行详细描述。</p>
+<h3 id="第四类基于contenttype消息转换器类型">第四类：基于<code>ContentType</code>消息转换器类型</h3>
+<blockquote>
+<p>利用<code>HttpMessageConverter</code>将<strong>输入流</strong>转换成对应的参数</p>
+</blockquote>
+<p>这类参数解析器的基类是<code>AbstractMessageConverterMethodArgumentResolver</code>：</p>
+<pre><code><code>// @since 3.1
+public abstract class AbstractMessageConverterMethodArgumentResolver implements HandlerMethodArgumentResolver {
+
+    // 默认支持的方法（没有Deleted方法）
+    // httpMethod为null 或者方法不属于这集中 或者没有contendType且没有body 那就返回null
+    // 也就是说如果是Deleted请求，即使body里有值也是返回null的。（因为它不是SUPPORTED_METHODS ）
+    private static final Set&lt;HttpMethod&gt; SUPPORTED_METHODS = EnumSet.of(HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH);
+    private static final Object NO_VALUE = new Object();
+
+    protected final List&lt;HttpMessageConverter&lt;?&gt;&gt; messageConverters;
+    protected final List&lt;MediaType&gt; allSupportedMediaTypes;
+    // 和RequestBodyAdvice和ResponseBodyAdvice有关的
+    private final RequestResponseBodyAdviceChain advice;
+
+    // 构造函数里指定HttpMessageConverter
+    // 此一个参数的构造函数木人调用
+    public AbstractMessageConverterMethodArgumentResolver(List&lt;HttpMessageConverter&lt;?&gt;&gt; converters) {
+        this(converters, null);
+    }
+
+    // @since 4.2
+    public AbstractMessageConverterMethodArgumentResolver(List&lt;HttpMessageConverter&lt;?&gt;&gt; converters, @Nullable List&lt;Object&gt; requestResponseBodyAdvice) {
+        Assert.notEmpty(converters, &quot;&#39;messageConverters&#39; must not be empty&quot;);
+        this.messageConverters = converters;
+        // 它会把所有的消息转换器里支持的MediaType都全部拿出来汇聚起来~
+        this.allSupportedMediaTypes = getAllSupportedMediaTypes(converters);
+        this.advice = new RequestResponseBodyAdviceChain(requestResponseBodyAdvice);
+    }
+
+    // 提供一个defualt方法访问
+    RequestResponseBodyAdviceChain getAdvice() {
+        return this.advice;
+    }
+
+    // 子类RequestResponseBodyMethodProcessor有复写此方法
+    @Nullable
+    protected &lt;T&gt; Object readWithMessageConverters(NativeWebRequest webRequest, MethodParameter parameter, Type paramType) throws IOException, HttpMediaTypeNotSupportedException, HttpMessageNotReadableException {
+
+        HttpInputMessage inputMessage = createInputMessage(webRequest);
+        return readWithMessageConverters(inputMessage, parameter, paramType);
+    }
+    ...
+}</code></code></pre>
+<p>说明：此抽象类并没有实现<code>resolveArgument()</code>这个接口方法，而只是提供了一些<code>protected</code>方法，作为工具方法给子类调用，比如最为重要的这个方法：<code>readWithMessageConverters()</code>就是利用消息转换器解析<code>HttpInputMessage</code>的核心。</p>
+<blockquote>
+<p>关于此抽象类的描述，可以看 <a href="https://blog.csdn.net/f641385712/article/details/90316116">这里，HttpMessageConverter匹配规则</a></p>
+</blockquote>
+<p>它的继承树如下：<br />
+<img src="./images/HandlerMethodArgumentResolver(三)：基于消息转换器的参数处理器【享学Spring MVC】0.png" alt="在这里插入图片描述" /></p>
+<h4 id="requestpartmethodargumentresolver">RequestPartMethodArgumentResolver</h4>
+<p>它用于解析参数被<code>@RequestPart</code>修饰，或者参数类型是<code>MultipartFile | Servlet 3.0提供的javax.servlet.http.Part</code>类型（并且没有被<code>@RequestParam</code>修饰），数据通过 <code>HttpServletRequest</code>获取</p>
+<p>当属性被标注为<code>@RequestPart</code>的话，那就会经过<code>HttpMessageConverter</code>结合<code>Content-Type</code>来解析，这个效果特别像<code>@RequestBody</code>的处理方式~</p>
+<pre><code><code>// @since 3.1
+@Target(ElementType.PARAMETER)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface RequestPart {
+    @AliasFor(&quot;name&quot;)
+    String value() default &quot;&quot;;
+    @AliasFor(&quot;value&quot;)
+    String name() default &quot;&quot;;
+    boolean required() default true;
+}</code></code></pre>
+<pre><code><code>// @since 3.1
+public class RequestPartMethodArgumentResolver extends AbstractMessageConverterMethodArgumentResolver {
+
+    // 标注了@RequestPart注解的
+    // 没有标注@RequestPart并且也没有标注@RequestParam，但是是Multipart类型的也会处理
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        if (parameter.hasParameterAnnotation(RequestPart.class)) {
+            return true;
+        } else {
+            if (parameter.hasParameterAnnotation(RequestParam.class)) {
+                return false;
+            }
+            return MultipartResolutionDelegate.isMultipartArgument(parameter.nestedIfOptional());
+        }
+    }
+
+    @Override
+    @Nullable
+    public Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+            NativeWebRequest request, @Nullable WebDataBinderFactory binderFactory) throws Exception {
+
+        HttpServletRequest servletRequest = request.getNativeRequest(HttpServletRequest.class);
+        Assert.state(servletRequest != null, &quot;No HttpServletRequest&quot;);
+
+        RequestPart requestPart = parameter.getParameterAnnotation(RequestPart.class);
+        boolean isRequired = ((requestPart == null || requestPart.required()) &amp;&amp; !parameter.isOptional());
+
+        // 如果注解没有指定，就取形参名
+        String name = getPartName(parameter, requestPart);
+        parameter = parameter.nestedIfOptional();
+        Object arg = null;
+
+        // resolveMultipartArgument这个方法只处理：
+        // MultipartFile类型以及对应的数组/集合类型
+        // Part类型以及对应的数组集合类型
+        // 若形参类型不是以上类型，返回UNRESOLVABLE（空对象）
+
+        // 最终返回StandardMultipartHttpServletRequest/request.getParts()[0]等~
+        Object mpArg = MultipartResolutionDelegate.resolveMultipartArgument(name, parameter, servletRequest);
+        if (mpArg != MultipartResolutionDelegate.UNRESOLVABLE) {
+            arg = mpArg; // 是part类型，那就直接赋值吧
+        } else { // 其它类型
+            ...
+        }
+        ...
+    }
+}</code></code></pre>
+<p>此处理器用于解析<code>@RequestPart</code>参数类型，它和多部分文件上传有关。关于<code>Spring MVC</code>中的文件上传，此处就不便展开了。后面有个专题专门讲解<code>Spring MVC</code>中的上传、下载~</p>
+<hr />
+<h4 id="abstractmessageconvertermethodprocessor重点">AbstractMessageConverterMethodProcessor（重点）</h4>
+<p>命名为<code>Processor</code>说明它既能处理入参，也能处理返回值，当然本文的关注点是方法入参（和<code>HttpMessageConverter</code>相关）。</p>
+<p><strong>请求body体</strong>一般是一段字符串/字节流，查询参数可以看做URL的一部分，这两个是位于请求报文的不同地方。</p>
+<blockquote>
+<p>表单参数可以按照一定格式放在请求体中，也可以放在url上作为查询参数。</p>
+</blockquote>
+<p><strong>响应body体</strong>则是response返回的具体内容，对于一个普通的html页面，body里面就是页面的源代码。对于<code>HttpMessage</code>响应体里可能就是个json串（但无强制要求）。</p>
+<blockquote>
+<p>响应体一般都会结合<code>Content-Type</code>一起使用，告诉客户端只有知道这个头了才知道如何渲染。</p>
+</blockquote>
+<p><code>AbstractMessageConverterMethodProcessor</code>源码稍显复杂，它和Http协议、内容协商有很大的关联：</p>
+<pre><code><code>// @since 3.1
+public abstract class AbstractMessageConverterMethodProcessor extends AbstractMessageConverterMethodArgumentResolver implements HandlerMethodReturnValueHandler {
+
+    // 默认情况下：文件们后缀是这些就不弹窗下载
+    private static final Set&lt;String&gt; WHITELISTED_EXTENSIONS = new HashSet&lt;&gt;(Arrays.asList(&quot;txt&quot;, &quot;text&quot;, &quot;yml&quot;, &quot;properties&quot;, &quot;csv&quot;,
+            &quot;json&quot;, &quot;xml&quot;, &quot;atom&quot;, &quot;rss&quot;, &quot;png&quot;, &quot;jpe&quot;, &quot;jpeg&quot;, &quot;jpg&quot;, &quot;gif&quot;, &quot;wbmp&quot;, &quot;bmp&quot;));
+    private static final Set&lt;String&gt; WHITELISTED_MEDIA_BASE_TYPES = new HashSet&lt;&gt;(Arrays.asList(&quot;audio&quot;, &quot;image&quot;, &quot;video&quot;));
+    private static final List&lt;MediaType&gt; ALL_APPLICATION_MEDIA_TYPES = Arrays.asList(MediaType.ALL, new MediaType(&quot;application&quot;));
+    private static final Type RESOURCE_REGION_LIST_TYPE = new ParameterizedTypeReference&lt;List&lt;ResourceRegion&gt;&gt;() { }.getType();
+    
+    // 用于给URL解码 decodingUrlPathHelper.decodeRequestString(servletRequest, filename);
+    private static final UrlPathHelper decodingUrlPathHelper = new UrlPathHelper();
+    // rawUrlPathHelper.getOriginatingRequestUri(servletRequest);
+    private static final UrlPathHelper rawUrlPathHelper = new UrlPathHelper();
+    static {
+        rawUrlPathHelper.setRemoveSemicolonContent(false);
+        rawUrlPathHelper.setUrlDecode(false);
+    }
+
+    // 内容协商管理器
+    private final ContentNegotiationManager contentNegotiationManager;
+    // 扩展名的内容协商策略
+    private final PathExtensionContentNegotiationStrategy pathStrategy;
+    private final Set&lt;String&gt; safeExtensions = new HashSet&lt;&gt;();
+
+    protected AbstractMessageConverterMethodProcessor(List&lt;HttpMessageConverter&lt;?&gt;&gt; converters) {
+        this(converters, null, null);
+    }
+    // 可以指定内容协商管理器ContentNegotiationManager 
+    protected AbstractMessageConverterMethodProcessor(List&lt;HttpMessageConverter&lt;?&gt;&gt; converters, @Nullable ContentNegotiationManager contentNegotiationManager) {
+        this(converters, contentNegotiationManager, null);
+    }
+    // 这个构造器才是重点
+    protected AbstractMessageConverterMethodProcessor(List&lt;HttpMessageConverter&lt;?&gt;&gt; converters, @Nullable ContentNegotiationManager manager, @Nullable List&lt;Object&gt; requestResponseBodyAdvice) {
+        super(converters, requestResponseBodyAdvice);
+
+        // 可以看到：默认情况下会直接new一个
+        this.contentNegotiationManager = (manager != null ? manager : new ContentNegotiationManager());
+        // 若管理器里有就用管理器里的，否则new PathExtensionContentNegotiationStrategy()
+        this.pathStrategy = initPathStrategy(this.contentNegotiationManager);
+
+        // 用safeExtensions装上内容协商所支持的所有后缀
+        // 并且把后缀白名单也加上去（表示是默认支持的后缀）
+        this.safeExtensions.addAll(this.contentNegotiationManager.getAllFileExtensions());
+        this.safeExtensions.addAll(WHITELISTED_EXTENSIONS);
+    }
+
+    // ServletServerHttpResponse是对HttpServletResponse的包装，主要是对响应头进行处理
+    // 主要是处理：setContentType、setCharacterEncoding等等
+    // 所以子类若要写数据，就调用此方法来向输出流里写吧~~~
+    protected ServletServerHttpResponse createOutputMessage(NativeWebRequest webRequest) {
+        HttpServletResponse response = webRequest.getNativeResponse(HttpServletResponse.class);
+        Assert.state(response != null, &quot;No HttpServletResponse&quot;);
+        return new ServletServerHttpResponse(response);
+    }
+
+    // 注意：createInputMessage()方法是父类提供的，对HttpServletRequest的包装
+    // 主要处理了：getURI()、getHeaders()等方法
+    // getHeaders()方法主要是处理了：getContentType()...
+
+
+    protected &lt;T&gt; void writeWithMessageConverters(T value, MethodParameter returnType, NativeWebRequest webRequest) throws IOException, HttpMediaTypeNotAcceptableException, HttpMessageNotWritableException {
+        ServletServerHttpRequest inputMessage = createInputMessage(webRequest);
+        ServletServerHttpResponse outputMessage = createOutputMessage(webRequest);
+        writeWithMessageConverters(value, returnType, inputMessage, outputMessage);
+    }
+
+    // 这个方法省略
+    // 这个方法是消息处理的核心之核心：处理了contentType、消息转换、内容协商、下载等等
+    // 注意：此处并且还会执行RequestResponseBodyAdviceChain，进行前后拦截
+    protected &lt;T&gt; void writeWithMessageConverters(@Nullable T value, MethodParameter returnType,
+            ServletServerHttpRequest inputMessage, ServletServerHttpResponse outputMessage)
+            throws IOException, HttpMediaTypeNotAcceptableException, HttpMessageNotWritableException { ... }
+}</code></code></pre>
+<p>本类的核心是各式各样的<code>HttpMessageConverter</code>消息转换器，因为最终的write都是交给它们去完成。<br />
+此抽象类里，它完成了内容协商~</p>
+<blockquote>
+<p>关于内容协商的详解，强烈建议你点击 <a href="https://blog.csdn.net/f641385712/article/details/100020664">这里</a> 。另外 <a href="https://blog.csdn.net/f641385712/article/details/90316116">这篇文章</a>也深入的分析了<code>AbstractMessageConverterMethodProcessor</code>这个类，可以作为参考。</p>
+</blockquote>
+<p>既然父类都已经完成了这么多事，那么子类自然就非常的简单的。看看它的两个具体实现子类：</p>
+<h5 id="requestresponsebodymethodprocessor">RequestResponseBodyMethodProcessor</h5>
+<p>顾名思义，它负责处理<code>@RequestBody</code>这个注解的参数</p>
+<pre><code><code>public class RequestResponseBodyMethodProcessor extends AbstractMessageConverterMethodProcessor {
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        return parameter.hasParameterAnnotation(RequestBody.class);
+    }
+
+    @Override
+    public Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
+
+        parameter = parameter.nestedIfOptional();
+        // 所以核心逻辑：读取流、消息换换等都在父类里已经完成。子类直接调用就可以拿到转换后的值arg 
+        // arg 一般都是个类对象。比如Person实例
+        Object arg = readWithMessageConverters(webRequest, parameter, parameter.getNestedGenericParameterType());
+        // 若是POJO，就是类名首字母小写（并不是形参名）
+        String name = Conventions.getVariableNameForParameter(parameter);
+
+        // 进行数据校验（之前已经详细分析过，此处一笔带过）
+        if (binderFactory != null) {
+            WebDataBinder binder = binderFactory.createBinder(webRequest, arg, name);
+            if (arg != null) {
+                validateIfApplicable(binder, parameter);
+                if (binder.getBindingResult().hasErrors() &amp;&amp; isBindExceptionRequired(binder, parameter)) {
+                    throw new MethodArgumentNotValidException(parameter, binder.getBindingResult());
+                }
+            }
+
+            // 把校验结果放进Model里，方便页面里获取
+            if (mavContainer != null) {
+                mavContainer.addAttribute(BindingResult.MODEL_KEY_PREFIX + name, binder.getBindingResult());
+            }
+        }
+
+        // 适配：支持到Optional类型的参数
+        return adaptArgumentIfNecessary(arg, parameter);
+    }
+}</code></code></pre>
+<h5 id="httpentitymethodprocessor">HttpEntityMethodProcessor</h5>
+<p>用于处理<code>HttpEntity</code>和<code>RequestEntity</code>类型的入参的。</p>
+<pre><code><code>public class HttpEntityMethodProcessor extends AbstractMessageConverterMethodProcessor {
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        return (HttpEntity.class == parameter.getParameterType() || RequestEntity.class == parameter.getParameterType());
+    }
+
+    @Override
+    @Nullable
+    public Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer,
+            NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws IOException, HttpMediaTypeNotSupportedException {
+
+        ServletServerHttpRequest inputMessage = createInputMessage(webRequest);
+        // 拿到HttpEntity的泛型类型
+        Type paramType = getHttpEntityType(parameter);
+        if (paramType == null) {
+            // 注意：这个泛型类型是必须指定的，必须的
+            throw new IllegalArgumentException(&quot;HttpEntity parameter &#39;&quot; + parameter.getParameterName() + &quot;&#39; in method &quot; + parameter.getMethod() + &quot; is not parameterized&quot;);
+        }
+
+        // 调用父类方法拿到body的值(把泛型类型传进去了，所以返回的是个实例)
+        Object body = readWithMessageConverters(webRequest, parameter, paramType);
+        // 注意步操作：new了一个RequestEntity进去，持有实例即可
+        if (RequestEntity.class == parameter.getParameterType()) {
+            return new RequestEntity&lt;&gt;(body, inputMessage.getHeaders(), inputMessage.getMethod(), inputMessage.getURI());
+        } else { // 用的父类HttpEntity，那就会丢失掉Method等信息（因此建议入参用RequestEntity类型，更加强大些）
+            return new HttpEntity&lt;&gt;(body, inputMessage.getHeaders());
+        }
+    }
+}</code></code></pre>
+<blockquote>
+<p>注意：这里可没有validate校验了，这也是经常被面试问到的：使用<code>HttpEntity</code>和<code>@RequestBody</code>有什么区别呢？</p>
+</blockquote>
+<p>从代码里可以直观的看到：有了抽象父类后，子类需要做的事情已经很少了，只需要匹配参数类型、做不同的返回而已。<br />
+<strong>关于它俩的使用案例，此处不用再展示了，因为各位平时工作中都在使用，再熟悉不过了。但针对他俩的使用，我总结出如下几个小细节，供以参考：</strong></p>
+<ol>
+<li><code>@RequestBody</code>/<code>HttpEntity</code>它的参数（泛型）类型允许是Map</li>
+<li>方法上的和类上的<code>@ResponseBody</code>都可以被继承，但<code>@RequestBody</code>不可以</li>
+<li><p><code>@RequestBody</code>它自带有<code>Bean Validation</code>校验能力（当然需要启用），<code>HttpEntity</code>更加的轻量和方便</p>
+<blockquote>
+<p><code>HttpEntity/RequestEntity</code>所在包是：<code>org.springframework.http</code>，属于spring-web<br />
+<code>@RequestBody</code>位于<code>org.springframework.web.bind.annotation</code>，同样属于spring-web</p>
+</blockquote></li>
+</ol>
+<p>最后还落了一个<code>ErrorsMethodArgumentResolver</code>，在这里补充一下：</p>
+<h6 id="errorsmethodargumentresolver">ErrorsMethodArgumentResolver</h6>
+<p>它用于在方法参数可以写<code>Errors</code>类型，来拿到数据校验结果。</p>
+<pre><code><code>public class ErrorsMethodArgumentResolver implements HandlerMethodArgumentResolver {
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        Class&lt;?&gt; paramType = parameter.getParameterType();
+        return Errors.class.isAssignableFrom(paramType);
+    }
+
+    @Override
+    @Nullable
+    public Object resolveArgument(MethodParameter parameter,
+            @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest,
+            @Nullable WebDataBinderFactory binderFactory) throws Exception {
+
+        Assert.state(mavContainer != null,
+                &quot;Errors/BindingResult argument only supported on regular handler methods&quot;);
+
+        ModelMap model = mavContainer.getModel();
+        String lastKey = CollectionUtils.lastElement(model.keySet());
+        
+        // 只有@RequestBody/@RequestPart注解的  这里面才会有值
+        if (lastKey != null &amp;&amp; lastKey.startsWith(BindingResult.MODEL_KEY_PREFIX)) {
+            return model.get(lastKey);
+        }
+
+        // 简单的说：必须有@RequestBody/@RequestPart这注解标注，Errors参数才有意义
+        throw new IllegalStateException(
+                &quot;An Errors/BindingResult argument is expected to be declared immediately after &quot; +
+                &quot;the model attribute, the @RequestBody or the @RequestPart arguments &quot; +
+                &quot;to which they apply: &quot; + parameter.getMethod());
+    }
+}</code></code></pre>
+<hr />
+<h2 id="spring-mvc参数处理器的注册与顺序">Spring MVC参数处理器的注册与顺序</h2>
+<p>到这里，一个不落的把<code>Spring MVC</code>内置提供的参数处理器<code>ArgumentResolver</code>说了个遍。<br />
+前面我有提到过：参数处理对处理器的顺序是敏感的，因此<strong>我们需要关注<code>Spring MVC</code>最终的执行顺序</strong>，这时候我们的聚合容器<code>HandlerMethodArgumentResolverComposite</code>就出场了：</p>
+<pre><code><code>public class HandlerMethodArgumentResolverComposite implements HandlerMethodArgumentResolver {
+
+    private final List&lt;HandlerMethodArgumentResolver&gt; argumentResolvers = new LinkedList&lt;&gt;();
+    // 具有缓存
+    private final Map&lt;MethodParameter, HandlerMethodArgumentResolver&gt; argumentResolverCache = new ConcurrentHashMap&lt;&gt;(256); 
+    ...
+    // @since 4.3  木有任何地方调用
+    public void clear() {
+        this.argumentResolvers.clear();
+    }
+
+    // getArgumentResolver()方法是本文的核心
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        return getArgumentResolver(parameter) != null;
+    }
+    @Override
+    @Nullable
+    public Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
+        
+        // 这里是关键：每个参数最多只会被一个处理器处理
+        HandlerMethodArgumentResolver resolver = getArgumentResolver(parameter);
+        if (resolver == null) {
+            throw new IllegalArgumentException(&quot;Unsupported parameter type [&quot; + parameter.getParameterType().getName() + &quot;].&quot; + &quot; supportsParameter should be called first.&quot;);
+        }
+        return resolver.resolveArgument(parameter, mavContainer, webRequest, binderFactory);
+    }
+    
+    ... 
+
+    // 这块逻辑保证了每个parameter参数最多只会被一个处理器处理
+    // 这个从缓存的数据结构中也能够看出来的
+    @Nullable
+    private HandlerMethodArgumentResolver getArgumentResolver(MethodParameter parameter) {
+        HandlerMethodArgumentResolver result = this.argumentResolverCache.get(parameter);
+        if (result == null) {
+            for (HandlerMethodArgumentResolver methodArgumentResolver : this.argumentResolvers) {
+                if (methodArgumentResolver.supportsParameter(parameter)) {
+                    result = methodArgumentResolver;
+                    this.argumentResolverCache.put(parameter, result);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+}</code></code></pre>
+<p>缺省情况<code>Spring MVC</code>注册的处理器（顺序）如下：<br />
+<img src="./images/HandlerMethodArgumentResolver(三)：基于消息转换器的参数处理器【享学Spring MVC】1.png" alt="在这里插入图片描述" /><br />
+它初始化处的代码如下：</p>
+<pre><code><code>RequestMappingHandlerAdapter：
+    @Override
+    public void afterPropertiesSet() {
+        ...
+        // 26个，详见方法getDefaultArgumentResolvers
+        if (this.argumentResolvers == null) {
+            List&lt;HandlerMethodArgumentResolver&gt; resolvers = getDefaultArgumentResolvers();
+            this.argumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
+        }
+        // 12个  详见方法getDefaultInitBinderArgumentResolvers
+        if (this.initBinderArgumentResolvers == null) {
+            List&lt;HandlerMethodArgumentResolver&gt; resolvers = getDefaultInitBinderArgumentResolvers();
+            this.initBinderArgumentResolvers = new HandlerMethodArgumentResolverComposite().addResolvers(resolvers);
+        }
+        ...
+    }</code></code></pre>
+<p>注意：这里面<code>initBinderArgumentResolvers</code>最终只会有12个处理器，因为它的注册方法如下截图（也是这个顺序）：<br />
+<img src="./images/HandlerMethodArgumentResolver(三)：基于消息转换器的参数处理器【享学Spring MVC】2.png" alt="在这里插入图片描述" /><br />
+前面有提到过说标注有<code>@InitBInder</code>注解里也可以写很多类型的参数，但因为它只会有12个处理器，所以有些参数它是不能写的（比如<code>@RequestBody</code>、<code>Errors</code>等等这种都是不能写的），不用一一枚举，做到心中有数就成。</p>
+<h4 id="总结">总结</h4>
+<p>本文介绍的处理内容，其实还是比较重要的，因为它和消息转换器<code>HttpMessageConverter</code>有关，毕竟它是我们目前主流的使用方式，希望可以帮助到大家理解。<br />
+<strong>这里可以提前预告一下</strong>：下篇文章将非常重要，因为我将结合实际场景，演示一个我们通过自定义<code>HandlerMethodArgumentResolver</code>实现的特殊场景的解决方案，非常的优雅和值得推广，有兴趣者可持续关注</p>
+<h4 id="相关阅读">相关阅读</h4>
+<p><a href="https://blog.csdn.net/f641385712/article/details/100020664">ContentNegotiation内容协商机制(一)---Spring MVC内置支持的4种内容协商方式【享学Spring MVC】</a></p>
+<p><a href="https://blog.csdn.net/f641385712/article/details/98989698">HandlerMethodArgumentResolver(一)：Controller方法入参自动封装器（将参数parameter解析为值）【享学Spring MVC】</a><br />
+<a href="https://blog.csdn.net/f641385712/article/details/99980042">HandlerMethodArgumentResolver(二)：Map参数类型和固定参数类型【享学Spring MVC】</a><br />
+<a href="https://blog.csdn.net/f641385712/article/details/100016055">HandlerMethodArgumentResolver(三)：基于HttpMessageConverter消息转换器的参数处理器【享学Spring MVC】</a></p>
+<h4 id="知识交流">知识交流</h4>
+<p>==The last：如果觉得本文对你有帮助，不妨点个赞呗。当然分享到你的朋友圈让更多小伙伴看到也是被<code>作者本人许可的~</code>==</p>
+<p><strong>若对技术内容感兴趣可以加入wx群交流：<code>Java高工、架构师3群</code>。<br />
+若群二维码失效，请加wx号：<code>fsx641385712</code>（或者扫描下方wx二维码）。并且备注：<code>&quot;java入群&quot;</code> 字样，会手动邀请入群</strong><br />
+==若对Spring、SpringBoot、MyBatis等源码分析感兴趣，可加我wx：fsx641385712，手动邀请你入群一起飞==</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

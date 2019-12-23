@@ -1,0 +1,124 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java生鲜电商平台-交易对账以及跟商家对账的思考' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java生鲜电商平台-交易对账以及跟商家对账的思考</center></div><div class='banquan'>原文出处:本文由博客园博主巨人大哥提供。<br/>
+原文连接:https://www.cnblogs.com/jurendage/p/11807383.html</div><br>
+    <p><strong>Java生鲜电商平台-交易对账以及跟商家对账的思考</strong></p>
+<p><strong>说明:对于任何一家电商而言，资金的安全尤为重要，在资金管理过程中，涉及到交易订单的对账以及商家的对账，那i么如何来保证对账的高效与准确呢？</strong></p>
+<src>
+<src><em>公司在搭建交易平台时其实考虑过建立一套账务系统来满足记账的需求，从现在来看虽然当时考虑的比较片面，最终也只是作为客户的账户在使用。但账户的概念很好，财务的科目其实也是账户记录进进出出的流水，于是希望再次把账户系统利用起来，通过账户系统输出账单，完成对账从而减轻财务系统压力，一套以账户系统为逻辑基础的电商交易账务及对账协作方案应运而生。</em>
+
+<p><strong>一. 账户系统的作用：</strong></p>
+<src>
+<p>1. 记录账户流水和余额，最基本的作用</p>
+<p>2. 信用额度控制，同时提供一种支付方式，这是原本有的功能</p>
+<p>3. 按照会计规则建立一套分户账户，提供会计核算，业务对账的基础，这是方案的核心点</p>
+<p>以上三点，前两点是目前账户系统就有的功能，要实现第三点功能，首先需要建立一套完备的账户体系</p>
+<p><strong>二. 账户系统结构：</strong></p>
+<p>我认为就电商交易来看，一套完备的账户包括：收入，成本，费用，库存，应收，应付，实收，实付几大类账户</p>
+<src class="image-package  ">
+<src class="image-container">
+<src class="image-container-fill">&nbsp;
+<src class="image-view" data-width="442" data-height="537"><img src="//upload-images.jianshu.io/upload_images/16848204-45333270a2c195ea.png?imageMogr2/auto-orient/strip|imageView2/2/w/442/format/webp" alt="" data-original-src="//upload-images.jianshu.io/upload_images/16848204-45333270a2c195ea.png" data-original-width="442" data-original-height="537" data-original-format="image/png" data-original-filesize="24899" data-image-index="0" />
+
+<src class="image-caption">账户系统结构
+
+<p>其中，实收实付类的账户可以通过支付系统直接记账，后期和财务系统核对；其他的账户的数据产生需要大量的财务记账逻辑，所以都由财务系统完成财务记账同时推送会计分录流水到账户系统，账户系统计入各个账户。账户建立完成后，下面就讲一下账户系统是如何工作的</p>
+<p><strong>三. 账户系统如何记账</strong></p>
+<p>下面以交易过程中几个简单的例子描述账户系统如何记账</p>
+<p>3.1.1 销售订单交易</p>
+<p>&nbsp;</p>
+<src class="image-package">
+<src class="image-container">
+<src class="image-container-fill">&nbsp;
+<src class="image-view" data-width="849" data-height="459"><img src="//upload-images.jianshu.io/upload_images/16848204-4fb957cdd45b0314.png?imageMogr2/auto-orient/strip|imageView2/2/w/849/format/webp" alt="" data-original-src="//upload-images.jianshu.io/upload_images/16848204-4fb957cdd45b0314.png" data-original-width="849" data-original-height="459" data-original-format="image/png" data-original-filesize="24607" data-image-index="1" />
+
+<src class="image-caption">销售订单生命周期
+
+<p>一笔销售交易订单的生命周期经理客户下单，支付，订单发货，确认完成4个关键步骤，交易系统会记录下这4个节点，账户系统完成支付相关的分户账户记账，财务系统根据业务系统交易单据完成财务记账，并同步会计分录流水进分户账户。</p>
+<p>3.1.2 记账过程如下：</p>
+<src class="image-package  ">
+<src class="image-container">
+<src class="image-container-fill">&nbsp;
+<src class="image-view" data-width="993" data-height="217"><img src="//upload-images.jianshu.io/upload_images/16848204-4d7ff59bd75dff86.png?imageMogr2/auto-orient/strip|imageView2/2/w/993/format/webp" alt="" data-original-src="//upload-images.jianshu.io/upload_images/16848204-4d7ff59bd75dff86.png" data-original-width="993" data-original-height="217" data-original-format="image/png" data-original-filesize="48212" data-image-index="2" />
+
+<src class="image-caption">销售订单记账过程
+
+<p>3.2.1 供应链交易</p>
+<p>&nbsp;</p>
+<src class="image-package">
+<src class="image-container">
+<src class="image-container-fill">&nbsp;
+<src class="image-view" data-width="581" data-height="307"><img src="//upload-images.jianshu.io/upload_images/16848204-f0ba2c863ea50f68.png?imageMogr2/auto-orient/strip|imageView2/2/w/581/format/webp" alt="" data-original-src="//upload-images.jianshu.io/upload_images/16848204-f0ba2c863ea50f68.png" data-original-width="581" data-original-height="307" data-original-format="image/png" data-original-filesize="22828" data-image-index="3" />
+
+<src class="image-caption">供应链交易生命周期
+
+<p>一笔采购订单交易的生命周期，具有入库，到票，支付3个关键步骤，财务系统对3个节点分别记账，并同步分录流水到账户系统</p>
+<p>3.2.2 记账过程如下：</p>
+<src class="image-package">
+<src class="image-container">
+<src class="image-container-fill">&nbsp;
+<src class="image-view" data-width="993" data-height="193"><img src="//upload-images.jianshu.io/upload_images/16848204-203e49ee23c4dbad.png?imageMogr2/auto-orient/strip|imageView2/2/w/993/format/webp" alt="" data-original-src="//upload-images.jianshu.io/upload_images/16848204-203e49ee23c4dbad.png" data-original-width="993" data-original-height="193" data-original-format="image/png" data-original-filesize="47932" data-image-index="4" />
+
+<src class="image-caption">采购交易记账过程
+
+<p>这套方案里，支付系统会控制资金流入和流出，因此实收，实付类账户可以由账户系统和财务系统分别记账，再定时对账；以订单支付为例，支付网关返回支付状态时触发记账。</p>
+<src class="image-package  ">
+<src class="image-container">
+<src class="image-container-fill">&nbsp;
+<src class="image-view" data-width="1948" data-height="1242"><img src="//upload-images.jianshu.io/upload_images/16848204-5faebc267eef0e29.jpg?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="" data-original-src="//upload-images.jianshu.io/upload_images/16848204-5faebc267eef0e29.jpg" data-original-width="1948" data-original-height="1242" data-original-format="image/jpeg" data-original-filesize="178965" data-image-index="5" />
+
+<src class="image-caption">订单支付过程（支付系统内部流程不是很专业)
+
+<p>根据交易实例会发现，账户系统更多的只是记录财务系统给到的数据；如果只是单纯记录下分录流水，那就毫无意义，因此如何界定财务系统和账户系统的关系，财务系统和账户系统相互如何协同工作，是不可避开的问题。</p>
+<p><strong>四. 财务系统与账户系统的关系及如何协作</strong></p>
+<p>对于账户系统来说，财务系统就是她其中的一个业务系统，会计分录流水就是账户系统的业务流水，账户系统负责储存这些数据；当需要对账时，调出对应的账户即可，不再需要财务系统和各个业务系统核对。所以财务系统不再承担对账的功能，转而由账户系统承担起所有的对账职责，一来减轻财务对账压力，而来账户系统对账更为方便。</p>
+<p>由此，整个系统账务及对账协作关系如下：</p>
+<src class="image-package">
+<src class="image-container">
+<src class="image-container-fill">&nbsp;
+<src class="image-view" data-width="1513" data-height="1706"><img src="//upload-images.jianshu.io/upload_images/16848204-dd1b40cee95cb230.png?imageMogr2/auto-orient/strip|imageView2/2/w/1200/format/webp" alt="" data-original-src="//upload-images.jianshu.io/upload_images/16848204-dd1b40cee95cb230.png" data-original-width="1513" data-original-height="1706" data-original-format="image/png" data-original-filesize="165576" data-image-index="6" />
+
+<src class="image-caption">&nbsp;
+
+<p>整个记账&amp;对账协作参与系统包括：</p>
+<p>1. 交易系统：记录业务单据</p>
+<p>2. 支付系统：控制资金的流出与流入</p>
+<p>3. 财务系统：负责财务记账</p>
+<p>4. 资金管理系统：负责账单数据的采集</p>
+<p>5. 账户系统：负责分户账户记账及对账</p>
+<p><strong>五. 账户系统对账：</strong></p>
+<p>对账的整体规划为：账户系统承担集团内各个系统间的对账，资金系统和支付系统会承担外部渠道对账；内部对账包括：业务账，财务账，资金账。账户系统接过对账后，由于账户天然存在期初，期末值，粗颗粒度只需要核对期初期末值是否一致；细颗粒度则只需要导出账户的账单明细与其他系统提供的明细进行核对即可</p>
+<p>财务对账：</p>
+<p>账户系统分户账户按照会计规则建立，因此每一个会计科目对应一个汇总账户，每一个会计科目不同的核算维度不同则对应一个单独的账户。财务对账就是核对会计科目余额与分户账户余额的过程，极大的减轻了财务对账麻烦程度。</p>
+<p>资金对账：</p>
+<p>流水和余额的记录是账户系统的基本功能，资金管理平台的资金流水变动都需要同步到账户系统，实时记录公司各个银行，其他货币资金账号的余额；财务凭证的挂银行科目的分录流水也会同步到账户系统，记录到对应的账户里，因此只需要比对内部的账户余额就可以完成简单的资金对账</p>
+<p>业务对账：</p>
+<p>由于交易系统业务单据的流转都会引发账户系统账户的变动，当业务系统需要对账，只需要导出账户的账单明细与业务系统提供的业务单据明细即可核对</p>
+<p><strong>六. 增值服务：报表</strong></p>
+<p>有了这套账户甚至可以协助完成部分报表服务，例如库存报表，仓库采购入库，销售退货入库，盘盈入库，等本期增加数以及销售出库，采购退货，盘亏等本期减少数 都能通过账户拉取账户的期末值减去期初值得到。报表的生成只需要将各个账户的名称展示在表头，账单明细展示在行上面就能形成一张报表。</p>
+<p>这套方案虽然没有用起来，也没有验证可行性，因此总结在这里，提供一个思路。目前做的清结算系统与这个方案系统结构大不相同，但是核心逻辑一致，都是将业务数据转化为可视化账户。从方案实施来看，文中的账户系统与财务系统互补，账户流水依赖于财务系统，重心在数据记录和对账上；而清结算系统与当前财务系统在功能上有冲突，同样的逻辑在财务系统实现一套在清结算系统实现一套，当然这里面也有公司先搭建财务系统导致财务系统承担的功能太多，后来才搭建清结算平台的历史原因。</p>
+<p>&nbsp;</p>
+<p>联系QQ：137071249</p>
+<p>QQ群：793305035</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

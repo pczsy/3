@@ -1,0 +1,423 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java内功心法，Set集合的详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java内功心法，Set集合的详解</center></div><div class='banquan'>原文出处:本文由博客园博主Java博客手留余香提供。<br/>
+原文连接:https://www.cnblogs.com/yuxiang1/p/11543563.html</div><br>
+    <blockquote>
+<h3><span style="color: #ff0000;">本人免费整理了Java高级资料，涵盖了Java、Redis、MongoDB、MySQL、Zookeeper、Spring Cloud、Dubbo高并发分布式等教程，一共30G，需要自己领取。</span><br /><span style="color: #ff0000;">传送门</span>：<a class=" wrap external" href="https://link.zhihu.com/?target=https%3A//links.jianshu.com/go%3Fto%3Dhttps%253A%252F%252Flink.zhihu.com%252F%253Ftarget%253Dhttps%25253A%252F%252Fmp.weixin.qq.com%252Fs%252FJzddfH-7yNudmkjT0IRL8Q" rel="nofollow noreferrer" target="_blank" data-za-detail-view-id="1043">https://mp.weixin.qq.com/s/JzddfH-7yNudmkjT0IRL8Q</a></h3>
+
+</blockquote>
+<h2>一，Set</h2>
+<p>Set:注重独一无二的性质,该体系集合可以知道某物是否已近存在于集合中,不会存储重复的元素</p>
+<p>用于存储无序(存入和取出的顺序不一定相同)元素，值不能重复。</p>
+<p>对象的相等性</p>
+<p>引用到堆上同一个对象的两个引用是相等的。如果对两个引用调用hashCode方法，会得到相同的结果，如果对象所属的类没有覆盖Object的hashCode方法的话，hashCode会返回每个对象特有的序号（java是依据对象的内存地址计算出的此序号），所以两个不同的对象的hashCode值是不可能相等的。</p>
+<p>如果想要让两个不同的Person对象视为相等的，就必须覆盖Object继下来的hashCode方法和equals方法，因为Object hashCode方法返回的是该对象的内存地址，所以必须重写hashCode方法，才能保证两个不同的对象具有相同的hashCode，同时也需要两个不同对象比较equals方法会返回true</p>
+<p>该集合中没有特有的方法，直接继承自Collection。</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code>---|<span style="color: #000000;"> Itreable      接口 实现该接口可以使用增强for循环
+                </span>---|<span style="color: #000000;"> Collection        描述所有集合共性的接口
+                    </span>---|<span style="color: #000000;"> List接口        可以有重复元素的集合
+                            </span>---|<span style="color: #000000;"> ArrayList   
+                            </span>---|<span style="color: #000000;">  LinkedList
+                    </span>---|<span style="color: #000000;"> Set接口        不可以有重复元素的集合
+ </span></code></pre>
+
+<p>&nbsp;</p>
+
+<p>案例：set集合添加元素并使用迭代器迭代元素。</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Demo4 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">Set 集合存和取的顺序不一致。</span>
+        Set hs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HashSet();
+        hs.add(</span>"世界军事"<span style="color: #000000;">);
+        hs.add(</span>"兵器知识"<span style="color: #000000;">);
+        hs.add(</span>"舰船知识"<span style="color: #000000;">);
+        hs.add(</span>"汉和防务"<span style="color: #000000;">);
+        System.out.println(hs);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> [舰船知识, 世界军事, 兵器知识, 汉和防务]</span>
+        Iterator it =<span style="color: #000000;"> hs.iterator();
+        </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (it.hasNext()) {
+            System.out.println(it.next());
+        }
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+<p class="ztext-empty-paragraph">&nbsp;</p>
+<h2>二，HashSet</h2>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code>---|<span style="color: #000000;"> Itreable      接口 实现该接口可以使用增强for循环
+                </span>---|<span style="color: #000000;"> Collection        描述所有集合共性的接口
+                    </span>---|<span style="color: #000000;"> List接口        可以有重复元素的集合
+                            </span>---|<span style="color: #000000;"> ArrayList   
+                            </span>---|<span style="color: #000000;">  LinkedList
+                    </span>---|<span style="color: #000000;"> Set接口        不可以有重复元素的集合
+                            </span>---| HashSet  线程不安全，存取速度快。底层是以哈希表实现的。</code></pre>
+
+<p>&nbsp;</p>
+<pre><code>HashSet</code></pre>
+
+<p>哈希表边存放的是哈希值。HashSet存储元素的顺序并不是按照存入时的顺序（和List显然不同） 是按照哈希值来存的所以取数据也是按照哈希值取得。</p>
+<p>HashSet不存入重复元素的规则.使用hashcode和equals</p>
+<p>由于Set集合是不能存入重复元素的集合。那么HashSet也是具备这一特性的。HashSet如何检查重复？HashSet会通过元素的hashcode（）和equals方法进行判断元素师否重复。</p>
+<p>当你试图把对象加入HashSet时，HashSet会使用对象的hashCode来判断对象加入的位置。同时也会与其他已经加入的对象的hashCode进行比较，如果没有相等的hashCode，HashSet就会假设对象没有重复出现。</p>
+<p>简单一句话，如果对象的hashCode值是不同的，那么HashSet会认为对象是不可能相等的。</p>
+<p>因此我们自定义类的时候需要重写hashCode，来确保对象具有相同的hashCode值。</p>
+<p>如果元素(对象)的hashCode值相同,是不是就无法存入HashSet中了? 当然不是,会继续使用equals 进行比较.如果 equals为true 那么HashSet认为新加入的对象重复了,所以加入失败。如果equals 为false那么HashSet 认为新加入的对象没有重复.新元素可以存入.</p>
+<h2>&nbsp;</h2>
+<h2>总结：</h2>
+<p>元素的哈希值是通过元素的hashcode方法 来获取的, HashSet首先判断两个元素的哈希值，如果哈希值一样，接着会比较equals方法 如果 equls结果为true ，HashSet就视为同一个元素。如果equals 为false就不是同一个元素。</p>
+<p>哈希值相同equals为false的元素是怎么存储呢,就是在同样的哈希值下顺延（可以认为哈希值相同的元素放在一个哈希桶中）。也就是哈希一样的存一列。</p>
+<h2>hashtable</h2>
+<p><img class="origin_image zh-lightbox-thumb lazy" src="./images/Java内功心法，Set集合的详解0.png" alt="" width="535" data-caption="" data-size="normal" data-rawwidth="535" data-rawheight="206" data-original="https://pic3.zhimg.com/v2-e05f07d211fee3831571132993a0e6da_r.jpg" data-actualsrc="https://pic3.zhimg.com/v2-e05f07d211fee3831571132993a0e6da_b.jpg" data-lazy-status="ok" /></p>
+<p>图1：hashCode值不相同的情况</p>
+<p>图2：hashCode值相同，但equals不相同的情况。</p>
+<p>HashSet：通过hashCode值来确定元素在内存中的位置。一个hashCode位置上可以存放多个元素。</p>
+<p>当hashcode() 值相同equals() 返回为true 时,hashset 集合认为这两个元素是相同的元素.只存储一个（重复元素无法放入）。调用原理:先判断hashcode 方法的值,如果相同才会去判断equals 如果不相同,是不会调用equals方法的。</p>
+<p>HashSet到底是如何判断两个元素重复。</p>
+<p>通过hashCode方法和equals方法来保证元素的唯一性，add()返回的是boolean类型</p>
+<p>判断两个元素是否相同，先要判断元素的hashCode值是否一致，只有在该值一致的情况下，才会判断equals方法，如果存储在HashSet中的两个对象hashCode方法的值相同equals方法返回的结果是true，那么HashSet认为这两个元素是相同元素，只存储一个（重复元素无法存入）。</p>
+<p>注意：HashSet集合在判断元素是否相同先判断hashCode方法，如果相同才会判断equals。如果不相同，是不会调用equals方法的。</p>
+<p>HashSet 和ArrayList集合都有判断元素是否相同的方法，</p>
+<p>boolean contains(Object o)</p>
+<p>HashSet使用hashCode和equals方法，ArrayList使用了equals方法</p>
+<p>&nbsp;</p>
+<h2>案例：</h2>
+<p>使用HashSet存储字符串，并尝试添加重复字符串</p>
+<p>回顾String类的equals()、hashCode()两个方法。</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Demo4 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Set 集合存和取的顺序不一致。</span>
+        Set hs = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HashSet();
+        hs.add(</span>"世界军事"<span style="color: #000000;">);
+        hs.add(</span>"兵器知识"<span style="color: #000000;">);
+        hs.add(</span>"舰船知识"<span style="color: #000000;">);
+        hs.add(</span>"汉和防务"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回此 set 中的元素的数量</span>
+        System.out.println(hs.size()); <span style="color: #008000;">//</span><span style="color: #008000;"> 4
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果此 set 尚未包含指定元素，则返回 true</span>
+        <span style="color: #0000ff;">boolean</span> add = hs.add("世界军事"); <span style="color: #008000;">//</span><span style="color: #008000;"> false</span>
+<span style="color: #000000;">        System.out.println(add);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回此 set 中的元素的数量</span>
+        System.out.println(hs.size());<span style="color: #008000;">//</span><span style="color: #008000;"> 4</span>
+        Iterator it =<span style="color: #000000;"> hs.iterator();
+        </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (it.hasNext()) {
+            System.out.println(it.next());
+        }
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+<p class="ztext-empty-paragraph">&nbsp;</p>
+<p>使用HashSet存储自定义对象，并尝试添加重复对象（对象的重复的判定）</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Demo4 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        HashSet hs </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HashSet();
+        hs.add(</span><span style="color: #0000ff;">new</span> Person("jack", 20<span style="color: #000000;">));
+        hs.add(</span><span style="color: #0000ff;">new</span> Person("rose", 20<span style="color: #000000;">));
+        hs.add(</span><span style="color: #0000ff;">new</span> Person("hmm", 20<span style="color: #000000;">));
+        hs.add(</span><span style="color: #0000ff;">new</span> Person("lilei", 20<span style="color: #000000;">));
+        hs.add(</span><span style="color: #0000ff;">new</span> Person("jack", 20<span style="color: #000000;">));
+        Iterator it </span>=<span style="color: #000000;"> hs.iterator();
+        </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (it.hasNext()) {
+            Object next </span>=<span style="color: #000000;"> it.next();
+            System.out.println(next);
+        }
+    }
+}
+</span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Person {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String name;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> age;
+    Person() {
+    }
+    </span><span style="color: #0000ff;">public</span> Person(String name, <span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+</span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+    }
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setName(String name) {
+</span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getAge() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> age;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setAge(<span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> hashCode() {
+        System.out.println(</span>"hashCode:" + <span style="color: #0000ff;">this</span><span style="color: #000000;">.name);
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.name.hashCode() + age * 37<span style="color: #000000;">;
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> equals(Object obj) {
+        System.out.println(</span><span style="color: #0000ff;">this</span> + "---equals---" +<span style="color: #000000;"> obj);
+        </span><span style="color: #0000ff;">if</span> (obj <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Person) {
+            Person p </span>=<span style="color: #000000;"> (Person) obj;
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.name.equals(p.name) &amp;&amp; <span style="color: #0000ff;">this</span>.age ==<span style="color: #000000;"> p.age;
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+        </span><span style="color: #0000ff;">return</span> "Person@name:" + <span style="color: #0000ff;">this</span>.name + " age:" + <span style="color: #0000ff;">this</span><span style="color: #000000;">.age;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+<p class="ztext-empty-paragraph">&nbsp;</p>
+<p>问题：现在有一批数据，要求不能重复存储元素，而且要排序。ArrayList 、 LinkedList不能去除重复数据。HashSet可以去除重复，但是是无序。</p>
+<p>所以这时候就要使用TreeSet了</p>
+<p class="ztext-empty-paragraph">&nbsp;</p>
+<h2>三，TreeSet</h2>
+<p>案例：使用TreeSet集合存储字符串元素，并遍历</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Demo5 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        TreeSet ts </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> TreeSet();
+        ts.add(</span>"ccc"<span style="color: #000000;">);
+        ts.add(</span>"aaa"<span style="color: #000000;">);
+        ts.add(</span>"ddd"<span style="color: #000000;">);
+        ts.add(</span>"bbb"<span style="color: #000000;">);
+        System.out.println(ts); </span><span style="color: #008000;">//</span><span style="color: #008000;"> [aaa, bbb, ccc, ddd]</span>
+<span style="color: #000000;">    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+<p class="ztext-empty-paragraph">&nbsp;</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code>---|<span style="color: #000000;"> Itreable      接口 实现该接口可以使用增强for循环
+                </span>---|<span style="color: #000000;"> Collection        描述所有集合共性的接口
+                    </span>---|<span style="color: #000000;"> List接口        有序，可以重复，有角标的集合
+                            </span>---|<span style="color: #000000;"> ArrayList   
+                            </span>---|<span style="color: #000000;">  LinkedList
+                    </span>---|<span style="color: #000000;"> Set接口        无序，不可以重复的集合
+                            </span>---|<span style="color: #000000;"> HashSet  线程不安全，存取速度快。底层是以hash表实现的。
+                            </span>---| TreeSet  红-黑树的数据结构，默认对元素进行自然排序（String）。</code></pre>
+
+<p>&nbsp;</p>
+<pre><code><code class="language-java"><span class="o"><span class="n"><span class="n"><span class="n"><span class="o"><span class="n"><span class="n"><span class="o"><span class="n"><span class="n"><span class="err"><span class="n"><span class="err"><span class="n"><span class="o"><span class="n"><span class="o"><span class="n"><span class="o"><span class="n"><span class="n"><span class="err"><span class="n"><span class="o"><span class="n"><span class="n"><span class="err"><span class="n"><span class="err"><span class="n"><span class="err"><span class="o"><span class="n"><span class="n"><span class="o"><span class="n"><span class="err"><span class="n"><span class="err"><span class="n"><span class="err">
+<span class="n">如果在比较的时候两个对象返回值为0<span class="err">，<span class="n">那么元素重复<span class="err">。</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+
+<p>红-黑树</p>
+<p>红黑树是一种特定类型的二叉树</p>
+<p><img class="origin_image zh-lightbox-thumb lazy" src="./images/Java内功心法，Set集合的详解1.png" alt="" width="444" data-caption="" data-size="normal" data-rawwidth="444" data-rawheight="200" data-original="https://pic1.zhimg.com/v2-ba8884cf4d938f2f733971ff19a4f15c_r.jpg" data-actualsrc="https://pic1.zhimg.com/v2-ba8884cf4d938f2f733971ff19a4f15c_b.jpg" data-lazy-status="ok" /></p>
+<p>红黑树算法的规则: 左小右大。</p>
+<p>既然TreeSet可以自然排序,那么TreeSet必定是有排序规则的。</p>
+<p>1:让存入的元素自定义比较规则。</p>
+<p>2:给TreeSet指定排序规则。</p>
+<p>方式一：元素自身具备比较性</p>
+<p>元素自身具备比较性，需要元素实现Comparable接口，重写compareTo方法，也就是让元素自身具备比较性，这种方式叫做元素的自然排序也叫做默认排序。</p>
+<p>方式二：容器具备比较性</p>
+<p>当元素自身不具备比较性，或者自身具备的比较性不是所需要的。那么此时可以让容器自身具备。需要定义一个类实现接口Comparator，重写compare方法，并将该接口的子类实例对象作为参数传递给TreeMap集合的构造方法。</p>
+<p>注意：当Comparable比较方式和Comparator比较方式同时存在时，以Comparator的比较方式为主；</p>
+<p>注意：在重写compareTo或者compare方法时，必须要明确比较的主要条件相等时要比较次要条件。（假设姓名和年龄一直的人为相同的人，如果想要对人按照年龄的大小来排序，如果年龄相同的人，需要如何处理？不能直接return 0，因为可能姓名不同（年龄相同姓名不同的人是不同的人）。此时就需要进行次要条件判断（需要判断姓名），只有姓名和年龄同时相等的才可以返回0.）</p>
+<p>通过return 0来判断唯一性。</p>
+<p class="ztext-empty-paragraph">&nbsp;</p>
+<p>问题:为什么使用TreeSet存入字符串,字符串默认输出是按升序排列的?因为字符串实现了一个接口,叫做Comparable 接口.字符串重写了该接口的compareTo 方法,所以String对象具备了比较性.那么同样道理,我的自定义元素(例如Person类,Book类)想要存入TreeSet集合,就需要实现该接口,也就是要让自定义对象具备比较性.</p>
+<p>存入TreeSet集合中的元素要具备比较性.</p>
+<p>比较性要实现Comparable接口，重写该接口的compareTo方法</p>
+<p>TreeSet属于Set集合，该集合的元素是不能重复的，TreeSet如何保证元素的唯一性</p>
+<p>通过compareTo或者compare方法中的来保证元素的唯一性。</p>
+<p>添加的元素必须要实现Comparable接口。当compareTo()函数返回值为0时，说明两个对象相等，此时该对象不会添加进来。</p>
+<p>比较器接口</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code>----|<span style="color: #000000;"> Comparable
+               compareTo(Object o)     元素自身具备比较性
+</span>----|<span style="color: #000000;"> Comparator
+               compare( Object o1, Object o2 )    给容器传入比较器
+ </span></code></pre>
+
+<p>&nbsp;</p>
+
+<p>TreeSet集合排序的两种方式：</p>
+<p>一，让元素自身具备比较性。</p>
+<p>也就是元素需要实现Comparable接口，覆盖compareTo 方法。</p>
+<p>这种方式也作为元素的自然排序，也可称为默认排序。</p>
+<p>年龄按照搜要条件，年龄相同再比姓名。</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Demo4 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        TreeSet ts </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> TreeSet();
+        ts.add(</span><span style="color: #0000ff;">new</span> Person("aa", 20, "男"<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Person("bb", 18, "女"<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Person("cc", 17, "男"<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Person("dd", 17, "女"<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Person("dd", 15, "女"<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Person("dd", 15, "女"<span style="color: #000000;">));
+        System.out.println(ts);
+        System.out.println(ts.size()); </span><span style="color: #008000;">//</span><span style="color: #008000;"> 5</span>
+<span style="color: #000000;">    }
+}
+</span><span style="color: #0000ff;">class</span> Person <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Comparable {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String name;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> age;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String gender;
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Person() {
+    }
+    </span><span style="color: #0000ff;">public</span> Person(String name, <span style="color: #0000ff;">int</span><span style="color: #000000;"> age, String gender) {
+</span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+        </span><span style="color: #0000ff;">this</span>.gender =<span style="color: #000000;"> gender;
+    }
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setName(String name) {
+</span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getAge() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> age;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setAge(<span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+    }
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getGender() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> gender;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setGender(String gender) {
+        </span><span style="color: #0000ff;">this</span>.gender =<span style="color: #000000;"> gender;
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> hashCode() {
+        </span><span style="color: #0000ff;">return</span> name.hashCode() + age * 37<span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> equals(Object obj) {
+        System.err.println(</span><span style="color: #0000ff;">this</span> + "equals :" +<span style="color: #000000;"> obj);
+        </span><span style="color: #0000ff;">if</span> (!(obj <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Person)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+        Person p </span>=<span style="color: #000000;"> (Person) obj;
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.name.equals(p.name) &amp;&amp; <span style="color: #0000ff;">this</span>.age ==<span style="color: #000000;"> p.age;
+    }
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+        </span><span style="color: #0000ff;">return</span> "Person [name=" + name + ", age=" + age + ", gender=" +<span style="color: #000000;"> gender
+                </span>+ "]"<span style="color: #000000;">;
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> compareTo(Object obj) {
+        Person p </span>=<span style="color: #000000;"> (Person) obj;
+        System.out.println(</span><span style="color: #0000ff;">this</span>+" compareTo:"+<span style="color: #000000;">p);
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.age &gt;<span style="color: #000000;"> p.age) {
+            </span><span style="color: #0000ff;">return</span> 1<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.age &lt;<span style="color: #000000;"> p.age) {
+            </span><span style="color: #0000ff;">return</span> -1<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.name.compareTo(p.name);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+<p><strong>二，让容器自身具备比较性，自定义比较器。</strong></p>
+<p>需求：当元素自身不具备比较性，或者元素自身具备的比较性不是所需的。</p>
+<p>那么这时只能让容器自身具备。</p>
+<p>定义一个类实现Comparator 接口，覆盖compare方法。</p>
+<p>并将该接口的子类对象作为参数传递给TreeSet集合的构造函数。</p>
+<p>当Comparable比较方式，及Comparator比较方式同时存在，以Comparator</p>
+<p>比较方式为主。</p>
+<src class="highlight">
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Demo5 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        TreeSet ts </span>= <span style="color: #0000ff;">new</span> TreeSet(<span style="color: #0000ff;">new</span><span style="color: #000000;"> MyComparator());
+        ts.add(</span><span style="color: #0000ff;">new</span> Book("think in java", 100<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Book("java 核心技术", 75<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Book("现代操作系统", 50<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Book("java就业教程", 35<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Book("think in java", 100<span style="color: #000000;">));
+        ts.add(</span><span style="color: #0000ff;">new</span> Book("ccc in java", 100<span style="color: #000000;">));
+        System.out.println(ts); 
+    }
+}
+</span><span style="color: #0000ff;">class</span> MyComparator <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Comparator {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> compare(Object o1, Object o2) {
+        Book b1 </span>=<span style="color: #000000;"> (Book) o1;
+        Book b2 </span>=<span style="color: #000000;"> (Book) o2;
+        System.out.println(b1</span>+" comparator "+<span style="color: #000000;">b2);
+        </span><span style="color: #0000ff;">if</span> (b1.getPrice() &gt;<span style="color: #000000;"> b2.getPrice()) {
+            </span><span style="color: #0000ff;">return</span> 1<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span> (b1.getPrice() &lt;<span style="color: #000000;"> b2.getPrice()) {
+            </span><span style="color: #0000ff;">return</span> -1<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> b1.getName().compareTo(b2.getName());
+    }
+}
+</span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Book {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String name;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> price;
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Book() {
+    }
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setName(String name) {
+</span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span><span style="color: #000000;"> getPrice() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> price;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setPrice(<span style="color: #0000ff;">double</span><span style="color: #000000;"> price) {
+        </span><span style="color: #0000ff;">this</span>.price =<span style="color: #000000;"> price;
+    }
+    </span><span style="color: #0000ff;">public</span> Book(String name, <span style="color: #0000ff;">double</span><span style="color: #000000;"> price) {
+</span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+        </span><span style="color: #0000ff;">this</span>.price =<span style="color: #000000;"> price;
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+        </span><span style="color: #0000ff;">return</span> "Book [name=" + name + ", price=" + price + "]"<span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+<p class="ztext-empty-paragraph">&nbsp;</p>
+<h2>四，LinkedHashSet</h2>
+<p>会保存插入的顺序。</p>
+<p>看到array，就要想到角标。</p>
+<p>看到link，就要想到first，last。</p>
+<p>看到hash，就要想到hashCode,equals.</p>
+<p>看到tree，就要想到两个接口。Comparable，Comparator。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

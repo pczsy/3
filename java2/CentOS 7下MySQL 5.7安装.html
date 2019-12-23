@@ -1,0 +1,128 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修CentOS 7下MySQL 5.7安装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>CentOS 7下MySQL 5.7安装</center></div><div class='banquan'>原文出处:本文由博客园博主alterem提供。<br/>
+原文连接:https://www.cnblogs.com/alterem/p/11819035.html</div><br>
+    <p>5.7和之前版本的MySQL有一些不同，现把CentOS 7下MySQL 5.7安装、配置与应用完整过程记下来，或许对新手来说有用。</p>
+<p>本文描述的安装是采用通用的二进制压缩包（linux – Generic）以解压方式安装，相当于绿色安装了。</p>
+<p>一、下载通用安装二进制包</p>
+<p>先下载mysql安装包：打开 http://dev.mysql.com/downloads/mysql/<br />
+选择 linux – Generic并在其下选择<br />
+Linux – Generic (glibc 2.5) (x86, 64-bit), Compressed TAR Archive<br />
+进行下载。可以先下载到一个临时目录里，解压后，得到两个包：<br />
+mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz<br />
+mysql-test-5.7.11-linux-glibc2.5-x86_64.tar.gz<br />
+只需要mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz 这个包就行了。</p>
+<p>二、建立用户和目录</p>
+<p>建立用户mysql，组mysql。后面mysql就使用这个用户来运行（注意这也是mysql启动脚本中默认的用户，因此最好不要改名）。</p>
+<h1 id="groupadd-mysql">groupadd mysql</h1>
+<h1 id="useradd--r--g-mysql-mysql">useradd -r -g mysql mysql</h1>
+<p>（使用-r参数表示mysql用户是一个系统用户，不能登录）</p>
+<p>建立目录/work/program，后面mysql就安装在这个目录下面。</p>
+<h1 id="mkdir-workprogram">mkdir /work/program</h1>
+<p>三、安装</p>
+<p>【解压】<br />
+将前面得到的mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz解压至/work/program目录下</p>
+<h1 id="tar-zxvf-mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz--c-workprogram">tar zxvf mysql-5.7.11-linux-glibc2.5-x86_64.tar.gz -C /work/program</h1>
+<p>这时在program下得到的目录名很长，如果不想改名，则可以建立一个联接：</p>
+<h1 id="ln--s-mysql-5.7.11-linux-glibc2.5-x86_64-mysql">ln -s mysql-5.7.11-linux-glibc2.5-x86_64 mysql</h1>
+<p>此后就可以用/work/program/mysql来找到mysql的安装目录了</p>
+<p>注意，如果mysql目录下没有data目录，手动建一个。</p>
+<p>【目录权限设置】<br />
+将mysql及其下所有的目录所有者和组均设为mysql:</p>
+<h1 id="cd-workprogrammysql">cd /work/program/mysql</h1>
+<h1 id="chown-mysqlmysql--r-.">chown mysql:mysql -R .</h1>
+<p>【初始化】</p>
+<h1 id="workprogrammysqlbinmysqld-initialize-usermysql-datadirworkprogrammysqldata-basedirworkprogrammysql">/work/program/mysql/bin/mysqld –initialize –user=mysql –datadir=/work/program/mysql/data –basedir=/work/program/mysql</h1>
+<p>注意：</p>
+<ol>
+<li>data目录解压后没有，需要手动建立（见上文）；</li>
+<li>mysql5.7和之前版本不同，很多资料上都是这个命令<br />
+…../scripts/mysql_install_db –user=mysql<br />
+而5.7版本根本没有这个。</li>
+</ol>
+<p>初始化成功后出现如下信息：<br />
+201x-xx-xxT07:10:13.583130Z 0 [Warning] TIMESTAMP with implicit DEFAULT value is deprecated. Please use –explicit_defaults_for_timestamp server option (see documentation for more details).<br />
+201x-xx-xx T07:10:13.976219Z 0 [Warning] InnoDB: New log files created, LSN=45790<br />
+201x-xx-xx T07:10:14.085666Z 0 [Warning] InnoDB: Creating foreign key constraint system tables.<br />
+201x-xx-xx T07:10:14.161899Z 0 [Warning] No existing UUID has been found, so we assume that this is the first time that this server has been started. Generating a new UUID: 1fa941f9-effd-11e5-b67d-000c2958cdc8.<br />
+201x-xx-xx T07:10:14.165534Z 0 [Warning] Gtid table is not ready to be used. Table ‘mysql.gtid_executed’ cannot be opened.<br />
+201x-xx-xx T07:10:14.168555Z 1 [Note] A temporary password is generated for root@localhost: q1SLew5T_6K,</p>
+<p>注意最后一行，这也是和之有版本不同的地方，它给了root一个初始密码，后面要登录的时候要用到这个密码。</p>
+<p>【配置】<br />
+将mysql/support-files下的my-default.cnf改名为my.cnf，拷到/etc下（或者考到｛mysql｝下，然后作一个软链接到/etc下）：</p>
+<h1 id="cp-workprogrammysqlsupport-filesmy-default.cnf-etcmy.cnf">cp /work/program/mysql/support-files/my-default.cnf /etc/my.cnf</h1>
+<p>my.cnf中关键配置：<br />
+[mysqld]<br />
+basedir = /work/program/mysql<br />
+datadir = /work/program/mysql/data<br />
+port = 3306<br />
+socket = /work/program/mysql/tmp/mysql.sock</p>
+<p>sql_mode=NO_ENGINE_SUBSTITUTION,STRICT_TRANS_TABLES</p>
+<p>注意，tmp目录不存在，请创建之。</p>
+<p>如果不把my.cnf拷到/etc下，运行时会出现：<br />
+mysqld: Can’t change dir to ‘/usr/local/mysql/data/’ (Errcode: 2 – No such file or directory)<br />
+这样的出错提示，说明它没找到my.cnf中的配置；而去找了程序编译时的默认安装位置：/usr/local/mysql</p>
+<p>四、运行</p>
+<p>【运行服务器程序】</p>
+<h1 id="mysqlbinmysqld_safe">{mysql}/bin/mysqld_safe&amp;</h1>
+<p>注：在这个启动脚本里已默认设置–user=mysql；在脚本末尾加&amp;表示设置此进程为后台进程，区别就是在控制台输入bg，即可将当前进程转入后台，当前shell可进行其他操作。<br />
+【停止mysql】<br />
+{mysql}/bin/mysqladmin -uroot -p<br />
+(注意此时的root是指mysql的root用户)</p>
+<p>五、设置mysql以服务运行并且开机启动</p>
+<p>将{mysql}/ support-files/mysql.server 拷贝为/etc/init.d/mysql并设置运行权限</p>
+<h1 id="cp-mysql.server-etcinit.dmysql">cp mysql.server /etc/init.d/mysql</h1>
+<h1 id="chmod-x-etcinit.dmysql">chmod +x /etc/init.d/mysql</h1>
+<p>把mysql注册为开机启动的服务</p>
+<h1 id="chkconfig-add-mysql">chkconfig –add mysql</h1>
+<p>当然也可以手动进行服务的开启和关闭：</p>
+<h1 id="etcinit.dmysql-start">/etc/init.d/mysql start</h1>
+<h1 id="etcinit.dmysql-stop">/etc/init.d/mysql stop</h1>
+<p>六、客户端连接测试</p>
+<h1 id="mysqlbinmysql--uroot--p">{mysql}/bin/mysql -uroot -p</h1>
+<p>此时要求输入密码，就是前面初始化时生成的密码。<br />
+这时如果连接服务的时候出现错误：<br />
+ERROR 2002 (HY000): Can’t connect to local MySQL server through socket ‘/tmp/mysql.sock’ (2)<br />
+则需要在在my.cnf中填加：<br />
+[client]<br />
+socket = /work/program/mysql/tmp/mysql.sock</p>
+<p>连上后，在做任何操作前，mysql要求要改掉root的密码后才能进行操作。<br />
+ERROR 1820 (HY000): You must reset your password using ALTER USER statement before executing this statement.<br />
+mysql&gt; alter user ‘root’@’localhost’ identified by ‘xxxxxxx';</p>
+<p>七、TIPS</p>
+<p>【查看mysql是否运行】<br />
+ps -ef|grep mysqld<br />
+netstat -lnp | grep -i mysql</p>
+<p>【mysql启动时读取配置文件my.cnf的顺序】<br />
+可以运行如下命令查看：<br />
+./bin/mysqld –verbose –help |more<br />
+Default options are read from the following files in the given order:<br />
+/etc/my.cnf /etc/mysql/my.cnf /usr/local/mysql/etc/my.cnf ~/.my.cnf<br />
+可以看到，启动时可以从上述目录下读取配置文件my.cnf。如果当前my.cnf文件不位于上述位置，则必须考过去或做链接。<br />
+MySQL 5.7新特性之Generated Column（函数索引） http://www.linuxidc.com/Linux/2016-02/128066.htm</p>
+<p>升级到MySQL 5.7 解决分区问题 http://www.linuxidc.com/Linux/2016-02/128060.htm</p>
+<p>MySQL 5.7 完美的分布式事务支持 http://www.linuxidc.com/Linux/2016-02/128053.htm</p>
+<p>MySQL 5.7 新特性详解 http://www.linuxidc.com/Linux/2016-01/127636.htm</p>
+<p>MySQL 5.7.11 发布下载 http://www.linuxidc.com/Linux/2016-02/128268.htm</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

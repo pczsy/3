@@ -1,0 +1,169 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修代码质量检测(SonarQube)整合中文版+阿里P3C' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>代码质量检测(SonarQube)整合中文版+阿里P3C</center></div><div class='banquan'>原文出处:本文由博客园博主Purgeyao提供。<br/>
+原文连接:https://www.cnblogs.com/Purgeyao/p/11511579.html</div><br>
+    <h1 id="代码质量检测sonarqube整合中文版阿里p3c">代码质量检测(SonarQube)整合中文版+阿里P3C</h1>
+<h2 id="简介">简介</h2>
+<p><a href="https://www.sonarqube.org/">SonarQube</a>是一种自动代码审查工具，用于检测代码中的错误，漏洞和代码异味。它可以与您现有的工作流程集成，以便在项目分支和拉取请求之间进行连续的代码检查。<br />
+<img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C0.png" alt="img" /></p>
+<p>连续代码检查,sonar可以单独使用<code>Maven</code>、<code>Gradle</code>推送代码检查，当然也可以在ci引擎进行代码自动检查，如: <code>Jenkins</code>、<code>Git</code> 。</p>
+<h2 id="服务端">服务端</h2>
+<blockquote>
+<p>安装</p>
+</blockquote>
+<p>为了快速启动<code>sonarqube</code>实例，我们采用docker的方式。</p>
+<p><code>sonarqube</code>默认为英文版的，检查规则为自带的，我们这里采用中文汉化，另外<code>java</code>语言加入<a href="https://github.com/alibaba/p3c">阿里p3c</a>规则。</p>
+<p>使用git克隆项目：</p>
+<pre><code><code>git clone https://github.com/purgeteam/sonarqube-start
+cd docker-start</code></code></pre>
+<p><code>sonar-docker-start.yml</code> 模板如下：</p>
+<pre><code><code># 汉化版+阿里p3c验证
+version: &quot;2&quot;
+
+services:
+  sonarqube:
+    image: sonarqube
+    ports:
+      - &quot;9000:9000&quot;
+    networks:
+      - sonarnet
+    environment:
+      - sonar.jdbc.url=jdbc:postgresql://db:5432/sonar
+    volumes:
+      - sonarqube_conf:/opt/sonarqube/conf
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_bundled-plugins:/opt/sonarqube/lib/bundled-plugins
+      - ./plugin/rhinoceros/sonar-pmd-plugin-3.2.0-SNAPSHOT.jar:/opt/sonarqube/extensions/plugins/sonar-pmd-plugin-3.2.0-SNAPSHOT.jar
+      - ./plugin/sonar-l10n-zh-plugin-1.16.jar:/opt/sonarqube/extensions/plugins/sonar-l10n-zh-plugin-1.16.jar
+
+  db:
+    image: postgres
+    ports:
+      - &quot;5432:5432&quot;
+    networks:
+      - sonarnet
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+    volumes:
+      - ./postgres/postgresql:/var/lib/postgresql
+      - ./postgres/postgresql_data:/var/lib/postgresql/data
+
+networks:
+  sonarnet:
+    driver: bridge
+
+volumes:
+  sonarqube_conf:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_bundled-plugins:
+  postgresql:
+  postgresql_data:</code></code></pre>
+<p>使用docker-compose启动</p>
+<pre><code><code>docker-compose -d sonar-docker-start.yml up</code></code></pre>
+<p>默认会吧插件挂载进容器内部。</p>
+<p>启动ok，查看控制台进行访问<code>localhost:9000</code>,默认账号密码：<code>admin/admin</code>。</p>
+<blockquote>
+<p>默认规则配置</p>
+</blockquote>
+<p>虽然已经集成了阿里P3C,但是使用的还是默认规则，这里我们需要设置为指定规则。</p>
+<p>以admin账号登陆</p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C1.png" alt="img" /></p>
+<p>打开 质量配置<code>profiles</code>页，点击右上方的<code>创建</code>按钮，创建 <code>p3c profiles</code></p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C2.png" alt="img" /></p>
+<p>首次创建会跳转到代码规则配置页面，刚新建的 profile 是没有激活任何规则的，需要手动激活</p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C3.png" alt="img" /></p>
+<p>我们需要为刚创建的 p3c profile 激活 p3c 规则，点击【激活更多规则】</p>
+<p>跳转到激活页面,搜索p3c，如图，都是以<code>[p3c]</code>开头的规则。</p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C4.png" alt="img" /></p>
+<p>批量修改-&gt;活动 p3c -&gt; 应用 -&gt; 成功</p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C5.png" alt="img" /></p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C6.png" alt="img" /></p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C7.png" alt="img" /></p>
+<p>绑定规则成功后基本完成，我们返回<code>质量配置</code>，在<code>java</code>选择刚设置的<code>p3c</code>设置为默认。</p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C8.png" alt="img" /></p>
+<p>配置阿里P3C已经完成。</p>
+<h2 id="maven代码检查">Maven代码检查</h2>
+<p><code>sonarqube</code>可以使用多种方式进行代码上传检查。<br />
+我们使用简单的<code>Maven</code>触发代码检查。</p>
+<blockquote>
+<p>添加插件</p>
+</blockquote>
+<p>在项目<code>pom</code>文件里添加<code>sonar-maven-plugin</code>插件。</p>
+<pre><code><code>&lt;build&gt;
+    &lt;plugins&gt;
+
+        &lt;plugin&gt;
+            &lt;groupId&gt;org.sonarsource.scanner.maven&lt;/groupId&gt;
+            &lt;artifactId&gt;sonar-maven-plugin&lt;/artifactId&gt;
+            &lt;version&gt;3.6.0.1398&lt;/version&gt;
+        &lt;/plugin&gt;
+
+    &lt;/plugins&gt;
+&lt;/build&gt;</code></code></pre>
+<p>服务器相关配置:</p>
+<p>需要将<code>&lt;sonar.host.url&gt;</code>修改为之前搭建的<code>sonarqube</code>服务地址。</p>
+<pre><code><code>&lt;!-- SonarQube代码质量检测 --&gt;
+&lt;profiles&gt;
+
+    &lt;profile&gt;
+        &lt;id&gt;sonar&lt;/id&gt;
+        &lt;activation&gt;
+            &lt;activeByDefault&gt;true&lt;/activeByDefault&gt;
+            &lt;/activation&gt;
+            &lt;properties&gt;
+            &lt;sonar.host.url&gt;http://127.0.0.1:9000/&lt;/sonar.host.url&gt;
+        &lt;/properties&gt;
+    &lt;/profile&gt;
+    
+&lt;/profiles&gt;</code></code></pre>
+<blockquote>
+<p>触发检查</p>
+</blockquote>
+<p><code>pom</code>配置完成，先将代码进行构建使用<code>Maven</code> <code>package</code> 命令。</p>
+<p>完成构建执行<code>mvn sonar:sonar</code>命令，也可以使用<code>idea</code> <code>maven</code> 可视化界面进行操作。</p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C9.png" alt="img" /></p>
+<p>运行完成。</p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C10.png" alt="img" /></p>
+<blockquote>
+<p>查看sonar报告</p>
+</blockquote>
+<p>打开<code>sonar</code>服务页面<code>127.0.0.1:9000</code></p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C11.png" alt="img" /></p>
+<p>可以看到上传的项目列表，选择项目查看分析结果，项目健康状态等信息。</p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C12.png" alt="img" /></p>
+<p>问题里可以看到相关的代码问题列表，打开单个则查看详情。</p>
+<p><img src="./images/代码质量检测(SonarQube)整合中文版+阿里P3C13.png" alt="img" /></p>
+<h2 id="总结">总结</h2>
+<p>当然我们只是使用了简单的<code>Maven</code>方式推送至<code>SonarQube</code>服务，当然也可以在ci引擎进行代码自动检查，如: <code>Jenkins</code>、<code>Git</code>，自动化检查，有兴趣的小伙伴也可以了解下其他功能，<a href="https://www.sonarqube.org/">SonarQube官网</a>。</p>
+<blockquote>
+<p>示例代码地址: <a href="https://github.com/purgeteam/sonarqube-start">sonarqube-start</a></p>
+</blockquote>
+<blockquote>
+<p>作者GitHub:<br />
+<a href="https://github.com/purgeyao">Purgeyao</a> 欢迎关注</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

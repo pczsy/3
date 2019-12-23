@@ -1,0 +1,133 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署</center></div><div class='banquan'>原文出处:本文由博客园博主zq2599提供。<br/>
+原文连接:https://www.cnblogs.com/bolingcavalry/p/11429109.html</div><br>
+    <p>最初在tomcat上部署web应用的方式，是通过maven的maven-compiler-plugin插件先打成war包，再将war包复制到tomcat的webapps目录下，后来用上了tomcat7-maven-plugin插件，可以直接在maven上编译，打包，部署一次性完成，这个方法的关键是在tomcat上创建一个用户账号，然后maven插件用此账号和密码来执行在线部署。<br />
+本次实践中，我们要动手制作一个镜像，这个镜像run起来后是个tomcat server，这个server支持maven插件在线部署war应用。<br />
+首先是创建maven工程，这是一个spring mvc的工程，并且pom文件中使用了tomcat7-maven-plugin插件，工程里面的代码很简单，只有一个controller，返回hello页面，具体的代码可以在我的git下载，地址是：https://github.com/zq2599/blog_demos， 您也可以指执行命令<font color="blue">git clone git@github.com:zq2599/blog_demos.git</font>来获得，下载后整个文件夹下有多个工程，本次实战用到的是<font color="blue">loadbalancedemo</font>，如下图下图红框所示，建议用intellJ Idea以maven工程的形式导入：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署0.png" alt="这里写图片描述" /></p>
+<p>打开工程中的pom.xml文件，可以看到最底部的plugin节点的值：</p>
+<pre><code><code>&lt;plugin&gt;                  &lt;groupId&gt;org.apache.tomcat.maven&lt;/groupId&gt;
+&lt;artifactId&gt;tomcat7-maven-plugin&lt;/artifactId&gt;
+&lt;version&gt;2.2&lt;/version&gt;
+&lt;configuration&gt;                  &lt;url&gt;http://localhost:8080/manager/text&lt;/url&gt;
+&lt;server&gt;tomcat7&lt;/server&gt;
+&lt;path&gt;/${project.artifactId}&lt;/path&gt;
+&lt;update&gt;true&lt;/update&gt;
+&lt;/configuration&gt;
+&lt;/plugin&gt;</code></code></pre>
+<p>代码方面就先到这里，接下来我们开始制作docker镜像文件了，让我们先把准备工作做好：</p>
+<ol>
+<li>创建一个空文件夹，例如image_tomcat；</li>
+<li>去<a href="http://tomcat.apache.org/download-70.cgi#7.0.77">tomcat官网</a>下载tomcat安装包，解压后，将conf文件夹下的server.xml和tomcat-users.xml这两个文件复制到前面新建的image_tomcat目录下面；</li>
+<li>修改server.xml文件，如下图，在port等于8080的Connector节点增加属性URIEncoding=&quot;UTF-8&quot;，如下图：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署1.png" alt="这里写图片描述" /></li>
+</ol>
+<p>这个改动的用处是将get请求中的参数做UTF-8编码，这样我们就能在浏览器的地址栏直接输入中文参数了，改动后节点变成了：</p>
+<pre><code><code>&lt;Connector port=&quot;8080&quot; protocol=&quot;HTTP/1.1&quot;
+               connectionTimeout=&quot;20000&quot;
+               redirectPort=&quot;8443&quot;
+               URIEncoding=&quot;UTF-8&quot; /&gt;</code></code></pre>
+<ol>
+<li>修改tomcat-users.xml文件，在tomcat-users节点中增加内容：</li>
+</ol>
+<pre><code><code>&lt;role rolename=&quot;manager-gui&quot;/&gt;
+  &lt;role rolename=&quot;manager-script&quot;/&gt;
+  &lt;user username=&quot;account001&quot; password=&quot;password001&quot; roles=&quot;manager-gui,manager-script&quot;/&gt;</code></code></pre>
+<p>修改后的效果如下图，红框中是新增的内容：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署2.png" alt="这里写图片描述" /></p>
+<p>有了这些配置，就能用account001账号在对应的tomcat上进行在线部署操作了；</p>
+<p>好了，准备工作结束，我们可以开始做docker镜像文件了，其实做镜像很简单，就是做好Dockerfile文件，再通过docker命令执行这个文件，就能生成镜像了，我们在image_tomcat目录下用编辑器新增一个文件，文件名&quot;Dockerfile&quot;，内容如下：</p>
+<pre class="shell"><code># First docker file from bolingcavalry
+# VERSION 0.0.1
+# Author: bolingcavalry
+
+#基础镜像
+FROM tomcat:7.0.77-jre8
+
+#作者
+MAINTAINER BolingCavalry &lt;zq2599@gmail.com&gt;
+
+#定义工作目录
+ENV WORK_PATH /usr/local/tomcat/conf
+
+#定义要替换的文件名
+ENV USER_CONF_FILE_NAME tomcat-users.xml
+
+#定义要替换的server.xml文件名
+ENV SERVER_CONF_FILE_NAME server.xml
+
+#删除原文件tomcat-users.xml
+RUN rm $WORK_PATH/$USER_CONF_FILE_NAME
+
+#复制文件tomcat-users.xml
+COPY  ./$USER_CONF_FILE_NAME $WORK_PATH/
+
+#删除原文件server.xml
+RUN rm $WORK_PATH/$SERVER_CONF_FILE_NAME
+
+#复制文件server.xml
+COPY  ./$SERVER_CONF_FILE_NAME $WORK_PATH/</code></code></pre>
+<p>以上就是Dockerfile的全部内容，几个关键点如下：</p>
+<ol>
+<li>FROM tomcat:7.0.77-jre8的意思是使用tomcat:7.0.77-jre8作为基础镜像，7.0.77-jre8是tag，</li>
+<li>使用了tomcat:7.0.77-jre8作为基础镜像后，通过RUN rm命令将原有的server.xml和tomcat-users.xml文件删除；</li>
+<li>将我们准备工作中准备的server.xml和tomcat-users.xml文件复制到原来的conf目录下，这样就用取代了原有的文件；</li>
+</ol>
+<p>打开电脑的命令行，进入image_tomcat目录，这个目录下只有这三个文件：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署3.png" alt="这里写图片描述" /></p>
+<p>执行命令：</p>
+<pre class="shell"><code>docker build -t bolingcavalrytomcat:0.0.1 .</code></code></pre>
+<p>执行中会有类似输出：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署4.png" alt="这里写图片描述" /></p>
+<p>执行完毕后，输入docker images可以查看当前本机的镜像，如下图，可以看到新增的镜像：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署5.png" alt="这里写图片描述" /><br />
+有了镜像，执行下面的命令就可以启动tomcat了：</p>
+<pre class="shell"><code>docker run --name=tomcat001 -p 8080:8080 -e TOMCAT_SERVER_ID=tomcat_server_001 -idt bolingcavalrytomcat:0.0.1</code></code></pre>
+<p>参数-e TOMCAT_SERVER_ID=tomcat_server_001的意思是在容器中设置了环境变量TOMCAT_SERVER_ID，值是tomcat_server_001<br />
+这时候再执行docker ps命令，可以看到启动的容器：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署6.png" alt="这里写图片描述" /></p>
+<p>用浏览器访问localhost:8080，可以看到熟悉的页面：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署7.png" alt="这里写图片描述" /></p>
+<p>现在tomcat也启动了，代码也写好了，可以试试在线部署了么？别急，还差最后一步，打开maven的安装目录，在conf目录下找到settings.xml文件，打开后在servers节点添加以下内容:</p>
+<pre><code><code>&lt;server&gt;
+       &lt;id&gt;tomcat7&lt;/id&gt;
+       &lt;username&gt;account001&lt;/username&gt;
+       &lt;password&gt;password001&lt;/password&gt;
+     &lt;/server&gt;</code></code></pre>
+<p>这就是在tomcat的tomcat-users.xml文件中配置的用户和密码，这样执行maven插件的时候就能从此处取得对应的用户名和密码去tomcat上做操作了。</p>
+<p>回到之前的那个web工程，用命令行进入pom.xml文件所在的目录，执行命令</p>
+<pre class="shell"><code>mvn clean package -U -Dmaven.test.skip=true tomcat7:redeploy</code></code></pre>
+<p>执行结果如下：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署8.png" alt="这里写图片描述" /></p>
+<p>ok，tomcat7-maven-plugin插件已经帮我们把war部署到docker容器上去了，在浏览器输入</p>
+<pre class="shell"><code>http://localhost:8080/loadbalancedemo/hello?name=张三</code></code></pre>
+<p>可以看到如下效果：</p>
+<p><img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署9.png" alt="这里写图片描述" /></p>
+<p>蓝色字体的tomcat_server_001就是我们启动tomcat容器时通过-e参数设置的环境变量，在HelloController中被成功取出并展示到jsp页面上，代码如下图：<br />
+<img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署10.png" alt="这里写图片描述" /></p>
+<p>以上通过对tomcat官方镜像的一些文件操作，得到了我们自己制作的镜像文件，并结合mvn插件实现了web应用在线部署在tomcat容器上的效果，下一次实战，我们会接着这个例子启动两个tomcat容器，再在前面放一个nginx，来实现负载均衡，过程中会学到docker compose和link的相关知识。</p>
+<h3 id="欢迎关注我的公众号">欢迎关注我的公众号</h3>
+<p><img src="./images/实战docker，编写Dockerfile定制tomcat镜像，实现web应用在线部署11.png" alt="在这里插入图片描述" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

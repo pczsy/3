@@ -1,0 +1,301 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java生产消费者模型——代码解析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java生产消费者模型——代码解析</center></div><div class='banquan'>原文出处:本文由博客园博主落成提供。<br/>
+原文连接:https://www.cnblogs.com/bobozz/p/11620984.html</div><br>
+    <h2>我们将生产者、消费者、库存、和调用线程的主函数分别写进四个类中，通过抢夺非线程安全的数据集合来直观的表达在进行生产消费者模型的过程中可能出现的问题与解决办法。</h2>
+<p>我们假设有一个生产者，两个消费者来共同抢夺库存里的资源，而生产者和消费者都以线程来实现。</p>
+<p>库存对象只有是唯一的才会出现抢夺一个资源的可能，所以为了使库存对象是唯一的，我们可以使用两种方法实现，单例模式和通过生产者和消费者的构造函数参数来初始化。</p>
+<p><span style="color: #000000;"><em>本次举例使用的是构造函数的方法，但代码中也注释出了单例模式的写法与使用。</em></span></p>
+<h2><span style="color: #000000;">先创建一个简单的生产消费者模型，查看它的运行结果。</span></h2>
+<ul>
+<li>
+<p><strong>库存类：</strong></p>
+</li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> producterac;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.ArrayList;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> WareHouse {
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">存放非线程安全的数组的集合</span>
+    <span style="color: #0000ff;">private</span> ArrayList&lt;String&gt; list = <span style="color: #0000ff;">new</span> ArrayList&lt;String&gt;<span style="color: #000000;">();
+    
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+     * //创建单例模式使生产消费者操作的是同一库存对象 
+     * private WareHouse() {} 
+     * //建立静态对象以在初始化的时候建立仅一个库存对象
+     * private static WareHouse wh = new WareHouse();
+     * 
+     * //将方法设置为静态是因为在无法new库存对象的情况下， 
+     * //我们可以通过将方法设定为静态来直接通过类名调用静态方法 
+     * public static WareHouse getInstance() {
+     *  return wh;
+     * }
+     </span><span style="color: #008000;">*/</span>
+    
+    
+    <span style="color: #008000;">//</span><span style="color: #008000;">写生产者操作仓库的方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> add() {
+        </span><span style="color: #0000ff;">if</span>(list.size() &lt; 20<span style="color: #000000;">) {
+            list.add(</span>"一个数据"<span style="color: #000000;">);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">数据存够之后直接返回,不运行存储数据的操作</span>
+            <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+    }
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">写消费者操作仓库的操作</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> get() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">判断集合中是否还有数据可以取出
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">如果不判断会造成集合越界</span>
+        <span style="color: #0000ff;">if</span>(list.size() &gt; 0<span style="color: #000000;">) {
+            list.remove(</span>0<span style="color: #000000;">);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+    }
+    
+}</span></code></pre>
+
+<ul>
+<li><strong>生产者类：</strong></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> producterac;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Producter <span style="color: #0000ff;">extends</span><span style="color: #000000;"> Thread{
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String pName;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">我们要使生产者和消费者操控同一个库存对象
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">也可以使用单例模式来建立库存对象</span>
+    <span style="color: #0000ff;">private</span><span style="color: #000000;"> WareHouse wh;
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Producter(String pName,WareHouse wh) {
+        </span><span style="color: #0000ff;">this</span>.pName =<span style="color: #000000;"> pName;
+        </span><span style="color: #0000ff;">this</span>.wh =<span style="color: #000000;"> wh;
+    }
+    
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">重写run方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+        </span><span style="color: #0000ff;">while</span>(<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+            wh.add();
+            System.out.println(</span>"生产者"+pName+"添加了一个货物"<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">使线程等待一会儿</span>
+                Thread.sleep(200<span style="color: #000000;">);
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">                e.printStackTrace();
+            }
+        }
+    }
+}</span></code></pre>
+
+<ul>
+<li><strong>消费者类：</strong></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> producterac;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Consumer <span style="color: #0000ff;">extends</span><span style="color: #000000;"> Thread{
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String cName;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取库存对象</span>
+    <span style="color: #008000;">/*</span><span style="color: #008000;"> private WareHouse wh = WareHouse.getInstance(); </span><span style="color: #008000;">*/</span>
+    
+    <span style="color: #008000;">//</span><span style="color: #008000;">我们要使生产者和消费者操控同一个库存对象
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">也可以使用单例模式来建立库存对象</span>
+    <span style="color: #0000ff;">private</span><span style="color: #000000;"> WareHouse wh;
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Consumer(String cName,WareHouse wh) {
+        </span><span style="color: #0000ff;">this</span>.cName =<span style="color: #000000;"> cName;
+        </span><span style="color: #0000ff;">this</span>.wh =<span style="color: #000000;"> wh;
+    }
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">重写run方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+        </span><span style="color: #0000ff;">while</span>(<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+            wh.get();
+            System.out.println(</span>"消费者"+cName+"拿走了一个货物"<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">使线程等待一会儿</span>
+                Thread.sleep(200<span style="color: #000000;">);
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">                e.printStackTrace();
+            }
+        }
+    }
+}</span></code></pre>
+
+<ul>
+<li><strong>主函数类：</strong></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> producterac;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Main {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        
+        WareHouse wh </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WareHouse();
+        Producter p1 </span>= <span style="color: #0000ff;">new</span> Producter("1"<span style="color: #000000;">, wh);
+        Consumer c1 </span>= <span style="color: #0000ff;">new</span> Consumer("1"<span style="color: #000000;">, wh);
+        Consumer c2 </span>= <span style="color: #0000ff;">new</span> Consumer("2"<span style="color: #000000;">, wh);
+        
+        p1.start();
+        c1.start();
+        c2.start();
+    }
+}</span></code></pre>
+
+<p><span style="font-size: 18px;"><strong>部分运行结果：</strong></span></p>
+<p><span style="font-size: 18px;"><strong><img src="./images/Java生产消费者模型——代码解析0.png" alt="" /></strong></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 16px;">我们看到出现<span style="color: #ff0000;">&nbsp;java.lang.ArrayIndexOutOfBoundsException<span style="color: #000000;">异常，说明消费者在拿走货物的时候集合越界没有拿到，所以出现了异常。</span></span></span></strong></p>
+<p><span style="color: #ff0000;"><span style="color: #000000;">即使我们在库存的get()方法中判断了集合是否为空，但也还是出现了异常。原因是因为在两个线程同时访问一个对象的时候，有可能当线程1刚判断完集合不为空进入了if循环但还没有拿走货物的情况下，线程2也进行了get()方法先线程1一步拿走了最后的一个货物，然后当线程1想拿走货物的时候集合里已经没有了，这种情况下就会发生上述异常。</span></span></p>
+<p><strong><span style="font-size: 16px;"><span style="color: #ff0000;"><span style="color: #000000;">这就造成了线程抢夺资源时非安全的问题，那么我们可以将库存对象使用线程锁<span style="color: #ff0000;">synchronized</span>锁起来，这样在一个消费者访问库存对象的时候其他消费者无法访问库存对象，从而解决集合越界问题，使线程安全。</span></span></span></strong></p>
+<ul>
+<li><strong><span style="color: #ff0000;"><span style="color: #000000;">修改过的库存类（加入了synchronized修饰符的add()和get()方法）：</span></span></strong></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">//</span><span style="color: #008000;">写生产者操作仓库的方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> add() {
+        </span><span style="color: #0000ff;">if</span>(list.size() &lt; 20<span style="color: #000000;">) {
+            list.add(</span>"一个数据"<span style="color: #000000;">);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">数据存够之后直接返回,不运行存储数据的操作</span>
+            <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+    }
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">写消费者操作仓库的操作</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> get() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">判断集合中是否还有数据可以取出
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">如果不判断会造成集合越界</span>
+        <span style="color: #0000ff;">if</span>(list.size() &gt; 0<span style="color: #000000;">) {
+            list.remove(</span>0<span style="color: #000000;">);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+    }</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 15px;"><strong>使用synchronized修饰符修饰库存方法之后就不会报错了！</strong></span></p>
+<p>&nbsp;</p>
+<h2>我们也可以将return替换为wait()方法让线程等待，将编写的生产消费者模型中的return修改为wait()。</h2>
+<ul>
+<li><strong>修改过的库存类：</strong><strong>　</strong></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">//</span><span style="color: #008000;">写生产者操作仓库的方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> add() {
+        </span><span style="color: #0000ff;">if</span>(list.size() &lt; 20<span style="color: #000000;">) {
+            list.add(</span>"一个数据"<span style="color: #000000;">);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">这个this指的是访问库存对象的线程wait，不是库存对象wait</span>
+                <span style="color: #0000ff;">this</span><span style="color: #000000;">.wait();
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">                e.printStackTrace();
+            }
+        }
+    }
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">写消费者操作仓库的操作</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> get() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">判断集合中是否还有数据可以取出
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">如果不判断会造成集合越界</span>
+        <span style="color: #0000ff;">if</span>(list.size() &gt; 0<span style="color: #000000;">) {
+            list.remove(</span>0<span style="color: #000000;">);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">这个this指的是访问库存对象的线程wait，不是库存对象wait</span>
+                <span style="color: #0000ff;">this</span><span style="color: #000000;">.wait();
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">                e.printStackTrace();
+            }
+        }
+    }</span></code></pre>
+
+<p><strong>运行结果：</strong></p>
+<p><strong><img src="./images/Java生产消费者模型——代码解析1.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 16px;">&nbsp;我们会发现到最后所有的线程都会处于wait等待状态，运行到最后没有线程在执行了。所以我们需要在其中一个线程等待的时候将其他线程继续唤醒，保持系统的运行。</span></strong></p>
+<h2><span style="font-size: 14pt;"><strong>唤醒线程可以使用<span style="color: #ff0000;">notify/notifyAll()</span>方法。</strong></span></h2>
+<ul>
+<li><strong>再次修改后的库存类：</strong></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">//</span><span style="color: #008000;">写生产者操作仓库的方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> add() {
+        </span><span style="color: #0000ff;">if</span>(list.size() &lt; 20<span style="color: #000000;">) {
+            list.add(</span>"一个数据"<span style="color: #000000;">);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">因为我们无法知道哪个线程是消费者线程，所以我们要将线程全部唤醒</span>
+                <span style="color: #0000ff;">this</span><span style="color: #000000;">.notifyAll();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">这个this指的是访问库存对象的线程wait，不是库存对象wait</span>
+                <span style="color: #0000ff;">this</span><span style="color: #000000;">.wait();
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">                e.printStackTrace();
+            }
+        }
+    }
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">写消费者操作仓库的操作</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> get() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">判断集合中是否还有数据可以取出
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">如果不判断会造成集合越界</span>
+        <span style="color: #0000ff;">if</span>(list.size() &gt; 0<span style="color: #000000;">) {
+            list.remove(</span>0<span style="color: #000000;">);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">因为我们无法知道哪个线程是生产者线程，所以我们要将线程全部唤醒</span>
+                <span style="color: #0000ff;">this</span><span style="color: #000000;">.notifyAll();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">这个this指的是访问库存对象的线程wait，不是库存对象wait</span>
+                <span style="color: #0000ff;">this</span><span style="color: #000000;">.wait();
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">                e.printStackTrace();
+            }
+        }
+    }</span></code></pre>
+
+<h2>运行成功！说明我们这时候真正地实现了简单的生产消费者模型。</h2>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 16px; color: #808080;">附：如果将完成的生产消费者模型中add()和get()方法的synchronized修饰符去掉，会发生如下错误。</span></strong></p>
+<p><img src="./images/Java生产消费者模型——代码解析2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 16px;">将synchronized修饰符去掉后，发生了<span style="color: #ff0000;">java.lang.IllegalMonitorStateException</span>异常，原因是当线程1进入else要执行wait()方法的那个时刻，线程2也进入了库存对象中，致使当wait()方法真正执行的时候wait的是线程2而不是线程1，发生这种情况的时候就会发生上述异常。</span></strong></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

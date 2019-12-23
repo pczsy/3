@@ -1,0 +1,68 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修多线程编程学习十(线程池原理).' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>多线程编程学习十(线程池原理).</center></div><div class='banquan'>原文出处:本文由博客园博主JMCui提供。<br/>
+原文连接:https://www.cnblogs.com/jmcui/p/11525552.html</div><br>
+    <h2 id="一线程池工作流程">一、线程池工作流程</h2>
+<p> <img src="./images/多线程编程学习十(线程池原理).0.png" /></p>
+<ol>
+<li>线程池判断核心线程池里的线程是否都在执行任务。如果不是，则创建一个新的工作线程来执行任务（需要获得全局锁）。如果核心线程池里的线程都在执行任务，则进入下个流程。</li>
+<li>线程池判断工作队列是否已满。如果工作队列没有满，则将新提交的任务存储在这个工作队列里。如果工作队列满了，则进入下个流程。</li>
+<li>线程池判断线程池的线程是否都处于工作状态。如果没有，则创建一个新的工作线程来执行任务（需要获得全局锁）。如果已经满了，则交给饱和策略（例如抛出异常）来处理这个任务。</li>
+</ol>
+<p><b style="color:red">tips：</b>这样的设计方案，可以避免频繁的线程创建，大部分的工作任务都会停留在第二步。</p>
+<h2 id="二executor-框架">二、Executor 框架</h2>
+<p>在 Java 中，线程池的知识是要从 Executor 框架展开。Executor 框架主要由三部分组成：</p>
+<h3 id="任务">1. 任务</h3>
+<p>包括 Runnable 接口或 Callable 接口。Runnable 接口无返回值，Callable 有返回值。</p>
+<pre><code><code>// Runnable 和 Callable 都可以直接被 ThreadPoolExecutor 和 ScheduledThreadPoolExecutor 执行
+Runnable runnable = () -&gt; System.out.println(123);
+// Executors 可以将 Runnable 转化成 Callable
+Callable&lt;Object&gt; callable = Executors.callable(runnable);
+Callable&lt;String&gt; success = Executors.callable(runnable, &quot;success&quot;);</code></code></pre>
+<h3 id="任务的执行">2. 任务的执行</h3>
+<p>包括任务执行机制的核心接口 Executor、继承自 Executor 的 ExecutorService 接口以及实现 ExecutorService 的 ThreadPoolExecutor 和 ScheduledThreadPoolExecutor。</p>
+<p>ThreadPoolExecutor 是线程池的核心实现类，用来执行被提交的任务。其中 ThreadPoolExecutor 的原理就是上面介绍的线程池工作流程。</p>
+<p>ScheduledThreadPoolExecutor 继承自 ThreadPoolExecutor ，可以在给定的延迟后执行任务，或者定期执行任务。</p>
+<p>Executors 是创建 ThreadPoolExecutor 和 ScheduledThreadPoolExecutor 的工厂类。</p>
+<pre><code><code>static ExecutorService executorService = Executors.newFixedThreadPool(5);</code></code></pre>
+<h3 id="异步计算的结果">3. 异步计算的结果</h3>
+<p>包括 Future 接口以及实现 Future 的 FutureTask 类。</p>
+<pre><code><code>// 执行 Runnable
+executorService.execute(runnable);
+// 执行 Callable
+Future&lt;Object&gt; submit = executorService.submit(callable);
+// Future 的 get 方法会阻塞线程直到完成
+System.out.println(submit.get());
+Future&lt;String&gt; future = executorService.submit(success);
+System.out.println(future.get());</code></code></pre>
+<p>当 FutureTask 处于未启动状态时，执行 FutureTask.cancel() 方法将导致此任务永远不会被执行；<br />
+当 FutureTask 处于已启动状态时，执行FutureTask.cancel（true）方法将以中断执行此任务线程的方式来试图停止任务；<br />
+当 FutureTask 处于已启动状态时，执行FutureTask.cancel（false）方法将不会对正在执行此任务的线程产生影响（让正在执行的任务运行完成）；<br />
+当 FutureTask 处于已完成状态时，执行FutureTask.cancel（）方法将返回false。</p>
+<p></b><br />
+</b><br />
+Executor 线程池的使用大抵如下，首先，我们需要创建 Runnable 或者 Callable 任务。然后通过 ThreadPoolExecutor.execute() 或者 ThreadPoolExecutor.submit() 把任务交给 ThreadPoolExecutor 容器执行。由 submit 提交的任务会返回 Future，表示线程执行的结果，其中 Future 的 get 方法会阻塞线程直到完成。</p>
+<p>Executor框架的使用示意图如下：<br />
+<img src="./images/多线程编程学习十(线程池原理).1.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

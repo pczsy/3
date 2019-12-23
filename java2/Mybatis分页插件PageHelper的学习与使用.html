@@ -1,0 +1,547 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Mybatis分页插件PageHelper的学习与使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Mybatis分页插件PageHelper的学习与使用</center></div><div class='banquan'>原文出处:本文由博客园博主宜春提供。<br/>
+原文连接:https://www.cnblogs.com/yichunguo/p/11974596.html</div><br>
+    <src class="toc">
+    <p class="toc-title">目录</p>
+    <src class="toc-list">
+        <ul>
+        <li><a href="#中文教程">中文教程</a></li>
+        <li><a href="#pagehelper使用">PageHelper使用</a></li>
+        </ul>
+    
+
+<p>后端程序员都知道，在Web系统中，分页是一种常见的功能，我之前写的分页方法都比较麻烦，移植性也不高，这就很不乐观了。作为一个积极开朗的程序员，怎么能不去了解PageHelper分页插件呢？PageHelper是国内非常优秀的一款开源的mybatis分页插件，它支持基本主流与常用的数据库，一致支持mysql、oracle、mariaDB、DB2、SQLite、Hsqldb等。OK接下来就一起来了解了解PageHelper分页插件！<br />
+@</p>
+<h2 id="中文教程">中文教程</h2>
+<p>首先，推荐两个PageHelper分页插件项目地址，这里面有中文教程：<br />
+<a href="https://github.com/pagehelper/Mybatis-PageHelper">github 项目</a><br />
+<a href="http://git.oschina.net/free/Mybatis_PageHelper">gitosc 项目</a></p>
+<h2 id="pagehelper使用">PageHelper使用</h2>
+<p>至于怎么使用我想上面提供的两个项目讲的绝逼讲的比我清楚，下面直接进入PageHelper使用实战</p>
+<p>首先，集成引入分页插件有下面2种方式，一种是直接下jar包一种是mawen依赖，<strong>推荐使用 Maven 方式</strong>。</p>
+<p>方法一： 直接下载jar包</p>
+<p><a href="http://repo1.maven.org/maven2/com/github/pagehelper/pagehelper/">jar包下载地址</a>，由于使用了sql 解析工具，你还需要下载 <a href="http://repo1.maven.org/maven2/com/github/jsqlparser/jsqlparser/0.9.5/">jsqlparser.jar</a></p>
+<p>方法二： Maven添加依赖</p>
+<pre><code><code>  &lt;dependency&gt;
+            &lt;groupId&gt;com.github.pagehelper&lt;/groupId&gt;
+            &lt;artifactId&gt;pagehelper&lt;/artifactId&gt;
+            &lt;version&gt;5.1.2&lt;/version&gt;
+  &lt;/dependency&gt;</code></code></pre>
+<h4 id="导入maven依赖分页插件">1.导入maven依赖分页插件</h4>
+<p>我这里就采用方法二maven依赖<br />
+<img src="./images/Mybatis分页插件PageHelper的学习与使用0.png" alt="在这里插入图片描述" /></p>
+<h4 id="各个情况下xml的配置">2.各个情况下xml的配置</h4>
+<p><code>情况一</code>：如果是<strong>mybatis单独使用PageHelper分页插件</strong>的时候，就需要在xml配置中添加如下代码：</p>
+<pre><code><code>  &lt;!--
+plugins在配置文件中的位置必须符合要求，否则会报错，顺序如下properties?, settings?,
+ typeAliases?, typeHandlers?, objectFactory?,objectWrapperFactory?, plugins?, 
+ environments?, databaseIdProvider?, mappers?
+  --&gt;
+  &lt;!-- com.github.pagehelper为PageHelper类所在包名 --&gt;
+    &lt;plugins&gt; 
+    &lt;!-- 使用下面的方式配置参数，推荐的两个项目中有所有的参数介绍 --&gt;
+        &lt;plugin interceptor=&quot;com.github.pagehelper.PageInterceptor&quot;&gt; 
+            &lt;property name=&quot;param1&quot; value=&quot;value1&quot;/&gt;
+        &lt;/plugin&gt;
+    &lt;/plugins&gt;</code></code></pre>
+<p><code>情况二</code>：显然，我是这个是ssm项目，<strong>mybatis是交由spring的IOC容器管理</strong>的，就需要在spring的xml配置中添加如下代码（创建工厂中添加）：</p>
+<pre><code><code>  &lt;!-- 把交给IOC管理 SqlSessionFactory --&gt;
+ &lt;bean id=&quot;sqlSessionFactory&quot; class=&quot;org.mybatis.spring.SqlSessionFactoryBean&quot;&gt;
+     &lt;property name=&quot;dataSource&quot; ref=&quot;dataSource&quot;/&gt;
+     &lt;!-- 传入PageHelper的插件 --&gt;
+     &lt;property name=&quot;plugins&quot;&gt;
+         &lt;array&gt;
+             &lt;!-- 传入插件的对象 --&gt;
+             &lt;bean class=&quot;com.github.pagehelper.PageInterceptor&quot;&gt;
+                 &lt;property name=&quot;properties&quot;&gt;
+                     &lt;props&gt;
+                         &lt;prop key=&quot;helperDialect&quot;&gt;oracle&lt;/prop&gt;
+                         &lt;prop key=&quot;reasonable&quot;&gt;true&lt;/prop&gt;
+                     &lt;/props&gt;
+                 &lt;/property&gt;
+             &lt;/bean&gt;
+         &lt;/array&gt;
+     &lt;/property&gt;
+ &lt;/bean&gt;</code></code></pre>
+<p>下面用一个图来分析一下两个参数作用：<br />
+<img src="./images/Mybatis分页插件PageHelper的学习与使用1.png" alt="在这里插入图片描述" /><br />
+更多情况请参考上面推荐的项目~</p>
+<h4 id="controller代码编写">3.Controller代码编写</h4>
+<p>上面我们配置完了，至于为什么从controller代码开始是因为controller调用service嘛，这样编写代码更方便快捷！为了看出差别，未分页的controller代码方法如下：</p>
+<pre><code><code>@Controller
+@RequestMapping(&quot;/orders&quot;)
+public class OrdersController {
+
+    @Autowired
+    private IOrdersService ordersService;
+
+//查询所有orders未分页
+   @RequestMapping(&quot;/findAll.do&quot;)
+    public ModelAndView findAll() {
+        ModelAndView mv = new ModelAndView();
+        List&lt;Orders&gt; ordersList = ordersService.findAll();
+        mv.addObject(&quot;ordersList&quot;, ordersList);
+        mv.setViewName(&quot;orders-list&quot;);
+        return mv;
+    }
+}</code></code></pre>
+<p>而采用了分页代码则是如下：</p>
+<pre><code><code>//采用分页代码方法
+   @RequestMapping(&quot;/findAll.do&quot;)
+    public ModelAndView findAll(@RequestParam(name=&quot;page&quot;,required = true,defaultValue = &quot;1&quot;)int page,@RequestParam(name=&quot;size&quot;,required = true,defaultValue = &quot;4&quot;)int size ) {
+        ModelAndView mv = new ModelAndView();
+        List&lt;Orders&gt; ordersList = ordersService.findAll(page,size);
+
+        //PageInfo就是一个分页Bean
+        PageInfo pageInfo =new PageInfo(ordersList);
+        mv.addObject(&quot;pageInfo&quot;, pageInfo);
+        mv.setViewName(&quot;orders-list&quot;);
+        return mv;
+
+    }</code></code></pre>
+<p>可以发现多了两个参数分别是<code>page</code>和<code>size</code></p>
+<h4 id="service接口代码编写">4.Service接口代码编写</h4>
+<pre><code><code>public interface IOrdersService {
+    List&lt;Orders&gt; findAll(int page,int size);
+}</code></code></pre>
+<h4 id="service实现类代码编写">5.Service实现类代码编写</h4>
+<p>在执行sql之前（ServiceImpl），使用PageHelper分页，参数<code>pageNum</code> 是页码值 参数<code>pageSize</code> 代表是每页显示条数。在ServiceImpl中,使用PageHelper分页操作代码如下：</p>
+<pre><code><code>@Service
+public class OrdersServiceImpl implements IOrdersService {
+    @Autowired
+    private IOrdersDao ordersDao;
+
+    @Override
+    public List&lt;Orders&gt; findAll(int page,int size) {
+        //参数pageNum 是页码值   参数pageSize 代表是每页显示条数
+        PageHelper.startPage(page, size);
+        return ordersDao.findAll();
+    }
+}</code></code></pre>
+<p>特别注意：在编写PageHelper分页代码时的 <code>PageHelper.startPage(page, size)</code>这一句必须写在查询方法的上一句，中间不能添加任何代码，否则失效！<br />
+<img src="./images/Mybatis分页插件PageHelper的学习与使用2.png" alt="在这里插入图片描述" /></p>
+<h4 id="jsp页面未处理代码">6.jsp页面未处理代码</h4>
+<p>没有更改的jsp页面代码,普通查询关键更改代码块，注意这里接收数据为 <code>ordersList</code></p>
+<pre><code><code>&lt;c:forEach items=&quot;${ordersList}&quot; var=&quot;orders&quot;&gt;
+   &lt;tr&gt;
+        &lt;td&gt;&lt;input name=&quot;ids&quot; type=&quot;checkbox&quot;&gt;&lt;/td&gt;
+        ...
+        &lt;td&gt;...&lt;/td&gt;
+        &lt;/td&gt;
+    &lt;/tr&gt;
+&lt;/c:forEach&gt;</code></code></pre>
+<p>这下面的代码则是未分页逻辑代码</p>
+<pre><code><code> &lt;div class=&quot;box-tools pull-right&quot;&gt;
+                        &lt;ul class=&quot;pagination&quot;&gt;
+                            &lt;li&gt;
+                                &lt;a href=&quot;#&quot; aria-label=&quot;Previous&quot;&gt;首页&lt;/a&gt;
+                            &lt;/li&gt;
+                            &lt;li&gt;&lt;a href=&quot;#&quot;&gt;上一页&lt;/a&gt;&lt;/li&gt;
+                            &lt;li&gt;&lt;a href=&quot;#&quot;&gt;1&lt;/a&gt;&lt;/li&gt;
+                            &lt;li&gt;&lt;a href=&quot;#&quot;&gt;2&lt;/a&gt;&lt;/li&gt;
+                            &lt;li&gt;&lt;a href=&quot;#&quot;&gt;3&lt;/a&gt;&lt;/li&gt;
+                            &lt;li&gt;&lt;a href=&quot;#&quot;&gt;4&lt;/a&gt;&lt;/li&gt;
+                            &lt;li&gt;&lt;a href=&quot;#&quot;&gt;5&lt;/a&gt;&lt;/li&gt;
+                            &lt;li&gt;&lt;a href=&quot;#&quot;&gt;下一页&lt;/a&gt;&lt;/li&gt;
+                            &lt;li&gt;
+                                &lt;a href=&quot;#&quot; aria-label=&quot;Next&quot;&gt;尾页&lt;/a&gt;
+                            &lt;/li&gt;
+                        &lt;/ul&gt;
+                    &lt;/div&gt;
+
+                &lt;/div&gt;</code></code></pre>
+<h4 id="jsp页面处理后代码">7.jsp页面处理后代码</h4>
+<p>更改后的jsp页面代码,分页查询的关键更改代码块，注意这里接收数据为 <code>ordersList.list</code></p>
+<pre><code><code>&lt;c:forEach items=&quot;${ordersList.list}&quot; var=&quot;orders&quot;&gt;
+   &lt;tr&gt;
+        &lt;td&gt;&lt;input name=&quot;ids&quot; type=&quot;checkbox&quot;&gt;&lt;/td&gt;
+        ...
+        &lt;td&gt;...&lt;/td&gt;
+        &lt;/td&gt;
+    &lt;/tr&gt;
+&lt;/c:forEach&gt;</code></code></pre>
+<p>这下面的代码则是分页逻辑代码</p>
+<pre><code><code>&lt;div class=&quot;box-tools pull-right&quot;&gt;
+   &lt;ul class=&quot;pagination&quot;&gt;
+        &lt;li&gt;
+            &lt;a href=&quot;${pageContext.request.contextPath}/orders/findAll.do?page=1&amp;size=${pageInfo.pageSize}&quot; aria-label=&quot;Previous&quot;&gt;首页&lt;/a&gt;
+        &lt;/li&gt;
+        &lt;li&gt;&lt;a href=&quot;${pageContext.request.contextPath}/orders/findAll.do?page=${pageInfo.pageNum-1}&amp;size=${pageInfo.pageSize}&quot;&gt;上一页&lt;/a&gt;&lt;/li&gt;
+        &lt;c:forEach begin=&quot;1&quot; end=&quot;${pageInfo.pages}&quot; var=&quot;pageNum&quot;&gt;
+            &lt;li&gt;&lt;a href=&quot;${pageContext.request.contextPath}/orders/findAll.do?page=${pageNum}&amp;size=${pageInfo.pageSize}&quot;&gt;${pageNum}&lt;/a&gt;&lt;/li&gt;
+        &lt;/c:forEach&gt;
+        &lt;li&gt;&lt;a href=&quot;${pageContext.request.contextPath}/orders/findAll.do?page=${pageInfo.pageNum+1}&amp;size=${pageInfo.pageSize}&quot;&gt;下一页&lt;/a&gt;&lt;/li&gt;
+        &lt;li&gt;
+            &lt;a href=&quot;${pageContext.request.contextPath}/orders/findAll.do?page=${pageInfo.pages}&amp;size=${pageInfo.pageSize}&quot; aria-label=&quot;Next&quot;&gt;尾页&lt;/a&gt;
+        &lt;/li&gt;
+    &lt;/ul&gt;
+&lt;/div&gt;
+&lt;/div&gt;</code></code></pre>
+<h4 id="jsp页面处理前后代码分析">8.jsp页面处理前后代码分析</h4>
+<p><img src="./images/Mybatis分页插件PageHelper的学习与使用3.png" alt="在这里插入图片描述" /><br />
+<img src="./images/Mybatis分页插件PageHelper的学习与使用4.png" alt="在这里插入图片描述" /></p>
+<pre><code><code>    //PageInfo就是一个分页Bean
+   PageInfo pageInfo =new PageInfo(ordersList);</code></code></pre>
+<p>为了能看到上面的pageInfo源代码，我就把代码贴在下面了</p>
+<pre><code><code>package com.github.pagehelper;
+
+import java.io.Serializable;
+import java.util.Collection;
+import java.util.List;
+
+public class PageInfo&lt;T&gt; implements Serializable {
+    private static final long serialVersionUID = 1L;
+    private int pageNum;
+    private int pageSize;
+    private int size;
+    private int startRow;
+    private int endRow;
+    private long total;
+    private int pages;
+    private List&lt;T&gt; list;
+    private int prePage;
+    private int nextPage;
+    private boolean isFirstPage;
+    private boolean isLastPage;
+    private boolean hasPreviousPage;
+    private boolean hasNextPage;
+    private int navigatePages;
+    private int[] navigatepageNums;
+    private int navigateFirstPage;
+    private int navigateLastPage;
+
+    public PageInfo() {
+        this.isFirstPage = false;
+        this.isLastPage = false;
+        this.hasPreviousPage = false;
+        this.hasNextPage = false;
+    }
+
+    public PageInfo(List&lt;T&gt; list) {
+        this(list, 8);
+    }
+
+    public PageInfo(List&lt;T&gt; list, int navigatePages) {
+        this.isFirstPage = false;
+        this.isLastPage = false;
+        this.hasPreviousPage = false;
+        this.hasNextPage = false;
+        if (list instanceof Page) {
+            Page page = (Page)list;
+            this.pageNum = page.getPageNum();
+            this.pageSize = page.getPageSize();
+            this.pages = page.getPages();
+            this.list = page;
+            this.size = page.size();
+            this.total = page.getTotal();
+            if (this.size == 0) {
+                this.startRow = 0;
+                this.endRow = 0;
+            } else {
+                this.startRow = page.getStartRow() + 1;
+                this.endRow = this.startRow - 1 + this.size;
+            }
+        } else if (list instanceof Collection) {
+            this.pageNum = 1;
+            this.pageSize = list.size();
+            this.pages = this.pageSize &gt; 0 ? 1 : 0;
+            this.list = list;
+            this.size = list.size();
+            this.total = (long)list.size();
+            this.startRow = 0;
+            this.endRow = list.size() &gt; 0 ? list.size() - 1 : 0;
+        }
+
+        if (list instanceof Collection) {
+            this.navigatePages = navigatePages;
+            this.calcNavigatepageNums();
+            this.calcPage();
+            this.judgePageBoudary();
+        }
+
+    }
+
+    private void calcNavigatepageNums() {
+        int i;
+        if (this.pages &lt;= this.navigatePages) {
+            this.navigatepageNums = new int[this.pages];
+
+            for(i = 0; i &lt; this.pages; ++i) {
+                this.navigatepageNums[i] = i + 1;
+            }
+        } else {
+            this.navigatepageNums = new int[this.navigatePages];
+            i = this.pageNum - this.navigatePages / 2;
+            int endNum = this.pageNum + this.navigatePages / 2;
+            int i;
+            if (i &lt; 1) {
+                i = 1;
+
+                for(i = 0; i &lt; this.navigatePages; ++i) {
+                    this.navigatepageNums[i] = i++;
+                }
+            } else if (endNum &gt; this.pages) {
+                endNum = this.pages;
+
+                for(i = this.navigatePages - 1; i &gt;= 0; --i) {
+                    this.navigatepageNums[i] = endNum--;
+                }
+            } else {
+                for(i = 0; i &lt; this.navigatePages; ++i) {
+                    this.navigatepageNums[i] = i++;
+                }
+            }
+        }
+
+    }
+
+    private void calcPage() {
+        if (this.navigatepageNums != null &amp;&amp; this.navigatepageNums.length &gt; 0) {
+            this.navigateFirstPage = this.navigatepageNums[0];
+            this.navigateLastPage = this.navigatepageNums[this.navigatepageNums.length - 1];
+            if (this.pageNum &gt; 1) {
+                this.prePage = this.pageNum - 1;
+            }
+
+            if (this.pageNum &lt; this.pages) {
+                this.nextPage = this.pageNum + 1;
+            }
+        }
+
+    }
+
+    private void judgePageBoudary() {
+        this.isFirstPage = this.pageNum == 1;
+        this.isLastPage = this.pageNum == this.pages || this.pages == 0;
+        this.hasPreviousPage = this.pageNum &gt; 1;
+        this.hasNextPage = this.pageNum &lt; this.pages;
+    }
+
+    public int getPageNum() {
+        return this.pageNum;
+    }
+
+    public void setPageNum(int pageNum) {
+        this.pageNum = pageNum;
+    }
+
+    public int getPageSize() {
+        return this.pageSize;
+    }
+
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+    }
+
+    public int getSize() {
+        return this.size;
+    }
+
+    public void setSize(int size) {
+        this.size = size;
+    }
+
+    public int getStartRow() {
+        return this.startRow;
+    }
+
+    public void setStartRow(int startRow) {
+        this.startRow = startRow;
+    }
+
+    public int getEndRow() {
+        return this.endRow;
+    }
+
+    public void setEndRow(int endRow) {
+        this.endRow = endRow;
+    }
+
+    public long getTotal() {
+        return this.total;
+    }
+
+    public void setTotal(long total) {
+        this.total = total;
+    }
+
+    public int getPages() {
+        return this.pages;
+    }
+
+    public void setPages(int pages) {
+        this.pages = pages;
+    }
+
+    public List&lt;T&gt; getList() {
+        return this.list;
+    }
+
+    public void setList(List&lt;T&gt; list) {
+        this.list = list;
+    }
+
+    /** @deprecated */
+    @Deprecated
+    public int getFirstPage() {
+        return this.navigateFirstPage;
+    }
+
+    /** @deprecated */
+    @Deprecated
+    public void setFirstPage(int firstPage) {
+        this.navigateFirstPage = firstPage;
+    }
+
+    public int getPrePage() {
+        return this.prePage;
+    }
+
+    public void setPrePage(int prePage) {
+        this.prePage = prePage;
+    }
+
+    public int getNextPage() {
+        return this.nextPage;
+    }
+
+    public void setNextPage(int nextPage) {
+        this.nextPage = nextPage;
+    }
+
+    /** @deprecated */
+    @Deprecated
+    public int getLastPage() {
+        return this.navigateLastPage;
+    }
+
+    /** @deprecated */
+    @Deprecated
+    public void setLastPage(int lastPage) {
+        this.navigateLastPage = lastPage;
+    }
+
+    public boolean isIsFirstPage() {
+        return this.isFirstPage;
+    }
+
+    public void setIsFirstPage(boolean isFirstPage) {
+        this.isFirstPage = isFirstPage;
+    }
+
+    public boolean isIsLastPage() {
+        return this.isLastPage;
+    }
+
+    public void setIsLastPage(boolean isLastPage) {
+        this.isLastPage = isLastPage;
+    }
+
+    public boolean isHasPreviousPage() {
+        return this.hasPreviousPage;
+    }
+
+    public void setHasPreviousPage(boolean hasPreviousPage) {
+        this.hasPreviousPage = hasPreviousPage;
+    }
+
+    public boolean isHasNextPage() {
+        return this.hasNextPage;
+    }
+
+    public void setHasNextPage(boolean hasNextPage) {
+        this.hasNextPage = hasNextPage;
+    }
+
+    public int getNavigatePages() {
+        return this.navigatePages;
+    }
+
+    public void setNavigatePages(int navigatePages) {
+        this.navigatePages = navigatePages;
+    }
+
+    public int[] getNavigatepageNums() {
+        return this.navigatepageNums;
+    }
+
+    public void setNavigatepageNums(int[] navigatepageNums) {
+        this.navigatepageNums = navigatepageNums;
+    }
+
+    public int getNavigateFirstPage() {
+        return this.navigateFirstPage;
+    }
+
+    public int getNavigateLastPage() {
+        return this.navigateLastPage;
+    }
+
+    public void setNavigateFirstPage(int navigateFirstPage) {
+        this.navigateFirstPage = navigateFirstPage;
+    }
+
+    public void setNavigateLastPage(int navigateLastPage) {
+        this.navigateLastPage = navigateLastPage;
+    }
+
+    public String toString() {
+        StringBuffer sb = new StringBuffer(&quot;PageInfo{&quot;);
+        sb.append(&quot;pageNum=&quot;).append(this.pageNum);
+        sb.append(&quot;, pageSize=&quot;).append(this.pageSize);
+        sb.append(&quot;, size=&quot;).append(this.size);
+        sb.append(&quot;, startRow=&quot;).append(this.startRow);
+        sb.append(&quot;, endRow=&quot;).append(this.endRow);
+        sb.append(&quot;, total=&quot;).append(this.total);
+        sb.append(&quot;, pages=&quot;).append(this.pages);
+        sb.append(&quot;, list=&quot;).append(this.list);
+        sb.append(&quot;, prePage=&quot;).append(this.prePage);
+        sb.append(&quot;, nextPage=&quot;).append(this.nextPage);
+        sb.append(&quot;, isFirstPage=&quot;).append(this.isFirstPage);
+        sb.append(&quot;, isLastPage=&quot;).append(this.isLastPage);
+        sb.append(&quot;, hasPreviousPage=&quot;).append(this.hasPreviousPage);
+        sb.append(&quot;, hasNextPage=&quot;).append(this.hasNextPage);
+        sb.append(&quot;, navigatePages=&quot;).append(this.navigatePages);
+        sb.append(&quot;, navigateFirstPage=&quot;).append(this.navigateFirstPage);
+        sb.append(&quot;, navigateLastPage=&quot;).append(this.navigateLastPage);
+        sb.append(&quot;, navigatepageNums=&quot;);
+        if (this.navigatepageNums == null) {
+            sb.append(&quot;null&quot;);
+        } else {
+            sb.append(&#39;[&#39;);
+
+            for(int i = 0; i &lt; this.navigatepageNums.length; ++i) {
+                sb.append(i == 0 ? &quot;&quot; : &quot;, &quot;).append(this.navigatepageNums[i]);
+            }
+
+            sb.append(&#39;]&#39;);
+        }
+
+        sb.append(&#39;}&#39;);
+        return sb.toString();
+    }
+}
+</code></code></pre>
+<p>到这里，基本就OK了，我再次强调我推荐的那两个项目，那里面讲的很详细大佬写的，强调完毕，挥爪~</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

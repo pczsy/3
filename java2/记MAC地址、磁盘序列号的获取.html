@@ -1,0 +1,302 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修记MAC地址、磁盘序列号的获取' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>记MAC地址、磁盘序列号的获取</center></div><div class='banquan'>原文出处:本文由博客园博主陈本布衣提供。<br/>
+原文连接:https://www.cnblogs.com/chenbenbuyi/p/11441112.html</div><br>
+    <src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span> java.io.*<span style="color: #000000;">;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.net.Inet4Address;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.net.InetAddress;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.net.NetworkInterface;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.net.SocketException;
+</span><span style="color: #0000ff;">import</span> java.util.*<span style="color: #000000;">;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 注意事项：
+ * ① 通过执行vbs 脚本(基于微软 Visual Basic的脚本语言) 来获取信息的方式只适用于windows系统，因为这种方式极度依赖 Windows脚本宿主环境的支持
+ * ② 关于临时目录，可通过 System.getProperty("java.io.tmpdir") 获取其具体位置。在window下通常为 C:\Users\Administrator\AppData\Local\Temp ，linux系统 下为 /tmp
+ * ③ 命令方式和执行vbs 脚本的方式获取到的磁盘序列号并不相同，具体哪个是真实的序列号，有待验证
+ * ④ 或可尝试通过arp 命令来获取物理地址，但是arp查询的是高速缓存表的IP-MAC映射关系，包括了网络中与本机通信过的所有主机的MAC-IP映射关系（你可以ping一下远程主机建立相应的映射关系缓存）,获取的地址信息或显得过于庞杂
+ * ⑤ 针对 Linux 系统主要通过执行命令的方式，不过由于系统架构的差异性，不同平台对同样的命令不一定都支持，需要根据具体系统测试、做兼容，这里提供一些常用查看命令&mdash;&mdash;
+ *     MAC 地址：ip link | grep link/ether | awk '{print $2}'
+ *     磁盘序列号 hdparm -i /dev/sda | grep SerialNo  或  lsblk  -a -o SERIAL
+ *     CPU序列号 dmidecode -t processor | grep 'ID'
+ </span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> NetworkUtil {
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 通过执行vbs 脚本获取系统主板序列号
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String getMotherboardSerialByVbs() {
+        StringBuilder result </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            File file </span>= File.createTempFile("realhowto", ".vbs"<span style="color: #000000;">);
+            file.deleteOnExit();
+            FileWriter fw </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileWriter(file);
+            String vbs </span>= "Set objWMIService = GetObject(\"winmgmts:\\\\.\\root\\cimv2\")\n"
+                    + "Set colItems = objWMIService.ExecQuery _ \n"
+                    + "   (\"Select * from Win32_BaseBoard\") \n"
+                    + "For Each objItem in colItems \n"
+                    + "    Wscript.Echo objItem.SerialNumber \n"
+                    + "    exit for  ' do the first cpu only! \n"
+                    + "Next \n"<span style="color: #000000;">;
+            fw.write(vbs);
+            fw.close();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Nologo   无标识执行 vbs 脚本</span>
+            Process p = Runtime.getRuntime().exec("cscript //NoLogo " +<span style="color: #000000;"> file.getPath());
+            BufferedReader input </span>= <span style="color: #0000ff;">new</span> BufferedReader(<span style="color: #0000ff;">new</span><span style="color: #000000;"> InputStreamReader(p.getInputStream()));
+            String line;
+            </span><span style="color: #0000ff;">while</span> ((line = input.readLine()) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                result.append(line);
+            }
+            input.close();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result.toString().trim();
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 通过执行 vbs 脚本(基于微软 Visual Basic的脚本语言) 来获磁盘序列号
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String getWindowsDiskSerialByVbs() {
+        StringBuilder result </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 默认目录下创建临时文件,自己在任意位置创建vbs文件执行都可以</span>
+            File file = File.createTempFile("tmp", ".vbs"<span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 虚拟机退出时删除临时目录</span>
+<span style="color: #000000;">            file.deleteOnExit();
+            FileWriter fw </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileWriter(file);
+            String vbs </span>= "Set objWMIService = GetObject(\"winmgmts:\\\\.\\root\\cimv2\")\n"
+                    + "Set colItems = objWMIService.ExecQuery _ \n"
+                    + "   (\"Select * from Win32_BaseBoard\") \n"
+                    + "For Each objItem in colItems \n"
+                    + "    Wscript.Echo objItem.SerialNumber \n"
+                    + "    exit for  ' do the first cpu only! \n" + "Next \n"<span style="color: #000000;">;
+            fw.write(vbs);
+            fw.flush();
+            fw.close();
+            Process p </span>= Runtime.getRuntime().exec("cscript //NoLogo " +<span style="color: #000000;"> file.getPath());
+            BufferedReader input </span>= <span style="color: #0000ff;">new</span> BufferedReader(<span style="color: #0000ff;">new</span><span style="color: #000000;"> InputStreamReader(p.getInputStream()));
+            String line;
+            </span><span style="color: #0000ff;">while</span> ((line = input.readLine()) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                result.append(line);
+            }
+            input.close();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result.toString().trim();
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 通过 vbs 脚本获取分区标记序列号,该序列号是由操作系统在格式化驱动器时创建的，而不是制造商的硬件序列号。 可参见 </span><span style="color: #008000; text-decoration: underline;">https://www.rgagnon.com/javadetails/java-0580.html</span>
+     <span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String getWindowsDiskSerialByVbs(String drive) {
+        StringBuilder result </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            File file </span>= File.createTempFile("tmp", ".vbs"<span style="color: #000000;">);
+            file.deleteOnExit();
+            FileWriter fw </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> java.io.FileWriter(file);
+            String vbs </span>= "Set objFSO = CreateObject(\"Scripting.FileSystemObject\")\n"
+                    + "Set colDrives = objFSO.Drives\n"
+                    + "Set objDrive = colDrives.item(\"" + drive + "\")\n"
+                    + "Wscript.Echo objDrive.SerialNumber"<span style="color: #000000;">;
+            fw.write(vbs);
+            fw.close();
+            Process p </span>= Runtime.getRuntime().exec("cscript //NoLogo " +<span style="color: #000000;"> file.getPath());
+            BufferedReader input </span>= <span style="color: #0000ff;">new</span> BufferedReader(<span style="color: #0000ff;">new</span><span style="color: #000000;"> InputStreamReader(p.getInputStream()));
+            String line;
+            </span><span style="color: #0000ff;">while</span> ((line = input.readLine()) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                result.append(line);
+            }
+            input.close();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result.toString().trim();
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 通过 cmd 命令获取序列号，不同Windows系统系统获取的序列号格式不尽一致，请自行测试
+     * ① 获取 磁盘 序列号
+     * wmic diskdrive get Serialnumber
+     * wmic path win32_physicalmedia get SerialNumber
+     * wmic path Win32_DiskDrive get SerialNumber
+     * ② 获取 主板 序列号
+     * wmic baseboard get Serialnumber
+     * ③ 获取 CPU 序列号
+     * wmic cpu get processorid
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String getWindowsSerialByCmd(String cmd) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            Process process </span>=<span style="color: #000000;"> Runtime.getRuntime().exec(cmd);
+            InputStream inputStream </span>=<span style="color: #000000;"> process.getInputStream();
+            Scanner scanner </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Scanner(inputStream);
+            scanner.next();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> scanner.next();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException ex) {
+            ex.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span> ""<span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     *  在 Linux 上获取序列号
+     *  lsblk  -a -o SERIAL 在红帽系统（Red Hat）和基于红帽的CentOS虚拟机系统， 龙芯系统（mips64）上可以成功获取，但在 arm 系统 armv7l 等架构的某些机器中无法成功获取 不同平台获取的格式需要进行针对性的处理
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String getDiskSerial(String cmd) {
+        String execResult </span>=<span style="color: #000000;"> getLinuxSerialByCmd(cmd);
+        </span><span style="color: #0000ff;">if</span> (execResult == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> RuntimeException("设备不支持该命令获取！"<span style="color: #000000;">);
+        String[] infos </span>= execResult.split("\n"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">if</span> (infos.length &gt; 1<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">return</span> infos[infos.length - 1<span style="color: #000000;">];
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 获取本地主机所有 IPv4 地址列表
+     * 注意事项： 由于NetworkInterface 只能枚举已启用的网卡信息，所以该方法只能获取到设备上已启用的网卡的 IP 地址
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> List&lt;String&gt; getLocalHostIPv4Addr() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SocketException {
+        List</span>&lt;String&gt; ips = <span style="color: #0000ff;">new</span> ArrayList&lt;&gt;<span style="color: #000000;">();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 本机所有网络接口列表 这里有个坑，枚举出来的其实只是已经启用的网络接口 ，在Linux系统上也即 ifconfig 能看到的，通过 ip link 才能查看所有网络接口</span>
+        Enumeration&lt;NetworkInterface&gt; enums =<span style="color: #000000;"> NetworkInterface.getNetworkInterfaces();
+        </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (enums.hasMoreElements()) {
+            NetworkInterface networkInterface </span>=<span style="color: #000000;"> enums.nextElement();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 枚举网络接口上所有地址的列表 一个网络接口可以绑定多个IP地址</span>
+            Enumeration&lt;InetAddress&gt; addres =<span style="color: #000000;"> networkInterface.getInetAddresses();
+            </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (addres.hasMoreElements()) {
+                InetAddress inetAddress </span>=<span style="color: #000000;"> addres.nextElement();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 只查询IPv4地址接口，排除了IPv6和回送地址</span>
+                String hostAddress =<span style="color: #000000;"> inetAddress.getHostAddress();
+                </span><span style="color: #0000ff;">if</span> (inetAddress <span style="color: #0000ff;">instanceof</span> Inet4Address &amp;&amp; !"127.0.0.1"<span style="color: #000000;">.equals(hostAddress)) {
+                    ips.add(hostAddress);
+                }
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ips;
+    }
+
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 根据 IP 获取物理地址
+     *
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> bytes 原始 IP
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> mac 地址
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> String getMacByIp(<span style="color: #0000ff;">byte</span><span style="color: #000000;">[] bytes) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            InetAddress inetAddress </span>=<span style="color: #000000;"> InetAddress.getByAddress(bytes);
+            NetworkInterface networkInterface </span>=<span style="color: #000000;"> NetworkInterface.getByInetAddress(inetAddress);
+            </span><span style="color: #0000ff;">byte</span>[] hardwareAddress =<span style="color: #000000;"> networkInterface.getHardwareAddress();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> formartMac(hardwareAddress);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 根据 IP 获取物理地址
+     *
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> ip 点分四段 IP 地址
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> mac 地址
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String getMacByIp(String ip) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            InetAddress inetAddress </span>=<span style="color: #000000;"> InetAddress.getByName(ip);
+            NetworkInterface networkInterface </span>=<span style="color: #000000;"> NetworkInterface.getByInetAddress(inetAddress);
+            </span><span style="color: #0000ff;">byte</span>[] hardwareAddress =<span style="color: #000000;"> networkInterface.getHardwareAddress();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> formartMac(hardwareAddress);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 根据 网卡名 获取物理地址
+     *
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> eth 网卡名
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> mac 地址
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String getMacByNetCard(String eth) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            NetworkInterface networkInterface </span>=<span style="color: #000000;"> NetworkInterface.getByName(eth);
+            </span><span style="color: #0000ff;">byte</span>[] hardwareAddress =<span style="color: #000000;"> networkInterface.getHardwareAddress();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> formartMac(hardwareAddress);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * mac 地址格式化
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> String formartMac(<span style="color: #0000ff;">byte</span><span style="color: #000000;">[] bytes) {
+        </span><span style="color: #0000ff;">if</span> (bytes == <span style="color: #0000ff;">null</span> || bytes.length == 0<span style="color: #000000;">)
+            </span><span style="color: #0000ff;">return</span> ""<span style="color: #000000;">;
+        StringBuilder sb </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; bytes.length; i++<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">if</span> (i != 0<span style="color: #000000;">) {
+                sb.append(</span>"-"<span style="color: #000000;">);
+            }
+            String temp </span>= Integer.toHexString(bytes[i] &amp; 0xFF<span style="color: #000000;">);
+            sb.append(temp.length() </span>== 1 ? (0 +<span style="color: #000000;"> temp) : temp);
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sb.toString().toUpperCase();
+    }
+
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     *  命令执行
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String getLinuxSerialByCmd(String cmd) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            Runtime run </span>=<span style="color: #000000;"> Runtime.getRuntime();
+            Process process </span>=<span style="color: #000000;"> run.exec(cmd);
+            InputStream in </span>=<span style="color: #000000;"> process.getInputStream();
+            StringBuilder sb </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+            </span><span style="color: #0000ff;">byte</span>[] b = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[1024<span style="color: #000000;">];
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> n; (n = in.read(b)) != -1<span style="color: #000000;">;) {
+                sb.append(</span><span style="color: #0000ff;">new</span> String(b, 0<span style="color: #000000;">, n));
+            }
+            in.close();
+            process.destroy();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sb.toString();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

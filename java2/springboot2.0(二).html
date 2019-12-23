@@ -1,0 +1,279 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修springboot2.0(二)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>springboot2.0(二)</center></div><div class='banquan'>原文出处:本文由博客园博主爱尚编程forever提供。<br/>
+原文连接:https://www.cnblogs.com/jxjy/p/11890460.html</div><br>
+    <h1>三、&nbsp;<strong>Web</strong><strong>开发</strong></h1>
+<h2><strong>3.1<span style="font-family: 宋体;">、</span></strong><strong><span style="font-family: 宋体;">静态资源</span></strong><strong>访问</strong></h2>
+<p><span style="font-family: 楷体;">在我们开发</span>Web应用的时候，需要引用大量的js、css、图片等静态资源。</p>
+<p>默认配置</p>
+<p>Spring Boot默认提供静态资源目录位置需置于classpath下，目录名需符合如下规则：</p>
+<p>/static</p>
+<p>/public</p>
+<p>/resources</p>
+<p>/META-INF/resources</p>
+<p><span style="font-family: 楷体;">举例：我们可以在</span>src/main/resources/目录下创建static，在该位置放置一个图片文件。启动程序后，尝试访问http://localhost:8080/D.jpg。如能显示图片，配置成功。</p>
+<h2><strong>3.2<span style="font-family: 宋体;">、渲染</span><span style="font-family: 'Calibri Light';">W</span></strong><strong>eb</strong><strong>页面</strong></h2>
+<p>&nbsp;</p>
+<p><span style="font-family: 楷体;">渲染</span>Web页面</p>
+<p><span style="font-family: 楷体;">在之前的示例中，我们都是通过</span>@RestController来处理请求，所以返回的内容为json对象。那么如果需要渲染html页面的时候，要如何实现呢？</p>
+<p>模板引擎</p>
+<p><span style="font-family: 楷体;">在动态</span>HTML实现上Spring Boot依然可以完美胜任，并且提供了多种模板引擎的默认配置支持，所以在推荐的模板引擎下，我们可以很快的上手开发动态网站。</p>
+<p>Spring Boot提供了默认配置的模板引擎主要有以下几种：</p>
+<ul>
+<li>Thymeleaf</li>
+<li>FreeMarker</li>
+<li>Velocity</li>
+<li>Groovy</li>
+<li>Mustache</li>
+</ul>
+<p>Spring Boot建议使用这些模板引擎，避免使用JSP，若一定要使用JSP将无法实现Spring Boot的多种特性，具体可见后文：支持JSP的配置</p>
+<p><span style="font-family: 楷体;">当你使用上述模板引擎中的任何一个，它们默认的模板配置路径为：</span>src/main/resources/templates。当然也可以修改这个路径，具体如何修改，可在后续各模板引擎的配置属性中查询并修改。</p>
+<h2><strong>3.3</strong><strong>、</strong><a href="http://blog.didispace.com/springbootweb/"><strong><span style="font-family: 宋体;">使用</span>Freemarker<span style="font-family: 宋体;">模板引擎渲染</span><span style="font-family: 'Calibri Light';">web</span><span style="font-family: 宋体;">视图</span></strong></a></h2>
+<h3><strong>3.3.1</strong><strong>、</strong><strong>p</strong><strong>om<span style="font-family: 宋体;">文件</span></strong><strong><span style="font-family: 宋体;">引入</span></strong><strong><br /></strong></h3>
+<table style="height: 133px; width: 1057px;" border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p>&lt;!-- <span style="font-family: 宋体;">引入</span><span style="font-family: Consolas;">freeMarker</span><span style="font-family: 宋体;">的依赖包</span><span style="font-family: Consolas;">. --&gt;</span></p>
+<p>&lt;dependency&gt;</p>
+<p>&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</p>
+<p style="text-align: left;">&lt;artifactId&gt;spring-boot-starter-<span style="text-decoration: underline;">freemarker</span>&lt;/artifactId&gt;</p>
+<p>&lt;/dependency&gt;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3><strong>3.3.2</strong><strong>、后台</strong><strong><span style="font-family: 宋体;">代码</span></strong></h3>
+<p><span style="font-family: 宋体;">在</span>src/main/resources/创建<span style="font-family: 宋体;">一个</span>templates<span style="font-family: 宋体;">文件夹</span>,<span style="font-family: 宋体;">后缀</span><span style="font-family: 宋体;">为</span>*.ftl</p>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p><strong>@RequestMapping</strong><strong>(</strong><strong>"/index"</strong><strong>)</strong></p>
+<p><strong>public</strong><strong>&nbsp;String index(Map&lt;String, Object&gt; </strong><strong>map</strong><strong>) {</strong></p>
+<p><strong>&nbsp;&nbsp;&nbsp;&nbsp;</strong><strong>map</strong><strong>.put(</strong><strong>"name"</strong><strong>,</strong><strong>"<span style="font-family: 宋体;">美丽的天使</span><span style="font-family: Consolas;">..."</span></strong><strong>);</strong></p>
+<p><strong>&nbsp;&nbsp;&nbsp;</strong><strong>return</strong><strong>&nbsp;</strong><strong>"index"</strong><strong>;</strong></p>
+<p><strong>}</strong></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<h3><strong>3.3.3</strong><strong>、前台</strong><strong><span style="font-family: 宋体;">代码</span></strong></h3>
+<p>&nbsp;</p>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p>&lt;!DOCTYPE html&gt;</p>
+<p>&lt;html&gt;</p>
+<p>&lt;head lang="en"&gt;</p>
+<p>&lt;meta charset="UTF-8" /&gt;</p>
+<p>&lt;title&gt;&lt;/title&gt;</p>
+<p>&lt;/head&gt;</p>
+<p>&lt;body&gt;</p>
+<p>&nbsp;&nbsp;${name}</p>
+<p>&lt;/body&gt;</p>
+<p>&lt;/html&gt;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3><strong>3.3.4</strong><strong>、</strong><strong>Freemarker</strong><strong>其他</strong><strong><span style="font-family: 宋体;">用法</span></strong></h3>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p>@RequestMapping("/freemarkerIndex")</p>
+<p><strong>public</strong>&nbsp;String index(Map&lt;String, Object&gt; result) {</p>
+<p>result.put("name", "xiaohong");</p>
+<p>result.put("sex", "0");</p>
+<p>List&lt;String&gt; listResult&nbsp;= <strong>new</strong>&nbsp;ArrayList&lt;String&gt;();</p>
+<p>listResult.add("zhangsan");</p>
+<p>listResult.add("lisi");</p>
+<p>result.put("listResult", listResult);</p>
+<p><strong>return</strong>&nbsp;"index";</p>
+<p>}</p>
+<p>&nbsp;</p>
+<p><strong>&lt;!DOCTYPE </strong><strong><span style="text-decoration: underline;">html</span></strong><strong>&gt;</strong></p>
+<p><strong><span style="text-decoration: underline;">&lt;html&gt;</span></strong></p>
+<p><strong>&lt;head </strong><strong><span style="text-decoration: underline;">lang</span></strong><strong>="</strong><strong><span style="text-decoration: underline;">en</span></strong><strong>"&gt;</strong></p>
+<p><strong>&lt;meta </strong><strong><span style="text-decoration: underline;">charset</span></strong><strong>="UTF-8" /&gt;</strong></p>
+<p><strong>&lt;title&gt;<span style="font-family: 宋体;">首页</span><span style="font-family: Consolas;">&lt;/title&gt;</span></strong></p>
+<p><strong>&lt;/head&gt;</strong></p>
+<p><strong>&lt;body&gt;</strong></p>
+<p><strong>&nbsp;&nbsp;${name}</strong></p>
+<p><strong>&lt;#if sex=="1"&gt;</strong></p>
+<p><strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;男</strong></p>
+<p><strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;#</strong><strong><span style="text-decoration: underline;">elseif</span></strong><strong>&nbsp;sex=="2"&gt;</strong></p>
+<p><strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;女</strong></p>
+<p><strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&lt;#else&gt;</strong></p>
+<p><strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;其他 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</strong></p>
+<p><strong>&nbsp;&nbsp;</strong></p>
+<p><strong>&nbsp;&nbsp;&lt;/#if&gt;</strong><strong>&nbsp;&nbsp;</strong></p>
+<p><strong>&nbsp;&lt;#list </strong><strong><span style="text-decoration: underline;">userlist</span></strong><strong>&nbsp;as user&gt;</strong></p>
+<p><strong>&nbsp;&nbsp;&nbsp;${user}</strong></p>
+<p><strong>&nbsp;&lt;/#list&gt;</strong></p>
+<p><strong>&lt;/body&gt; </strong></p>
+<p><strong><span style="text-decoration: underline;">&lt;/html&gt;</span></strong></p>
+<p>&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3><strong>3.3.5</strong><strong>、</strong><strong>Freemarker</strong><strong>配置</strong></h3>
+<p>新建application.properties<span style="font-family: 宋体;">文件</span></p>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p>########################################################</p>
+<p>###FREEMARKER (FreeMarkerAutoConfiguration)</p>
+<p>########################################################</p>
+<p>spring.freemarker.allow-request-override=false</p>
+<p>spring.freemarker.cache=true</p>
+<p>spring.freemarker.check-template-location=true</p>
+<p>spring.freemarker.charset=UTF-8</p>
+<p>spring.freemarker.content-type=text/html</p>
+<p>spring.freemarker.expose-request-attributes=false</p>
+<p>spring.freemarker.expose-session-attributes=false</p>
+<p>spring.freemarker.expose-spring-macro-helpers=false</p>
+<p>#spring.freemarker.prefix=</p>
+<p>#spring.freemarker.request-context-attribute=</p>
+<p>#spring.freemarker.settings.*=</p>
+<p>spring.freemarker.suffix=.ftl</p>
+<p>spring.freemarker.template-loader-path=classpath:/templates/</p>
+<p>#comma-separated list</p>
+<p>#spring.freemarker.view-names= # whitelist of view names that can be resolved</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<h2><strong>3.4</strong><strong>、使用</strong><strong>JSP</strong><strong><span style="font-family: 宋体;">渲染</span>W</strong><strong>eb<span style="font-family: 宋体;">视图</span></strong></h2>
+<h3><strong>3.4.1</strong><strong><span style="font-family: 宋体;">、</span>p</strong><strong>om<span style="font-family: 宋体;">文件</span></strong><strong>引入以下依赖</strong></h3>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p>&lt;parent&gt;</p>
+<p>&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</p>
+<p>&lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;</p>
+<p>&lt;version&gt;2.0.0.RELEASE&lt;/version&gt;</p>
+<p>&lt;/parent&gt;</p>
+<p>&lt;dependencies&gt;</p>
+<p>&lt;!-- SpringBoot web <span style="font-family: 宋体;">核心组件 </span><span style="font-family: Consolas;">--&gt;</span></p>
+<p>&lt;dependency&gt;</p>
+<p>&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</p>
+<p>&lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;</p>
+<p>&lt;/dependency&gt;</p>
+<p>&lt;dependency&gt;</p>
+<p>&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;</p>
+<p>&lt;artifactId&gt;spring-boot-starter-<span style="text-decoration: underline;">tomcat</span>&lt;/artifactId&gt;</p>
+<p>&lt;/dependency&gt;</p>
+<p>&lt;!-- SpringBoot <span style="font-family: 宋体;">外部</span><span style="font-family: Consolas;">tomcat</span><span style="font-family: 宋体;">支持 </span><span style="font-family: Consolas;">--&gt;</span></p>
+<p>&lt;dependency&gt;</p>
+<p>&lt;groupId&gt;org.apache.tomcat.embed&lt;/groupId&gt;</p>
+<p>&lt;artifactId&gt;<span style="text-decoration: underline;">tomcat</span>-embed-<span style="text-decoration: underline;">jasper</span>&lt;/artifactId&gt;</p>
+<p>&lt;/dependency&gt;</p>
+<p>&lt;/dependencies&gt;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<h3><strong>3.4.2</strong><strong>、在</strong><strong>application.properties</strong><strong>创建</strong><strong><span style="font-family: 宋体;">以下配置</span></strong></h3>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p>spring.mvc.view.prefix=/WEB-INF/<span style="text-decoration: underline;">jsp</span>/</p>
+<p>spring.mvc.view.suffix=.<span style="text-decoration: underline;">jsp</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<h3><strong>3.4.3</strong><strong>、后台</strong><strong><span style="font-family: 宋体;">代码</span></strong></h3>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p><strong>@Controller</strong></p>
+<p><strong>public</strong><strong>&nbsp;</strong><strong>class</strong><strong>&nbsp;IndexController {</strong></p>
+<p><strong>@RequestMapping</strong><strong>(</strong><strong>"/index"</strong><strong>)</strong></p>
+<p><strong>public</strong><strong>&nbsp;String index() {</strong></p>
+<p><strong>return</strong><strong>&nbsp;</strong><strong>"index"</strong><strong>;</strong></p>
+<p><strong>}</strong></p>
+<p><strong>}</strong></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">注意</span>:<span style="font-family: 宋体;">创建</span>SpringBoot整合JSP，<span style="font-family: 宋体;">一定要为</span>war<span style="font-family: 宋体;">类型，</span>否则<span style="font-family: 宋体;">会</span>找不到<span style="font-family: 宋体;">页面</span>.</p>
+<p><span style="font-family: 宋体;">不要把</span>JSP<span style="font-family: 宋体;">页面存放在</span><span style="font-family: Calibri;">resources// jsp </span><span style="font-family: 宋体;">不能被访问到</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2><strong>3.5<span style="font-family: 宋体;">、</span></strong><strong><span style="font-family: 宋体;">全局</span></strong><strong>捕获</strong><strong><span style="font-family: 宋体;">异常</span></strong></h2>
+<p>@ExceptionHandler&nbsp;<span style="font-family: 楷体;">表示</span>拦截异常</p>
+<ul>
+<li>@ControllerAdvice 是 controller 的一个辅助类，最常用的就是作为全局异常处理的切面类</li>
+<li>@ControllerAdvice 可以指定扫描范围</li>
+<li>@ControllerAdvice 约定了几种可行的返回值，如果是直接返回 model 类的话，需要使用 @ResponseBody 进行 json 转换</li>
+<li><span style="font-family: 楷体;">返回</span> String，表示跳到某个 view</li>
+<li><span style="font-family: 楷体;">返回</span> modelAndView</li>
+<li><span style="font-family: 楷体;">返回</span> model + @ResponseBody</li>
+</ul>
+<p>&nbsp;</p>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p>@ControllerAdvice</p>
+<p><strong>public</strong>&nbsp;<strong>class</strong>&nbsp;GlobalExceptionHandler {</p>
+<p>@ExceptionHandler(RuntimeException.<strong>class</strong>)</p>
+<p>@ResponseBody</p>
+<p><strong>public</strong>&nbsp;Map&lt;String, Object&gt;&nbsp;exceptionHandler() {</p>
+<p>Map&lt;String, Object&gt; map&nbsp;= <strong>new</strong>&nbsp;HashMap&lt;String, Object&gt;();</p>
+<p>map.put("errorCode", "101");</p>
+<p>map.put("errorMsg", "<span style="font-family: 宋体;">系統错误</span><span style="font-family: Consolas;">!"</span>);</p>
+<p><strong>return</strong>&nbsp;map;</p>
+<p>}</p>
+<p>}</p>
+</td>
+</tr>
+</tbody>
+</table>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

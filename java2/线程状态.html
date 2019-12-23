@@ -1,0 +1,73 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修线程状态' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>线程状态</center></div><div class='banquan'>原文出处:本文由博客园博主guodaye提供。<br/>
+原文连接:https://www.cnblogs.com/guoyuchuan/p/11634178.html</div><br>
+    <h2 id="线程状态">1. 线程状态</h2>
+<p>// Thread.State 源码</p>
+<pre><code><code>
+public enum State {
+    NEW,
+    RUNNABLE,
+    BLOCKED,
+    WAITING,
+    TIMED_WAITING,
+    TERMINATED;
+}
+</code></code></pre>
+<h3 id="new">1.1 new</h3>
+<p>一个已经创建而未启动的线程处于改状态，此时还未调用start()方法；</p>
+<pre><code><code>
+ Thread thread = new Thread(() -&gt; {});
+    System.out.println(thread.getState()); // 输出 NEW 
+    </code></code></pre>
+<p><strong><em>注意</em></strong>：一个线程实例只能被启动一次</p>
+<h3 id="runnable">1.2 RUNNABLE</h3>
+<p>该状态可以被看成一个复合状态。它包含两个子状态READY和RUNNING。前者表示处于该状态的线程可以被线程调度器调度而使之处于RUNNING状态。后者表示处于该状态的的线程正在运行，即相应线程对象的run方法所对应的指令正在由处理器执行；执行Thread.yield()的线程，其状态可能会由RUNNING转换为READY。处于READY子状态的线程也被成为活跃线程</p>
+<h3 id="blocked">1.3 BLOCKED</h3>
+<p>一个线程发起一个阻塞式I/O（Blocking I/O）操作后，或者申请一个由其它线程持有的独占资源（比如锁）时，相应的线程会处于该状态；处于BLOCKED状态的线程并不会占用处理器资源；当阻塞式I/O操作完成后，或者线程获得了其申请的资源，该线程的状态可以转换为RUNNABLE；</p>
+<h3 id="waiting">1.4 WAITING</h3>
+<p>等待状态；一个线程执行了某些特定方法之后会处于这种等待其他线程执行另外一些特定操作的状态；</p>
+<p>调用如下3个方法会使线程进入等待状态：</p>
+<ul>
+<li>Object.wait()：使当前线程进入等待状态，直到它被其他线程通过notify()或者notifyAll唤醒。该方法只能在同步方法中调用。如果当前线程不是锁的持有者，该方法抛出一个IllegalMonitorStateException异常。</li>
+<li>Thread.join()：等待线程执行完毕，底层调用的是Object实例的wait方法；</li>
+<li>LockSupport.park()：除非获得调用许可，否则禁用当前线程进行线程调度。</li>
+</ul>
+<h3 id="time_waiting">1.5 TIME_WAITING</h3>
+<p>超时等待状态。该状态和WAITING类似，差别在于处于该状态的线程并非无限制的等待其他线程执行特定操作，而是处于有时间限制的等待状态，当其他线程没有在指定时间内执行该线程所期望的特定操作时，该线程状态会自动转换为RUNNABLE；</p>
+<p>调用如下方法会使线程进入超时等待状态：</p>
+<ul>
+<li>Thread.sleep(long millis)：使当前线程睡眠指定时间；</li>
+<li>Object.wait(long timeout)：线程休眠指定时间，等待期间可以通过notify()/notifyAll()唤醒；</li>
+<li>Thread.join(long millis)：等待当前线程最多执行millis毫秒，如果millis为0，则会一直执行；</li>
+<li>LockSupport.parkNanos(long nanos)：除非获得调用许可，否则禁用当前线程进行线程调度指定时间；</li>
+<li>LockSupport.parkUntil(long deadline)：同上，也是禁止线程进行调度指定时间；</li>
+</ul>
+<h3 id="terminated">1.6 TERMINATED</h3>
+<p>终止状态。此时线程已执行完毕。</p>
+<h3 id="线程状态转换图">1.7 线程状态转换图：</h3>
+<p><img src="./images/线程状态0.png" /></p>
+<p><a href="http://redspider.group:4000/article/01/4.html#%E7%AC%AC%E5%9B%9B%E7%AB%A0-java%E7%BA%BF%E7%A8%8B%E7%9A%84%E7%8A%B6%E6%80%81%E5%8F%8A%E4%B8%BB%E8%A6%81%E8%BD%AC%E5%8C%96%E6%96%B9%E6%B3%95">参考资料1-java线程的状态及主要转化方法</a></p>
+<p>参考资料2- 《Java多线程编程实战指南-核心篇》 《Java多线程编程核心技术》</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

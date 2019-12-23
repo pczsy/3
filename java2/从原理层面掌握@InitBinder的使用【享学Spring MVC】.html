@@ -1,0 +1,388 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修从原理层面掌握@InitBinder的使用【享学Spring MVC】' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>从原理层面掌握@InitBinder的使用【享学Spring MVC】</center></div><div class='banquan'>原文出处:本文由博客园博主_YourBatman提供。<br/>
+原文连接:https://www.cnblogs.com/fangshixiang/p/11509660.html</div><br>
+    <h4 id="每篇一句">每篇一句</h4>
+<blockquote>
+<p>大魔王张怡宁：女儿，这堆金牌你拿去玩吧，但我的银牌不能给你玩。你要想玩银牌就去找你王浩叔叔吧，他那银牌多</p>
+</blockquote>
+<h4 id="前言">前言</h4>
+<p>为了讲述好<code>Spring MVC</code>最为复杂的数据绑定这块，我前面可谓是做足了功课，对此部分知识此处给小伙伴留一个学习入口，有兴趣可以点开看看：<a href="https://blog.csdn.net/f641385712/article/details/96450469">聊聊Spring中的数据绑定 --- WebDataBinder、ServletRequestDataBinder、WebBindingInitializer...【享学Spring】</a></p>
+<p><code>@InitBinder</code>这个注解是<code>Spring 2.5</code>后推出来，用于数据绑定、设置数据转换器等，字面意思是“初始化绑定器”。</p>
+<blockquote>
+<p>关于数据绑定器的概念，前面的功课中有重点详细讲解，此处默认小伙伴是熟悉了的~</p>
+</blockquote>
+<p>在<code>Spring MVC</code>的web项目中，相信小伙伴们经常会遇到一些前端给后端传值比较棘手的问题：比如最经典的问题：</p>
+<ul>
+<li><code>Date</code>类型（<code>或者LocalDate类型</code>）前端如何传？后端可以用<code>Date</code>类型接收吗？</li>
+<li>字符串类型，如何保证前段传入的值两端没有空格呢？（99.99%的情况下多余的空格都是木有用的）</li>
+</ul>
+<p>对于这些看似不太好弄的问题，看了这篇文章你就可以<strong>优雅的</strong>搞定了~</p>
+<h2 id="section">---</h2>
+<p>说明：关于<code>Date</code>类型的传递，业界也有两个<strong>通用的解决方案</strong>：</p>
+<ol>
+<li>使用时间戳</li>
+<li>使用<code>String</code>字符串（传值的万能方案）</li>
+</ol>
+<p>使用者两种方式总感觉不优雅，且不够面向对象。那么本文就介绍一个黑科技：使用<code>@InitBinder</code>来便捷的实现<strong>各种数据类型</strong>的数据绑定（咱们Java是强类型语言且面向对象的，如果啥都用字符串，是不是也太low了~）</p>
+<h2 id="一般的string-int-long会自动绑定到参数但是自定义的格式spring就不知道如何绑定了-.所以要继承propertyeditorsupport实现自己的属性编辑器propertyeditor绑定到webdatabinder-binder.registercustomeditor覆盖方法setastext">&gt; 一般的string, int, long会自动绑定到参数，但是自定义的格式spring就不知道如何绑定了 .所以要继承<code>PropertyEditorSupport</code>，实现自己的属性编辑器<code>PropertyEditor</code>,绑定到<code>WebDataBinder ( binder.registerCustomEditor)</code>，覆盖方法<code>setAsText</code></h2>
+<hr />
+<h2 id="initbinder原理"><code>@InitBinder</code>原理</h2>
+<p>本文先原理，再案例的方式，让你能够彻头彻尾的掌握到该注解的使用。</p>
+<p><strong>1、<code>@InitBinder</code>是什么时候生效的？</strong><br />
+这就是前面文章埋下的伏笔：<code>Spring</code>在绑定请求参数到<code>HandlerMethod</code>的时候（此处以<code>RequestParamMethodArgumentResolver</code>为例），会借助<code>WebDataBinder</code>进行数据转换：</p>
+<pre><code><code>// RequestParamMethodArgumentResolver的父类就是它，resolveArgument方法在父类上
+// 子类仅仅只需要实现抽象方法resolveName，即：从request里根据name拿值
+AbstractNamedValueMethodArgumentResolver：
+
+    @Override
+    @Nullable
+    public final Object resolveArgument( ... ) {
+        ...
+        Object arg = resolveName(resolvedName.toString(), nestedParameter, webRequest);
+        ...
+        if (binderFactory != null) {
+            // 创建出一个WebDataBinder
+            WebDataBinder binder = binderFactory.createBinder(webRequest, null, namedValueInfo.name);
+            // 完成数据转换（比如String转Date、String转...等等）
+            arg = binder.convertIfNecessary(arg, parameter.getParameterType(), parameter);
+            ...
+        }
+        ...
+        return arg;
+    }</code></code></pre>
+<p>它从请求request拿值得方法便是：<code>request.getParameterValues(name)</code>。</p>
+<p><strong>2、web环境使用的数据绑定工厂是：<code>ServletRequestDataBinderFactory</code></strong><br />
+虽然在前面功课中有讲到，但此处为了连贯性还是有必要再简单过一遍：</p>
+<pre><code><code>// @since 3.1 org.springframework.web.bind.support.DefaultDataBinderFactory 
+public class DefaultDataBinderFactory implements WebDataBinderFactory {
+
+    @Override
+    @SuppressWarnings(&quot;deprecation&quot;)
+    public final WebDataBinder createBinder(NativeWebRequest webRequest, @Nullable Object target, String objectName) throws Exception {
+        WebDataBinder dataBinder = createBinderInstance(target, objectName, webRequest);
+        
+        // WebBindingInitializer initializer在此处解析完成了 全局生效
+        if (this.initializer != null) {
+            this.initializer.initBinder(dataBinder, webRequest);
+        }
+        // 解析@InitBinder注解，它是个protected空方法，交给子类复写实现
+        // InitBinderDataBinderFactory对它有复写
+        initBinder(dataBinder, webRequest);
+        return dataBinder;
+    }
+}
+
+public class InitBinderDataBinderFactory extends DefaultDataBinderFactory {
+    // 保存所有的，
+    private final List&lt;InvocableHandlerMethod&gt; binderMethods;
+    ...
+    @Override
+    public void initBinder(WebDataBinder dataBinder, NativeWebRequest request) throws Exception {
+        for (InvocableHandlerMethod binderMethod : this.binderMethods) {
+            if (isBinderMethodApplicable(binderMethod, dataBinder)) {
+                // invokeForRequest这个方法不用多说了，和调用普通控制器方法一样
+                // 方法入参上也可以写格式各样的参数~~~~
+                Object returnValue = binderMethod.invokeForRequest(request, null, dataBinder);
+            
+                // 标注有@InitBinder注解方法必须返回void
+                if (returnValue != null) {
+                    throw new IllegalStateException(&quot;@InitBinder methods must not return a value (should be void): &quot; + binderMethod);
+                }
+            }
+        }
+    }
+
+    // dataBinder.getObjectName()在此处终于起效果了  通过这个名称来匹配
+    // 也就是说可以做到让@InitBinder注解只作用在指定的入参名字的数据绑定上~~~~~
+    // 而dataBinder的这个ObjectName，一般就是入参的名字（注解指定的value值~~）
+
+    // 形参名字的在dataBinder，所以此处有个简单的过滤~~~~~~~
+    protected boolean isBinderMethodApplicable(HandlerMethod initBinderMethod, WebDataBinder dataBinder) {
+        InitBinder ann = initBinderMethod.getMethodAnnotation(InitBinder.class);
+        Assert.state(ann != null, &quot;No InitBinder annotation&quot;);
+        String[] names = ann.value();
+        return (ObjectUtils.isEmpty(names) || ObjectUtils.containsElement(names, dataBinder.getObjectName()));
+    }
+}</code></code></pre>
+<blockquote>
+<p><code>WebBindingInitializer</code>接口方式是优先于<code>@InitBinder</code>注解方式执行的（API方式是去全局的，注解方式可不一定，所以更加的灵活些）</p>
+</blockquote>
+<p>子类<code>ServletRequestDataBinderFactory</code>就做了一件事：<code>new ExtendedServletRequestDataBinder(target, objectName)</code><br />
+<code>ExtendedServletRequestDataBinder</code>只做了一件事：处理<code>path</code>变量。</p>
+<p><code>binderMethods</code>是通过构造函数进来的，它表示和本次请求有关的所有的标注有<code>@InitBinder</code>的方法，所以需要了解它的实例是如何被创建的，那就是接下来这步。</p>
+<p><strong>3、<code>ServletRequestDataBinderFactory</code>的创建</strong><br />
+任何一个请求进来，最终交给了<code>HandlerAdapter.handle()</code>方法去处理，它的创建流程如下：</p>
+<pre><code><code>public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter implements BeanFactoryAware, InitializingBean {
+    ...
+    @Override
+    protected ModelAndView handleInternal(HttpServletRequest request, HttpServletResponse response, HandlerMethod handlerMethod) throws Exception {
+        ...
+        // 处理请求，最终其实就是执行控制器的方法，得到一个ModelAndView
+        mav = invokeHandlerMethod(request, response, handlerMethod);
+        ...
+    }
+    
+    // 执行控制器的方法，挺复杂的。但本文我只关心WebDataBinderFactory的创建，方法第一句便是
+    @Nullable
+    protected ModelAndView invokeHandlerMethod(HttpServletRequest request, HttpServletResponse response, HandlerMethod handlerMethod) throws Exception {
+        WebDataBinderFactory binderFactory = getDataBinderFactory(handlerMethod);
+        ...
+    }
+
+    // 创建一个WebDataBinderFactory 
+    // Global methods first（放在前面最先执行） 然后再执行本类自己的
+    private WebDataBinderFactory getDataBinderFactory(HandlerMethod handlerMethod) throws Exception {
+        // handlerType：方法所在的类（控制器方法所在的类，也就是xxxController）
+        // 由此可见，此注解的作用范围是类级别的。会用此作为key来缓存
+        Class&lt;?&gt; handlerType = handlerMethod.getBeanType();
+        Set&lt;Method&gt; methods = this.initBinderCache.get(handlerType);
+        if (methods == null) { // 缓存没命中，就去selectMethods找到所有标注有@InitBinder的方法们~~~~
+            methods = MethodIntrospector.selectMethods(handlerType, INIT_BINDER_METHODS);
+            this.initBinderCache.put(handlerType, methods); // 缓存起来
+        }
+        
+        // 此处注意：Method最终都被包装成了InvocableHandlerMethod，从而具有执行的能力
+        List&lt;InvocableHandlerMethod&gt; initBinderMethods = new ArrayList&lt;&gt;();
+        
+        // 上面找了本类的，现在开始看看全局里有木有@InitBinder
+        // Global methods first（先把全局的放进去，再放个性化的~~~~ 所以小细节：有覆盖的效果哟~~~）
+        // initBinderAdviceCache它是一个缓存LinkedHashMap(有序哦~~~)，缓存着作用于全局的类。
+        // 如@ControllerAdvice，注意和`RequestBodyAdvice`、`ResponseBodyAdvice`区分开来
+
+        // methodSet：说明一个类里面是可以定义N多个标注有@InitBinder的方法~~~~~
+        this.initBinderAdviceCache.forEach((clazz, methodSet) -&gt; {
+            
+            // 简单的说就是`RestControllerAdvice`它可以指定：basePackages之类的属性，看本类是否能被扫描到吧~~~~
+            if (clazz.isApplicableToBeanType(handlerType)) {
+            
+                // 这个resolveBean() 有点意思：它持有的Bean若是个BeanName的话，会getBean()一下的
+                // 大多数情况下都是BeanName，这在@ControllerAdvice的初始化时会讲~~~
+                Object bean = clazz.resolveBean();
+                for (Method method : methodSet) {
+                    // createInitBinderMethod：把Method适配为可执行的InvocableHandlerMethod
+                    
+                    // 特点是把本类的HandlerMethodArgumentResolverComposite传进去了
+                    // 当然还有DataBinderFactory和ParameterNameDiscoverer等
+                    initBinderMethods.add(createInitBinderMethod(bean, method));
+                }
+            }
+        });
+        // 后一步：再条件标注有@InitBinder的方法
+        for (Method method : methods) {
+            Object bean = handlerMethod.getBean();
+            initBinderMethods.add(createInitBinderMethod(bean, method));
+        }
+
+        // protected方法，就一句代码：new ServletRequestDataBinderFactory(binderMethods, getWebBindingInitializer())
+        return createDataBinderFactory(initBinderMethods);
+    }
+    ...
+}</code></code></pre>
+<p>到这里，整个<code>@InitBinder</code>的解析过程就算可以全部理解了。关于这个过程，我有如下几点想说：</p>
+<ul>
+<li>对于<code>binderMethods</code>每次请求过来都会新new一个（具有第一次惩罚效果），它既可以来自于全局（Advice），也可以来自于<code>Controller</code>本类</li>
+<li>倘若<code>Controller</code>上的和<code>Advice</code>上标注有次注解的方法名一毛一样，也是不会覆盖的（因为类不一样）</li>
+<li><p>关于注解有<code>@InitBinder</code>的方法的执行，它和执行控制器方法差不多，都是调用了<code>InvocableHandlerMethod#invokeForRequest</code>方法，因此可以自行类比</p>
+<blockquote>
+<p>目前方法执行的核心，无非就是对参数的解析、封装，也就是对<code>HandlerMethodArgumentResolver</code>的理解。强烈推荐你可以参考 <a href="https://fangshixiang.blog.csdn.net/article/details/98989698">这个系列</a>的所有文章~</p>
+</blockquote></li>
+</ul>
+<hr />
+<p>有了这些基础理论的支撑，接下来当然就是它的使用<code>Demo Show</code>了</p>
+<h2 id="initbinder的使用案例"><code>@InitBinder</code>的使用案例</h2>
+<p>我抛出两个需求，借助<code>@InitBinder</code>来实现：</p>
+<ol>
+<li>请求进来的所有<strong>字符串</strong>都<code>trim</code>一下</li>
+<li><code>yyyy-MM-dd</code>这种格式的字符串能直接用<code>Date</code>类型接收（不用先用<code>String</code>接收再自己转换，不优雅）</li>
+</ol>
+<p>为了实现如上两个需求，我需要先自定义两个属性编辑器：</p>
+<p><strong>1、<code>StringTrimmerEditor</code></strong></p>
+<pre><code><code>public class StringTrimmerEditor extends PropertyEditorSupport {
+
+    // 将属性对象用一个字符串表示，以便外部的属性编辑器能以可视化的方式显示。缺省返回null，表示该属性不能以字符串表示
+    //@Override
+    //public String getAsText() {
+    //    Object value = getValue();
+    //    return (value != null ? value.toString() : null);
+    //}
+
+    // 用一个字符串去更新属性的内部值，这个字符串一般从外部属性编辑器传入
+    // 处理请求的入参：test就是你传进来的值（并不是super.getValue()哦~）
+    @Override
+    public void setAsText(String text) throws IllegalArgumentException {
+        text = text == null ? text : text.trim();
+        setValue(text);
+    }
+}</code></code></pre>
+<blockquote>
+<p>说明：Spring内置有<code>org.springframework.beans.propertyeditors.StringTrimmerEditor</code>，默认情况下它并没有装配进来，若你有需要可以直接使用它的（此处为了演示，我就用自己的）。Spring内置注册了哪些？参照<code>PropertyEditorRegistrySupport#createDefaultEditors</code>方法<br />
+Spring的属性编辑器和传统的用于IDE开发时的属性编辑器不同，它们没有UI界面，<strong>仅负责将配置文件中的文本配置值转换为Bean属性的对应值，所以Spring的属性编辑器并非传统意义上的JavaBean属性编辑器</strong>。</p>
+</blockquote>
+<p><strong>2、<code>CustomDateEditor</code></strong><br />
+关于这个属性编辑器，你也可以像我一样自己实现。本文就直接使用Spring提供了的，参见：<code>org.springframework.beans.propertyeditors.CustomDateEditor</code></p>
+<pre><code><code>// @since 28.04.2003
+// @see java.util.Date
+public class CustomDateEditor extends PropertyEditorSupport {
+    ...
+    @Override
+    public void setAsText(@Nullable String text) throws IllegalArgumentException {
+        ...
+        setValue(this.dateFormat.parse(text));
+        ...
+    }
+    ...
+    @Override
+    public String getAsText() {
+        Date value = (Date) getValue();
+        return (value != null ? this.dateFormat.format(value) : &quot;&quot;);
+    }
+}</code></code></pre>
+<p>定义好后，如何使用呢？有两种方式：</p>
+<ol>
+<li>API方式<code>WebBindingInitializer</code> ，关于它的使用，请参阅<a href="https://fangshixiang.blog.csdn.net/article/details/96450469">这里</a>，本文略。<br />
+1. 重写<code>initBinder</code>注册的属性编辑器是全局的属性编辑器，对<strong>所有的<code>Controller</code>都有效</strong>（全局的）</li>
+<li><strong><code>@InitBinder</code>注解方式</strong></li>
+</ol>
+<p>在<code>Controller</code>本类上使用<code>@InitBinder</code>，形如这样：</p>
+<pre><code><code>@Controller
+@RequestMapping
+public class HelloController {
+
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        //binder.setDisallowedFields(&quot;name&quot;); // 不绑定name属性
+        binder.registerCustomEditor(String.class, new StringTrimmerEditor());
+
+        // 此处使用Spring内置的CustomDateEditor
+        DateFormat dateFormat = new SimpleDateFormat(&quot;yyyy-MM-dd&quot;);
+        binder.registerCustomEditor(Date.class, new CustomDateEditor(dateFormat, true));
+    }
+
+    @ResponseBody
+    @GetMapping(&quot;/test/initbinder&quot;)
+    public String testInitBinder(String param, Date date) {
+        return param + &quot;:&quot; + date;
+    }
+}</code></code></pre>
+<p>请求：<code>/test/initbinder?param= ds&amp;date=2019-12-12</code>。结果为：<code>ds:Thu Dec 12 00: 00: 00 CST 2019</code>，符合预期。</p>
+<blockquote>
+<p>注意，若date为null返回值为<code>ds: null</code>（因为我设置了允许为null）<br />
+但若你不是<code>yyyy-MM-dd</code>格式，那就抛错喽（格式化异常）</p>
+</blockquote>
+<p>本例的<code>@InitBinder</code>方法只对当前<code>Controller</code>生效。<strong>要想全局生效，可以使用<code>@ControllerAdvice/WebBindingInitializer</code></strong>。<br />
+通过<code>@ControllerAdvice</code>可以将对于控制器的<strong>全局配置放置在同一个位置</strong>，注解了<code>@ControllerAdvice</code>的类的方法可以使用<code>@ExceptionHandler</code>，<code>@InitBinder</code>，<code>@ModelAttribute</code>等注解到方法上，这对所有注解了<code>@RequestMapping</code>的控制器内的方法有效（关于全局的方式本文略，建议各位自己实践~）。</p>
+<h5 id="initbinder的value属性的作用">@InitBinder的value属性的作用</h5>
+<p>获取你可能还不知道，它还有个<code>value</code>属性呢，并且还是数组</p>
+<pre><code><code>public @interface InitBinder {
+    // 用于限定次注解标注的方法作用于哪个模型key上
+    String[] value() default {};
+}</code></code></pre>
+<p>说人话：<strong>若指定了value值，那么只有方法参数名（或者模型名）匹配上了此注解方法才会执行</strong>（若不指定，都执行）。</p>
+<pre><code><code>@Controller
+@RequestMapping
+public class HelloController {
+
+    @InitBinder({&quot;param&quot;, &quot;user&quot;})
+    public void initBinder(WebDataBinder binder, HttpServletRequest request) {
+        System.out.println(&quot;当前key：&quot; + binder.getObjectName());
+    }
+
+    @ResponseBody
+    @GetMapping(&quot;/test/initbinder&quot;)
+    public String testInitBinder(String param, String date,
+                                 @ModelAttribute(&quot;user&quot;) User user, @ModelAttribute(&quot;person&quot;) Person person) {
+        return param + &quot;:&quot; + date;
+    }
+}</code></code></pre>
+<p>请求：<code>/test/initbinder?param=fsx&amp;date=2019&amp;user.name=demoUser</code>，控制台打印：</p>
+<pre><code><code>当前key：param
+当前key：user</code></code></pre>
+<p>从打印结果中很清楚的看出了<code>value</code>属性的作用~</p>
+<blockquote>
+<p>需要说明一点：虽然此处有key是<code>user.name</code>，但是User对象可是不会封装到此值的(因为<code>request.getParameter('user')</code>没这个key嘛~)。如何解决？？？需要绑定前缀，原理可参考<a href="https://fangshixiang.blog.csdn.net/article/details/98260361">这里</a></p>
+</blockquote>
+<h5 id="其它应用场景">其它应用场景</h5>
+<p>上面例举的场景是此注解最为常用的场景，大家务必掌握。它还有一些奇淫技巧的使用，心有余力的小伙伴不妨也可以消化消化：</p>
+<p>若你一次提交需要提交两个&quot;模型&quot;数据，并且它们有重名的属性。形如下面例子：</p>
+<pre><code><code>@Controller
+@RequestMapping
+public class HelloController {
+
+    @Getter
+    @Setter
+    @ToString
+    public static class User {
+        private String id;
+        private String name;
+    }
+
+    @Getter
+    @Setter
+    @ToString
+    public static class Addr {
+        private String id;
+        private String name;
+    }
+
+    @InitBinder(&quot;user&quot;)
+    public void initBinderUser(WebDataBinder binder) {
+        binder.setFieldDefaultPrefix(&quot;user.&quot;);
+    }
+
+    @InitBinder(&quot;addr&quot;)
+    public void initBinderAddr(WebDataBinder binder) {
+        binder.setFieldDefaultPrefix(&quot;addr.&quot;);
+    }
+
+    @ResponseBody
+    @GetMapping(&quot;/test/initbinder&quot;)
+    public String testInitBinder(@ModelAttribute(&quot;user&quot;) User user, @ModelAttribute(&quot;addr&quot;) Addr addr) {
+        return user + &quot;:&quot; + addr;
+    }
+}</code></code></pre>
+<p>请求：<code>/test/initbinder?user.id=1&amp;user.name=demoUser&amp;addr.id=10&amp;addr.name=北京市海淀区</code>，结果为：<code>HelloController.User(id=1, name=demoUser):HelloController.Addr(id=10, name=北京市海淀区)</code></p>
+<p>至于加了前缀为何能绑定上，这里简要说说：<br />
+1、<code>ModelAttributeMethodProcessor#resolveArgument</code>里依赖<code>attribute = createAttribute(name, parameter, binderFactory, webRequest)</code>方法完成数据的封装、转换<br />
+2、<code>createAttribute</code>先<code>request.getParameter(attributeName)</code>看请求域里是否有值（此处为null），若木有就<strong>反射创建一个空实例</strong>，回到<code>resolveArgument</code>方法。<br />
+3、继续利用<code>WebDataBinder</code>来完成对这个空对象的数据值绑定，这个时候这些<code>FieldDefaultPrefix</code>就起作用了。执行方法是：<code>bindRequestParameters(binder, webRequest)</code>，实际上是<code>((WebRequestDataBinder) binder).bind(request);</code>。对于bind方法的原理，就不陌生了~<br />
+4、完成Model数据的封装后，再进行<code>@Valid</code>校验...</p>
+<blockquote>
+<p>参考解析类：<code>ModelAttributeMethodProcessor</code>对参数部分的处理</p>
+</blockquote>
+<h4 id="总结">总结</h4>
+<p>本文花大篇幅从原理层面总结了<code>@InitBinder</code>这个注解的使用，虽然此注解在当下的环境中出镜率并不是太高，但我还是期望小伙伴能理解它，特别是我本文举例说明的例子的场景一定能做到运用自如。</p>
+<p><strong>最后，此注解的使用的注意事项我把它总结如下，供各位使用过程中参考：</strong></p>
+<ol>
+<li><code>@InitBinder</code>标注的方法执行是多次的，一次请求来就执行一次（第一次惩罚）</li>
+<li><code>Controller</code>实例中的所有<code>@InitBinder</code>只对当前所在的<code>Controller</code>有效</li>
+<li><code>@InitBinder</code>的value属性控制的是模型Model里的key，而不是方法名（不写代表对所有的生效）</li>
+<li><code>@InitBinder</code>标注的方法不能有返回值（只能是<code>void</code>或者<code>returnValue=null</code>）</li>
+<li><code>@InitBinder</code>对<code>@RequestBody</code>这种基于消息转换器的请求参数无效<br />
+1. 因为<code>@InitBinder</code>它用于初始化<code>DataBinder</code>数据绑定、类型转换等功能，而<code>@RequestBody</code>它的数据解析、转换时消息转换器来完成的，所以即使你自定义了属性编辑器，对它是不生效的（<strong>它的<code>WebDataBinder</code>只用于数据校验，不用于数据绑定和数据转换。它的数据绑定转换若是json，一般都是交给了<code>jackson</code>来完成的</strong>）</li>
+<li>只有<code>AbstractNamedValueMethodArgumentResolver</code>才会调用<code>binder.convertIfNecessary</code>进行数据转换，从而属性编辑器才会生效</li>
+</ol>
+<p>== <strong>若对Spring、SpringBoot、MyBatis等源码分析感兴趣，可加我wx：fsx641385712，手动邀请你入群一起飞</strong> ==<br />
+== <strong>若对Spring、SpringBoot、MyBatis等源码分析感兴趣，可加我wx：fsx641385712，手动邀请你入群一起飞</strong> ==</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

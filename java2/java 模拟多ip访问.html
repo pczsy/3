@@ -1,0 +1,145 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修java 模拟多ip访问' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>java 模拟多ip访问</center></div><div class='banquan'>原文出处:本文由博客园博主逍遥小楼```提供。<br/>
+原文连接:https://www.cnblogs.com/eian/p/11478409.html</div><br>
+    <h2 id="java模拟多ip请求">java模拟多ip请求</h2>
+<pre><code><code>
+package url_demo;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.Random;
+
+public class HttpUtilTest {
+
+    private int index = 0;
+
+    public String sendPost(String url, String param) {
+        PrintWriter out = null;
+        BufferedReader in = null;
+        String result = &quot;&quot;;
+        try {
+            URL realUrl = new URL(url);
+            URLConnection conn = realUrl.openConnection();
+
+            // 随机生成ip
+            String ip = randIP();
+            conn.setRequestProperty(&quot;X-Forwarded-For&quot;, ip);
+            conn.setRequestProperty(&quot;HTTP_X_FORWARDED_FOR&quot;, ip);
+            conn.setRequestProperty(&quot;HTTP_CLIENT_IP&quot;, ip);
+            conn.setRequestProperty(&quot;REMOTE_ADDR&quot;, ip);
+            conn.setRequestProperty(&quot;Host&quot;, &quot;&quot;);
+            conn.setRequestProperty(&quot;Connection&quot;, &quot;keep-alive&quot;);
+            conn.setRequestProperty(&quot;Content-Length&quot;, &quot;17&quot;);
+            conn.setRequestProperty(&quot;Accept&quot;, &quot;application/json&quot;);
+            conn.setRequestProperty(&quot;Origin&quot;, &quot;ORIGIN&quot;);
+            conn.setRequestProperty(&quot;User-Agent&quot;,
+                    &quot;Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/45.0.2454.101 Safari/537.36&quot;);
+            conn.setRequestProperty(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;);
+            conn.setRequestProperty(&quot;Referer&quot;, &quot;REFERER&quot;);
+            conn.setRequestProperty(&quot;Accept-Encoding&quot;, &quot;gzip, deflate&quot;);
+            conn.setRequestProperty(&quot;Accept-Language&quot;, &quot;zh-CN,zh;q=0.8,en;q=0.6,ja;q=0.4,pt;q=0.2&quot;);
+
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            out = new PrintWriter(conn.getOutputStream());
+            out.print(param);
+            out.flush();
+            in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+            String line;
+            while ((line = in.readLine()) != null) {
+                result += line;
+            }
+            synchronized (this) {
+                DemoUtl.index = DemoUtl.index + 1;
+            }
+            System.out.println(&quot;第&quot; + DemoUtl.index + &quot;次访问； --&gt;  || 当前线程：&quot; + param + &quot;  || 请求成功！ || 模拟ip: &quot; + ip
+                    + &quot; || 返回结果： &quot; + result.toString().hashCode());
+        } catch (Exception e) {
+            // System.out.println(&quot;发送 POST 请求出现异常！&quot; + e);
+            // e.printStackTrace();
+        } finally {
+            try {
+                if (out != null) {
+                    out.close();
+                }
+                if (in != null) {
+                    in.close();
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+        return result;
+    }
+
+    public static String randIP() {
+        Random random = new Random(System.currentTimeMillis());
+        return (random.nextInt(255) + 1) + &quot;.&quot; + (random.nextInt(255) + 1) + &quot;.&quot; + (random.nextInt(255) + 1) + &quot;.&quot;
+                + (random.nextInt(255) + 1);
+    }
+}
+</code></code></pre>
+<pre><code><code>package url_demo;
+
+import java.util.Random;
+
+public class DemoUtl {
+
+    public static int index = 0;
+
+    public static void main(String[] args) throws InterruptedException {
+        try {
+            for (int i = 0; i &lt; 100000; i++) {
+                Thread.sleep((new Random()).nextInt(200) + 100);
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+
+                        for (int j = 0; j &lt; 100000; j++) {
+                            try {
+                                Thread.sleep((new Random()).nextInt(3200) + 1500);
+                                HttpUtilTest tt = new HttpUtilTest();
+                                tt.sendPost(
+                                        &quot;https://www.baidu.com&quot;,
+                                        Thread.currentThread().getName());
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                }).start();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
+}
+</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

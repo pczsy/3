@@ -1,0 +1,83 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修三、ForkJoin分析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>三、ForkJoin分析</center></div><div class='banquan'>原文出处:本文由博客园博主ねぇ提供。<br/>
+原文连接:https://www.cnblogs.com/lee0527/p/11679953.html</div><br>
+    <h2 id="forkjoin分析">ForkJoin分析</h2>
+<h3 id="一forkjoin">一、ForkJoin</h3>
+<p>​ ForkJoin是由JDK1.7后提供多线并发处理框架。ForkJoin的框架的基本思想是分而治之。什么是分而治之？分而治之就是将一个复杂的计算，按照设定的阈值进行分解成多个计算，然后将各个计算结果进行汇总。相应的ForkJoin将复杂的计算当做一个任务。而分解的多个计算则是当做一个子任务。</p>
+<p><img src="./images/三、ForkJoin分析0.png" /></p>
+<h3 id="二forkjoin的使用">二、ForkJoin的使用</h3>
+<p>下面我们以计算一个长度为一个亿的随机数整数数组为例来展示一下ForkJoin的使用：</p>
+<p><strong>1.创建Task</strong></p>
+<p>​ 使用ForkJoin框架，需要创建一个ForkJoin的任务，而ForkJoinTask是一个抽象类，我们不需要去继承ForkJoinTask进行使用。因为ForkJoin框架为我们提供了RecursiveAction和RecursiveTask（子任务有返回值）。我们只需要继承ForkJoin为我们提供的抽象类的其中一个并且实现compute方法。</p>
+<pre><code><code>private static class SumTask extends RecursiveTask&lt;Integer&gt;{
+
+    //设定计算长度的阈值为总长度的十分之一也就是一千万
+    private final static int THRESHOLD = MakeArray.ARRAY_LENGTH/10;
+    private int[] src; //表示我们要实际统计的数组
+    private int fromIndex;//开始统计的下标
+    private int toIndex;//统计到哪里结束的下标
+
+    public SumTask(int[] src, int fromIndex, int toIndex) {
+        this.src = src;
+        this.fromIndex = fromIndex;
+        this.toIndex = toIndex;
+    }
+
+    @Override
+    protected Integer compute() {
+        //计算长度如果小于设定长度就不需要分解任务
+        if(toIndex-fromIndex &lt; THRESHOLD) {
+            int count = 0;
+            for(int i=fromIndex;i&lt;=toIndex;i++) {
+                count = count + src[i];
+            }
+            return count;
+        }else {
+            int mid = (fromIndex+toIndex)/2;
+            SumTask left = new SumTask(src,fromIndex,mid);
+            SumTask right = new SumTask(src,mid+1,toIndex);
+            //将任务进行拆分
+            invokeAll(left,right);
+            //连接返回结果
+            return left.join()+right.join();
+        }
+    }
+}</code></code></pre>
+<p><strong>2.使用ForkJoinPool进行执行</strong></p>
+<p>​ task要通过ForkJoinPool来执行，分割的子任务也会添加到当前工作线程的双端队列中，进入队列的头部。当一个工作线程中没有任务时，会从其他工作线程的队列尾部获取一个任务(工作窃取)。</p>
+<pre><code><code>public static void main(String[] args) {
+    ForkJoinPool pool = new ForkJoinPool();
+    int[] src = MakeArray.makeArray();
+    SumTask innerFind = new SumTask(src,0,src.length-1);
+    long start = System.currentTimeMillis();
+    pool.invoke(innerFind);//同步调用
+}</code></code></pre>
+<h3 id="三forkjoin注意点">三、ForkJoin注意点</h3>
+<p>​ 使用ForkJoin将相同的计算任务通过多线程的进行执行。从而能提高数据的计算速度。在google的中的大数据处理框架mapreduce就通过类似ForkJoin的思想。通过多线程提高大数据的处理。但是我们需要注意：</p>
+<ul>
+<li>使用这种多线程带来的数据共享问题，在处理结果的合并的时候如果涉及到数据共享的问题，我们尽可能使用JDK为我们提供的并发容器。</li>
+<li>ForkJoin也是通过多线程的方式进行处理任务。那么我们不得不考虑是否应该使用ForkJoin。因为当数据量不是特别大的时候，我们没有必要使用ForkJoin。因为多线程会涉及到上下文的切换。所以数据量不大的时候使用串行比使用多线程快。</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

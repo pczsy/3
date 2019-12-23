@@ -1,0 +1,161 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务</center></div><div class='banquan'>原文出处:本文由博客园博主Java知音*提供。<br/>
+原文连接:https://www.cnblogs.com/javazhiyin/p/11790688.html</div><br>
+    <p><strong>本文为实战SpringCloud响应式微服务系列教程第九章，讲解使用Spring WebFlux构建响应式RESTful服务。建议没有之前基础的童鞋，先看之前的章节，章节目录放在文末。</strong></p>
+<p>从本节开始我们将正式进入构建响应式服务的世界。在Spring boot的基础上，我们将引入全新的Spring WebFlux框架。</p>
+<p>WebFlux名称中的Flux来源于上章节介绍的来自Reactor框架中的Flux组件。该框架中包含了对响应式HTTP、服务器推送事件以及Websocket的客户端和服务端的支持。</p>
+<p>在构架响应式服务上，WebFlux支持两种不同的编程模型：</p>
+<ul class="list-paddingleft-2">
+<li>第一种是与SpringMvc中同样使用的基于java注解的方式；</li>
+<li>第二种是基于java8中提供的lambda表达式的函数式编程模型。</li>
+</ul>
+<h2>1.1使用 Spring Initializer初始化响应式web应用</h2>
+<p>创建WebFlux应用最简单的方式便是使用Spring boot提供的Spring Initializer初始化模板。</p>
+<p>直接访问Spring Initializer网站（http://start.spring.io），选择创建一个maven或者Gradle项目并制定相应的Group和Artifact，然后在添加依赖中选择maven进行代码依赖管理。</p>
+<p><img title="实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务" src="./images/实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务0.png" alt="实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务" data-original="./images/实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务0.png" /></p>
+<p>打开所下载项目中的pom文件，会找到如下依赖。</p>
+<blockquote>
+<ul class="list-paddingleft-2">
+<li>spring-boot-starter-webflux构成响应式web程序开发的基础；</li>
+<li>spring-boot-starter-test是包含JUnit、Spring boot Test、Mockito、AssertJ、JSONAssert以及Hamcerst等工具在内的测试组件库；</li>
+<li>reactor-test则是用来测试Reactor框架的测试组件；</li>
+<li>spring-boot-starter-data-mongodb-reactive和spring-boot-starter-data-redis-reactive则是响应式数据访问组件。</li>
+</ul>
+</blockquote>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-webflux<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">Lombok</span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.projectlombok<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>lombok<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>provided<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.16.22<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-data-mongodb-reactive<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">  redis </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-data-redis-reactive<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>io.projectreactor<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>reactor-test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p>至此，使用Spring WebFlux构架响应式服务的基础环境已经准备完毕。</p>
+<p>关于Spring WebFlux和传统的SpringMvc的关系可以自行百度了解，这里不做过多介绍。</p>
+<h2>1.2使用注解编程模型创建响应式RESTful服务</h2>
+<p>基于注解编程模型来创建响应式RESTful服务与使用传统SpringMvc非常类似。通过掌握响应式编程的基本概念和技巧，在webflux中使用这种编程模型几乎没有任何学习成本。</p>
+<h3>构建第一个响应式RESTful服务</h3>
+<p>第一个响应式RESTful服务来自于对之前HelloController示例进行改造，改造之后的代码如下：</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@RestController
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Helloontroller{
+     @GetMapping(</span>"/"<span style="color: #000000;">)
+     </span><span style="color: #0000ff;">public</span> Mono&lt;String&gt;<span style="color: #000000;"> index(){
+           </span><span style="color: #0000ff;">return</span> Mono.just("Hello Spring Boot"<span style="color: #000000;">);
+     }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>以上代码只有一个地方值得注意，即<code>index()</code>方法的返回值类型是<code>Mono&lt;String&gt;</code>类型，其中包含的字符串"Hello Spring Boot"或作为HTTP的响应内容。</p>
+<p>在浏览器中访问会得到如下结果：</p>
+<p><img title="实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务" src="./images/实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务1.png" alt="实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务" data-original="./images/实战SpringCloud响应式微服务系列教程（第九章）使用Spring WebFlux构建响应式RESTful服务1.png" /></p>
+<p>从以上代码可以看到使用Spring WebFlux和使用 Spring Mvc的不同在于，WebFlux所使用的类型是与响应式编程相对应的Flux和Mono对象，而不是简单的POJO，对于简单的Hello Word实力来说，这两个之间并没有什么太大的差别。</p>
+<p>但是对于复杂的应用来说，响应式编程的背压机制就会体现出来，可以带来整体性能的提升。在后续讲解中会有完整示例代码。</p>
+<h2>1.3使用函数式模型创建响应式RESTful服务</h2>
+<p>这部分内容与传统的SpringMvc构建RESTful服务有较大的差别。</p>
+<h3>（1）函数式编程模型</h3>
+<p>在Spring WebFlux中，函数式编程模型的核心概念是Router Functions，对标<code>@Controller</code>、<code>@RequestMapping</code>等标准的Spring Mvc注解。</p>
+<p>Router Functions提供一套函数式的API，用于创建Router和Handler对象。其中我们可以简单的把Handler对应为Controller，把Router对应为RequestMapping。</p>
+<p>当我们发起一个远程调用时，传入的HTTP请求由HandlerFunction处理，HandlerFunction本质上是一个接收ServerRequest并返回一个<code>Mono&lt;ServerResponse&gt;</code>的函数。ServerRequest和ServerResponse是一个不可变的接口，用来提供对底层HTTTP消息的友好访问。</p>
+<p>具体代码示例如下：</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> HelloWordHandlerFunction impllements HandlerFunction&lt;ServerResponse&gt;<span style="color: #000000;">{
+    @Override
+    </span><span style="color: #0000ff;">public</span> Mono&lt;ServerResponse&gt;<span style="color: #000000;"> handle(ServerRequest request){
+         </span><span style="color: #0000ff;">return</span> ServerResponse.ok().body(BodyInserters.fromObject("Hello Word"<span style="color: #000000;">))
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>关于ServerRequest和ServerResponse我们在这里不做过多介绍，详细了解可查阅相关资料。</p>
+<p>以上代码将ServerRequest和ServerResponse组合到一起创建了HandlerFunction。HandlerFunction是一个接口，可以通过实现该接口中的<code>handl()</code>方法来创建定制化的请求响应处理机制。</p>
+<p>通常我们会针对某个领域实体对象编写多个处理函数，所以推荐将多个处理函数分组到一个专门的Handler类中。例如我们编写一个PersonHandler专门实现各种针对Person领域对象的处理函数。</p>
+<p>代码如下：</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> PersonHandler{
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> PersonService personService;
+    </span><span style="color: #0000ff;">public</span> Mono&lt;ServerResponse&gt;<span style="color: #000000;"> getPersons(ServerRequest request){
+        </span><span style="color: #0000ff;">return</span> ServerResponse.ok().body(<span style="color: #0000ff;">this</span>.personService.getPersons(),Person.<span style="color: #0000ff;">class</span><span style="color: #000000;">)
+   }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<h3>（2）RouterFunction</h3>
+<p>上面我们已经通过HandlerFunction创建了请求的逻辑处理，接下来需要把具体的逻辑关联起来，RouterFunction可以帮助我们实现这一个目标。RouterFunction将传入的请求路由传入到具体的函数，它接收ServerRequest 并返回一个<code>Mono&lt;ServerResponse&gt;</code>。</p>
+<p>如果请求与特定路由匹配则返回处理函数的结果，否则返回一个空的Mono对象。RouterFunction与@ReuestMapping类似。代码如下：</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> personRouter{
+@Bean
+</span><span style="color: #0000ff;">public</span> RouterFunction&lt;ServerResponse&gt;<span style="color: #000000;"> routerPerson(PersonHandler personHandler){
+      </span><span style="color: #0000ff;">return</span> RouterFunctions.route(RequestPredicates.GET("/person"<span style="color: #000000;">)
+      .add(RequestPredicates.accept(MediaType.APPLICATION_JSON)),
+      personHandler::getPersons)
+}
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>本章节完</p>
+<h3>系列章节目录</h3>
+<p><a href="http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247489088&amp;idx=1&amp;sn=68f56dc89abbdad803b16f91e20e385c&amp;chksm=ebd6296cdca1a07aee0a76554f19c1e3b0df8a0357a9ade96cc22c656cf0f92ddf79b32eb339&amp;scene=21#wechat_redirect" target="_blank" data-itemshowtype="0" data-linktype="2">实战SpringCloud响应式微服务系列教程（第一章）</a></p>
+<p><a href="http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247489157&amp;idx=2&amp;sn=b473396d3b11a040508a9cc70f22c163&amp;chksm=ebd629a9dca1a0bf77edbe7cbce108e43371707b30dae0699eeac75464325b4122d820817b30&amp;scene=21#wechat_redirect" target="_blank" data-itemshowtype="0" data-linktype="2">实战SpringCloud响应式微服务系列教程（第二章）</a></p>
+<p><a href="http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247489407&amp;idx=2&amp;sn=48e31d4d54cd0bd7a31a77d322400df4&amp;chksm=ebd62853dca1a145a5477f24b1396c6895160493dac0e0e3a038bebd25cdf434a8cc9c091d85&amp;scene=21#wechat_redirect" target="_blank" data-itemshowtype="0" data-linktype="2">实战SpringCloud响应式微服务系列教程（第三章）</a></p>
+<p><a href="http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247489450&amp;idx=2&amp;sn=dd7ed3a0764b4a86caaa9e1de022dc7a&amp;chksm=ebd62886dca1a1903da1cd75ab9ef631eb5b9f58c9f316da615be1b0b139349476b54b7bf70c&amp;scene=21#wechat_redirect" target="_blank" data-itemshowtype="0" data-linktype="2">实战SpringCloud响应式微服务系列教程（第四章）</a></p>
+<p><a href="http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247489638&amp;idx=2&amp;sn=c43488a38ce0bd4534ceebf52b185e5e&amp;chksm=ebd6274adca1ae5cb770826c30f5c88c394e96fee9dda5010f87017463fad6cd18cc1a5c33b6&amp;scene=21#wechat_redirect" target="_blank" data-itemshowtype="0" data-linktype="2">实战SpringCloud响应式微服务系列教程（第五章）</a></p>
+<p><a href="http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247489831&amp;idx=2&amp;sn=7b8635e0b3627388dad7703579bad3b0&amp;chksm=ebd6260bdca1af1d242dc20f160f96dda5595fa416dd5d5a6c7f37d96ab26c5273b671d98125&amp;scene=21#wechat_redirect" target="_blank" data-itemshowtype="0" data-linktype="2">实战SpringCloud响应式微服务系列教程（第六章）</a></p>
+<p><a href="http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247489962&amp;idx=2&amp;sn=9ea324e5b94a16f91498843c0f0c004d&amp;chksm=ebd62686dca1af903949b46549f7d7cf0caf81a13a47234afee1be0bc3931c85cc770e21e29d&amp;scene=21#wechat_redirect" target="_blank" data-itemshowtype="0" data-linktype="2">实战SpringCloud响应式微服务系列教程（第七章）</a></p>
+<p><a href="http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247490243&amp;idx=2&amp;sn=245419c6634987d0e915c13efe280a44&amp;chksm=ebd625efdca1acf9b474724a618b3342f5ed4230acdd35c9a4afd6759e1d1cf15cd9402f74cc&amp;scene=21#wechat_redirect" target="_blank" data-itemshowtype="0" data-linktype="2">实战SpringCloud响应式微服务系列教程（第八章）</a></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

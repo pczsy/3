@@ -1,0 +1,161 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring Cloud开发人员如何解决服务冲突和实例乱窜？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring Cloud开发人员如何解决服务冲突和实例乱窜？</center></div><div class='banquan'>原文出处:本文由博客园博主zlt2000提供。<br/>
+原文连接:https://www.cnblogs.com/zlt2000/p/11459390.html</div><br>
+    <p><img src="./images/Spring Cloud开发人员如何解决服务冲突和实例乱窜？0.png" alt="file" /></p>
+<h2 id="一背景">一、背景</h2>
+<p>在我们开发微服务架构系统时，虽然说每个微服务都是孤立的可以单独开发，但实际上并非如此，要调试和测试你的服务不仅需要您的微服务启动和运行，还需要它的上下文服务、依赖的基础服务等都要运行；但如果你的系统服务数和依赖比较多呢，那就是一个比较棘手的问题！有没有办法能提高开发效率呢？</p>
+<p><img src="./images/Spring Cloud开发人员如何解决服务冲突和实例乱窜？1.png" alt="file" /></p>
+<p>如上图所示，我们能不能用<strong>服务器把所有的服务都部署</strong>起来，然后开发<strong>只在本地运行自己所负责开发的服务</strong>，因为需要依赖其他服务所以本地启动的服务也需要注册到公共的注册中心里；</p>
+<blockquote>
+<p>例子中<code>业务服务B</code>有3台实例注册到注册中心里<br />
+分别是：服务器的、开发A与开发B自己本机启动的</p>
+</blockquote>
+<p>但是这样做又会出现新的问题：<strong>服务会冲突乱窜</strong>，意思就是<code>开发A</code>在debug自己的<code>业务服务B</code>服务的时候可能请求会跳转到其他人的实例上(服务器、开发B)</p>
+<p> </p>
+<h2 id="二解决思路">二、解决思路</h2>
+<p>解决这个服务乱窜问题有一个比较优雅的方式就是<code>自定义负载均衡规则</code>，主要实现以下目标：</p>
+<ol>
+<li><strong>普通用户</strong>访问服务器上的页面时，请求的所有路由只调用<code>服务器上的实例</code></li>
+<li><strong>开发A</strong>访问时，请求的所有路由优先调用<code>开发A本机启动的实例</code>，如果没有则调用<code>服务器上的实例</code></li>
+<li><strong>开发B</strong>访问时同上，请求的所有路由优先调用<code>开发B本机启动的实例</code>，如果没有则调用<code>服务器上的实例</code></li>
+</ol>
+<p> </p>
+<h2 id="三具体实现">三、具体实现</h2>
+<p>要实现上面的目标有两个比较关键的问题需要解决</p>
+<ol>
+<li>区分<code>不同用户的服务实例</code></li>
+<li>实现<code>自定义负载均衡规则</code></li>
+</ol>
+<h3 id="区分不同用户的服务实例">3.1. 区分<strong>不同用户的服务实例</strong></h3>
+<p>直接使用注册中心的元数据(metadata)来区分就可以了</p>
+<blockquote>
+<p>主流的注册中心都带有元数据管理<br />
+以<code>Nacos</code>为例，只需要在配置文件下添加</p>
+</blockquote>
+<pre><code><code>spring:
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        metadata:
+          version: zlt</code></code></pre>
+<blockquote>
+<p>metadata下的<code>version</code>就是我添加的元数据<code>key</code>为version，<code>value</code>为zlt</p>
+</blockquote>
+<p>启动服务后元数据就会注册上去，如下图<br />
+<img src="./images/Spring Cloud开发人员如何解决服务冲突和实例乱窜？2.png" alt="file" /></p>
+<p>经过元数据区分后，目前是下面这个情况</p>
+<ul>
+<li>服务器的实例<code>version</code>为空</li>
+<li>开发人员自己本地启动的实例<code>version</code>为唯一标识(自己的名字)<br />
+<img src="./images/Spring Cloud开发人员如何解决服务冲突和实例乱窜？3.png" alt="file" /></li>
+</ul>
+<p> </p>
+<h3 id="自定义负载均衡规则">3.2. 自定义负载均衡规则</h3>
+<p>首先在<code>Spring Cloud</code>微服务框架里实例的负载均衡是由<code>Ribbon</code>负责。<br />
+<strong>CustomIsolationRule</strong>详细类信息可查看：<a href="https://gitee.com/zlt2000/microservices-platform/blob/master/zlt-commons/zlt-ribbon-spring-boot-starter/src/main/java/com/central/common/ribbon/rule/CustomIsolationRule.java">CustomIsolationRule.java</a></p>
+<pre class="java"><code>public class CustomIsolationRule extends RoundRobinRule {
+    /**
+     * 优先根据版本号取实例
+     */
+    @Override
+    public Server choose(ILoadBalancer lb, Object key) {
+        if (lb == null) {
+            return null;
+        }
+        String version = LbIsolationContextHolder.getVersion();
+        List&lt;Server&gt; targetList = null;
+        List&lt;Server&gt; upList = lb.getReachableServers();
+        if (StrUtil.isNotEmpty(version)) {
+            //取指定版本号的实例
+            targetList = upList.stream().filter(
+                    server -&gt; version.equals(
+                            ((NacosServer) server).getMetadata().get(CommonConstant.METADATA_VERSION)
+                    )
+            ).collect(Collectors.toList());
+        }
+
+        if (CollUtil.isEmpty(targetList)) {
+            //只取无版本号的实例
+            targetList = upList.stream().filter(
+                    server -&gt; {
+                        String metadataVersion = ((NacosServer) server).getMetadata().get(CommonConstant.METADATA_VERSION);
+                        return StrUtil.isEmpty(metadataVersion);
+                    }
+            ).collect(Collectors.toList());
+        }
+
+        if (CollUtil.isNotEmpty(targetList)) {
+            return getServer(targetList);
+        }
+        return super.choose(lb, key);
+    }
+
+    /**
+     * 随机取一个实例
+     */
+    private Server getServer(List&lt;Server&gt; upList) {
+        int nextInt = RandomUtil.randomInt(upList.size());
+        return upList.get(nextInt);
+    }
+}</code></code></pre>
+<blockquote>
+<p>继承轮询规则<code>RoundRobinRule</code>来实现，主要的逻辑为</p>
+<ol>
+<li>根据上游输入的版本号<code>version</code>，有值的话则取<code>服务元信息</code>中<code>version</code>值一样的实例</li>
+<li>上游的版本号<code>version</code>没值或者该版本号匹配不到任何服务，则只取<code>服务元信息</code>中<code>version</code>值为空的实例</li>
+</ol>
+</blockquote>
+<p> <br />
+<strong>并通过配置开关控制是否开启自定义负载规则</strong></p>
+<pre class="java"><code>@Configuration
+@ConditionalOnProperty(value = &quot;zlt.ribbon.isolation.enabled&quot;, havingValue = &quot;true&quot;)
+@RibbonClients(defaultConfiguration = {RuleConfigure.class})
+public class LbIsolationConfig {
+
+}</code></code></pre>
+<p> </p>
+<h2 id="四总结">四、总结</h2>
+<p>上面提到的<strong>区分服务实例</strong>和<strong>自定义负载规则</strong>为整个解决思路的核心点，基本实现了服务实例的隔离，剩下要做的就是<strong>上游的<code>version</code>怎样传递呢?</strong>，下面我提供两个思路</p>
+<ul>
+<li>开发人员自己启动前端工程，通过配置参数，统一在前端工程传递<code>version</code></li>
+<li>通过<code>postman</code>调用接口的时候在header参数中添加<br />
+<img src="./images/Spring Cloud开发人员如何解决服务冲突和实例乱窜？4.png" alt="file" /></li>
+</ul>
+<p> <br />
+<strong>参考</strong><br />
+<a href="https://github.com/Nepxion/Discovery" class="uri">https://github.com/Nepxion/Discovery</a></p>
+<p> <br />
+<strong>推荐阅读</strong></p>
+<ul>
+<li><a href="https://mp.weixin.qq.com/s?__biz=MjM5OTI2NDMwMg==&amp;mid=2247483653&amp;idx=1&amp;sn=df9bf5e428c6908e2fee3f4b32c2a918&amp;chksm=a73f68449048e152cffb68235f533ffddd84f4de19e553d217d645e7916cc103420bcc7d375a&amp;token=1742248355&amp;lang=zh_CN#rd">日志排查问题困难？分布式日志链路跟踪来帮你</a></li>
+<li><a href="https://mp.weixin.qq.com/s?__biz=MjM5OTI2NDMwMg==&amp;mid=2247483674&amp;idx=1&amp;sn=ca1148576652ac130501207a1898e1c2&amp;chksm=a73f685b9048e14d80f1b218c1cdcfce8233bba4440338a8ef52678341215f7b934ff0baad85&amp;token=1742248355&amp;lang=zh_CN#rd">zuul集成Sentinel最新的网关流控组件</a></li>
+<li><a href="https://mp.weixin.qq.com/s?__biz=MjM5OTI2NDMwMg==&amp;mid=2247483680&amp;idx=1&amp;sn=f9767a78827e5cc189e97c03054bdf15&amp;chksm=a73f68619048e1775d7eca5531b565ca36ed1d122ba07f8d33b4353918863470ba24be79daa5&amp;token=1742248355&amp;lang=zh_CN#rd">阿里注册中心Nacos生产部署方案</a></li>
+<li><a href="https://mp.weixin.qq.com/s?__biz=MjM5OTI2NDMwMg==&amp;mid=2247483678&amp;idx=1&amp;sn=39f02ea3617f2d46dd005568d9b7ed0d&amp;chksm=a73f685f9048e14951f626c415f5a7c8a8f1ee82c3d9411b52a44f8013d107c3001e4468c49d&amp;token=1742248355&amp;lang=zh_CN#rd">Spring Boot自定义配置项在IDE里面实现自动提示</a></li>
+<li><a href="https://mp.weixin.qq.com/s?__biz=MjM5OTI2NDMwMg==&amp;mid=2247483694&amp;idx=1&amp;sn=4bd9c5865f18f25dd3f38e1f0a9e8701&amp;chksm=a73f686f9048e17903787b98dda5d5c74bb165c27b44a44887e23b6f534d3a54c3b6a13f1d3b&amp;token=19543220&amp;lang=zh_CN#rd">Spring Cloud Zuul的动态路由怎样做？集成Nacos实现很简单</a></li>
+</ul>
+<p> <br />
+<img src="./images/Spring Cloud开发人员如何解决服务冲突和实例乱窜？5.png" alt="file" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

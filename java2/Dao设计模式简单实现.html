@@ -1,0 +1,265 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Dao设计模式简单实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Dao设计模式简单实现</center></div><div class='banquan'>原文出处:本文由博客园博主牛cattle提供。<br/>
+原文连接:https://www.cnblogs.com/ysyasd/p/11941423.html</div><br>
+    <h1>一、什么是Dao设计模式</h1>
+<p>　　Dao设计模式封装了操作具体数据库的细节，对业务层提供操作数据库的接口，因此降低了业务层代码与具体数据库之间的耦合，有利于人员分工，增加了程序的可移植性。</p>
+<p>　　Dao设计模式中主要包含这5个模块：</p>
+<p>　　　　1、VO类：VO（Value Object）即值对象，每一个值对象对应一张数据库表，便于我们传递数据。</p>
+<p>　　　　2、Dao接口：Dao接口定义了操作数据库的方法，业务层通过调用这些方法来操作数据库。</p>
+<p>　　　　3、Dao实现类：操作数据库的方法的具体实现，封装了操作数据库的细节。</p>
+<p>　　　　4、Dao工厂类：用于代替new操作，进一步降低业务层与数据层之间的耦合。</p>
+<p>　　　　5、数据库连接类：封装了连接数据库、关闭数据库等常用的操作，减少重复编码。</p>
+<p>　　下面我们应用Dao设计模式来实现一个简单的转账操作，加深对其的理解。</p>
+<h1>二、Dao设计模式实现</h1>
+<p>　　首先，我们创建vo、dao、factory、util包来分别存放Dao设计模式5个模块的代码。因为我们使用的是JDBC连接MySQL数据库，所以还需要创建一个lib包存放并引用JDBC驱动。除此之外，我们还需要创建一个test包进行代码的测试。创建好后的目录结构如下：</p>
+<p><img src="./images/Dao设计模式简单实现0.png" alt="" width="293" height="222" /></p>
+<p>　　接着设计一张user表，表中包含了用户基本信息和余额，并插入一些数据。</p>
+<p><img src="./images/Dao设计模式简单实现1.png" alt="" /></p>
+<p>　　根据user表在vo包中创建VO类user.java。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> vo;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> User {
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> id;
+</span><span style="color: #008080;"> 6</span>     
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String username;
+</span><span style="color: #008080;"> 8</span>     
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> sum;
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getId() {
+</span><span style="color: #008080;">12</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> id;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setId(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id) {
+</span><span style="color: #008080;">16</span>         <span style="color: #0000ff;">this</span>.id =<span style="color: #000000;"> id;
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getUsername() {
+</span><span style="color: #008080;">20</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> username;
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setUsername(String username) {
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">this</span>.username =<span style="color: #000000;"> username;
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getSum() {
+</span><span style="color: #008080;">28</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> sum;
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">30</span> 
+<span style="color: #008080;">31</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setSum(<span style="color: #0000ff;">int</span><span style="color: #000000;"> sum) {
+</span><span style="color: #008080;">32</span>         <span style="color: #0000ff;">this</span>.sum =<span style="color: #000000;"> sum;
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">36</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+</span><span style="color: #008080;">37</span>         <span style="color: #0000ff;">return</span> "User [id=" + id + ", username=" + username + ", sum=" + sum + "]"<span style="color: #000000;">;
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">39</span>     
+<span style="color: #008080;">40</span> }</code></pre>
+
+<p>　　在util包中创建数据库连接类JDBC.java。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> util;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.Connection;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.DriverManager;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.ResultSet;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.SQLException;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.Statement;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JDBC {
+</span><span style="color: #008080;">10</span>     <span style="color: #008000;">//</span><span style="color: #008000;">获取数据库链接</span>
+<span style="color: #008080;">11</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> Connection getConnection() {
+</span><span style="color: #008080;">12</span>         Connection con = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">14</span>             String url = "jdbc:mysql://localhost:3306/user?serverTimezone=Asia/Shanghai"<span style="color: #000000;">;
+</span><span style="color: #008080;">15</span>             Class.forName("com.mysql.cj.jdbc.Driver"<span style="color: #000000;">);
+</span><span style="color: #008080;">16</span>             con = DriverManager.getConnection(url, "root", "root"<span style="color: #000000;">);
+</span><span style="color: #008080;">17</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">20</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> con;
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">22</span>     <span style="color: #008000;">//</span><span style="color: #008000;">关闭资源</span>
+<span style="color: #008080;">23</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> close(Connection con, Statement st, ResultSet rs) {
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">25</span>             <span style="color: #0000ff;">if</span> (rs != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">                rs.close();
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">28</span>             <span style="color: #0000ff;">if</span> (st != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                st.close();
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">31</span>             <span style="color: #0000ff;">if</span> (con != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">                con.close();
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">34</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">38</span> }</code></pre>
+
+<p>　　经过分析，该转账系统需要两类数据库操作，分别是&ldquo;查询用户信息&rdquo;和&ldquo;更新用户余额&rdquo;。因此我们在dao包中创建IUserDao.java接口并定义这两种方法。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> dao;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.Connection;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.SQLException;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> vo.User;
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> IUserDao {
+</span><span style="color: #008080;"> 9</span>     <span style="color: #008000;">//</span><span style="color: #008000;">根据用户名查找用户信息</span>
+<span style="color: #008080;">10</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> User selectUserByName(Connection con, User user);
+</span><span style="color: #008080;">11</span>     <span style="color: #008000;">//</span><span style="color: #008000;">根据用户名更新用户余额</span>
+<span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> updateSumByName(Connection con, User user) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException;
+</span><span style="color: #008080;">13</span> }</code></pre>
+
+<p>　　接着在dao包中创建该接口的实现类UserDaoImpl.java，实现这两种方法。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> dao;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.Connection;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.PreparedStatement;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.ResultSet;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.SQLException;
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> util.JDBC;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> vo.User;
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserDaoImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> IUserDao {
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">14</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> User selectUserByName(Connection con, User user) {
+</span><span style="color: #008080;">15</span>         String sql = "select * from user where username = ?"<span style="color: #000000;">;
+</span><span style="color: #008080;">16</span>         PreparedStatement pStatement = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">17</span>         ResultSet rs = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">18</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">19</span>             pStatement =<span style="color: #000000;"> con.prepareStatement(sql);
+</span><span style="color: #008080;">20</span>             pStatement.setString(1<span style="color: #000000;">, user.getUsername());
+</span><span style="color: #008080;">21</span>             rs =<span style="color: #000000;"> pStatement.executeQuery();
+</span><span style="color: #008080;">22</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (rs.next()) {
+</span><span style="color: #008080;">23</span>                 user.setId(rs.getInt("id"<span style="color: #000000;">));
+</span><span style="color: #008080;">24</span>                 user.setUsername(rs.getString("username"<span style="color: #000000;">));
+</span><span style="color: #008080;">25</span>                 user.setSum(rs.getInt("sum"<span style="color: #000000;">));
+</span><span style="color: #008080;">26</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> user;
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">28</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">30</span>         }<span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">31</span>             JDBC.close(<span style="color: #0000ff;">null</span><span style="color: #000000;">, pStatement, rs);
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">33</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">35</span> 
+<span style="color: #008080;">36</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">37</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> updateSumByName(Connection con, User user) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+</span><span style="color: #008080;">38</span>         String sql = "update user set sum = ? where username = ?"<span style="color: #000000;">;
+</span><span style="color: #008080;">39</span>         PreparedStatement pStatement = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">40</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">41</span>             pStatement =<span style="color: #000000;"> con.prepareStatement(sql);
+</span><span style="color: #008080;">42</span>             pStatement.setInt(1<span style="color: #000000;">, user.getSum());
+</span><span style="color: #008080;">43</span>             pStatement.setString(2<span style="color: #000000;">, user.getUsername());
+</span><span style="color: #008080;">44</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> pStatement.executeUpdate();
+</span><span style="color: #008080;">45</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">47</span>             <span style="color: #008000;">//</span><span style="color: #008000;">抛出异常，便于进行事务处理</span>
+<span style="color: #008080;">48</span>             <span style="color: #0000ff;">throw</span><span style="color: #000000;"> e;
+</span><span style="color: #008080;">49</span>         }<span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">50</span>             JDBC.close(<span style="color: #0000ff;">null</span>, pStatement, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">52</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">53</span> }</code></pre>
+
+<p>　　最后，我们还需要在factory包中创建Dao工厂类DaoFactory.java。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> factory;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> dao.IUserDao;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> dao.UserDaoImpl;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DaoFactory {
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> IUserDao getUserDao() {
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> UserDaoImpl();
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span> }</code></pre>
+
+<p>　　到这里，转账系统的Dao层就设计好了。我们在test包中创建Main.java进行测试。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> test;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.Connection;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.SQLException;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> dao.IUserDao;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> factory.DaoFactory;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> util.JDBC;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> vo.User;
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Main {
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;">14</span>         Connection con =<span style="color: #000000;"> JDBC.getConnection();
+</span><span style="color: #008080;">15</span>         IUserDao userDao =<span style="color: #000000;"> DaoFactory.getUserDao();
+</span><span style="color: #008080;">16</span>         <span style="color: #008000;">//</span><span style="color: #008000;">被转账的用户</span>
+<span style="color: #008080;">17</span>         User user_in = <span style="color: #0000ff;">new</span><span style="color: #000000;"> User();
+</span><span style="color: #008080;">18</span>         user_in.setUsername("ysy"<span style="color: #000000;">);
+</span><span style="color: #008080;">19</span>         user_in =<span style="color: #000000;"> userDao.selectUserByName(con, user_in);
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">        System.out.println(user_in);
+</span><span style="color: #008080;">21</span>         <span style="color: #008000;">//</span><span style="color: #008000;">转账的用户</span>
+<span style="color: #008080;">22</span>         User user_out = <span style="color: #0000ff;">new</span><span style="color: #000000;"> User();
+</span><span style="color: #008080;">23</span>         user_out.setUsername("管理员"<span style="color: #000000;">);
+</span><span style="color: #008080;">24</span>         user_out =<span style="color: #000000;"> userDao.selectUserByName(con, user_out);
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        System.out.println(user_out);
+</span><span style="color: #008080;">26</span>         <span style="color: #008000;">//</span><span style="color: #008000;">转账30元</span>
+<span style="color: #008080;">27</span>         user_in.setSum(user_in.getSum() + 30<span style="color: #000000;">);
+</span><span style="color: #008080;">28</span>         user_out.setSum(user_out.getSum() - 30<span style="color: #000000;">);
+</span><span style="color: #008080;">29</span>         <span style="color: #008000;">//</span><span style="color: #008000;">事务处理</span>
+<span style="color: #008080;">30</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">31</span>             con.setAutoCommit(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">            userDao.updateSumByName(con, user_in);
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">            userDao.updateSumByName(con, user_out);
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">            con.commit();
+</span><span style="color: #008080;">35</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">37</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                con.rollback();
+</span><span style="color: #008080;">39</span>             } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e1) {
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">                e1.printStackTrace();
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">43</span>         <span style="color: #008000;">//</span><span style="color: #008000;">查询转账结果</span>
+<span style="color: #008080;">44</span>         user_in =<span style="color: #000000;"> userDao.selectUserByName(con, user_in);
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">        System.out.println(user_in);
+</span><span style="color: #008080;">46</span>         user_out =<span style="color: #000000;"> userDao.selectUserByName(con, user_out);
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">        System.out.println(user_out);
+</span><span style="color: #008080;">48</span>         JDBC.close(con, <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">50</span> }</code></pre>
+
+<p>　　执行结果如下：</p>
+<p><img src="./images/Dao设计模式简单实现2.png" alt="" width="433" height="119" /></p>
+<p>　　最终的目录结构如下：</p>
+<p><img src="./images/Dao设计模式简单实现3.png" alt="" width="288" height="335" /></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

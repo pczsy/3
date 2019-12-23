@@ -1,0 +1,126 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用Java8 Stream API对Map按键或值进行排序' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用Java8 Stream API对Map按键或值进行排序</center></div><div class='banquan'>原文出处:本文由博客园博主字母哥博客提供。<br/>
+原文连接:https://www.cnblogs.com/zimug/p/11781375.html</div><br>
+    <h2 id="一什么是java-8-stream">一、什么是Java 8 Stream</h2>
+<p>使用Java 8 Streams，我们可以按键和按值对映射进行排序。下面是它的工作原理：</p>
+<p><img src="./images/使用Java8 Stream API对Map按键或值进行排序0.png" alt="Java Stream函数式编程？用过都说好，案例图文详解送给你" /></p>
+<ol>
+<li>将Map或List等集合类对象转换为Stream对象</li>
+<li>使用Streams的<code>sorted()</code>方法对其进行排序</li>
+<li>最终将其返回为<code>LinkedHashMap</code>（可以保留排序顺序）</li>
+</ol>
+<p><code>sorted()</code>方法以<code>Comparator</code>作为参数，从而可以按任何类型的值对Map进行排序。如果对Comparator不熟悉，可以看本号前几天的文章，有一篇文章专门介绍了使用Comparator对List进行排序。</p>
+<h2 id="二学习一下hashmap的merge函数">二、学习一下HashMap的merge()函数</h2>
+<p>在学习Map排序之前，有必要讲一下HashMap的merge()函数，该函数应用场景就是当Key重复的时候，如何处理Map的元素值。这个函数有三个参数：</p>
+<ul>
+<li>参数一：向map里面put的键</li>
+<li>参数二：向map里面put的值</li>
+<li>参数三：如果键发生重复，如何处理值。可以是一个函数，也可以写成lambda表达式。</li>
+</ul>
+<pre><code><code>        String k = &quot;key&quot;;
+        HashMap&lt;String, Integer&gt; map = new HashMap&lt;String, Integer&gt;() {{
+            put(k, 1);
+        }};
+        map.merge(k, 2, (oldVal, newVal) -&gt; oldVal + newVal);</code></code></pre>
+<p>看上面一段代码，我们首先创建了一个HashMap，并往里面放入了一个键值为k:1的元素。当我们调用merge函数，往map里面放入k:2键值对的时候，k键发生重复，就执行后面的lambda表达式。表达式的含义是：返回旧值oldVal加上新值newVal(1+2)，现在map里面只有一项元素那就是k:3。</p>
+<blockquote>
+<p>其实lambda表达式很简单：表示匿名函数，箭头左侧是参数，箭头右侧是函数体。函数的参数类型和返回值，由代码上下文来确定。</p>
+</blockquote>
+<h2 id="三按map的键排序">三、按Map的键排序</h2>
+<p>下面一个例子使用Java 8 Stream按Map的键进行排序：</p>
+<pre class="java"><code>// 创建一个Map，并填入数据
+Map&lt;String, Integer&gt; codes = new HashMap&lt;&gt;();
+codes.put(&quot;United States&quot;, 1);
+codes.put(&quot;Germany&quot;, 49);
+codes.put(&quot;France&quot;, 33);
+codes.put(&quot;China&quot;, 86);
+codes.put(&quot;Pakistan&quot;, 92);
+
+// 按照Map的键进行排序
+Map&lt;String, Integer&gt; sortedMap = codes.entrySet().stream()    
+        .sorted(Map.Entry.comparingByKey())
+        .collect(
+                Collectors.toMap(
+                    Map.Entry::getKey, 
+                    Map.Entry::getValue,
+                    (oldVal, newVal) -&gt; oldVal,
+                    LinkedHashMap::new
+                )
+        );
+
+// 将排序后的Map打印
+sortedMap.entrySet().forEach(System.out::println);
+</code></code></pre>
+<p>看上文中第二段代码：</p>
+<ul>
+<li>首先使用entrySet().stream() 将Map类型转换为Stream流类型。</li>
+<li>然后使用sorted方法排序，排序的依据是Map.Entry.comparingByKey()，也就是按照Map的键排序</li>
+<li>最后用collect方法将Stream流转成LinkedHashMap。 其他参数都好说，重点看第三个参数，就是一个merge规则的lambda表达式，与merge方法的第三个参数的用法一致。由于本例中没有重复的key，所以新值旧值随便返回一个即可。</li>
+</ul>
+<p>上面的程序将在控制台上打印以下内容，键（国家/地区名称）以自然字母顺序排序：</p>
+<pre class="plaintext"><code>China=86
+France=33
+Germany=49
+Pakistan=92
+United States=1</code></code></pre>
+<blockquote>
+<p><strong>请注意</strong>使用<code>LinkedHashMap</code>来存储排序的结果以保持顺序。默认情况下，<code>Collectors.toMap()</code>返回<code>HashMap</code>。<code>HashMap</code>不能保证元素的顺序。</p>
+</blockquote>
+<p>如果希望按照键进行逆向排序，加入下图中红色部分代码即可。<br />
+<img src="./images/使用Java8 Stream API对Map按键或值进行排序1.png" /></p>
+<h2 id="四按map的值排序">四、按Map的值排序</h2>
+<p>当然，您也可以使用Stream API按其值对Map进行排序：</p>
+<pre class="java"><code>Map&lt;String, Integer&gt; sortedMap2 = codes.entrySet().stream()
+        .sorted(Map.Entry.comparingByValue())
+        .collect(Collectors.toMap(
+                Map.Entry::getKey,
+                Map.Entry::getValue,
+                (oldVal, newVal) -&gt; oldVal,
+                LinkedHashMap::new));
+
+sortedMap2.entrySet().forEach(System.out::println);</code></code></pre>
+<p>这是显示Map按值排序的输出：</p>
+<pre class="plaintext"><code>United States=1
+France=33
+Germany=49
+China=86
+Pakistan=92</code></code></pre>
+<h2 id="五使用treemap按键排序">五、使用TreeMap按键排序</h2>
+<p>大家可能都知道TreeMap内的元素是有顺序的，所以利用TreeMap排序也是可取的一种方法。您需要做的就是创建一个<code>TreeMap</code>对象，并将数据从<code>HashMap</code>put到<code>TreeMap</code>中，非常简单：</p>
+<pre class="java"><code>// 将 `HashMap` 转为 `TreeMap`
+Map&lt;String, Integer&gt; sorted = new TreeMap&lt;&gt;(codes);</code></code></pre>
+<p>这是输出：</p>
+<pre class="plaintext"><code>China=86
+France=33
+Germany=49
+Pakistan=92
+United States=1</code></code></pre>
+<p>如上所示，键（国家/地区名称）以自然字母顺序排序。</p>
+<h2 id="期待您的关注">期待您的关注</h2>
+<ul>
+<li>博主最近新写了一本书：<a href="http://springboot.zimug.com">《手摸手教您学习SpringBoot系列-16章97节》</a></li>
+<li>本文转载注明出处（必须带连接，不能只转文字）：<a href="http://www.zimug.com">字母哥博客</a>。</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,43 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修简单实现JDBC自动加载驱动，简化数据连接和关闭数据库连接' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>简单实现JDBC自动加载驱动，简化数据连接和关闭数据库连接</center></div><div class='banquan'>原文出处:本文由博客园博主Kong丶提供。<br/>
+原文连接:https://www.cnblogs.com/kongnote/p/11563657.html</div><br>
+    <p>package util;</p>
+<p>import java.io.File;<br />import java.io.FileInputStream;<br />import java.io.IOException;<br />import java.sql.*;<br />import java.util.Properties;</p>
+<p>/**<br /> * 较为繁琐并且存在【通用性代码】<br /> * 1. 数据库连接的过程<br /> * 驱动加载，必要参数和获取数据库连接<br /> * 2. 数据库操作使用的资源关闭问题<br /> * &lt;p&gt;<br /> * JDBCUtil这个工具类能够给我们提供什么便利<br /> * 1. 自动加载驱动，预处理所有的必要参数<br /> * 2. 简化获取数据库连接的方法，改为getConnection();<br /> * 3. 简化关闭数据库连接使用的资源，改为统一的close方法<br /> * 4. 所有的方法都是通过类名直接调用，摆脱类对象约束，使用static修饰的静态成员方法<br /> *<br /> * @author Anonymous<br /> */<br />public class JdbcUtil {</p>
+<p>    // 数据库连接所需的必要条件<br />    private static String url = null;<br />    private static String user = null;<br />    private static String password = null;</p>
+<p>    // 使用静态代码块完成自动加载，辅助程序运行的必要参数<br />    static {<br />        try {<br />            // 1. 准备当前db.properties输入字节流对象<br />            FileInputStream fis = new FileInputStream(new File("./src/db.properties"));</p>
+<p>            // 2. 获取一个Properties类对象<br />            Properties properties = new Properties();</p>
+<p>            // 3. 使用load方法，获取db.properties文件内容到Properties类对象<br />            properties.load(fis);</p>
+<p>            // 4. 通过Properties类对象，获取对应的属性<br />            url = properties.getProperty("url");<br />            user = properties.getProperty("user");<br />            password = properties.getProperty("password");</p>
+<p>            Class.forName(properties.getProperty("driverClass"));<br />        } catch (IOException | ClassNotFoundException e) {<br />            e.printStackTrace();<br />        }<br />    }</p>
+<p>    /**<br />     * 静态成员方法，获取对应数据库的java.sql.Connection连接对象<br />     *<br />     * @return java.sql.Connection 数据库连接对象，如果发生意外返回null<br />     */<br />    public static Connection getConnection() {<br />        Connection connection = null;</p>
+<p>        try {<br />            connection = DriverManager.getConnection(url, user, password);<br />        } catch (SQLException e) {<br />            e.printStackTrace();<br />        }</p>
+<p>        return connection;<br />    }</p>
+<p>    /**<br />     * 关闭数据库Connection连接对象<br />     *<br />     * @param connection java.sql.Connection 数据库连接对象<br />     */<br />    public static void close(Connection connection) {<br />        close(connection, null, null);<br />    }</p>
+<p>    /**<br />     * 关闭数据库Connection连接对象，以及Statement数据库SQL语句搬运工对象<br />     *<br />     * @param connection java.sql.Connection 数据库连接对象<br />     * @param statement  java.sql.Statement 数据库SQL语句搬运工对象<br />     */<br />    public static void close(Connection connection, Statement statement) {<br />        close(connection, statement, null);<br />    }</p>
+<p>    /**<br />     * 关闭数据库Connection连接对象，Statement数据库SQL语句搬运工对象以及查询结果集对象ResultSet<br />     *<br />     * @param connection java.sql.Connection 数据库连接对象<br />     * @param statement  java.sql.Statement 数据库SQL语句搬运工对象<br />     * @param resultSet java.sql.ResultSet 查询结果集类对象<br />     */<br />    public static void close(Connection connection, Statement statement, ResultSet resultSet) {<br />        try {</p>
+<p>            if (resultSet != null) {<br />                resultSet.close();<br />            }</p>
+<p>            if (statement != null) {<br />                statement.close();<br />            }</p>
+<p>            if (connection != null) {<br />                connection.close();<br />            }<br />        } catch (SQLException e) {<br />            e.printStackTrace();<br />        }<br />    }<br />}</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

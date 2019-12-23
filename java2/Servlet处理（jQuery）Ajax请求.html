@@ -1,0 +1,524 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Servlet处理（jQuery）Ajax请求' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Servlet处理（jQuery）Ajax请求</center></div><div class='banquan'>原文出处:本文由博客园博主我想和你拍照片提供。<br/>
+原文连接:https://www.cnblogs.com/1314520wly/p/love.html</div><br>
+    <p><strong><span style="font-size: 18px;">1. jQuery</span></strong></p>
+<p><strong><span style="font-size: 18px;">&nbsp; &nbsp;&nbsp;</span></strong><span style="font-size: 16px;">jQuery是一个JavaScript函数库，极大的简化了JavaScript编程，很容易学习。jQuery是目前最流行的开源js框架，并且提供了大量的扩展。</span></p>
+<p><span style="font-size: 18px;"><strong>2. Ajax</strong></span><span style="font-size: 16px;"><br /></span></p>
+<p><span style="font-size: 18px;"><strong>&nbsp; &nbsp;&nbsp;</strong><span style="font-size: 16px;">Ajax(Asynchronous JavaScript and XML，异步JavaScript和XML)时一种创建交互式网页应用的网页开发技术，它并不是一项新的技术，其产生的目的是用于实现页面的局部刷新。通过Ajax技术可以使之前的应用程序在每次提交时不用进行页面的整体刷新，从而提升操作的性能。</span></span></p>
+<p><strong><span style="font-size: 18px;">3. GET和POST</span></strong></p>
+<p><strong><span style="font-size: 18px;">&nbsp; &nbsp;&nbsp;</span></strong><span style="font-size: 16px;">两种最常用的 HTTP 方法是：GET 和 POST。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 定义：GET是从指定的资源请求数据，POST是从指定的资源提交要被处理的数据。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 数据内容：GET请求的数据附加在url之后，只允许ASCII字符（采用ASCII编码），请求的数据会暴露在地址栏中。POST请求会把请求的数据放在HTTP请求包的包体中，也允许二进制数据，不会把数据暴露在地址栏。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 数据长度：GET有限制，在使用GET请求时，数据大小会受到url长度的限制（URL 的最大长度是 2048 个字符）。POST无限制。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 安全性：</span><span style="font-size: 16px;">GET 的安全性较差（与POST相比），因为所发送的数据是 URL 的一部分。在发送密码或其他敏感信息时绝不要使用 GET ！</span><span style="font-size: 16px;">POST 比 GET 更安全，因为参数不会被保存在浏览器历史或 web 服务器日志中。</span></p>
+<p><strong><span style="font-size: 18px;">4. Jackson</span></strong></p>
+<p><strong><span style="font-size: 18px;">&nbsp; &nbsp;&nbsp;</span></strong><span style="font-size: 16px;">Jackson是当前用的比较广泛的，用来序列化和反序列化json的Java开源框架。Jackson社区相对比较活跃，更新速度也比较快， 从Github中的统计来看，Jackson是最流行的json解析器之一，Spring MVC的默认json解析器便是Jackson。</span></p>
+<p><strong><span style="font-size: 18px;">5. Servlet处理（jQuery）Ajax请求（不发送数据/发送key/value数据/发送json数据）</span></strong></p>
+<p><strong><span style="font-size: 18px;">&nbsp; &nbsp;&nbsp;</span></strong><span style="font-size: 18px;"><strong>开发环境：eclipse+jsp+jQuery+servlet+tomcat+ajax</strong></span></p>
+<p><span style="font-size: 18px;"><strong>5.1 Servlet处理（jQuery）Ajax请求（不发送数据，返回普通文本）</strong></span></p>
+<p><strong><span style="font-size: 16px;"><span style="font-size: 18px;">&nbsp; &nbsp; (1) 搭建环境：</span></span></strong></p>
+<p><strong><span style="font-size: 16px;"><span style="font-size: 18px;">&nbsp; &nbsp;</span></span></strong><span style="font-size: 16px;"><span style="font-size: 18px;">&nbsp;</span></span><span style="font-size: 16px;">在eclipse中新建Java web项目（会自动导入JRE System Library包），比如我把项目名字写为AjaxDemo1，并将项目部署到tomcat服务器上，下面是eclipse中项目的目录结构：</span></p>
+<p><span style="font-size: 16px;"><img src="./images/Servlet处理（jQuery）Ajax请求0.png" alt="" /></span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp;我们先不用管lib中的jar包。注意这里有一个jquery-3.2.1.min.js，这是jQuery的开发包，我们可以在网上下载，把这个js文件复制粘贴到WebContent目录下即可。下面我会一步一步分析。下面进行开发。</span></p>
+<p><span style="font-size: 16px;"><strong>&nbsp; &nbsp;<span style="font-size: 18px;"> (2) 编写index.jsp文件</span></strong></span></p>
+<p><span style="font-size: 16px;"><strong><span style="font-size: 18px;">&nbsp; &nbsp;&nbsp;</span></strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="background-color: #ffff00; color: #000000;">&lt;%</span><span style="background-color: #f5f5f5; color: #000000;">@ page language</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">java</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #000000;"> import</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">java.util.*</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #000000;"> pageEncoding</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">UTF-8</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #ffff00; color: #000000;">%&gt;</span>
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="background-color: #ffff00; color: #000000;">&lt;%</span><span style="background-color: #f5f5f5; color: #000000;">--</span> <span style="background-color: #f5f5f5; color: #000000;">&lt;</span><span style="background-color: #f5f5f5; color: #000000;">%@ taglib uri</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">http://java.sun.com/jsp/jstl/core</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #000000;"> prefix</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">c</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #ffff00; color: #000000;">%&gt;</span><span style="color: #000000;"> --%&gt;
+</span><span style="color: #008080;"> 4</span> <span style="background-color: #ffff00; color: #000000;">&lt;%</span>
+<span style="color: #008080;"> 5</span>     <span style="background-color: #f5f5f5; color: #0000ff;">String</span><span style="background-color: #f5f5f5; color: #000000;"> path </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> request.getContextPath();
+</span><span style="color: #008080;"> 6</span>     <span style="background-color: #f5f5f5; color: #0000ff;">String</span><span style="background-color: #f5f5f5; color: #000000;"> basePath </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> request.getScheme() </span><span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">://</span><span style="background-color: #f5f5f5; color: #800000;">"</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> request.getServerName() </span><span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">:</span><span style="background-color: #f5f5f5; color: #800000;">"</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> request.getServerPort()
+</span><span style="color: #008080;"> 7</span>             <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> path </span><span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">/</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="background-color: #ffff00; color: #000000;">%&gt;</span>
+<span style="color: #008080;"> 9</span> <span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">10</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">11</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">12</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">base </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="&lt;%=basePath%&gt;"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">13</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>I LOVE YOU<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">14</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="stylesheet"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text/css"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">15</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="index.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">16</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="jquery-3.2.1.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">20</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="mybutton"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="异步请求服务器"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">="fun1()"</span> <span style="color: #0000ff;">&gt;</span>（jquery）(jQuery)ajax请求（不发送数据）<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">24</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">spand </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="show"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">br</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">27</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">hr</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="mybutton1"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="异步请求服务器"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">="fun2()"</span> <span style="color: #0000ff;">&gt;</span>发送数据格式为key/value的（jquery）ajax请求<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">31</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">spand </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="show1"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">br</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">34</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">hr</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">35</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="mybutton2"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="异步请求服务器"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">="fun3()"</span> <span style="color: #0000ff;">&gt;</span>发送数据格式为json的(jquery)ajax请求<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">36</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">spand </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="show2"</span> <span style="color: #0000ff;">/&gt;&lt;</span><span style="color: #800000;">br</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p><span style="font-size: 16px;">这里我们实现了三个按钮，并且调用了对应的函数。我们先来看第一个按钮（id="mybutton"）。这个文件引入了2个js文件。一个是我们自己编写的index.js文件，另一个是我们使用jQuery框架开发时所用的js文件。我把index.jsp，index.js，jquery-3.2.1.min.js都放在了WebContent目录下（方便操作）。</span></p>
+<p><span style="font-size: 16px;"><strong>&nbsp;<span style="font-size: 18px;"><strong>&nbsp; &nbsp;(3) 编写index.js文件</strong></span></strong></span></p>
+<p><span style="font-size: 16px;"><strong><span style="font-size: 18px;"><strong>&nbsp; &nbsp;&nbsp;</strong></span></strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">/*</span><span style="color: #008000;">*
+</span><span style="color: #008080;"> 2</span> <span style="color: #008000;"> * 
+</span><span style="color: #008080;"> 3</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 4</span> <span style="color: #008000;">//</span><span style="color: #008000;">使用jquery提交ajax请求（不携带数据）</span>
+<span style="color: #008080;"> 5</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> fun1(){
+</span><span style="color: #008080;"> 6</span>     
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">    $.ajax({
+</span><span style="color: #008080;"> 8</span>         
+<span style="color: #008080;"> 9</span>         type:"POST",                    <span style="color: #008000;">//</span><span style="color: #008000;">发送方式</span>
+<span style="color: #008080;">10</span>         url:"AjaxServlet",                <span style="color: #008000;">//</span><span style="color: #008000;">请求地址</span>
+<span style="color: #008080;">11</span>         data:"",                           <span style="color: #008000;">//</span><span style="color: #008000;">数据为空</span>
+<span style="color: #008080;">12</span>         success:<span style="color: #0000ff;">function</span>(data){             <span style="color: #008000;">//</span><span style="color: #008000;">成功后的回调函数</span>
+<span style="color: #008080;">13</span>             
+<span style="color: #008080;">14</span>             $("#show").html(data);            <span style="color: #008000;">//</span><span style="color: #008000;">页面展示内容</span>
+<span style="color: #008080;">15</span>             
+<span style="color: #008080;">16</span> <span style="color: #000000;">        }            
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span> <span style="color: #008000;">//</span><span style="color: #008000;">使用jquery提交key/value数据（ajax请求）</span>
+<span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> fun2(){
+</span><span style="color: #008080;">24</span>     
+<span style="color: #008080;">25</span> <span style="color: #000000;">    $.ajax({
+</span><span style="color: #008080;">26</span>         
+<span style="color: #008080;">27</span>         type:"POST"<span style="color: #000000;">,
+</span><span style="color: #008080;">28</span>         url:"AjaxServlet1"<span style="color: #000000;">,
+</span><span style="color: #008080;">29</span>         data:"username=wly&amp;password=1314520",        <span style="color: #008000;">//</span><span style="color: #008000;">key/value数据</span>
+<span style="color: #008080;">30</span>         success:<span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+</span><span style="color: #008080;">31</span>             
+<span style="color: #008080;">32</span>             $("#show1"<span style="color: #000000;">).html(data);
+</span><span style="color: #008080;">33</span>             
+<span style="color: #008080;">34</span> <span style="color: #000000;">        }            
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;">36</span> 
+<span style="color: #008080;">37</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">38</span> 
+<span style="color: #008080;">39</span> 
+<span style="color: #008080;">40</span> <span style="color: #008000;">//</span><span style="color: #008000;">使用jquery提交json数据（ajax请求）</span>
+<span style="color: #008080;">41</span> 
+<span style="color: #008080;">42</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> fun3(){
+</span><span style="color: #008080;">43</span>     
+<span style="color: #008080;">44</span>     <span style="color: #0000ff;">var</span> user={                        <span style="color: #008000;">//</span><span style="color: #008000;">符合json数据格式规范的javascript对象</span>
+<span style="color: #008080;">45</span>             "username":"wly"<span style="color: #000000;">,
+</span><span style="color: #008080;">46</span>             "password":"1314520"    
+<span style="color: #008080;">47</span> <span style="color: #000000;">    };    
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">$.ajax({
+</span><span style="color: #008080;">49</span>         
+<span style="color: #008080;">50</span>         type:"POST"<span style="color: #000000;">,
+</span><span style="color: #008080;">51</span>         url:"AjaxServlet2"<span style="color: #000000;">,
+</span><span style="color: #008080;">52</span>         contentType:"application/json;charset=UTF-8", <span style="color: #008000;">//</span><span style="color: #008000;">发送数据到服务器时所使用的内容类型</span>
+<span style="color: #008080;">53</span>         data:JSON.stringify(user),    <span style="color: #008000;">//</span><span style="color: #008000;">将javascript对象转化为json字符串</span>
+<span style="color: #008080;">54</span>         
+<span style="color: #008080;">55</span>         <span style="color: #008000;">//</span><span style="color: #008000;">预期的服务器响应的数据类型。服务器返回json字符串。jquery会自动把json转化为js对象</span>
+<span style="color: #008080;">56</span>         dataType:"json",    <span style="color: #008000;">//</span><span style="color: #008000;">相当于调用JSON.parse（data）方法。此时我们省去即可。      </span>
+<span style="color: #008080;">57</span>         success:<span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+</span><span style="color: #008080;">58</span>             
+<span style="color: #008080;">59</span>             $("#show2").html(data.username+" "+<span style="color: #000000;">data.password);
+</span><span style="color: #008080;">60</span>             
+<span style="color: #008080;">61</span> <span style="color: #000000;">        }            
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;">63</span> }</code></pre>
+
+<p><span style="font-size: 16px;">观察fun1()函数，data为空，很简单，代码都有注释，这里不做过多解释。体现出jQuery的风格，简单易用。</span></p>
+<p><strong><span style="font-size: 18px;"><strong>&nbsp;<strong>&nbsp; &nbsp;(4) 编写Srvlet文件</strong></strong></span></strong></p>
+<p><strong><span style="font-size: 18px;"><strong><strong>&nbsp; &nbsp;</strong></strong></span></strong><span style="font-size: 18px;">&nbsp;</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.servlet;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.PrintWriter;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.ServletException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServlet;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> AjaxServlet <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HttpServlet {
+
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> doGet(HttpServletRequest request, HttpServletResponse response)
+            </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+
+        response.setContentType(</span>"text/html;charset=UTF-8"<span style="color: #000000;">);
+        PrintWriter out </span>=<span style="color: #000000;"> response.getWriter();
+        out.print(</span>"我想你了哈哈！"<span style="color: #000000;">);
+        out.close();
+    }
+
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> doPost(HttpServletRequest req, HttpServletResponse resp) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.doGet(req, resp);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">代码很简单，就返回一句话（普通文本）。没啥好说的。</span></p>
+<p><span style="font-size: 18px;"><strong><strong>&nbsp;<strong>&nbsp; &nbsp;(5) web.xml文件配置Servlet</strong></strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong><strong>&nbsp; &nbsp;&nbsp;</strong></strong></strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="UTF-8"</span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">web-app </span><span style="color: #ff0000;">xmlns:xsi</span><span style="color: #0000ff;">="http://www.w3.org/2001/XMLSchema-instance"</span><span style="color: #ff0000;"> xmlns</span><span style="color: #0000ff;">="http://java.sun.com/xml/ns/javaee"</span><span style="color: #ff0000;"> xsi:schemaLocation</span><span style="color: #0000ff;">="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="WebApp_ID"</span><span style="color: #ff0000;"> version</span><span style="color: #0000ff;">="3.0"</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">display-name</span><span style="color: #0000ff;">&gt;</span>AjaxDemo<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">display-name</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">welcome-file-list</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>index.html<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>index.htm<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>index.jsp<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>default.html<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>default.htm<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>default.jsp<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">welcome-file</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">welcome-file-list</span><span style="color: #0000ff;">&gt;</span>
+   
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>AjaxServlet<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+      
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>com.servlet.AjaxServlet<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+  
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>AjaxServlet1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+      
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>com.servlet.AjaxServlet1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+  
+  
+   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>AjaxServlet2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+      
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>com.servlet.AjaxServlet2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+  
+    
+  
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span>
+      
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>AjaxServlet<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>/AjaxServlet<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>
+      
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span>
+  
+   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span>
+      
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>AjaxServlet1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>/AjaxServlet1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>
+      
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span>
+  
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span>
+      
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>AjaxServlet2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>/AjaxServlet2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>
+      
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span>
+  
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">web-app</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p><span style="font-size: 16px;">配置很简单。这里不用多说。这篇相当于是ajax的进阶版。不懂的话可以看我第一篇博客：<a style="cursor: pointer;" onclick="window.open('https://www.cnblogs.com/1314520wly/p/iloveyou.html','','');return false;" href="https://www.cnblogs.com/1314520wly/p/iloveyou.html">Servlet处理原生Ajax请求</a></span></p>
+<p><span style="font-size: 16px;"><strong><strong>&nbsp;<strong>&nbsp;<span style="font-size: 18px;"> &nbsp;(6) 运行程序</span></strong></strong></strong></span></p>
+<p><span style="font-size: 16px;"><strong><strong><strong><span style="font-size: 18px;">&nbsp; &nbsp;</span></strong></strong></strong><span style="font-size: 18px;">&nbsp;<span style="font-size: 16px;">启动tomcat，在浏览器上输入地址，点击按钮，运行效果如下：</span></span><strong><strong><span style="font-size: 16px;"><br /></span></strong></strong></span></p>
+<p><span style="font-size: 16px;"><span style="font-size: 18px;"><span style="font-size: 16px;">&nbsp; &nbsp;&nbsp;<img src="./images/Servlet处理（jQuery）Ajax请求1.png" alt="" /></span></span></span></p>
+<p><span style="font-size: 18px;"><strong>5.2 Servlet处理（jQuery）Ajax请求（发送key/value数据，返回普通文本）</strong></span></p>
+<p><span style="font-size: 18px;"><strong>&nbsp; &nbsp; (1)编写jsp文件</strong></span></p>
+<p><span style="font-size: 18px;"><strong>&nbsp; &nbsp;&nbsp;</strong><span style="font-size: 16px;">上面的index.jsp文件已经写好了，看第二个按钮就行了。</span></span></p>
+<p><span style="font-size: 18px;"><span style="font-size: 16px;"><strong>&nbsp;<span style="font-size: 18px;"> &nbsp; (2)编写js文件</span></strong><span style="font-size: 18px;">&nbsp; &nbsp; </span></span></span></p>
+<p><span style="font-size: 18px;"><span style="font-size: 16px;"><span style="font-size: 18px;">&nbsp; &nbsp; <span style="font-size: 16px;">上面index.js已经写好了，注意看fun2()函数，发送的是key/value类型数据。</span></span></span></span></p>
+<p><span style="font-size: 18px;"><span style="font-size: 16px;"><span style="font-size: 18px;"><span style="font-size: 16px;"><strong>&nbsp;&nbsp;<span style="font-size: 18px;">&nbsp; (3)编写Servlet文件</span></strong><span style="font-size: 18px;">&nbsp; </span></span></span></span></span></p>
+<p><span style="font-size: 18px;"><span style="font-size: 16px;"><span style="font-size: 18px;"><span style="font-size: 16px;"><span style="font-size: 18px;">&nbsp; &nbsp;</span></span></span></span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.servlet;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.PrintWriter;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.ServletException;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServlet;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> AjaxServlet1 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HttpServlet {
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> doGet(HttpServletRequest request, HttpServletResponse response)
+</span><span style="color: #008080;">14</span>             <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>         response.setContentType("text/html;charset=UTF-8"<span style="color: #000000;">);
+</span><span style="color: #008080;">17</span>         PrintWriter out =<span style="color: #000000;"> response.getWriter();
+</span><span style="color: #008080;">18</span>         String username = request.getParameter("username"<span style="color: #000000;">);
+</span><span style="color: #008080;">19</span>         String password = request.getParameter("password"<span style="color: #000000;">);
+</span><span style="color: #008080;">20</span>         System.out.println(username + " " +<span style="color: #000000;"> password);
+</span><span style="color: #008080;">21</span>         out.print("helloworld " + "username:" + username + " password:" +<span style="color: #000000;"> password);
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">        out.close();
+</span><span style="color: #008080;">23</span> 
+<span style="color: #008080;">24</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span>     <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> doPost(HttpServletRequest req, HttpServletResponse resp) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+</span><span style="color: #008080;">27</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">.doGet(req, resp);
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span> }</code></pre>
+
+<p><span style="font-size: 16px;">使用request.getParameter(String stringParam)接受客户端传来的数据。返回一个连接字符串。</span></p>
+<p><span style="font-size: 16px;"><strong>&nbsp;&nbsp;<span style="font-size: 18px;">&nbsp; (4)web.xml文件配置Servlet</span></strong></span></p>
+<p><span style="font-size: 16px;"><strong><span style="font-size: 18px;">&nbsp; &nbsp; </span></strong></span><span style="font-size: 16px;">上面已经配置好了，这里不多说。</span></p>
+<p><span style="font-size: 16px;"><strong>&nbsp;<span style="font-size: 18px;">&nbsp;&nbsp; (5)运行程序</span></strong></span></p>
+<p><span style="font-size: 16px;"><strong><span style="font-size: 18px;">&nbsp; &nbsp;&nbsp;<img src="./images/Servlet处理（jQuery）Ajax请求2.png" alt="" /></span></strong></span></p>
+<p><span style="font-size: 16px;"><strong><span style="font-size: 18px;"><strong>5.3 Servlet处理（jQuery）Ajax请求（发送json数据，返回json数据）</strong></span></strong></span></p>
+<p><span style="font-size: 16px;"><strong><span style="font-size: 18px;"><strong>（1）导入Jackson的jar包</strong></span></strong></span></p>
+<p><strong style="font-size: 16px;"><span style="font-size: 18px;"><strong>&nbsp; </strong></span></strong><span style="font-size: 18px;">&nbsp;&nbsp;<span style="font-size: 16px;">Jackson是用来解析json数据的第三方类库，通过上面项目目录我们发现，在lib下由三个Jaskson相关开发包。Jackson核心模块由这三部分组成：</span></span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 1. jackson-core 核心包，提供基于&rdquo;流模式&rdquo;解析的相关 API，它包括 JsonPaser 和 JsonGenerator。Jackson 内部实现正是通过高性能的流模式 API 的 JsonGenerator 和 JsonParser 来生成和解析 json。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 2. jackson-annotations 注解包，提供标准注解功能；</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 3. jackson-databind 数据绑定包，提供基于&rdquo;对象绑定&rdquo; 解析的相关 API（ ObjectMapper ）和&rdquo;树模型&rdquo; 解析的相关 API（JsonNode）；基于&rdquo;对象绑定&rdquo; 解析的 API 和&rdquo;树模型&rdquo;解析的 API 依赖基于&rdquo;流模式&rdquo;解析的 API。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 有兴趣的话可以研究一下源码，这里就不多说了。这里我们发现使用Jackson导入的jar包比较少（相比于json-lib）。</span></p>
+<p><span style="font-size: 18px;"><strong><strong>（2）新建实体User类</strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong>&nbsp; </strong></strong>&nbsp;</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.entity;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> User {
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String username;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String password;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getUsername() {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> username;
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setUsername(String username) {
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">this</span>.username =<span style="color: #000000;"> username;
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getPassword() {
+</span><span style="color: #008080;">18</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> password;
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setPassword(String password) {
+</span><span style="color: #008080;">22</span>         <span style="color: #0000ff;">this</span>.password =<span style="color: #000000;"> password;
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">26</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+</span><span style="color: #008080;">27</span>         <span style="color: #0000ff;">return</span> "User [username=" + username + ", password=" + password + "]"<span style="color: #000000;">;
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span> }</code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">简单易懂，不多说。</span></p>
+<p><span style="font-size: 18px;"><strong><strong>（3）编写jsp文件</strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong>&nbsp; </strong></strong>&nbsp;<span style="font-size: 16px;">上面已经写好，看第三个按钮就行了。</span></span></p>
+<p><span style="font-size: 18px;"><strong><strong>（4）编写js文件</strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong>&nbsp;</strong></strong><span style="font-size: 16px;"> &nbsp;看fun3()函数就可以了，代码有注释。注意这块由个contentType属性，发送数据到服务器所使用的内容类型，这里我们设置的是contentType:"application/json;charset=UTF-8"。指定发送数据格式为json格式，字符编码为UTF-8。还有一个dataType属性，我们设置为&ldquo;json&rdquo;，当服务器响应成功时，我们调用回调函数，相当于预期知道服务器响应的数据类型，就可以自动的把json字符串转化为javascript对象。相当于JSON.parse(data)方法。这里我们省略掉了这个方法，因为jQuery已经帮我们格式化好了。</span></span></p>
+<p><span style="font-size: 18px;"><strong><strong>（5）编写Servlet文件</strong></strong></span></p>
+<p><span style="font-size: 18px;"><span style="font-size: 16px;">&nbsp;</span>&nbsp;&nbsp;<span style="font-size: 16px;">第一步，先编写Jackson的工具类。</span><strong><span style="font-size: 16px;"><br /></span></strong></span></p>
+<p><span style="font-size: 18px;"><span style="font-size: 16px;">&nbsp; &nbsp;</span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.util;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.BufferedReader;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.InputStreamReader;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.UnsupportedEncodingException;
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.entity.User;
+</span><span style="color: #008080;">11</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.fasterxml.jackson.databind.ObjectMapper;
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JsonReader {
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> User receivePost(HttpServletRequest request) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> UnsupportedEncodingException, IOException {
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 读取请求内容</span>
+<span style="color: #008080;">18</span>         BufferedReader br = <span style="color: #0000ff;">new</span> BufferedReader(<span style="color: #0000ff;">new</span> InputStreamReader(request.getInputStream(), "UTF-8"<span style="color: #000000;">));
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span>         String line = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">21</span>         StringBuilder sb = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StringBuilder();
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>         <span style="color: #0000ff;">while</span> ((line = br.readLine()) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">            sb.append(line);
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 将json字符串转化为java对象</span>
+<span style="color: #008080;">28</span>         ObjectMapper json = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ObjectMapper();
+</span><span style="color: #008080;">29</span>         User user = json.readValue(sb.toString(), User.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+</span><span style="color: #008080;">30</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> user;
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span> }</code></pre>
+
+<p><span style="font-size: 16px;">第二步，编写servlet</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.servlet;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.ServletException;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServlet;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.entity.User;
+</span><span style="color: #008080;">11</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.fasterxml.jackson.databind.ObjectMapper;
+</span><span style="color: #008080;">12</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.util.JsonReader;
+</span><span style="color: #008080;">13</span> 
+<span style="color: #008080;">14</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> AjaxServlet2 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HttpServlet {
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>     <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> doGet(HttpServletRequest request, HttpServletResponse response)
+</span><span style="color: #008080;">17</span>             <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> response.setContentType("text/html;charset=UTF-8");</span>
+<span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>         response.setContentType("application/json;charset=UTF-8"<span style="color: #000000;">);
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>         User user =<span style="color: #000000;"> JsonReader.receivePost(request);
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span> <span style="color: #000000;">        System.out.println(user);
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>         ObjectMapper mapper = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ObjectMapper();
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 将java对象转化为json字符串</span>
+<span style="color: #008080;">30</span>         String json =<span style="color: #000000;"> mapper.writeValueAsString(user);
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span> <span style="color: #000000;">        System.out.println(json);
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">        response.getWriter().print(json);
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">36</span> 
+<span style="color: #008080;">37</span>     <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> doPost(HttpServletRequest req, HttpServletResponse resp) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+</span><span style="color: #008080;">38</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">.doGet(req, resp);
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">40</span> }</code></pre>
+
+<p><span style="font-size: 16px;">我们注意到有个ObjectMapper类，ObjectMapper是JSON操作的核心，Jackson的所有JSON操作都是在ObjectMapper中实现。它位于jackson-databind-2.0.0-jar里面。这里我们介绍ObjectMapper类下常用到的方法。&nbsp;public &lt;T&gt; T readValue(JsonParser jp, Class&lt;T&gt; valueType)这个方法可以将json字符串转化为java对象。public String writeValueAsString(Object value)这个方法可以将java对象转化为json字符串。先介绍用到的这2个方法。其他的自己看看源码。</span></p>
+<p><span style="font-size: 18px;"><strong><strong>（6）web.xml文件配置Servlet</strong></strong></span></p>
+<p><span style="font-size: 16px;"><strong><strong>&nbsp; </strong></strong>&nbsp;同理，上面已经配置好了。这里不多说。</span></p>
+<p><span style="font-size: 18px;"><strong><strong>（7）跑一下程序</strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong>&nbsp; &nbsp;<img src="./images/Servlet处理（jQuery）Ajax请求3.png" alt="" /></strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong>5.4 Servlet处理（jQuery）Ajax请求（发送key/value数据，返回json数据）（补充）</strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong>（1）编写jsp文件</strong></strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="mybutton3"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="异步请求服务器"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">="fun4()"</span> <span style="color: #0000ff;">&gt;</span>发送数据格式为key/value的（jquery）ajax请求（返回json）<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">spand </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="show3"</span> <span style="color: #0000ff;">/&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>（2）编写js文件</strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">使用jquery提交key/value数据（ajax请求）(返回json数据)</span>
+
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> fun4(){
+    
+    $.ajax({
+        
+        type:</span>"POST"<span style="color: #000000;">,
+        url:</span>"AjaxServlet3"<span style="color: #000000;">,
+        data:</span>"username=wly&amp;password=1314520",        <span style="color: #008000;">//</span><span style="color: #008000;">key/value数据</span>
+        success:<span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+            
+            $(</span>"#show3").html("嘿嘿 "+<span style="color: #000000;">data.username+" "+data.password);
+            
+        }            
+    });
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>（3）新建User实体类</strong></span></p>
+<p><span style="font-size: 18px;"><strong>&nbsp; </strong><span style="font-size: 16px;">上面已经写好，不多说，User类，属性username和password，并提供setter和gettter方法。</span></span></p>
+<p><span style="font-size: 18px;"><strong>（4）编写Servlet类</strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.servlet;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.ServletException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServlet;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.entity.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.fasterxml.jackson.databind.ObjectMapper;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> AjaxServlet3 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HttpServlet {
+
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> doGet(HttpServletRequest request, HttpServletResponse response)
+            </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+<br />        response.setContentType("application/json;charset=utf-8");<br /></span><span style="color: #000000;">
+        User user </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> User();
+        String username </span>= request.getParameter("username"<span style="color: #000000;">);
+        String password </span>= request.getParameter("password"<span style="color: #000000;">);
+        user.setUsername(username);
+        user.setPassword(password);
+        System.out.println(user);
+
+        ObjectMapper mapper </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ObjectMapper();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将java对象转化为json字符串</span>
+        String json =<span style="color: #000000;"> mapper.writeValueAsString(user);
+
+        System.out.println(json);
+        response.getWriter().print(json);
+    }
+
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> doPost(HttpServletRequest req, HttpServletResponse resp) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.doGet(req, resp);
+    }
+}</span></code></pre>
+
+<p><span style="font-size: 16px;">很简单，就是新建一个User对象，通过request.getparameter(String s)获取属性值，再将值设置到user对象当中，最后利用jackson把user对象转化为json字符串返回。</span></p>
+<p><span style="font-size: 18px;"><strong>（5）web.xml配置Servlet</strong></span></p>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>AjaxServlet3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+      
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>com.servlet.AjaxServlet3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+  
+    
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span>
+      
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>AjaxServlet3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+      <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>/AjaxServlet3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">url-pattern</span><span style="color: #0000ff;">&gt;</span>
+      
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-mapping</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p><span style="font-size: 18px;"><strong>（6）运行程序</strong></span></p>
+<p><img src="./images/Servlet处理（jQuery）Ajax请求4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong><strong><strong>6. 总结</strong></strong></strong></span></p>
+<p><span style="font-size: 16px;">&nbsp; （1）使用jQuery使代码更加简洁，易懂易用（jQuery轻量级）。</span></p>
+<p><span style="font-size: 16px;">&nbsp; （2）JQuery将所有的Ajax操作封装到一个函数$.ajax()里，使得开发者处理Ajax的时候能够专心处理业务逻辑而无需关心复杂的浏览器兼容性和XMLHttpRequest对象的创建和使用的问题。Jquery的ajax操作比较完善。</span></p>
+<p><span style="font-size: 16px;">&nbsp; （3）Jackson性能分析：</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 1. Jackson 所依赖的jar包较少，简单易用。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 2.与其他 Java 的 json 的框架 Gson 等相比，Jackson 解析大的 json 文件速度比较快。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 3. Jackson 运行时占用内存比较低，性能比较好</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 4. Jackson 有灵活的 API，可以很容易进行扩展和定制。</span></p>
+<p><span style="font-size: 16px;">&nbsp; &nbsp; 本篇博客源码</span><span style="font-size: 16px;">链接：<a style="cursor: pointer;" onclick="window.open('https://pan.baidu.com/s/1e8XqC01RVg9p8yKL7vtwfA    ','','');return false;" href="https://pan.baidu.com/s/1e8XqC01RVg9p8yKL7vtwfA%20%20%20%20">https://pan.baidu.com/s/1e8XqC01RVg9p8yKL7vtwfA&nbsp; &nbsp; </a>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<em id="__mceDel">提取码：mbnt&nbsp;</em></span></p>
+<p><em id="__mceDel"><em id="__mceDel">&nbsp;</em></em></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

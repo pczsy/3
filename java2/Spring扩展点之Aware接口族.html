@@ -1,0 +1,119 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring扩展点之Aware接口族' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring扩展点之Aware接口族</center></div><div class='banquan'>原文出处:本文由博客园博主石玉军提供。<br/>
+原文连接:https://www.cnblogs.com/zhixiang-org-cn/p/11531615.html</div><br>
+    <h4 id="引言">引言</h4>
+<p>Spring中提供了各种Aware接口，方便从上下文中获取当前的运行环境，比较常见的几个子接口有：BeanFactoryAware,BeanNameAware,ApplicationContextAware,EnvironmentAware，BeanClassLoaderAware等，这些Aware的作用都可以从命名得知</p>
+<h4 id="aware处理"><code>Aware</code>处理</h4>
+<p>其中<code>BeanNameAware</code>、<code>BeanClassLoaderAware</code>和<code>BeanFactoryAware</code>这三个是直接在bean的初始化之前就处理了的，具体代码在<code>AbstractAutowireCapableBeanFactory.initializeBean</code>方法中：</p>
+<pre><code><code>protected Object initializeBean(String beanName, Object bean, RootBeanDefinition mbd) {
+    // 判断对象实现的接口类型，处理特定的三种接口类型：BeanNameAware、BeanClassLoaderAware和BeanFactoryAware。
+    if (bean instanceof BeanNameAware) {
+        ((BeanNameAware) bean).setBeanName(beanName);
+    }
+ 
+    if (bean instanceof BeanClassLoaderAware) {
+        ((BeanClassLoaderAware) bean).setBeanClassLoader(getBeanClassLoader());
+    }
+ 
+    if (bean instanceof BeanFactoryAware) {
+        ((BeanFactoryAware) bean).setBeanFactory(this);
+    }
+    // 开始Bean初始化前处理、初始化、初始化后处理
+    Object wrappedBean = bean;
+    if (mbd == null || !mbd.isSynthetic()) {
+        wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
+    }
+ 
+    try {
+        invokeInitMethods(beanName, wrappedBean, mbd);
+    }
+    catch (Throwable ex) {
+        throw new BeanCreationException(
+                (mbd != null ? mbd.getResourceDescription() : null),
+                beanName, &quot;Invocation of init method failed&quot;, ex);
+    }
+ 
+    if (mbd == null || !mbd.isSynthetic()) {
+        wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
+    }
+    return wrappedBean;
+}</code></code></pre>
+<p>除了这三种之外的那些Aware接口的实现就不太一样了，它们都是利用<code>BeanPostProcessor</code>接口完成的，关于<code>BeanPostProcessor</code>接口的原理可以这篇文章：<a href="https://mp.weixin.qq.com/s/1o9p334-lcOEp9Na2ZE2DA">Spring扩展点之BeanPostProcessor</a></p>
+<p>如<code>ApplicationContextAware</code>就是利用<code>ApplicationContextAwareProcessor</code>实现的：</p>
+<pre><code><code>public Object postProcessBeforeInitialization(final Object bean, String beanName) throws BeansException {
+        AccessControlContext acc = null;
+
+        if (System.getSecurityManager() != null &amp;&amp;
+                (bean instanceof EnvironmentAware || bean instanceof EmbeddedValueResolverAware ||
+                        bean instanceof ResourceLoaderAware || bean instanceof ApplicationEventPublisherAware ||
+                        bean instanceof MessageSourceAware || bean instanceof ApplicationContextAware)) {
+            acc = this.applicationContext.getBeanFactory().getAccessControlContext();
+        }
+
+        if (acc != null) {
+            AccessController.doPrivileged((PrivilegedAction&lt;Object&gt;) () -&gt; {
+              //具体实现
+                invokeAwareInterfaces(bean);
+                return null;
+            }, acc);
+        }
+        else {
+                      //具体实现
+            invokeAwareInterfaces(bean);
+        }
+
+        return bean;
+    }
+private void invokeAwareInterfaces(Object bean) {
+        if (bean instanceof Aware) {
+            if (bean instanceof EnvironmentAware) {
+                ((EnvironmentAware) bean).setEnvironment(this.applicationContext.getEnvironment());
+            }
+            if (bean instanceof EmbeddedValueResolverAware) {
+                ((EmbeddedValueResolverAware) bean).setEmbeddedValueResolver(this.embeddedValueResolver);
+            }
+            if (bean instanceof ResourceLoaderAware) {
+                ((ResourceLoaderAware) bean).setResourceLoader(this.applicationContext);
+            }
+            if (bean instanceof ApplicationEventPublisherAware) {
+                ((ApplicationEventPublisherAware) bean).setApplicationEventPublisher(this.applicationContext);
+            }
+            if (bean instanceof MessageSourceAware) {
+                ((MessageSourceAware) bean).setMessageSource(this.applicationContext);
+            }
+            if (bean instanceof ApplicationContextAware) {
+                ((ApplicationContextAware) bean).setApplicationContext(this.applicationContext);
+            }
+        }
+    }</code></code></pre>
+<p>而<code>ApplicationContextAwareProcessor</code>的注册奥秘在<code>AbstractApplicationContext.prepareBeanFactory</code>方法中：</p>
+<pre><code><code>beanFactory.setBeanClassLoader(getClassLoader());
+beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this));
+ beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this)); 
+beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
+beanFactory.ignoreDependencyInterface(ApplicationEventPublisherAware.class);
+beanFactory.ignoreDependencyInterface(MessageSourceAware.class);
+beanFactory.ignoreDependencyInterface(ApplicationContextAware.class);</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

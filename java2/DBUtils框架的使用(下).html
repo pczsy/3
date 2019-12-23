@@ -1,0 +1,168 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修DBUtils框架的使用(下)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>DBUtils框架的使用(下)</center></div><div class='banquan'>原文出处:本文由博客园博主#Temptation提供。<br/>
+原文连接:https://www.cnblogs.com/blizzawang/p/11411792.html</div><br>
+    <p><strong>刚才讲了使用QueryRunner插入、修改、更新数据，现在来学习一下使用QueryRunner进行数据库表查询。</strong><br />
+通过QueryRunner类的query()方法即可完成数据库表的查询操作，但是在查询的时候需要实现ResultSetHandler接口来将结果集封装成对象。可以通过自己实现接口，但很显然，我们应该使用DBUtils工具包提供的实现类来实现封装。<br />
+在DBUtils框架中，共提供了九个ResultSetHandler的实现类。</p>
+<ul>
+<li>ArrayHandler：把结果集中的第一行数据转成对象数组。</li>
+<li>ArrayListHandler：把结果集中的每一行数据都转成一个对象数组，再存放到List中。</li>
+<li>BeanHandler：将结果集中的第一行数据封装到一个对应的JavaBean实例中。</li>
+<li>BeanListHandler：将结果集中的每一行数据都封装到一个对应的JavaBean实例中，存放到List里。</li>
+<li>ColumnListHandler：将结果集中某一列的数据存放到List中。</li>
+<li>MapHandler：将结果集中的第一行数据封装到一个Map里，key是列名，value就是对应的值。</li>
+<li>MapListHandler：将结果集中的每一行数据都封装到一个Map里，然后再存放到List</li>
+<li>KeyedHandler(name)：将结果集中的每一行数据都封装到一个Map里(List<Map>)，再把这些map再存到一个map里，其key为指定的key。</li>
+<li>ScalarHandler：将结果集中的列的信息转换到一个对象中</li>
+</ul>
+<p>分别通过案例感受一下。<br />
+新建测试类ResultSetHandlerTest<br />
+然后添加成员变量</p>
+<pre><code><code>private ComboPooledDataSource dataSource = new ComboPooledDataSource();</code></code></pre>
+<p>添加ArrayHandler的测试代码</p>
+<pre><code><code>    @Test
+    public void testArrayHandler() throws SQLException{
+        //ArrayHandler  将结果集的第一行数据存入Object数组
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;select * from account&quot;;
+
+        //数组的每一个元素对应第一行数据的每一列
+        Object[] objects = queryRunner.query(sql, new ArrayHandler());
+        System.out.println(Arrays.toString(objects));
+    }</code></code></pre>
+<p>运行代码<br />
+<img src="./images/DBUtils框架的使用(下)0.png" alt="在这里插入图片描述" /><br />
+添加ArrayListHandler测试代码</p>
+<pre><code><code>    @Test
+    public void testArrayListHandler() throws SQLException{
+        //ArrayListHandler  将结果集的每一行数据存入Object数组，然后存入List
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;select * from account&quot;;
+        List&lt;Object[]&gt; list = queryRunner.query(sql, new ArrayListHandler());
+        
+        for(Object[] objects : list){
+            System.out.println(Arrays.toString(objects));
+        }
+    }</code></code></pre>
+<p>运行代码<br />
+<img src="./images/DBUtils框架的使用(下)1.png" alt="在这里插入图片描述" /><br />
+添加BeanHandler测试代码</p>
+<pre><code><code>    @Test
+    public void testBeanHandler() throws SQLException{
+        //BeanHandler   将结果集的第一行数据封装到JavaBean对象中
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;select * from account&quot;;
+        
+        //传入Account.class参数是为了在方法中通过反射构造Account对象实例
+        Account account = queryRunner.query(sql, new BeanHandler&lt;Account&gt;(Account.class));
+        System.out.println(account.getId());
+        System.out.println(account.getName());
+        System.out.println(account.getMoney());
+    }</code></code></pre>
+<p>运行代码<br />
+<img src="./images/DBUtils框架的使用(下)2.png" alt="在这里插入图片描述" /><br />
+注意事项：使用BeanHandler，表列名必须与Bean类的属性名称一致。</p>
+<p>添加BeanListHandler测试代码</p>
+<pre><code><code>    @Test
+    public void testBeanListHandler() throws SQLException{
+        //BeanListHandler   将结果集每一条数据都封装到JavaBean对象，再存入List
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;select * from account&quot;;
+        List&lt;Account&gt; list = queryRunner.query(sql, new BeanListHandler&lt;Account&gt;(Account.class));
+        
+        for(Account account : list){
+            System.out.print(account.getId() + &quot;\t&quot;);
+            System.out.print(account.getName() + &quot;\t&quot;);
+            System.out.print(account.getMoney());
+            System.out.println();
+        }
+    }</code></code></pre>
+<p>运行代码<br />
+<img src="./images/DBUtils框架的使用(下)3.png" alt="在这里插入图片描述" /><br />
+添加ColumnListHandler测试代码</p>
+<pre><code><code>    @Test
+    public void testColumnListHandler() throws SQLException{
+        //ColumnListHandler     获得结果集的某一列
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;select * from account&quot;;
+        
+        //泛型为什么写Object  因为每列的类型都不一样
+        List&lt;Object&gt; list = queryRunner.query(sql, new ColumnListHandler(&quot;name&quot;));
+        System.out.println(list);
+    }</code></code></pre>
+<p>运行代码<br />
+<img src="./images/DBUtils框架的使用(下)4.png" alt="在这里插入图片描述" /><br />
+添加MapHandler测试代码</p>
+<pre><code><code>    @Test
+    public void testMapHandler() throws SQLException{
+        //MapHandler    将结果集中的第一行数据封装到Map集合，key是列名，value是数据值
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;select * from account&quot;;
+        Map&lt;String, Object&gt; map = queryRunner.query(sql, new MapHandler());
+        System.out.println(map);
+    }</code></code></pre>
+<p>运行代码<br />
+<img src="./images/DBUtils框架的使用(下)5.png" alt="在这里插入图片描述" /><br />
+添加MapListHandler测试代码</p>
+<pre><code><code>    @Test
+    public void testMapListHandler() throws SQLException {
+        // MapHandler 将结果集中的每一行数据封装到Map集合，key是列名，value是数据值，再将Map对象存入List
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;select * from account&quot;;
+        List&lt;Map&lt;String,Object&gt;&gt; list = queryRunner.query(sql, new MapListHandler());
+        
+        for(Map&lt;String,Object&gt; map : list){
+            System.out.println(map);
+        }
+    }</code></code></pre>
+<p>运行代码<br />
+<img src="./images/DBUtils框架的使用(下)6.png" alt="在这里插入图片描述" /><br />
+添加KeyedHandler测试代码</p>
+<pre><code><code>    @Test
+    public void testKeyedHandler() throws SQLException {
+        // KeyedHandler 将结果集中的每一行数据都封装到Map里，再将Map存入一个Map里,key可以指定为任意列
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;select * from account&quot;;
+        Map&lt;Object, Map&lt;String,Object&gt;&gt; map = queryRunner.query(sql, new KeyedHandler(&quot;name&quot;));
+        
+        System.out.println(map);
+    }</code></code></pre>
+<p>运行代码<br />
+<img src="./images/DBUtils框架的使用(下)7.png" alt="在这里插入图片描述" /><br />
+添加ScalarHandler测试代码</p>
+<pre><code><code>    @Test
+    public void testScalarHandler() throws SQLException{
+        //ScalarHandler     通常保存只有一行一列的结果数据
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;select count(*) from account&quot;;
+        long count = (Long) queryRunner.query(sql, new ScalarHandler(1));
+        System.out.println(count);
+    } </code></code></pre>
+<p>运行代码<br />
+<img src="./images/DBUtils框架的使用(下)8.png" alt="在这里插入图片描述" /><br />
+到这里，九个Hanlder就介绍完毕了。<br />
+最常用的几个：<br />
+BeanHandler、BeanListHandler、ColumnListHandler、ScalarHandler。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

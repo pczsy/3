@@ -1,0 +1,524 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘</center></div><div class='banquan'>原文出处:本文由博客园博主Java爱好者社区提供。<br/>
+原文连接:https://www.cnblogs.com/ldws/p/11704115.html</div><br>
+    <p><strong>本文导读：</strong></p>
+<ul>
+<li>生产故障场景介绍</li>
+<li>TCP 建连三次握手过程</li>
+<li>TCP 断连四次挥手过程</li>
+<li>结合 Java 堆栈剖析源码</li>
+<li>再从堆栈中找到&quot;罪魁祸首&quot;</li>
+<li>问题优化方案总结</li>
+</ul>
+<hr />
+<h5 id="生产故障场景介绍"><strong>1、生产故障场景介绍</strong></h5>
+<p>业务简介：</p>
+<p>该服务主要是提供对外的代理接口，大部分接口都会调用第三方接口，获取数据后做聚合处理后，提供给客户端使用。</p>
+<p>有一天晚上，系统正处于高峰期间，项目组小伙伴正在津津有味的吃着「加班餐」，刚把🍚塞进嘴里，邮件和短信同时发起来告警。</p>
+<p>有一台服务器接口超时，平时偶尔也会收到类似告警，有时会因为网络波动等原因。实在不好意思，没事总让人家「网络」同学背锅 : )。但是，这次告警并没有收敛，持续告警了十几分钟以上，感到了不妙。</p>
+<p>点击邮件中告警的 URL 接口链接，一直在页面转圈圈，响应很慢，悲剧！</p>
+<p>此刻，默默的把🍱盒饭推到一边去，不忍直视 :(</p>
+<p><strong>问题定位基本流程：</strong></p>
+<p>1）确定影响范围</p>
+<p>该服务后面挂着多台服务器，仅有一台服务器挂掉了，所以对用户不会有太大的影响。<br />
+先临时从注册中心上摘掉，别让客户端继续重试到这台机器上了，保留事故现场。</p>
+<p>2）排查监控指标</p>
+<p>查看接口服务的访问量，因为是晚高峰，因此会比其他时间段用户访问量会更大些，但是这个访问量看上去跟平时同一时段对比，并没有特别明显突增现象。<br />
+监控上观察服务器的 CPU、内存、IO、网络指标看起来也一切正常。</p>
+<p>3）服务器排查</p>
+<p>登录到服务器上，结合监控进一步查看服务器 CPU、内存 等指标，查看服务日志都是正常的，并且也没有发现特别的异常日志输出，Exception 或者 OOM 等异常。</p>
+<p>我们看到的现象是，接口服务已经无法正常响应了，应用跑在 JVM 上，快速通过 JDK 自带的常用命令排查一番了。</p>
+<p>如下命令打印堆栈信息：</p>
+<p><code>jstack -l $pid &gt; jstack.log</code></p>
+<p>统计结果如下：</p>
+<p><code>cat jstack.log  | grep &quot;java.lang.Thread.State&quot; | sort -nr | uniq -c</code></p>
+<pre><code><code>994    java.lang.Thread.State: WAITING (parking)
+501    java.lang.Thread.State: WAITING (on object monitor)
+7      java.lang.Thread.State: TIMED_WAITING (sleeping)
+13     java.lang.Thread.State: TIMED_WAITING (parking)
+2      java.lang.Thread.State: TIMED_WAITING (on object monitor)
+23     java.lang.Thread.State: RUNNABLE</code></code></pre>
+<p>如果遇到 java.lang.Thread.State: WAITING (parking)、java.lang.Thread.State: WAITING (on object monitor) 这类线程状态，就要引起注意了，一般可能都是程序本身问题导致的。</p>
+<p>根据 java.lang.Thread.State: WAITING 查看 jstack.log 里的堆栈信息，发现了了大量的调用 HttpClient 工具类请求等待挂起的日志，具体堆栈信息待下面详细分析。</p>
+<p>这些服务调用都是通过 HttpClient 工具直接调用的，对 Spring RestTemplate 做了一次封装，其底层也是调用的 Apache HttpClient 工具类来实现服务调用的。</p>
+<p>除看到上述 jstack 日志异常外，还排查了服务器上的网络状态，这也是运维同学们常用的排查手段。</p>
+<p>附上统计网络连接状态的命令：</p>
+<p><code>netstat -n | awk '/^tcp/ {++State[$NF]} END {for(i in State) print i, State[i]}'</code></p>
+<p>统计结果：</p>
+<pre><code><code>TIME_WAIT 9
+CLOSE_WAIT 3826
+SYN_SENT 2
+ESTABLISHED 28
+SYN_RECV 8</code></code></pre>
+<p>这里注意了，我们看到服务器诡异的网络连接统计中，出现了大量的 CLOSE_WAIT 状态的连接。</p>
+<p>而且这个状态，当你间隔一段时间再次执行统计命令，还是会存在，也就是不会被释放掉了，看上去问题有些严重。</p>
+<p>进一步猜测，出现这些 CLOSE_WAIT 状态跟接口响应慢应该是有关系的，同时，也跟 java 堆栈信息中出现的 HttpClient 线程阻塞有关系，作为问题突破口去分析。</p>
+<p>不如，我们先来了解下 CLOSE_WAIT 状态，这个 CLOSE_WAIT 状态处于 TCP 网络断开连接过程中，当客户端发起断连请求，服务端首次收到断连请求，回复确认消息，之后便处于 CLOSE_WAIT 状态了，当服务端响应处理完毕会回复网络包给客户端，正常连接会被关闭掉的。</p>
+<h5 id="tcp-建连三次握手过程"><strong>2、 TCP 建连三次握手过程</strong></h5>
+<p>尽管 CLOSE_WAIT 状态是在 TCP 网络连接四次挥手过程中的。我们还是有必要，先来了解下 TCP 网络连接的三次握手，因为它是请求服务器要做的第一件事情，那就是建立 TCP 连接。</p>
+<p>技术源于生活。</p>
+<p>我们可以举个日常生活中的例子来理解 TCP 三次握手的过程。</p>
+<p>比如你在微信上想与一位很久未曾谋面的朋友聊一聊：</p>
+<blockquote>
+<p>小东：小升，在吗？<br />
+（过了很久... ... ）<br />
+小升: 在了，你还在吗？<br />
+（小东刚好在线，天天刷朋友圈... ... ）<br />
+小东：嗯嗯，在了<br />
+（然后两位开始热聊起来... ...）</p>
+</blockquote>
+<p>如果你平时跟朋友，开头总这么聊天是不是觉得很累呢。</p>
+<p>其实上面的过程，可以很好的理解 TCP 三次握手的过程。</p>
+<p>我们姑且将<strong>小东</strong>看做是「<strong>客户端</strong>」，<strong>小升</strong>看做是「<strong>服务端</strong>」。<br />
+小东是做名程序员，做 IT 工作。小升在老家开店创业中。</p>
+<p><strong>理解TCP三次握手过程：</strong></p>
+<p>1）小东作为「客户端」，向作为「服务端」的小升发起聊天，就是发送了一个网络包（包签名为 <code>syn</code> ）给小升。【这是 <code>TCP 第一次握手</code>，小东状态此时处于 <code>syn_sent</code> 状态】</p>
+<p>2）小升收到了小东的聊天网络包，你得确认下吧，表示你收到了。此时，小升还有别的事情，不像小东那样搞 IT 工作的，上班还上着微信。到了晚上，小升得空看了一眼手机微信，弹出了小东的消息。然后，激动的做了个回复「 针对小东发来的 <code>sync</code> 包，做了个 <code>ack</code> 回复确认」。因隔了一段时间了，小升也不确定小东还在不在线了。【这是 <code>TCP 第二次握手</code>，小升状态此时处于 <code>syn_rcvd</code> 状态 】</p>
+<p>3）小东因为刚好在线，收到了小升的回复确认消息，马上对这次消息做了一个回复「对着小升给的 <code>sync + ack</code>，做了进一步 <code>ack</code> 回复确认，这是 <code>TCP 第三次握手</code>」 。【小升状态此时变成了 <code>established</code> 可马上聊天状态】</p>
+<p>4）此时，小升也在线，两位就开始热聊起来了。【正式传输数据了，小东和小升的状态都处于 <code>established</code> 状态】</p>
+<p>上述提到的那些状态 <code>syn_sent</code> <code>syn_rcvd</code> <code>established</code> ，正是 TCP 三次握手过程中涉及的关键状态。</p>
+<p>上一张图来直观理解下：</p>
+<p><img src="./images/由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘0.png" alt="file" /></p>
+<h5 id="tcp-断连四次挥手过程"><strong>3、 TCP 断连四次挥手过程</strong></h5>
+<p>小东和小升的热聊结束了，已经很晚了，也忙了一天了，需要休息了。</p>
+<p>小东因工作原因明天要早起，所以提前跟小升说了：</p>
+<blockquote>
+<p>小东：明天要凌晨4点起床升级系统，我要早点休息了，改天过来请你喝酒！<br />
+小升：额 ？？？这样，反正我也不懂！<br />
+小升：那你早点休息吧。你说的这顿酒还是要喝的！<br />
+小东：嗯嗯，晚安啊！你也早点休息。<br />
+小升：好的，晚安，兄弟！</p>
+</blockquote>
+<p><strong>对应理解 TCP 四次挥手过程：</strong></p>
+<p>1）小东要休息了，发起了 <code>fin1</code> 包打算结束聊天了。【小东状态此时处于 <code>fin_wait1</code> 状态，这是 <code>TCP 第一次挥手</code>】</p>
+<p>2）小升收到了小东的 <code>fin1</code> 包，回复了 <code>ack</code> 确认消息。【此时，小升状态处于 <code>close_wait</code> 状态，小东此时状态为 <code>fin_wait2</code>，这是 <code>TCP 第二次挥手</code>】</p>
+<p>3）小升来了一次最后确认，不打算继续聊了，发送了 <code>fin2</code> 包。【此时，小升状态处于 <code>last_ack</code> 状态，这是 <code>TCP 第三次挥手</code>】</p>
+<p>4）小东针对小升发来的 <code>fin2</code> 包，最终回复了个 <code>ack</code> 确认。【此时，小东状态处于 <code>time_wait</code> 状态，这是 <code>TCP 第四次挥手</code>】</p>
+<p>为什么小东还要处于 <code>time_wait</code> 状态等一下呢？</p>
+<p>因为他们按照「老规矩」，得确保最后这次消息小升的确收到了，才能最终结束这次聊天。</p>
+<p><code>time_wait</code> 状态标准持续等待时间是** <code>4</code>** 分钟，在这段时间内，小东和小升建立的 TCP 网络连接套接字资源（端口），是不能被其他人所使用的，也不能被系统回收重新利用的。</p>
+<p>如果小升没有收到反馈，还会继续问下「重发 fin2 消息」，直到小东发送了 ack 消息成功了。<br />
+双方正式关闭聊天通道，释放端口资源，连接关闭。</p>
+<blockquote>
+<p>等待的 4 分钟就是 2 个 MSL，每个 MSL 是 2 分钟。MSL就是 maximium segment lifetime——最长报文寿命。这个时间是由官方 RFC 协议规定的。</p>
+</blockquote>
+<p>上一张图，进一步直观理解下：</p>
+<p><img src="./images/由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘1.png" alt="file" /></p>
+<h5 id="结合-java-堆栈剖析源码"><strong>4、结合 Java 堆栈剖析源码</strong></h5>
+<p>分析完 TCP 四次挥手过程了，当服务端接收到 TCP 断开连接的请求包，需要回复一个确认消息给客户端，此时服务端状态便处于 CLOSE_WAIT 状态了。</p>
+<p>我们清楚了该状态所在的网络连接中的位置，结合前文中提到的问题，大量的线程阻塞在了 HttpClient 调用上。线程状态为 WAITING，服务器上统计出来，有大量处于 CLOSE_WAIT 状态的网络连接无法释放。</p>
+<p>线程是 JVM 进程中比较宝贵的资源，如果一直有大量线程处于等待或阻塞状态，慢慢的所有线程都被占满，导致服务没法正常响应了。</p>
+<p>我们来通过 java 线程堆栈信息，再结合源码来分析下具体原因。</p>
+<p>找到<code>第一段关键的堆栈日志</code>：</p>
+<pre><code><code>&quot;http-nio-8970-exec-1108&quot; #24971 daemon prio=5 os_prio=0 tid=0x00007f45b4445800 nid=0x61ad waiting on condition [0x00007f444ad69000]
+java.lang.Thread.State: WAITING (parking)
+        at sun.misc.Unsafe.park(Native Method)
+        - parking to wait for  &lt;0x00000006c2f30968&gt; (a java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject)
+        at java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)
+        at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2039)
+        at org.apache.http.pool.AbstractConnPool.getPoolEntryBlocking(AbstractConnPool.java:380)
+        at org.apache.http.pool.AbstractConnPool.access$200(AbstractConnPool.java:69)
+        at org.apache.http.pool.AbstractConnPool$2.get(AbstractConnPool.java:246)
+        - locked &lt;0x0000000641c7fe38&gt; (a org.apache.http.pool.AbstractConnPool$2)
+        at org.apache.http.pool.AbstractConnPool$2.get(AbstractConnPool.java:193)
+        at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.leaseConnection(PoolingHttpClientConnectionManager.java:303)
+        at org.apache.http.impl.conn.PoolingHttpClientConnectionManager$1.get(PoolingHttpClientConnectionManager.java:279)
+        at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:191)
+        at org.apache.http.impl.execchain.ProtocolExec.execute(ProtocolExec.java:185)
+        at org.apache.http.impl.execchain.RetryExec.execute(RetryExec.java:89)
+        at org.apache.http.impl.execchain.RedirectExec.execute(RedirectExec.java:111)
+        at org.apache.http.impl.client.InternalHttpClient.doExecute(InternalHttpClient.java:185)
+        at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:83)
+        at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:56)
+        at org.springframework.http.client.HttpComponentsClientHttpRequest.executeInternal(HttpComponentsClientHttpRequest.java:89)
+        at org.springframework.http.client.AbstractBufferingClientHttpRequest.executeInternal(AbstractBufferingClientHttpRequest.java:48)
+        at org.springframework.http.client.AbstractClientHttpRequest.execute(AbstractClientHttpRequest.java:53)
+        at org.springframework.web.client.RestTemplate.doExecute(RestTemplate.java:660)
+        at org.springframework.web.client.RestTemplate.execute(RestTemplate.java:629)
+        at org.springframework.web.client.RestTemplate.getForEntity(RestTemplate.java:329)
+        at com.xxx.proxy.common.util.HttpClientUtil.getForEntity(HttpClientUtil.java:267)
+        at com.xxx.proxy.common.util.HttpClientUtil.getForObject(HttpClientUtil.java:521)
+... ...</code></code></pre>
+<p>堆栈日志中出现了大量的上述日志，基本都是 HttpClient 工具类所调用的，所有线程状态处于 <code>java.lang.Thread.State: WAITING (parking)</code> 状态。</p>
+<p>出现 <code>WAITING (parking)</code>线程挂起状态，因为接口服务内部大量调用了第三方接口，要获取 Http 连接，但始终无法获取到，只能等待。</p>
+<p>HttpClientUtil 工具类是继承自 Spring RestTemplate 并做了一些参数、重试机制、代理定制，其包路径位于 <code>org.springframework.web.client.RestTemplate</code> 。</p>
+<p>类图如下所示：</p>
+<p><img src="./images/由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘2.png" alt="HttpClientUtil" /></p>
+<p><strong>创建 HttpClient 工具示例代码：</strong></p>
+<pre><code><code>HttpClientFactoryBean httpClientFactoryBean = new HttpClientFactoryBean(config);
+                    HttpComponentsClientHttpRequestFactory httpRequestFactory = new HttpComponentsClientHttpRequestFactory(httpClientFactoryBean.getObject());
+                    return new HttpClientUtil(httpRequestFactory);</code></code></pre>
+<p>HttpClientFactoryBean 继承自 AbstractFactoryBean，重写 getObjectType() 和 createInstance() 方法。</p>
+<p>类图如下所示：</p>
+<p><img src="./images/由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘3.png" alt="HttpClientFactoryBean" /></p>
+<p><strong>HttpClientFactoryBean 部分示例方法：</strong></p>
+<pre><code><code>@Override
+public Class&lt;?&gt; getObjectType() {
+        return HttpClient.class;
+}
+        
+@Override
+protected HttpClient createInstance() {
+    if (restConfig == null) {
+            HttpClients.custom().build();
+    }
+    // 每个路由最大的连接数
+    int maxPerRoute = restConfig.getMaxConnections();
+    // 总的最大连接数
+    int maxTotal = restConfig.getMaxTotalConnections();
+    // 连接超时时间
+    int connectTimeout = restConfig.getConnectionTimeout();
+  // 读取数据的超时时间
+    int socketTimeout = restConfig.getTimeout();
+    
+    PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager(30, TimeUnit.SECONDS);
+    connManager.setDefaultMaxPerRoute(maxPerRoute);
+    connManager.setMaxTotal(maxTotal);
+    connManager.setValidateAfterInactivity(1000);
+
+    RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(connectTimeout)      .setSocketTimeout(socketTimeout).build();
+
+/ ... 省略部分代码
+return HttpClients.custom().setConnectionManager(connManager).evictExpiredConnections().setDefaultRequestConfig(requestConfig).build();
+}</code></code></pre>
+<p>根据堆栈信息也能看到是从 <code>PoolingHttpClientConnectionManager</code> 的 leaseConnection() 方法获取连接，那我们可以详细看下源代码，为什么没有获取成功呢？</p>
+<p>怎么查找源码，通过堆栈信息中的调用栈链路，就能非常容易的找到经过了哪些类哪些方法，第多少行代码。</p>
+<p>根据上面jstack中的日志：</p>
+<pre><code><code>org.apache.http.pool.AbstractConnPool.getPoolEntryBlocking(AbstractConnPool.java:380)</code></code></pre>
+<p>根据名称猜测，通过 AbstractConnPool 抽象连接池的类，调用 getPoolEntryBlocking 阻塞式方法获取连接，第 380 行代码。</p>
+<p>查看源码：</p>
+<pre><code><code>private E getPoolEntryBlocking(
+                    final T route, final Object state,
+                    final long timeout, final TimeUnit tunit,
+                    final Future&lt;E&gt; future) throws IOException, InterruptedException, TimeoutException {
+
+    Date deadline = null;
+    // 连接获取超时时间参数
+    if (timeout &gt; 0) {
+            deadline = new Date (System.currentTimeMillis() + tunit.toMillis(timeout));
+    }
+    this.lock.lock();
+    try {
+            final RouteSpecificPool&lt;T, C, E&gt; pool = getPool(route);
+            // .... 省略部分源码
+
+            boolean success = false;
+            try {
+                    if (future.isCancelled()) {
+                            throw new InterruptedException(&quot;Operation interrupted&quot;);
+                    }
+                    // 将 future，实际类型为 Future&lt;CPoolEntry&gt;，放入 pending 双向链表队列中
+                    pool.queue(future);
+                    this.pending.add(future);
+                    if (deadline != null) {
+                            success = this.condition.awaitUntil(deadline);
+                    } else {
+                         // 这里正是第 380 行源代码
+                            this.condition.await();
+                            success = true;
+                    }
+                    if (future.isCancelled()) {
+                            throw new InterruptedException(&quot;Operation interrupted&quot;);
+                    }
+            } finally {
+                    // In case of &#39;success&#39;, we were woken up by the
+                    // connection pool and should now have a connection
+                    // waiting for us, or else we&#39;re shutting down.
+                    // Just continue in the loop, both cases are checked.
+                    pool.unqueue(future);
+                    this.pending.remove(future);
+            }
+            // check for spurious wakeup vs. timeout
+            if (!success &amp;&amp; (deadline != null &amp;&amp; deadline.getTime() &lt;= System.currentTimeMillis()))           {
+                    break;
+            }
+        }
+        throw new TimeoutException(&quot;Timeout waiting for connection&quot;);
+    } finally {
+                this.lock.unlock();
+    }
+}</code></code></pre>
+<p>查找到第 380 行源码，调用了 condition 的 await() 方法：</p>
+<pre><code><code>this.condition.await();</code></code></pre>
+<p>这里使用了并发包下的 Condition 实现多线程协调通讯机制，await() 方法调用后，会将当前线程加入到 Condition 等待队列中，是一个FIFO结构的队列，同时当前线程锁释放，如果不释放，会导致其他线程无法获得锁，可能造成死锁。</p>
+<p>await() 方法源码：</p>
+<pre><code><code>public final void await() throws InterruptedException {
+        if (Thread.interrupted())
+                throw new InterruptedException();
+        // 加入 Condition 等待队列
+        Node node = addConditionWaiter();
+        // 释放当前线程的锁
+        long savedState = fullyRelease(node);
+        int interruptMode = 0;
+        // 不在 AQS 同步队列中，将当前线程挂起，如果在 AQS 队列中退出循环
+        while (!isOnSyncQueue(node)) {
+                LockSupport.park(this);
+                if ((interruptMode = checkInterruptWhileWaiting(node)) != 0)
+                        break;
+        }
+        // 已被 signal() 方法唤醒，自旋等待尝试再次获取锁
+        if (acquireQueued(node, savedState) &amp;&amp; interruptMode != THROW_IE)
+                interruptMode = REINTERRUPT;
+        if (node.nextWaiter != null) // clean up if cancelled
+                unlinkCancelledWaiters();
+        if (interruptMode != 0)
+                reportInterruptAfterWait(interruptMode);
+}</code></code></pre>
+<p>当前线程加入 Condition 等待队列结构图：</p>
+<p><img src="./images/由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘4.png" alt="Condition 等待队列" /></p>
+<p>当通过 Condtion 调用 signalAll() 或者 signal() 方法时，会获取等待队列的首节点，将其移动到同步队列，利用 LockSupport 唤醒节点中的线程。节点从等待队列，移动到 AQS 同步队列如下结构图所示：</p>
+<p><img src="./images/由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘5.png" alt="Condtion&amp;AQS 同步队列" /></p>
+<p>在 AbstractConnPool 类的找到了 release() 释放连接的代码。</p>
+<p>release() 方法源码如下：</p>
+<pre><code><code>@Override
+public void release(final E entry, final boolean reusable) {
+        this.lock.lock();
+    try {
+        if (this.leased.remove(entry)) {
+                final RouteSpecificPool&lt;T, C, E&gt; pool = getPool(entry.getRoute());
+                pool.free(entry, reusable);
+                if (reusable &amp;&amp; !this.isShutDown) {
+                        this.available.addFirst(entry);
+                } else {
+                        entry.close();
+                }
+                onRelease(entry);
+                Future&lt;E&gt; future = pool.nextPending();
+                if (future != null) {
+                        this.pending.remove(future);
+                } else {
+                        future = this.pending.poll();
+                }
+                if (future != null) {
+                        this.condition.signalAll();
+                }
+        }
+    } finally {
+            this.lock.unlock();
+    }
+}</code></code></pre>
+<p>我们看到了释放连接时，调用 <code>this.condition.signalAll();</code> signalAll() 方法的调用会唤醒所有的所有等待队列线程，虽然唤醒所有，但是仍然只有一个线程能拿到锁，其他线程还是需要自旋等待。</p>
+<p>signalAll() 方法源码如下：</p>
+<pre><code><code>private void doSignalAll(Node first) {
+    lastWaiter = firstWaiter = null;
+    do {
+            Node next = first.nextWaiter;
+            first.nextWaiter = null;
+            // 信号通知
+            transferForSignal(first);
+            first = next;
+    } while (first != null);
+}
+
+final boolean transferForSignal(Node node) {
+    /*
+     * 设置node的waitStatus：Condition-&gt;0
+     */
+    if (!compareAndSetWaitStatus(node, Node.CONDITION, 0))
+        return false;
+
+         // 加入到AQS的等待队列，让节点继续获取锁，设置前置节点状态为SIGNAL
+    Node p = enq(node);
+    int c = p.waitStatus;
+    if (c &gt; 0 || !compareAndSetWaitStatus(p, c, Node.SIGNAL))
+            // 调用 LockSupport 的 unpark() 方法唤醒线程
+        LockSupport.unpark(node.thread);
+    return true;
+}</code></code></pre>
+<p>剖析完了底层代码，回过头去，我们看下是因为调用到了 condition 的 await() 无参方法，并且一直无法获得 Http 连接，然后一直占着 tomcat 线程的坑。</p>
+<p>getPoolEntryBlocking() 方法的最开始，有个不能忽视的一段代码：</p>
+<pre><code><code>Date deadline = null;
+// 连接获取超时时间参数
+if (timeout &gt; 0) {
+    deadline = new Date (System.currentTimeMillis() + tunit.toMillis(timeout));
+}</code></code></pre>
+<p>这段代码一看就是超时时间，猜测一下，代码在此处，timeout 应该就是从连接池获取连接时的等待时间。</p>
+<p>getPoolEntryBocking() 方法的下面看到：</p>
+<pre><code><code>if (deadline != null) {
+        success = this.condition.awaitUntil(deadline);
+}</code></code></pre>
+<p>如果 deadline 不为空，会调用 condtion 的 awaitUtil(deadline) 方法，awaitUtil(deadline) 发方法表示直到达到 deadline 时间还未唤醒，就会自动唤醒，加入 AQS 同步队列获取锁。</p>
+<p>我们可以根据堆栈信息继续往前查找调用者，看看 deadline 中的 timeout 来源。</p>
+<pre><code><code>at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:191)</code></code></pre>
+<p>MainClientExec#execute() 方法部分源码：</p>
+<pre><code><code>final HttpClientConnection managedConn;
+    try {
+        final int timeout = config.getConnectionRequestTimeout();
+        managedConn = connRequest.get(timeout &gt; 0 ? timeout : 0, TimeUnit.MILLISECONDS);
+    } catch(final InterruptedException interrupted) {
+}</code></code></pre>
+<p>这里的 timeout，即 connectionRequestTimeout，正是计算 deadline 时间的 timeout 值。<br />
+印证了我们的猜测。</p>
+<p>初始化 HttpClient 工具的初始配置参数，并没有配置 <code>connectionRequestTimeout</code> 这个参数的，该参数也是很关键的，如果没有设置，并且被 park 挂起的线程一直没有被 signal 唤醒，那么会一直等待下去。</p>
+<p>所以，必须得设置这个参数。这里的 deadline 是个绝对时间，不为空时，会调用 condition 的 awaitUtil(deadline) 方法，即使没有被 signal 唤醒，也会自动唤醒，去争抢锁，而不会导致未被唤醒就一直阻塞下去。</p>
+<p>而且这个 awaitUtil(deadline) 方法跟 awaitNanos(long nanosTimeout) 方法里的 deadline 变量设计上异曲同工。</p>
+<p>达到了设定的超时时间，并且没有 signal 过，最终 <code>success</code> 变量为 false 不成功，直接 break 跳出循环，最终会抛出 TimeoutException(&quot;Timeout waiting for connection&quot;) 异常。</p>
+<p>抛出这个异常，系统错误日志中，也就明确了是因为无法获得连接导致的。同时，也避免了一直占用着线程。</p>
+<h5 id="再从堆栈中找到罪魁祸首"><strong>5、再从堆栈中找到&quot;罪魁祸首&quot;</strong></h5>
+<p>上一节，从第一段堆栈日志分析到了 Condition 并发底层源码细节。<br />
+但是这还没完，因为我们统计 <code>java.lang.Thread.State</code> 中，仅分析完了<code>WAITING (parking)</code> 状态，问题原因也不一定是这个状态导致的。接下来继续分析另外的「异常」线程状态 <code>WAITING (on object monitor)</code> 。</p>
+<p>在 java 堆栈中 <code>第二段关键的日志</code> 如下：</p>
+<pre><code><code>&quot;http-nio-8970-exec-462&quot; #24297 daemon prio=5 os_prio=0 tid=0x00007f45b41bd000 nid=0x5f0b in Object.wait() [0x00007f446befa000]
+ java.lang.Thread.State: WAITING (on object monitor)
+            at java.lang.Object.wait(Native Method)
+            at java.lang.Object.wait(Object.java:502)
+            at java.net.InetAddress.checkLookupTable(InetAddress.java:1393)
+            - locked &lt;0x00000006c05a5570&gt; (a java.util.HashMap)
+            at java.net.InetAddress.getAddressesFromNameService(InetAddress.java:1310)
+            at java.net.InetAddress.getAllByName0(InetAddress.java:1276)
+            at java.net.InetAddress.getAllByName(InetAddress.java:1192)
+            at java.net.InetAddress.getAllByName(InetAddress.java:1126)
+            at org.apache.http.impl.conn.SystemDefaultDnsResolver.resolve(SystemDefaultDnsResolver.java:45)
+            at org.apache.http.impl.conn.DefaultHttpClientConnectionOperator.connect(DefaultHttpClientConnectionOperator.java:112)
+            at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.connect(PoolingHttpClientConnectionManager.java:373)
+            at org.apache.http.impl.execchain.MainClientExec.establishRoute(MainClientExec.java:381)
+            at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:237)
+            at org.apache.http.impl.execchain.ProtocolExec.execute(ProtocolExec.java:185)
+            at org.apache.http.impl.execchain.RetryExec.execute(RetryExec.java:89)
+            at org.apache.http.impl.execchain.RedirectExec.execute(RedirectExec.java:111)
+            at org.apache.http.impl.client.InternalHttpClient.doExecute(InternalHttpClient.java:185)
+            at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:83)
+            at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:56)
+            at org.springframework.http.client.HttpComponentsClientHttpRequest.executeInternal(HttpComponentsClientHttpRequest.java:89)
+            at org.springframework.http.client.AbstractBufferingClientHttpRequest.executeInternal(AbstractBufferingClientHttpRequest.java:48)
+            at org.springframework.http.client.AbstractClientHttpRequest.execute(AbstractClientHttpRequest.java:53)
+            at org.springframework.web.client.RestTemplate.doExecute(RestTemplate.java:660)
+            at org.springframework.web.client.RestTemplate.execute(RestTemplate.java:629)
+            at org.springframework.web.client.RestTemplate.getForEntity(RestTemplate.java:329)
+            at com.xxx.tvproxy.common.util.HttpClientUtil.getForEntity(HttpClientUtil.java:267)
+            at com.xxx.tvproxy.common.util.HttpClientUtil.getForObject(HttpClientUtil.java:521)
+``
+
+java.lang.Thread.State: WAITING (on object monitor)，这样的线程状态也要引起格外的注意，监视对象锁，并且一直阻塞着线程不释放。
+
+根据线程堆栈信息看，猜测就是跟 HttpClient 参数设置有关，我们来分析下创建参数。
+查找栈顶信息看到了有调用 Object 对象的 wait() 方法，说明是在等待另外的线程 notify 通知，但迟迟未等到，当前线程就一直处于 WAITING 状态。
+
+继续查找是谁调用的：
+</code></code></pre>
+<p>at java.net.InetAddress.checkLookupTable(InetAddress.java:1393)<br />
+``</p>
+<p>这段代码调用引起，还是要去看下源码：</p>
+<pre><code><code>private static InetAddress[] checkLookupTable(String host) {
+    synchronized (lookupTable) {
+        // If the host isn&#39;t in the lookupTable, add it in the
+        // lookuptable and return null. The caller should do
+        // the lookup.
+        if (lookupTable.containsKey(host) == false) {
+                lookupTable.put(host, null);
+                return null;
+        }
+
+        // If the host is in the lookupTable, it means that another
+        // thread is trying to look up the addresses of this host.
+        // This thread should wait.
+        while (lookupTable.containsKey(host)) {
+                try {
+                        // 对应堆栈中的 java.net.InetAddress.checkLookupTable(InetAddress.java:1393)
+                        lookupTable.wait();
+                } catch (InterruptedException e) {
+                }
+        }
+    }
+
+    // The other thread has finished looking up the addresses of
+    // the host. This thread should retry to get the addresses
+    // from the addressCache. If it doesn&#39;t get the addresses from
+    // the cache, it will try to look up the addresses itself.
+    InetAddress[] addresses = getCachedAddresses(host);
+    if (addresses == null) {
+        synchronized (lookupTable) {
+                lookupTable.put(host, null);
+                return null;
+        }
+    }
+
+    return addresses;
+}</code></code></pre>
+<p>找到了是 lookupTable 对象，使用了同步块锁 synchronized，内部调用了 lookupTable 对象的 wait() 方法，就是在这里等不到通知，一直阻塞着。</p>
+<p>这个问题代码排查一通，你是看不出什么问题来的，因为跟应用程序本身关系不大了，是因为 IPV6 导致的 JVM 线程死锁问题。</p>
+<p>参考国外 zimbra 站点 wiki：https://wiki.zimbra.com/wiki/Configuring_for_IPv4</p>
+<p>这里解释下问题产生的原因：</p>
+<p>应用本身在 IPv4 环境下，如果尝试使用了 IPv6 会导致一些已知问题。</p>
+<p>当调用了 Inet6AddressImpl.lookupAllHostAddr() 方法，因为 Java 与操作系统 libc 库之间存在一个bug，当特定的竞态条件发生时，将会导致查找 host 地址动作一直无限循环下去。这种情况发生的频率很低，但是一旦发生将会导致 JVM 死锁问题，进而导致 JVM 中所有线程会被阻塞住。</p>
+<p>根据上述分析，在 jstack 堆栈中找到了 <code>第三段关键的堆栈日志</code> 如下：</p>
+<pre><code><code>java.lang.Thread.State: RUNNABLE
+   at java.net.Inet6AddressImpl.lookupAllHostAddr(Native Method)
+   at java.net.InetAddress$2.lookupAllHostAddr(InetAddress.java:928)
+   at java.net.InetAddress.getAddressesFromNameService(InetAddress.java:1323)
+   at java.net.InetAddress.getAllByName0(InetAddress.java:1276)
+   at java.net.InetAddress.getAllByName(InetAddress.java:1192)
+   at java.net.InetAddress.getAllByName(InetAddress.java:1126)
+   at org.apache.http.impl.conn.SystemDefaultDnsResolver.resolve(SystemDefaultDnsResolver.java:45)
+   at org.apache.http.impl.conn.DefaultHttpClientConnectionOperator.connect(DefaultHttpClientConnectionOperator.java:112)
+   at org.apache.http.impl.conn.PoolingHttpClientConnectionManager.connect(PoolingHttpClientConnectionManager.java:373)
+   at org.apache.http.impl.execchain.MainClientExec.establishRoute(MainClientExec.java:381)
+   at org.apache.http.impl.execchain.MainClientExec.execute(MainClientExec.java:237)
+   at org.apache.http.impl.execchain.ProtocolExec.execute(ProtocolExec.java:185)
+   at org.apache.http.impl.execchain.RetryExec.execute(RetryExec.java:89)
+   at org.apache.http.impl.execchain.RedirectExec.execute(RedirectExec.java:111)
+   at org.apache.http.impl.client.InternalHttpClient.doExecute(InternalHttpClient.java:185)
+   at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:83)
+   at org.apache.http.impl.client.CloseableHttpClient.execute(CloseableHttpClient.java:56)
+   at
+   ... ...</code></code></pre>
+<p><strong>如何判断操作系统是否启用了 IPv6 ？</strong></p>
+<p>介绍两种方式：</p>
+<p>1）ifconfig</p>
+<p><img src="./images/由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘6.png" alt="file" /></p>
+<p>这个很明显就能看得出来，有 <code>inet6 addr</code> 字样说明启用了 IPv6。</p>
+<p>2）lsmod</p>
+<pre><code><code>[root@BJ]# lsmod | grep ipv6
+Module                  Size  Used by
+ipv6                  335951  73 bridge</code></code></pre>
+<p>主要看 Used 这一列，数值 70+，不支持 IPv6 环境 Used 列是 1。</p>
+<h5 id="问题优化方案总结"><strong>6、问题优化方案总结</strong></h5>
+<p>经过对 java 堆栈中关键线程状态的分析，明确了问题原因，接下来说下问题解决方案。</p>
+<p><strong>第一个问题：</strong></p>
+<p>针对从 Http 连接池中获取不到连接时，可能使线程进入阻塞状态。</p>
+<p>在 HttpClient 客户端初始化参数配置中增加 <code>connectionRequestTimeout</code> ，获取连接的超时时间，一般不建议过大，我们设置为 500ms。</p>
+<p>设置后，就会调用底层的 condition#awaitUtil(deadline) 方法，当线程无法被 signal 唤醒，到达了 deadline 绝对时间后，线程会自动从等待队列中被唤醒，加入到 AQS 同步队列争抢锁。</p>
+<p><strong>第二个问题：</strong></p>
+<p>针对 IPv6 导致的 JVM 进程死锁问题，有两种解决方案：</p>
+<p>1）操作系统层面禁用 IPv6</p>
+<p>编辑 /etc/sysctl.conf 文件<br />
+添加下面两行：</p>
+<pre><code><code>net.ipv6.conf.all.disable_ipv6 = 1
+net.ipv6.conf.default.disable_ipv6 = 1</code></code></pre>
+<p>保存，执行 <code>sysctl -p</code> 使其生效。</p>
+<p>运行操作系统中执行如下命令直接生效：</p>
+<pre><code><code>sysctl -w net.ipv6.conf.all.disable_ipv6=1
+sysctl -w net.ipv6.conf.default.disable_ipv6=1</code></code></pre>
+<p>2）Java 应用程序层面</p>
+<p>在应用 JVM 启动参数上添加 <code>-Djava.net.preferIPv4Stack=true</code> 。</p>
+<p>从操作系统层面禁用 IPv6，如果服务器上还部署了其他应用，注意观察下，如果遇到一些问题可以借助搜索引擎查下。</p>
+<p>我们有很多台服务器，都是运维来维护的，所以我采用了第二种方式，直接在 JVM 上增加参数，简单方便。</p>
+<p><strong>最后的总结：</strong></p>
+<p>java 堆栈日志中两个关键的 <code>WAITING</code> 线程状态，先出现了 <code>WAITING (on object monitor)</code>，因 IPv6 问题触发了 HttpClient 线程池所有线程阻塞。后出现了 <code>WAITING (parking)</code> ，Tomcat 线程接收转发请求，当请求调用到 HttpClient，因无法获得 Http 连接资源，且未设置获取连接的超时时间，造成了大量线程阻塞。</p>
+<p>经过对上述两个问题的优化后，上线观察很长一段时间，也经历过比这次问题出现时更高的访问量，再没有出现过 JVM 线程阻塞问题。<br />
+通过网络命令行统计，基本不会出现大量的 <code>CLOSE_WAIT</code> 网络连接状态。</p>
+<p>欢迎关注我的公众号，扫二维码关注获得更多精彩文章，与你一同成长~<br />
+<img src="./images/由一次线上故障来理解下 TCP 三握、四挥 &amp; Java 堆栈分析到源码的探秘7.png" alt="Java爱好者社区" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

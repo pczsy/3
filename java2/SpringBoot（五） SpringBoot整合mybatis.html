@@ -1,0 +1,538 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot（五） SpringBoot整合mybatis' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot（五） SpringBoot整合mybatis</center></div><div class='banquan'>原文出处:本文由博客园博主探歌提供。<br/>
+原文连接:https://www.cnblogs.com/lgg20/p/11580718.html</div><br>
+    <p><strong>一：项目结构：</strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><img src="./images/SpringBoot（五） SpringBoot整合mybatis0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>二<strong>：pom文件如下：</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">parent</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-parent<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.0.4.RELEASE<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">parent</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Spring-Mybatis </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.mybatis.spring.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>mybatis-spring-boot-starter<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.3.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> jdbcTemplate </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-jdbc<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+         
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> MySQL连接 </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>mysql<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>mysql-connector-java<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>runtime<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Add typical dependencies for a web application </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-web<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span> </code></pre>
+
+<p>三：数据库配置：</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:html;gutter:true;">spring:
+  datasource:
+    driver-class-name: com.mysql.jdbc.Driver
+    url: jdbc:mysql://192.168.1.20:3306/test
+    username: root
+    password: root123
+</code></pre>
+
+<p><strong>四：代码说明：</strong></p>
+<p>最开始使用mybati比较麻烦，各种配置文件、实体类、dao层映射关联、还有一大推其它配置。当然mybatis也发现了这种弊端，初期开发了generator可以根据表结果自动生产实体类、配置文件和dao层代码，可以减轻一部分开发量；后期也进行了大量的优化可以使用注解了。</p>
+<p>于是两种使用方式都介绍一下，一、无配置注解版 二、配置文件版</p>
+<p>1.无配置文件注解版<br />加入配置文件<br />&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</p>
+<src class="cnblogs_code">
+<pre><code>实体类User.<span style="color: #0000ff;">class</span>
+
+<span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.saytime.bean;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Date;
+ 
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * @ClassName cn.saytime.bean.User
+ * @Description
+ * @date 2017-07-04 22:47:28
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> User {
+ 
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> id;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String username;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> age;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Date ctm;
+ 
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User() {
+    }
+ 
+    </span><span style="color: #0000ff;">public</span> User(String username, <span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+        </span><span style="color: #0000ff;">this</span>.username =<span style="color: #000000;"> username;
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+        </span><span style="color: #0000ff;">this</span>.ctm = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date();
+    }
+ 
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Getter、Setter</span></code></pre>
+
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.saytime.mapper;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.saytime.bean.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Delete;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Insert;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Param;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Select;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Update;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+ 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> @Mapper 这里可以使用@Mapper注解，但是每个mapper都加注解比较麻烦，所以统一配置@MapperScan在扫描路径在application类中</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> UserMapper {
+ 
+    @Select(</span>"SELECT * FROM tb_user WHERE id = #{id}"<span style="color: #000000;">)
+    User getUserById(Integer id);
+ 
+    @Select(</span>"SELECT * FROM tb_user"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUserList();
+ 
+    @Insert(</span>"insert into tb_user(username, age, ctm) values(#{username}, #{age}, now())"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> add(User user);
+ 
+    @Update(</span>"UPDATE tb_user SET username = #{user.username} , age = #{user.age} WHERE id = #{id}"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> update(@Param("id") Integer id, @Param("user"<span style="color: #000000;">) User user);
+ 
+    @Delete(</span>"DELETE from tb_user where id = #{id} "<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> delete(Integer id);
+
+&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code>UserService.<span style="color: #0000ff;">class</span>
+
+<span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.saytime.service;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.saytime.bean.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Service;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+ 
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * @ClassName cn.saytime.service.UserService
+ * @Description
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> UserService {
+ 
+    User getUserById(Integer id);
+ 
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUserList();
+ 
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> add(User user);
+ 
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> update(Integer id, User user);
+ 
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> delete(Integer id);
+<br /></span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code>UserServiceimpl.<span style="color: #0000ff;">class</span>
+
+<span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.saytime.service.impl;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.saytime.bean.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.saytime.mapper.UserMapper;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.saytime.service.UserService;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Service;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+ 
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * @ClassName cn.saytime.service.impl.UserServiceImpl
+ * @Description
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Service
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserServiceImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> UserService {
+ 
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> UserMapper userMapper;
+ 
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User getUserById(Integer id) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userMapper.getUserById(id);
+    }
+ 
+    @Override
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUserList() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userMapper.getUserList();
+    }
+ 
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> add(User user) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userMapper.add(user);
+    }
+ 
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> update(Integer id, User user) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userMapper.update(id, user);
+    }
+ 
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> delete(Integer id) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userMapper.delete(id);
+    }
+}<br /></span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">JsonResult.class 通用json返回类：<br /><br /><br />package</span><span style="color: #000000;"> cn.saytime.bean;
+ 
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JsonResult {
+ 
+    </span><span style="color: #0000ff;">private</span> String status = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+ 
+    </span><span style="color: #0000ff;">private</span> Object result = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+ 
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> JsonResult status(String status) {
+        </span><span style="color: #0000ff;">this</span>.status =<span style="color: #000000;"> status;
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+ 
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Getter Setter</span></code></pre>
+
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code>UserController.<span style="color: #0000ff;">class</span><span style="color: #000000;">（Restful风格）
+
+</span><span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.saytime.web;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.saytime.bean.JsonResult;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.saytime.bean.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.saytime.service.UserService;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.http.HttpStatus;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.http.ResponseEntity;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.PathVariable;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestBody;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestMethod;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestParam;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RestController;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+ 
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * @ClassName cn.saytime.web.UserController
+ * @Description
+ * @date 2017-07-04 22:46:14
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@RestController
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserController {
+ 
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> UserService userService;
+ 
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 根据ID查询用户
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> id
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span><span style="color: #000000;">
+    @RequestMapping(value </span>= "user/{id}", method =<span style="color: #000000;"> RequestMethod.GET)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;JsonResult&gt; getUserById (@PathVariable(value = "id"<span style="color: #000000;">) Integer id){
+        JsonResult r </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> JsonResult();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            User user </span>=<span style="color: #000000;"> userService.getUserById(id);
+            r.setResult(user);
+            r.setStatus(</span>"ok"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            r.setResult(e.getClass().getName() </span>+ ":" +<span style="color: #000000;"> e.getMessage());
+            r.setStatus(</span>"error"<span style="color: #000000;">);
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ResponseEntity.ok(r);
+    }
+ 
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 查询用户列表
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span><span style="color: #000000;">
+    @RequestMapping(value </span>= "users", method =<span style="color: #000000;"> RequestMethod.GET)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;JsonResult&gt;<span style="color: #000000;"> getUserList (){
+        JsonResult r </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> JsonResult();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            List</span>&lt;User&gt; users =<span style="color: #000000;"> userService.getUserList();
+            r.setResult(users);
+            r.setStatus(</span>"ok"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            r.setResult(e.getClass().getName() </span>+ ":" +<span style="color: #000000;"> e.getMessage());
+            r.setStatus(</span>"error"<span style="color: #000000;">);
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ResponseEntity.ok(r);
+    }
+ 
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 添加用户
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> user
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span><span style="color: #000000;">
+    @RequestMapping(value </span>= "user", method =<span style="color: #000000;"> RequestMethod.POST)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;JsonResult&gt;<span style="color: #000000;"> add (@RequestBody User user){
+        JsonResult r </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> JsonResult();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">int</span> orderId =<span style="color: #000000;"> userService.add(user);
+            </span><span style="color: #0000ff;">if</span> (orderId &lt; 0<span style="color: #000000;">) {
+                r.setResult(orderId);
+                r.setStatus(</span>"fail"<span style="color: #000000;">);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                r.setResult(orderId);
+                r.setStatus(</span>"ok"<span style="color: #000000;">);
+            }
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            r.setResult(e.getClass().getName() </span>+ ":" +<span style="color: #000000;"> e.getMessage());
+            r.setStatus(</span>"error"<span style="color: #000000;">);
+ 
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ResponseEntity.ok(r);
+    }
+ 
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 根据id删除用户
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> id
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span><span style="color: #000000;">
+    @RequestMapping(value </span>= "user/{id}", method =<span style="color: #000000;"> RequestMethod.DELETE)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;JsonResult&gt; delete (@PathVariable(value = "id"<span style="color: #000000;">) Integer id){
+        JsonResult r </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> JsonResult();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">int</span> ret =<span style="color: #000000;"> userService.delete(id);
+            </span><span style="color: #0000ff;">if</span> (ret &lt; 0<span style="color: #000000;">) {
+                r.setResult(ret);
+                r.setStatus(</span>"fail"<span style="color: #000000;">);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                r.setResult(ret);
+                r.setStatus(</span>"ok"<span style="color: #000000;">);
+            }
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            r.setResult(e.getClass().getName() </span>+ ":" +<span style="color: #000000;"> e.getMessage());
+            r.setStatus(</span>"error"<span style="color: #000000;">);
+ 
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ResponseEntity.ok(r);
+    }
+ 
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 根据id修改用户信息
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> user
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span><span style="color: #000000;">
+    @RequestMapping(value </span>= "user/{id}", method =<span style="color: #000000;"> RequestMethod.PUT)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;JsonResult&gt; update (@PathVariable("id"<span style="color: #000000;">) Integer id, @RequestBody User user){
+        JsonResult r </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> JsonResult();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">int</span> ret =<span style="color: #000000;"> userService.update(id, user);
+            </span><span style="color: #0000ff;">if</span> (ret &lt; 0<span style="color: #000000;">) {
+                r.setResult(ret);
+                r.setStatus(</span>"fail"<span style="color: #000000;">);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                r.setResult(ret);
+                r.setStatus(</span>"ok"<span style="color: #000000;">);
+            }
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            r.setResult(e.getClass().getName() </span>+ ":" +<span style="color: #000000;"> e.getMessage());
+            r.setStatus(</span>"error"<span style="color: #000000;">);
+ 
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ResponseEntity.ok(r);
+    }
+ 
+}</span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">Application.java
+
+</span><span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.saytime;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.mybatis.spring.annotation.MapperScan;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.SpringApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.SpringBootApplication;
+ 
+@SpringBootApplication
+@MapperScan(</span>"cn.saytime.mapper"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SpringbootMybaitsApplication {
+ 
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        SpringApplication.run(SpringbootMybaitsApplication.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">, args);
+    }</span></code></pre>
+
+<p>测试：</p>
+<p>使用PostMan通过测试：&nbsp;<a href="http://localhost:8080/user/1">http://localhost:8080/user/1</a></p>
+<h4 id="2配置文件版">2.配置文件版</h4>
+<p>加入配置文件</p>
+<p><img src="./images/SpringBoot（五） SpringBoot整合mybatis1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;代码部分，相比于上面那种方式，改变的只有配置文件以及下面几个部分UserMapper.<span style="color: #0000ff;">class</span></p>
+<src class="cnblogs_code">
+<pre><code>
+<span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.saytime.mapper;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.saytime.bean.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Delete;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Insert;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Param;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Select;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.annotations.Update;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Repository;
+ 
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+ 
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * @ClassName cn.saytime.mapper.UesrMapper
+ * @Description
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Repository
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> UserMapper {
+ 
+    User getUserById(Integer id);
+ 
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUserList();
+ 
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> add(User user);
+ 
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> update(@Param("id") Integer id, @Param("user"<span style="color: #000000;">) User user);
+ 
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> delete(Integer id);
+
+}<br /><br /><br /><strong>UserServiceImpl类：</strong><br /></span></code></pre>
+<p>&nbsp;</p>
+<pre><code></code></pre>
+<p>import java.util.List;</p>
+<p><em id="__mceDel">import org.springframework.beans.factory.annotation.Autowired;</em></p>
+<p><em id="__mceDel">import org.springframework.stereotype.Service;</em></p>
+<pre><code></code></pre>
+<p>import com.demo.dao.UserDao;<br />import com.demo.mapper.User;<br />import com.demo.mapper.UserMapper1;<br />import com.demo.service.UserService;</p>
+<pre><code></code></pre>
+<p><br />@Service<br />public class UserServiceImpl implements UserService{<br />	<br />	@Autowired<br />	private UserDao userDao;<br />	<br />	@Autowired<br />	private UserMapper1 userMapper;</p>
+<pre><code></code></pre>
+<p> @Override<br />	public User getUserById(Integer id) {<br />		return userMapper.getUserById(id);<br />	}</p>
+<pre><code></code></pre>
+<p> @Override<br />	public List&lt;User&gt; getUserList() {<br />		return userMapper.getUserList();<br />	}</p>
+<p>}</p>
+<pre><code><span style="color: #000000;">&nbsp;</span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code>mybatis-<span style="color: #000000;">config.xml
+
+</span>&lt;?xml version="1.0" encoding="UTF-8" ?&gt;
+&lt;!<span style="color: #000000;">DOCTYPE configuration
+        PUBLIC </span>"-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd"&gt;
+&lt;configuration&gt;
+    &lt;typeAliases&gt;
+    &lt;/typeAliases&gt;
+&lt;/configuration&gt;</code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">userMapper.xml
+
+</span>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd"&gt;
+&lt;mapper namespace="cn.saytime.mapper.UserMapper" &gt;
+    &lt;resultMap id="BaseResultMap" type="cn.saytime.bean.User" &gt;
+        &lt;id column="id" property="id" jdbcType="INTEGER" /&gt;
+        &lt;result column="username" property="username" jdbcType="VARCHAR" /&gt;
+        &lt;result column="age" property="age" jdbcType="INTEGER" /&gt;
+        &lt;result column="ctm" property="ctm" jdbcType="TIMESTAMP"/&gt;
+    &lt;/resultMap&gt;
+ 
+    &lt;sql id="Base_Column_List" &gt;<span style="color: #000000;">
+        id, username, age, ctm
+    </span>&lt;/sql&gt;
+ 
+    &lt;select id="getUserList" resultMap="BaseResultMap"  &gt;<span style="color: #000000;">
+        SELECT
+        </span>&lt;include refid="Base_Column_List" /&gt;<span style="color: #000000;">
+        FROM tb_user
+    </span>&lt;/select&gt;
+ 
+    &lt;select id="getUserById" parameterType="java.lang.Integer" resultMap="BaseResultMap" &gt;<span style="color: #000000;">
+        SELECT
+        </span>&lt;include refid="Base_Column_List" /&gt;<span style="color: #000000;">
+        FROM tb_user
+        WHERE id </span>=<span style="color: #000000;"> #{id}
+    </span>&lt;/select&gt;
+ 
+    &lt;insert id="add" parameterType="cn.saytime.bean.User" &gt;<span style="color: #000000;">
+        INSERT INTO
+        tb_user
+        (username,age,ctm)
+        VALUES
+        (#{username}, #{age}, now())
+    </span>&lt;/insert&gt;
+ 
+    &lt;update id="update" parameterType="java.util.Map" &gt;<span style="color: #000000;">
+        UPDATE
+        tb_user
+        SET
+        username </span>= #{user.username},age =<span style="color: #000000;"> #{user.age}
+        WHERE
+        id </span>=<span style="color: #000000;"> #{id}
+    </span>&lt;/update&gt;
+ 
+    &lt;delete id="delete" parameterType="java.lang.Integer" &gt;<span style="color: #000000;">
+        DELETE FROM
+        tb_user
+        WHERE
+        id </span>=<span style="color: #000000;"> #{id}
+    </span>&lt;/delete&gt;
+&lt;/mapper&gt;</code></pre>
+
+<p>&nbsp;</p>
+<p><strong>测试方法同上：<a href="http://localhost:8080/user/1">http://localhost:8080/user/1</a></strong></p>
+<p>&nbsp;</p>
+<p><strong>五、简要说明：</strong><br />不知道大家有没有注意到一点，就是引入Springboot-mybatis依赖的时候，并不是spring官方的starter，往常的springboot集成的依赖，比如web，redis等，groupId以及artifactId的地址如下：</p>
+<p>&lt;dependency&gt;<br />			&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;<br />			&lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;<br />		&lt;/dependency&gt;<br />而这里是mybatis为spring提供的starter依赖，所以依赖地址是：</p>
+<p>&lt;dependency&gt;<br />			&lt;groupId&gt;org.mybatis.spring.boot&lt;/groupId&gt;<br />			&lt;artifactId&gt;mybatis-spring-boot-starter&lt;/artifactId&gt;<br />			&lt;version&gt;1.3.0&lt;/version&gt;<br />		&lt;/dependency&gt;<br />而且值得注意的是，这里必须要指定版本号，往常我们使用springboot之所以不需要指定版本号，是因为我们引入的Maven Parent 中指定了SpringBoot的依赖，SpringBoot官方依赖Pom文件中已经指定了它自己集成的第三方依赖的版本号，对于Mybatis，Spring官方并没有提供自己的starter，所以必须跟正常的maven依赖一样，要加版本号。<br />&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

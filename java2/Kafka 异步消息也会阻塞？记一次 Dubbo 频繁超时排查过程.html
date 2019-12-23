@@ -1,0 +1,178 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Kafka 异步消息也会阻塞？记一次 Dubbo 频繁超时排查过程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Kafka 异步消息也会阻塞？记一次 Dubbo 频繁超时排查过程</center></div><div class='banquan'>原文出处:本文由博客园博主good_andyxu提供。<br/>
+原文连接:https://www.cnblogs.com/goodAndyxublog/p/11637760.html</div><br>
+    <p><img src="./images/Kafka 异步消息也会阻塞？记一次 Dubbo 频繁超时排查过程0.png" /></p>
+<p>线上某服务 A 调用服务 B 接口完成一次交易，一次晚上的生产变更之后，系统监控发现服务 B 接口频繁超时，后续甚至返回线程池耗尽错误 <code>Thread pool is EXHAUSTED</code>。因为服务 B 依赖外部接口，刚开始误以为外部接口延时导致，所以临时增加服务 B dubbo 线程池线程数量。配置变更之后，重启服务，服务恢复正常。一段时间之后，服务 B 再次返回线程池耗尽错误。这次深入排查问题之后，才发现 Kafka 异步发送消息阻塞了 dubbo 线程，从而导致调用超时。</p>
+<h2 id="一问题分析">一、问题分析</h2>
+<blockquote>
+<p>Dubbo 2.6.5，Kafak maven 0.8.0-beta1</p>
+</blockquote>
+<p>服务 A 调用服务 B，收到如下错误：</p>
+<pre><code><code>2019-08-30 09:14:52,311 WARN method [%f [DUBBO] Thread pool is EXHAUSTED! Thread Name: DubboServerHandler-xxxx, Pool Size: 1000 (active: 1000, core: 1000, max: 1000, largest: 1000), Task: 6491 (completed: 5491), Executor status:(isShutdown:false, isTerminated:false, isTerminating:false), in dubbo://xxxx!, dubbo version: 2.6.0, current host: 127.0.0.1</code></code></pre>
+<p>可以看到当前 dubbo 线程池已经满载运行，不能再接受新的调用。正常情况下 dubbo 线程可以很快完成任务，然后归还到线程池中。由于线程执行的任务发生阻塞，消费者端调用超时。而服务提供者端由于已有线程被阻塞，线程池必须不断创建新线程处理任务，直到线程数量达到最大数量，系统返回 <code>Thread pool is EXHAUSTED</code>。</p>
+<p>线程任务长时间被阻塞可能原因有：</p>
+<ul>
+<li>频繁的 fullgc，导致系统暂停。</li>
+<li>调用某些阻塞 API，如 socket 连接未设置超时时间导致阻塞。</li>
+<li>系统内部死锁</li>
+</ul>
+<p>通过分析系统堆栈 dump 情况，果然发现所有 dubbo 线程都处于 WATTING 状态。</p>
+<p>下图为应用堆栈 dump 日志：</p>
+<p><img src="./images/Kafka 异步消息也会阻塞？记一次 Dubbo 频繁超时排查过程1.png" alt="堆栈日志" /></p>
+<p>从堆栈日志可以看到 dubbo 线程最后阻塞在 <code>LinkedBlockingQueue#put</code> ，而该阻塞发生在 Kafka 发送消息方法内。</p>
+<p>这里服务 B 需要使用 Kafka 发送监控消息，为了消息发送不影响主业务，这里使用 Kafka 异步发送消息。由于 Kafka 服务端最近更换了对外的端口，而服务 B Kafka 配置未及时变更。最后服务 B 修改配置，服务重新启动，该问题得以解决。</p>
+<h2 id="二kafka-异步模式">二、Kafka 异步模式</h2>
+<p>下面分析 Kafka 异步发送消息阻塞的实际原因。</p>
+<p><strong>0.8.0 Kafka</strong> 默认使用同步模式发送消息，异步发送消息需要设置<code>producer.type=async</code>属性。同步模式需要等待 Kafka 将消息发送到消息队列，这个过程当然会阻塞主线程。而异步模式最大的优点在于无需要等待 Kafka 这个发送过程。</p>
+<p>原本认为这里的异步是使用子线程去运行任务，但是 Kafka 异步模式并非这样。查看 Kafka 官方文档<a href="https://kafka.apache.org/08/documentation.html#theproducer">producer</a>,可以看到对异步模式描述。</p>
+<blockquote>
+<p>Batching is one of the big drivers of efficiency, and to enable batching the Kafka producer has an asynchronous mode that accumulates data in memory and sends out larger batches in a single request. The batching can be configured to accumulate no more than a fixed number of messages and to wait no longer than some fixed latency bound (say 100 messages or 5 seconds). This allows the accumulation of more bytes to send, and few larger I/O operations on the servers. Since this buffering happens in the client it obviously reduces the durability as any data buffered in memory and not yet sent will be lost in the event of a producer crash.</p>
+</blockquote>
+<p>从上我们可以看到，Kafka 异步模式将会把多条消息打包一块批量发送到服务端。这种模式将会先把消息放到内存队列中，直到消息到达一定数量（默认为 200）或者等待时间超限（默认为 5000ms）。</p>
+<p>这么做最大好处在于提高消息发送的吞吐量，减少网络 I/O。当然这么做也存在明显劣势，如果生产者宕机，在内存中还未发送消息可能就会丢失。</p>
+<p>下面从 kafka 源码分析这个阻塞过程。</p>
+<h2 id="三kafka-源码解析">三、Kafka 源码解析</h2>
+<p><em>Kafka 消息发送端采用如下配置:</em></p>
+<pre class="java"><code>        Properties props = new Properties();
+
+        props.put(&quot;metadata.broker.list&quot;, &quot;localhost:9092&quot;);
+    // 选择异步发送
+        props.put(&quot;producer.type&quot;, &quot;async&quot;);
+        props.put(&quot;serializer.class&quot;, &quot;kafka.serializer.StringEncoder&quot;);
+        props.put(&quot;queue.buffering.max.messages&quot;,&quot;1&quot;);
+        props.put(&quot;batch.num.messages&quot;,&quot;1&quot;);
+        Producer&lt;Integer, String&gt; producer= new Producer(new ProducerConfig(props));
+        producer.send(new KeyedMessage(&quot;test&quot;, &quot;hello world&quot;));</code></code></pre>
+<p>这里设置 <code>producer.type=async</code>,从而使 Kafka 异步发送消息。</p>
+<p><em>send 方法源码如下</em>：</p>
+<p>ps: 这个版本 Kafka 源码采用 Scala 编写，不过源码还是比较简单，比较容易阅读。</p>
+<pre class="java"><code>  def send(messages: KeyedMessage[K,V]*) {
+    if (hasShutdown.get)
+      throw new ProducerClosedException
+    recordStats(messages)
+    sync match {
+      case true =&gt; eventHandler.handle(messages)
+    // 由于  producer.type=async 异步发送
+      case false =&gt; asyncSend(messages)
+    }
+  }</code></code></pre>
+<p>由于我们上面设置 <code>producer.type=async</code>，这里将会使用 <code>asyncSend</code> 异步发送模式。</p>
+<p><em><code>asyncSend</code> 源码如下</em>：</p>
+<pre class="java"><code>  private def asyncSend(messages: Seq[KeyedMessage[K,V]]) {
+    for (message &lt;- messages) {
+      val added = config.queueEnqueueTimeoutMs match {
+        case 0  =&gt;
+          queue.offer(message)
+        case _  =&gt;
+          try {
+            config.queueEnqueueTimeoutMs &lt; 0 match {
+    
+            case true =&gt;
+              queue.put(message)
+              true
+            case _ =&gt;
+              queue.offer(message, config.queueEnqueueTimeoutMs, TimeUnit.MILLISECONDS)
+            }
+          }
+          catch {
+            case e: InterruptedException =&gt;
+              false
+          }
+      }
+      if(!added) {
+        producerTopicStats.getProducerTopicStats(message.topic).droppedMessageRate.mark()
+        producerTopicStats.getProducerAllTopicsStats.droppedMessageRate.mark()
+        throw new QueueFullException(&quot;Event queue is full of unsent messages, could not send event: &quot; + message.toString)
+      }else {
+        trace(&quot;Added to send queue an event: &quot; + message.toString)
+        trace(&quot;Remaining queue size: &quot; + queue.remainingCapacity)
+      }
+    }
+  }</code></code></pre>
+<p><code>asyncSend</code> 将会把消息加入到 <code>LinkedBlockingQueue</code> 阻塞队列中。这里根据 <code>config.queueEnqueueTimeoutMs</code>参数使用不同方法。</p>
+<p>当 <code>config.queueEnqueueTimeoutMs=0</code>，将会调用 <code>LinkedBlockingQueue#offer</code>，如果该队列未满，将会把元素插入队列队尾。如果队列未满，直接返回 <code>false</code>。所以如果此时队列已满，消息不再会加入队列中，然后 <code>asyncSend</code> 将会抛出 <code>QueueFullException</code> 异常。</p>
+<p>当 <code>config.queueEnqueueTimeoutMs &lt; 0</code>,将会调用 <code>LinkedBlockingQueue#put</code> 加入元素，如果该队列已满，该方法将会一直被阻塞直到队列存在可用空间。</p>
+<p>当 <code>config.queueEnqueueTimeoutMs &gt; 0</code>,将会调用 <code>LinkedBlockingQueue#offer</code>，这里与上面不同之处在于设置超时时间，如果队列已满将会阻塞知道超时。</p>
+<p><code>config.queueEnqueueTimeoutMs</code>参数通过 <code>queue.enqueue.timeout.ms</code> 配置生效，默认为 -1。默认情况下 <code>LinkedBlockingQueue</code> 最大数量为 10000，可以通过设置 <code>queue.buffering.max.messages</code> 改变队列最大值。</p>
+<p>消息放到队列中后，Kafka 将会使用一个异步线程不断从队列中获取消息，批量发送消息。</p>
+<p><em>异步处理消息代码如下</em>：</p>
+<pre class="java"><code>
+  private def processEvents() {
+    var lastSend = SystemTime.milliseconds
+    var events = new ArrayBuffer[KeyedMessage[K,V]]
+    var full: Boolean = false
+
+    // drain the queue until you get a shutdown command
+    Stream.continually(queue.poll(scala.math.max(0, (lastSend + queueTime) - SystemTime.milliseconds), TimeUnit.MILLISECONDS))
+                      .takeWhile(item =&gt; if(item != null) item ne shutdownCommand else true).foreach {
+      currentQueueItem =&gt;
+        val elapsed = (SystemTime.milliseconds - lastSend)
+        // check if the queue time is reached. This happens when the poll method above returns after a timeout and
+        // returns a null object
+        val expired = currentQueueItem == null
+        if(currentQueueItem != null) {
+          trace(&quot;Dequeued item for topic %s, partition key: %s, data: %s&quot;
+              .format(currentQueueItem.topic, currentQueueItem.key, currentQueueItem.message))
+          events += currentQueueItem
+        }
+
+        // check if the batch size is reached
+        full = events.size &gt;= batchSize
+
+        if(full || expired) {
+          if(expired)
+            debug(elapsed + &quot; ms elapsed. Queue time reached. Sending..&quot;)
+          if(full)
+            debug(&quot;Batch full. Sending..&quot;)
+          // if either queue time has reached or batch size has reached, dispatch to event handler
+          tryToHandle(events)
+          lastSend = SystemTime.milliseconds
+          events = new ArrayBuffer[KeyedMessage[K,V]]
+        }
+    }
+    // send the last batch of events
+    tryToHandle(events)
+    if(queue.size &gt; 0)
+      throw new IllegalQueueStateException(&quot;Invalid queue state! After queue shutdown, %d remaining items in the queue&quot;
+        .format(queue.size))
+  }
+</code></code></pre>
+<p>这里异步线程将会不断从队列中获取任务，一旦条件满足，就会批量发送任务。该条件为：</p>
+<ol>
+<li>批量消息数量达到 200，可以设置 <code>batch.num.messages</code> 参数改变配置。</li>
+<li>等待时间到达最大的超时时间，默认为 5000ms，可以设置 <code>queue.buffering.max.ms</code> 改变改配置。</li>
+</ol>
+<h2 id="四问题解决办法">四、问题解决办法</h2>
+<p>上面问题虽然通过更换 Kafka 正确地址解决，但是为了预防下次该问题再发生，可以采用如下方案：</p>
+<ol>
+<li>改变 <code>config.queueEnqueueTimeoutMs</code>默认配置，像这种系统监控日志允许丢失，所以可以设置 <code>config.queueEnqueueTimeoutMs=0</code>。</li>
+<li>升级 Kafka 版本，最新版本 Kafka 使用 Java 重写发送端逻辑，不再使用阻塞队列存储消息。</li>
+</ol>
+<p>本文首发于：<a href="https://studyidea.cn/articles/2019/09/20/1568988162424.html">studyidea.cn/kafka…</a></p>
+<blockquote>
+<p>欢迎关注我的公众号：程序通事，获得日常干货推送。如果您对我的专题内容感兴趣，也可以关注我的博客：<a href="https://studyidea.cn">studyidea.cn</a></p>
+</blockquote>
+<p><img src="./images/Kafka 异步消息也会阻塞？记一次 Dubbo 频繁超时排查过程2.png" alt="其他平台.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

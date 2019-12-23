@@ -1,0 +1,200 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringMVC+Mybatis 如何配置多个数据源并切换？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringMVC+Mybatis 如何配置多个数据源并切换？</center></div><div class='banquan'>原文出处:本文由博客园博主Java碎碎念提供。<br/>
+原文连接:https://www.cnblogs.com/haha12/p/11926361.html</div><br>
+    <blockquote>
+<p>最近公司一个项目需要连接两个数据库（A和B）操作，有的模块查询A库，有的模块查询B库，因此需要改造下，项目后台用的是SpringMVC+Mybatis+MySQL架构，折腾了两天后终于搞定了，在这里记录过改造过程。</p>
+</blockquote>
+<h3 id="使用场景">使用场景</h3>
+<p>多数据源的使用的场景一般有：</p>
+<ol>
+<li>主从数据库切换</li>
+<li>读写分离</li>
+<li>兼容旧库</li>
+</ol>
+<h3 id="实现原理">实现原理</h3>
+<p>Spring2.x的版本中采用Proxy模式，就是在方案中实现一个虚拟的数据源，并且用它来封装数据源选择逻辑，这样就可以有效地将数据源选择逻辑从Client中分离出来。Client提供选择所需的上下文，由虚拟的DynamicDataSource根据Client提供的上下文来实现数据源的选择。</p>
+<p>具体的实现是虚拟的DynamicDataSource仅需继承AbstractRoutingDataSource实现determineCurrentLookupKey()，该方法返回需要使用的DataSource的key值，然后根据这个key从resolvedDataSources这个map里取出对应的DataSource，如果找不到则用默认的resolvedDefaultDataSource。</p>
+<h3 id="详细实现过程">详细实现过程</h3>
+<ol>
+<li>修改spring的配置文件<br />
+配置文件里需要配置多个数据源，改造后主要配置如下：</li>
+</ol>
+<pre><code><code>
+    &lt;bean id=&quot;dataSourceTargetA&quot; class=&quot;com.mchange.v2.c3p0.ComboPooledDataSource&quot;
+        destroy-method=&quot;close&quot; scope=&quot;singleton&quot;&gt;
+        &lt;property name=&quot;driverClass&quot; value=&quot;${jdbc.a.driverClassName}&quot; /&gt;
+        &lt;property name=&quot;jdbcUrl&quot; value=&quot;${jdbc.a.url}&quot; /&gt;
+        &lt;property name=&quot;user&quot; value=&quot;${jdbc.a.username}&quot; /&gt;
+        &lt;property name=&quot;password&quot; value=&quot;${jdbc.a.password}&quot; /&gt;
+        &lt;!--当连接池中的连接耗尽的时候c3p0一次同时获取的连接数。Default: 3 --&gt;
+        &lt;property name=&quot;acquireIncrement&quot; value=&quot;${c3p0.acquireIncrement}&quot;&gt;&lt;/property&gt;
+        &lt;!--初始化时获取三个连接，取值应在minPoolSize与maxPoolSize之间。Default: 3 --&gt;
+        &lt;property name=&quot;initialPoolSize&quot; value=&quot;${c3p0.initialPoolSize}&quot;&gt;&lt;/property&gt;
+        &lt;!--最大空闲时间,60秒内未使用则连接被丢弃。若为0则永不丢弃。Default: 0 --&gt;
+        &lt;property name=&quot;maxIdleTime&quot; value=&quot;${c3p0.maxIdleTime}&quot;&gt;&lt;/property&gt;
+        &lt;!--连接池中保留的最大连接数。Default: 15 --&gt;
+        &lt;property name=&quot;maxPoolSize&quot; value=&quot;${c3p0.maxPoolSize}&quot;&gt;&lt;/property&gt;
+        &lt;property name=&quot;minPoolSize&quot; value=&quot;${c3p0.minPoolSize}&quot;&gt;&lt;/property&gt;
+        &lt;!--两次连接中间隔时间，单位毫秒。Default: 1000 --&gt;
+        &lt;property name=&quot;acquireRetryDelay&quot; value=&quot;1000&quot;&gt;&lt;/property&gt;
+        &lt;!--定义在从数据库获取新连接失败后重复尝试的次数。Default: 30 --&gt;
+        &lt;property name=&quot;acquireRetryAttempts&quot; value=&quot;60&quot;&gt;&lt;/property&gt;
+        &lt;!--获取连接失败将会引起所有等待连接池来获取连接的线程抛出异常。但是数据源仍有效保留，并在下次调用getConnection()的时候继续尝试获取连接。如果设为true，那么在尝试获取连接失败后该数据源将申明已断开并永久关闭。Default:
+            false --&gt;
+        &lt;property name=&quot;breakAfterAcquireFailure&quot; value=&quot;false&quot;&gt;&lt;/property&gt;
+    &lt;/bean&gt;
+
+    &lt;bean id=&quot;dataSourceTargetB&quot; class=&quot;com.mchange.v2.c3p0.ComboPooledDataSource&quot;
+          destroy-method=&quot;close&quot; scope=&quot;singleton&quot;&gt;
+        &lt;property name=&quot;driverClass&quot; value=&quot;${jdbc.b.driverClassName}&quot; /&gt;
+        &lt;property name=&quot;jdbcUrl&quot; value=&quot;${jdbc.b.url}&quot; /&gt;
+        &lt;property name=&quot;user&quot; value=&quot;${jdbc.b.username}&quot; /&gt;
+        &lt;property name=&quot;password&quot; value=&quot;${jdbc.b.password}&quot; /&gt;
+        &lt;!--当连接池中的连接耗尽的时候c3p0一次同时获取的连接数。Default: 3 --&gt;
+        &lt;property name=&quot;acquireIncrement&quot; value=&quot;${c3p0.acquireIncrement}&quot;&gt;&lt;/property&gt;
+        &lt;!--初始化时获取三个连接，取值应在minPoolSize与maxPoolSize之间。Default: 3 --&gt;
+        &lt;property name=&quot;initialPoolSize&quot; value=&quot;${c3p0.initialPoolSize}&quot;&gt;&lt;/property&gt;
+        &lt;!--最大空闲时间,60秒内未使用则连接被丢弃。若为0则永不丢弃。Default: 0 --&gt;
+        &lt;property name=&quot;maxIdleTime&quot; value=&quot;${c3p0.maxIdleTime}&quot;&gt;&lt;/property&gt;
+        &lt;!--连接池中保留的最大连接数。Default: 15 --&gt;
+        &lt;property name=&quot;maxPoolSize&quot; value=&quot;${c3p0.maxPoolSize}&quot;&gt;&lt;/property&gt;
+        &lt;property name=&quot;minPoolSize&quot; value=&quot;${c3p0.minPoolSize}&quot;&gt;&lt;/property&gt;
+        &lt;!--两次连接中间隔时间，单位毫秒。Default: 1000 --&gt;
+        &lt;property name=&quot;acquireRetryDelay&quot; value=&quot;1000&quot;&gt;&lt;/property&gt;
+        &lt;!--定义在从数据库获取新连接失败后重复尝试的次数。Default: 30 --&gt;
+        &lt;property name=&quot;acquireRetryAttempts&quot; value=&quot;60&quot;&gt;&lt;/property&gt;
+        &lt;!--获取连接失败将会引起所有等待连接池来获取连接的线程抛出异常。但是数据源仍有效保留，并在下次调用getConnection()的时候继续尝试获取连接。如果设为true，那么在尝试获取连接失败后该数据源将申明已断开并永久关闭。Default:
+            false --&gt;
+        &lt;property name=&quot;breakAfterAcquireFailure&quot; value=&quot;false&quot;&gt;&lt;/property&gt;
+    &lt;/bean&gt;
+    &lt;!-- 动态数据源 --&gt;
+    &lt;bean id=&quot;dynamicDataSource&quot; class=&quot;com.test.util.DynamicDataSource&quot; &gt;
+        &lt;property name=&quot;targetDataSources&quot;&gt;
+            &lt;map key-type=&quot;java.lang.String&quot;&gt;
+                &lt;entry value-ref=&quot;dataSourceTargetA&quot; key=&quot;dataSourceTargetA&quot;&gt;&lt;/entry&gt;
+                &lt;entry value-ref=&quot;dataSourceTargetB&quot; key=&quot;dataSourceTargetB&quot;&gt;&lt;/entry&gt;
+            &lt;/map&gt;
+        &lt;/property&gt;
+        &lt;property name=&quot;defaultTargetDataSource&quot; ref=&quot;dataSourceTargetA&quot; &gt;
+        &lt;/property&gt;
+    &lt;/bean&gt;
+    
+
+    &lt;bean id=&quot;txManager&quot;
+        class=&quot;org.springframework.jdbc.datasource.DataSourceTransactionManager&quot;&gt;
+        &lt;property name=&quot;dataSource&quot; ref=&quot;dynamicDataSource&quot; /&gt;
+    &lt;/bean&gt;
+    
+
+    &lt;!-- MyBatis ORM operation class --&gt;
+    &lt;bean id=&quot;sqlSessionFactory&quot; class=&quot;org.mybatis.spring.SqlSessionFactoryBean&quot;&gt;
+        &lt;property name=&quot;dataSource&quot; ref=&quot;dynamicDataSource&quot; /&gt;
+        &lt;property name=&quot;mapperLocations&quot;&gt;
+            &lt;list&gt;
+                &lt;value&gt;classpath*:com/test/**/*Mapper.xml&lt;/value&gt;
+            &lt;/list&gt;
+        &lt;/property&gt;
+        &lt;property name=&quot;configLocation&quot; value=&quot;classpath:provider-sql-map-config.xml&quot; /&gt;
+    &lt;/bean&gt;
+</code></code></pre>
+<ol>
+<li>添加动态数据源管理类</li>
+</ol>
+<p>DynamicDataSource类继承AbstractRoutingDataSource，实现determineCurrentLookupKey()方法。</p>
+<pre><code><code>package com.test.util;
+import com.test.util.CustomerContextHolder;
+import org.springframework.jdbc.datasource.lookup.AbstractRoutingDataSource;
+
+/**
+ * 动态数据源管理类
+ *
+ */
+public class DynamicDataSource extends AbstractRoutingDataSource {
+
+    @Override
+    protected Object determineCurrentLookupKey() {
+        return CustomerContextHolder.getCustomerType();
+    }
+}</code></code></pre>
+<ol>
+<li>数据源切换类</li>
+</ol>
+<p>CustomerContextHolder类可以实现数据源A和B的切换，数据源标识保存在线程变量中，避免多线程操作数据源时互相干扰</p>
+<pre><code><code>package com.test.util;
+/**
+ * 数据源切换类
+ *
+ */
+public class CustomerContextHolder {
+    public static final String DATA_SOURCE_DEFAULT = &quot;dataSourceTargetA&quot;;
+    public static final String DATA_SOURCE_B = &quot;dataSourceTargetB&quot;;
+    private static final ThreadLocal&lt;String&gt; contextHolder = new ThreadLocal&lt;String&gt;();
+    public static void setCustomerType(String customerType) {
+        contextHolder.set(customerType);
+    }
+    public static String getCustomerType() {
+        return contextHolder.get();
+    }
+    public static void clearCustomerType() {
+        contextHolder.remove();
+    }
+}</code></code></pre>
+<ol>
+<li>使用多数据源代码</li>
+</ol>
+<p>下面是Controller层代码，需要查询B数据源，查询完成后切换为默认数据源A，具体代码如下：</p>
+<pre><code><code>/**
+     * 订单列表查询，查询B数据源
+     *
+     * @param request
+     * @return
+     */
+    @RequestMapping(value = &quot;/list&quot;)
+    public String list(HttpServletRequest request, Integer cId) {
+        //设置数据源B
+        CustomerContextHolder.setCustomerType(CustomerContextHolder.DATA_SOURCE_B);
+        List&lt;Order&gt; orderList = salaryBillService.getSalaryOrderByOrgId(cId);
+        request.setAttribute(&quot;orderList&quot;, orderList);
+        //切换回默认数据源A
+        CustomerContextHolder.setCustomerType(CustomerContextHolder.DATA_SOURCE_DEFAULT);
+        return &quot;/jsp/order&quot;;
+    }</code></code></pre>
+<p>上述四步操作完成后即可实现SpringMVC+Mybatis配置多个数据源并切换，有问题欢迎留言沟通哦！</p>
+<p><strong>推荐阅读</strong></p>
+<p><a href="https://mp.weixin.qq.com/s/HSlmvdSsQikfJ8M99MYGNg">1.一分钟带你学会利用mybatis-generator自动生成代码！</a></p>
+<p><a href="https://mp.weixin.qq.com/s/g_fCo8rFGtWseVoKWahaIQ">2.手把手带你实战下Spring的七种事务传播行为</a></p>
+<p><a href="https://mp.weixin.qq.com/s/toH_rCF5Sf3sPK-NPp5OhQ">3.SpringBoot系列-整合Mybatis（注解方式）</a></p>
+<p><a href="https://mp.weixin.qq.com/s/Ad8aKvyTgjFlzjOcadO1xQ">4.SpringBoot系列-整合Mybatis（XML配置方式）</a></p>
+<p><a href="https://mp.weixin.qq.com/s/Y1S_SogYOpY-oxF0KXNZig">5.Java中打印日志，这4点很重要！</a></p>
+<hr />
+<blockquote>
+<p>限时领取免费Java相关资料，涵盖了Java、Redis、MongoDB、MySQL、Zookeeper、Spring Cloud、Dubbo/Kafka、Hadoop、Hbase、Flink等高并发分布式、大数据、机器学习等技术。<br />
+关注下方公众号即可免费领取：</p>
+</blockquote>
+<p><img src="./images/SpringMVC+Mybatis 如何配置多个数据源并切换？0.png" alt="Java碎碎念公众号" /></p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn?from=article_bottom">OpenWrite</a> 发布！</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

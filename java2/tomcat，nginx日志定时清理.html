@@ -1,0 +1,108 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修tomcat，nginx日志定时清理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>tomcat，nginx日志定时清理</center></div><div class='banquan'>原文出处:本文由博客园博主超人小冰提供。<br/>
+原文连接:https://www.cnblogs.com/xiaobingblog/p/11419243.html</div><br>
+    <h2>1.　Crontab定时任务</h2>
+<p>　　　Crontab 基本语法</p>
+<pre><code><span class="pln">　　t1 t2 t3 t4 t5 program</span></code></pre>
+<ul>
+<li>其中 t1 是表示分钟，t2 表示小时，t3 表示一个月份中的第几日，t4 表示月份，t5 表示一个星期中的第几天。program 表示要执行的程序。</li>
+<li>当 t1 为 * 时表示每分钟都要执行 program，t2 为 * 时表示每小时都要执行程序，其馀类推</li>
+<li>当 t1 为 a-b 时表示从第 a 分钟到第 b 分钟这段时间内要执行，t2 为 a-b 时表示从第 a 到第 b 小时都要执行，其馀类推</li>
+<li>当 t1 为 */n 时表示每 n 分钟个时间间隔执行一次，t2 为 */n 表示每 n 小时个时间间隔执行一次，其馀类推</li>
+<li>当 t1 为 a, b, c,... 时表示第 a, b, c,... 分钟要执行，t2 为 a, b, c,... 时表示第 a, b, c...个小时要执行，其馀类推</li>
+</ul>
+<h2>2.　Tomcat日志清理脚本</h2>
+<p>　　Tomcat日志随着项目运行时长越来越多，访问量大时很可能撑满硬盘。下面贴一个自用的Tomcat日志清理脚本。</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('c20b954f-5d11-4298-9d12-e64011020f3c')"><img id="code_img_closed_c20b954f-5d11-4298-9d12-e64011020f3c" class="code_img_closed" src="./images/tomcat，nginx日志定时清理0.png" alt="" /><img id="code_img_opened_c20b954f-5d11-4298-9d12-e64011020f3c" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('c20b954f-5d11-4298-9d12-e64011020f3c',event)" src="./images/tomcat，nginx日志定时清理1.png" alt="" />
+<src id="cnblogs_code_open_c20b954f-5d11-4298-9d12-e64011020f3c" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> #!/bin/<span style="color: #0000ff;">sh</span>
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">#日志文件所在目录
+</span><span style="color: #008080;"> 4</span> #path=/usr/local/tomcat/apache-tomcat-<span style="color: #800080;">8.5</span>.<span style="color: #800080;">32</span>/<span style="color: #000000;">logs
+</span><span style="color: #008080;"> 5</span> path=/usr/local/tomcat/apache-tomcat-<span style="color: #800080;">8.5</span>.<span style="color: #800080;">32</span>/<span style="color: #000000;">logs
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">cd ${path}
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">#catalina.out日志备份
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">#获取前7天的日期
+</span><span style="color: #008080;">11</span> bak_date=`<span style="color: #0000ff;">date</span> +%Y-%m-%d -d <span style="color: #800000;">"</span><span style="color: #800000;">7 days ago</span><span style="color: #800000;">"</span><span style="color: #000000;">`
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">#备份catalina.out日志，后面添加日期
+</span><span style="color: #008080;">13</span> #<span style="color: #0000ff;">cp</span><span style="color: #000000;"> catalina.out catalina.out.${bak_date}.log
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">#清空catalina.out日志文件
+</span><span style="color: #008080;">15</span> <span style="color: #0000ff;">echo</span> &gt;<span style="color: #000000;"> catalina.out
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span> <span style="color: #000000;">#7天之前的日志文件删除
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">#获取7天之前的日期
+</span><span style="color: #008080;">19</span> del_date=`<span style="color: #0000ff;">date</span> +%Y-%m-%d -d <span style="color: #800000;">"</span><span style="color: #800000;">7 days ago</span><span style="color: #800000;">"</span><span style="color: #000000;">`
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">#获取文件名中的日期字符串，然后对此时间进行相应的操作，localhost_access_log的后缀名一般为txt文件，这里包括txt文件
+</span><span style="color: #008080;">21</span> <span style="color: #0000ff;">for</span> n <span style="color: #0000ff;">in</span> `<span style="color: #0000ff;">ls</span> *.log *.txt -<span style="color: #800080;">1</span>`;<span style="color: #0000ff;">do</span>
+<span style="color: #008080;">22</span>     m=`<span style="color: #0000ff;">echo</span> $n | <span style="color: #0000ff;">awk</span> -F. <span style="color: #800000;">'</span><span style="color: #800000;">{print $(NF-1)}</span><span style="color: #800000;">'</span><span style="color: #000000;">`
+</span><span style="color: #008080;">23</span>     m=`<span style="color: #0000ff;">echo</span> ${m:<span style="color: #800080;">0</span>-<span style="color: #800080;">10</span><span style="color: #000000;">}`
+</span><span style="color: #008080;">24</span>     <span style="color: #0000ff;">if</span> [ ! $m ]; <span style="color: #0000ff;">then</span>
+<span style="color: #008080;">25</span>         <span style="color: #0000ff;">echo</span> <span style="color: #800000;">"</span><span style="color: #800000;">IS NULL</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">26</span> <span style="color: #000000;">        continue
+</span><span style="color: #008080;">27</span>     <span style="color: #0000ff;">fi</span>
+<span style="color: #008080;">28</span>     <span style="color: #0000ff;">if</span> [[ $m &lt; $del_date || $m = $del_date ]];<span style="color: #0000ff;">then</span>
+<span style="color: #008080;">29</span>         <span style="color: #0000ff;">echo</span> <span style="color: #0000ff;">file</span><span style="color: #000000;"> $n will be deleted.
+</span><span style="color: #008080;">30</span>         <span style="color: #0000ff;">rm</span> -<span style="color: #000000;">rf $n
+</span><span style="color: #008080;">31</span>     <span style="color: #0000ff;">fi</span>
+<span style="color: #008080;">32</span> <span style="color: #0000ff;">done</span></code></pre>
+
+<span class="cnblogs_code_collapse">Tomcat清理脚本</span>
+<h2>3.　 Nginx日志切割，清理脚本</h2>
+<p>　　Nginx不同Tomcat日志，不会定时切割日志，所有的日志都会放在access.log和error.log中。在排除问题时，会很不方便。下面贴一个自用的Nginx日志切割清理脚本。</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('fdb8a2cc-b519-4b14-9b63-9ee34ec51f36')"><img id="code_img_closed_fdb8a2cc-b519-4b14-9b63-9ee34ec51f36" class="code_img_closed" src="./images/tomcat，nginx日志定时清理0.png" alt="" /><img id="code_img_opened_fdb8a2cc-b519-4b14-9b63-9ee34ec51f36" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('fdb8a2cc-b519-4b14-9b63-9ee34ec51f36',event)" src="./images/tomcat，nginx日志定时清理1.png" alt="" />
+<src id="cnblogs_code_open_fdb8a2cc-b519-4b14-9b63-9ee34ec51f36" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> #!/bin/<span style="color: #000000;">bash
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">#nginx的错误日志备份
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">cp</span> /usr/local/nginx/logs/error.log /usr/local/nginx/logs/error-$(<span style="color: #0000ff;">date</span> -d <span style="color: #800000;">"</span><span style="color: #800000;">yesterday</span><span style="color: #800000;">"</span> +<span style="color: #800000;">"</span><span style="color: #800000;">%Y-%m-%d</span><span style="color: #800000;">"</span><span style="color: #000000;">).log
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">cat</span> /dev/<span style="color: #0000ff;">null</span> &gt; /usr/local/nginx/logs/<span style="color: #000000;">error.log
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">#将nginx的访问日志备份
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">cp</span> /usr/local/nginx/logs/access.log /usr/local/nginx/logs/access-$(<span style="color: #0000ff;">date</span> -d <span style="color: #800000;">"</span><span style="color: #800000;">yesterday</span><span style="color: #800000;">"</span> +<span style="color: #800000;">"</span><span style="color: #800000;">%Y-%m-%d</span><span style="color: #800000;">"</span><span style="color: #000000;">).log
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">cat</span> /dev/<span style="color: #0000ff;">null</span> &gt; /usr/local/nginx/logs/<span style="color: #000000;">access.log
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #000000;">#清楚3天前的日志备份文件
+</span><span style="color: #008080;">12</span> <span style="color: #0000ff;">find</span> /usr/local/nginx/logs/ -mtime +<span style="color: #800080;">3</span> -type f -name \*.log | <span style="color: #0000ff;">xargs</span> <span style="color: #0000ff;">rm</span> -f</code></pre>
+
+<span class="cnblogs_code_collapse">Nginx切割，清理日志</span>
+<h2>4.　&nbsp; Crontab定时任务编写</h2>
+<p>　　Crontab语法详细介绍请参考百度--</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('1e041ccd-5b93-4b52-8225-cb3a4e949327')"><img id="code_img_closed_1e041ccd-5b93-4b52-8225-cb3a4e949327" class="code_img_closed" src="./images/tomcat，nginx日志定时清理0.png" alt="" /><img id="code_img_opened_1e041ccd-5b93-4b52-8225-cb3a4e949327" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('1e041ccd-5b93-4b52-8225-cb3a4e949327',event)" src="./images/tomcat，nginx日志定时清理1.png" alt="" />
+<src id="cnblogs_code_open_1e041ccd-5b93-4b52-8225-cb3a4e949327" class="cnblogs_code_hide">
+<pre><code><span style="color: #000000;">#进入crontab编写界面
+crontab </span>-<span style="color: #000000;">e
+
+#编写crontab执行语句，此处以nginx清理脚本为例
+#</span>/home/crontab/<span style="color: #000000;">clean_nginx_log.sh是我脚本位置，替换下即可
+</span><span style="color: #800080;">1</span> <span style="color: #800080;">0</span> * * * /bin/<span style="color: #0000ff;">sh</span> /home/crontab/clean_nginx_logs.<span style="color: #0000ff;">sh</span> &gt;&gt; /opt/cut_nginx_log.log <span style="color: #800080;">2</span>&gt;&amp;<span style="color: #800080;">1</span><span style="color: #000000;">
+
+#保存退出,启动
+：wq
+service crond start</span></code></pre>
+
+<span class="cnblogs_code_collapse">Crontab编写</span>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

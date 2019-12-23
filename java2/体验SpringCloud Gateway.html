@@ -1,0 +1,399 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修体验SpringCloud Gateway' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>体验SpringCloud Gateway</center></div><div class='banquan'>原文出处:本文由博客园博主zq2599提供。<br/>
+原文连接:https://www.cnblogs.com/bolingcavalry/p/11462977.html</div><br>
+    <p>Spring Cloud Gateway是Spring Cloud技术栈中的网关服务，本文实战构建一个SpringCloud环境，并开发一个SpringCloud Gateway应用，快速体验网关服务；</p>
+<h3 id="环境信息">环境信息</h3>
+<ol>
+<li>操作系统：win10(64位)</li>
+<li>JDK：1.8.0_181</li>
+<li>Maven：3.5.0</li>
+<li>Spring Cloud：Greenwich.SR</li>
+</ol>
+<h3 id="源码下载">源码下载</h3>
+<p>如果您不打算写代码，也可以从GitHub上下载本次实战的源码，地址和链接信息如下表所示：</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">名称</th>
+<th style="text-align: left;">链接</th>
+<th style="text-align: left;">备注</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">项目主页</td>
+<td style="text-align: left;">https://github.com/zq2599/blog_demos</td>
+<td style="text-align: left;">该项目在GitHub上的主页</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">git仓库地址(https)</td>
+<td style="text-align: left;">https://github.com/zq2599/blog_demos.git</td>
+<td style="text-align: left;">该项目源码的仓库地址，https协议</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">git仓库地址(ssh)</td>
+<td style="text-align: left;">git@github.com:zq2599/blog_demos.git</td>
+<td style="text-align: left;">该项目源码的仓库地址，ssh协议</td>
+</tr>
+</tbody>
+</table>
+<p></br></p>
+<p>这个git项目中有多个文件夹，本章的源码在gatewaydemo文件夹下，如下图红框所示：<br />
+<img src="./images/体验SpringCloud Gateway0.png" alt="在这里插入图片描述" /></p>
+<h3 id="整体设计">整体设计</h3>
+<p>本次实战的源码涉及到三个应用：注册中心、服务提供者、网关，它们的关系和业务逻辑如下图：<br />
+<img src="./images/体验SpringCloud Gateway1.png" alt="在这里插入图片描述" /><br />
+整个工程基于maven构建，采用父子结构，父工程名为gatewaydemo，里面有三个modular，分别是：eureka（）注册中心）、provider（服务提供者）、网关（gateway），在IDEA上呈现的结构如下图所示：<br />
+<img src="./images/体验SpringCloud Gateway2.png" alt="在这里插入图片描述" /><br />
+准备完毕，开始编码吧；</p>
+<h3 id="创建父工程">创建父工程</h3>
+<ol>
+<li>创建名为gatewaydemo的maven工程，pom.xml内容如下，这是个典型的父子工程pom，dependencyManagement节点接管了版本匹配：</li>
+</ol>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot;
+         xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+         xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;parent&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+        &lt;version&gt;2.1.6.RELEASE&lt;/version&gt;
+        &lt;relativePath/&gt;
+    &lt;/parent&gt;
+    
+    &lt;groupId&gt;com.bolingcavalry&lt;/groupId&gt;
+    &lt;artifactId&gt;gatewaydemo&lt;/artifactId&gt;
+    &lt;packaging&gt;pom&lt;/packaging&gt;
+    &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+    &lt;modules&gt;
+        &lt;module&gt;eureak&lt;/module&gt;
+        &lt;module&gt;provider&lt;/module&gt;
+        &lt;module&gt;gateway&lt;/module&gt;
+    &lt;/modules&gt;
+
+    &lt;properties&gt;
+        &lt;java.version&gt;1.8&lt;/java.version&gt;
+        &lt;spring-boot.version&gt;2.1.6.RELEASE&lt;/spring-boot.version&gt;
+        &lt;maven-compiler-plugin.version&gt;3.5&lt;/maven-compiler-plugin.version&gt;
+        &lt;maven-deploy-plugin.version&gt;2.8.2&lt;/maven-deploy-plugin.version&gt;
+        &lt;maven-failsafe-plugin.version&gt;2.18.1&lt;/maven-failsafe-plugin.version&gt;
+        &lt;maven-surefire-plugin.version&gt;2.21.0&lt;/maven-surefire-plugin.version&gt;
+        &lt;spring-cloud.version&gt;Greenwich.SR2&lt;/spring-cloud.version&gt;
+    &lt;/properties&gt;
+
+    &lt;dependencyManagement&gt;
+        &lt;dependencies&gt;
+            &lt;dependency&gt;
+                &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-cloud-dependencies&lt;/artifactId&gt;
+                &lt;version&gt;${spring-cloud.version}&lt;/version&gt;
+                &lt;type&gt;pom&lt;/type&gt;
+                &lt;scope&gt;import&lt;/scope&gt;
+            &lt;/dependency&gt;
+        &lt;/dependencies&gt;
+    &lt;/dependencyManagement&gt;
+&lt;/project&gt;</code></code></pre>
+<ol>
+<li>如果您是用IDEA创建的工程，那么IDEA可能会在pom.xml所在目录自动创建<font color="blue">src</font>文件夹，请手动将其删除，因为用不上；</li>
+</ol>
+<h3 id="eureka工程">eureka工程</h3>
+<ol>
+<li>接下来是创建注册中心，鼠标右键点击<font color="blue">gatewaydemo</font>文件夹，选择&quot;New -&gt; Module&quot;：<br />
+<img src="./images/体验SpringCloud Gateway3.png" alt="在这里插入图片描述" /></li>
+<li>在弹出窗口选择<font color="blue">Spring Initializr</font>，如下图：<br />
+<img src="./images/体验SpringCloud Gateway4.png" alt="在这里插入图片描述" /></li>
+<li>接下来的窗口填写Group、Artifact（这里是eureka）、Version等信息，其余的默认，即可完成子工程的创建；</li>
+<li>新的eureka模块的pom.xml，请修改成如下内容，可见除了指定父工程，还依赖了<font color="blue">spring-cloud-starter-netflix-eureka-server</font>：</li>
+</ol>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+
+&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+         xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+    &lt;parent&gt;
+        &lt;artifactId&gt;gatewaydemo&lt;/artifactId&gt;
+        &lt;groupId&gt;com.bolingcavalry&lt;/groupId&gt;
+        &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+    &lt;/parent&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;artifactId&gt;eureak&lt;/artifactId&gt;
+    &lt;packaging&gt;war&lt;/packaging&gt;
+
+    &lt;name&gt;eureak Maven Webapp&lt;/name&gt;
+
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-server&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+
+    &lt;build&gt;
+        &lt;finalName&gt;${project.artifactId}&lt;/finalName&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+&lt;/project&gt;</code></code></pre>
+<ol>
+<li>src\main\resources目录下新增application.yml文件，内容如下，这是普通的注册中心设置：</li>
+</ol>
+<pre class="yml"><code>spring:
+  application:
+    name: eureka
+server:
+  port: 8080
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:${server.port}/eureka/
+    fetch-registry: false
+    register-with-eureka: false</code></code></pre>
+<ol>
+<li>java文件只有一个，就是启动类，还通过注解EnableEurekaServer开启了注册中心服务：</li>
+</ol>
+<pre class="java"><code>package com.bolingcavalry.eureka;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+
+@SpringBootApplication
+@EnableEurekaServer
+public class EurekaApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(EurekaApplication.class, args);
+    }
+}</code></code></pre>
+<ol>
+<li><p>以上就是注册中心eureka的内容，运行EurekaApplication即可启动服务，访问8080端口的结果如下：<br />
+<img src="./images/体验SpringCloud Gateway5.png" alt="在这里插入图片描述" /><br />
+现在注册中心已经就绪，开始编写服务提供者provider应用的代码吧。</p>
+<h3 id="provider工程">provider工程</h3></li>
+<li>在gatewaydemo下创建一个子工程，名为provider，pom.xml内容如下，可见用到了spring-boot-starter-web和spring-cloud-starter-netflix-eureka-client这两个依赖，分别用来支持web服务和注册发现：</li>
+</ol>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot;
+         xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+         xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+    &lt;parent&gt;
+        &lt;artifactId&gt;gatewaydemo&lt;/artifactId&gt;
+        &lt;groupId&gt;com.bolingcavalry&lt;/groupId&gt;
+        &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+    &lt;/parent&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;artifactId&gt;provider&lt;/artifactId&gt;
+
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-client&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+
+    &lt;build&gt;
+        &lt;finalName&gt;${project.artifactId}&lt;/finalName&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+&lt;/project&gt;</code></code></pre>
+<ol>
+<li>配置文件application.yml如下，指定了注册中心地址，并且自身端口为8081：</li>
+</ol>
+<pre class="yml"><code>eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8080/eureka/
+server:
+  port: 8081
+spring:
+  application:
+    name: provider</code></code></pre>
+<ol>
+<li>启动类ProviderApplication.java：</li>
+</ol>
+<pre class="java"><code>package com.bolingcavalry.provider;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ProviderApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(ProviderApplication.class, args);
+    }
+}</code></code></pre>
+<ol>
+<li>增加一个controller，用于响应web请求，注意hello方法会从请求的header中取出名为<font color="blue">extendtag</font>的属性值，返回给浏览器：</li>
+</ol>
+<pre class="java"><code>package com.bolingcavalry.provider.controller;
+
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+
+import javax.servlet.http.HttpServletRequest;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+@RestController
+@RequestMapping(&quot;/hello&quot;)
+public class HelloController {
+
+    @RequestMapping(value = &quot;time&quot;, method = RequestMethod.GET)
+    public String hello(HttpServletRequest request){
+
+        return &quot;hello, &quot;
+                + new SimpleDateFormat(&quot;yyyy-MM-dd HH:mm:ss&quot;).format(new Date())
+                + &quot;, extendtag [&quot;
+                + request.getHeader(&quot;extendtag&quot;)
+                + &quot;]&quot;;
+    }
+}</code></code></pre>
+<ol>
+<li>启动应用，再次刷新eureka的页面localhost:8080，可见provider应用已经注册上去了，如下图红框所示：<br />
+<img src="./images/体验SpringCloud Gateway6.png" alt="在这里插入图片描述" /></li>
+<li>访问地址：http://localhost:8081/hello/time ，这是controller提供的web服务接口，得到响应如下图，因为header中没有名为&quot;extendtag&quot;的属性，因此返回了null：<br />
+<img src="./images/体验SpringCloud Gateway7.png" alt="在这里插入图片描述" /><br />
+提供服务的provider已经OK，可以开发网关服务了；</li>
+</ol>
+<h3 id="gateway工程">gateway工程</h3>
+<ol>
+<li>在gatewaydemo下创建一个子工程，名为gateway，pom.xml内容如下，可见用到了spring-cloud-starter-gateway和spring-cloud-starter-netflix-eureka-client这两个依赖，分别用来支持网关服务和注册发现：</li>
+</ol>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot;
+         xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+         xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+    &lt;parent&gt;
+        &lt;artifactId&gt;gatewaydemo&lt;/artifactId&gt;
+        &lt;groupId&gt;com.bolingcavalry&lt;/groupId&gt;
+        &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+    &lt;/parent&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;artifactId&gt;gateway&lt;/artifactId&gt;
+
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-client&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-gateway&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+
+    &lt;build&gt;
+        &lt;finalName&gt;${project.artifactId}&lt;/finalName&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+&lt;/project&gt;</code></code></pre>
+<ol>
+<li>配置文件application.yml如下，指定了注册中心地址，并且自身端口为8082，还有开启了网关服务：</li>
+</ol>
+<pre class="yml"><code>server:
+  port: 8082
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lowerCaseServiceId: true
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8080/eureka/</code></code></pre>
+<ol>
+<li>启动类GatewayApplication .java，可见实例化了一个RouteLocator，该实例就是路由规则，具体的功能请参考代码中的注释：</li>
+</ol>
+<pre class="java"><code>package com.bolingcavalry.gateway;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.cloud.gateway.route.builder.RouteLocatorBuilder;
+import org.springframework.context.annotation.Bean;
+
+@SpringBootApplication
+public class GatewayApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(GatewayApplication.class, args);
+    }
+
+    @Bean
+    public RouteLocator customRouteLocator(RouteLocatorBuilder builder) {
+        return builder.routes()
+                //增加一个path匹配，以&quot;/gateway/hello/&quot;开头的请求都在此路由
+                .route(r -&gt; r.path(&quot;/customize/hello/**&quot;)
+                        //表示将路径中的第一级参数删除，用剩下的路径与provider的路径做拼接，
+                        //这里就是&quot;lb://provider/hello/&quot;，能匹配到provider的HelloController的路径
+                        .filters(f -&gt; f.stripPrefix(1)
+                                       //在请求的header中添加一个key&amp;value
+                                       .addRequestHeader(&quot;extendtag&quot;, &quot;geteway-&quot; + System.currentTimeMillis()))
+                        //指定匹配服务provider，lb是load balance的意思
+                        .uri(&quot;lb://provider&quot;)
+                ).build();
+    }
+}
+</code></code></pre>
+<ol>
+<li>启动应用，再次刷新eureka的页面localhost:8080，可见gateway应用已经注册上去了，如下图红框所示：<br />
+<img src="./images/体验SpringCloud Gateway8.png" alt="在这里插入图片描述" /></li>
+<li><p>访问地址：http://localhost:8082/customize/hello/time ，这是符合前面我们配置的路由规则的路径，customize被删除掉之后，将剩余的路径转发到provider服务，于是请求的真正地址就是provider服务的/hello/time，得到响应如下图，因为gateway在转发的时候给header中设置了名为&quot;extendtag&quot;的属性，因此返回了extendtag是有内容的：<br />
+<img src="./images/体验SpringCloud Gateway9.png" alt="在这里插入图片描述" /><br />
+至此，极速体验SpringCloud Gateway的实战就完成了，这里我们只简单的体验了Gateway的一些基本功能，希望本文能帮助您快速搭建环境和开发应用，其实该框架的功能是非常强大的，如果您有兴趣建议从官网的API文档入手深入学习。</p>
+<h3 id="欢迎关注我的公众号程序员欣宸">欢迎关注我的公众号：程序员欣宸</h3>
+<p><img src="./images/体验SpringCloud Gateway10.png" alt="在这里插入图片描述" /></p></li>
+</ol>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

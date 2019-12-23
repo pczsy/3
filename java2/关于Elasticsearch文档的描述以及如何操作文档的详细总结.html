@@ -1,0 +1,709 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于Elasticsearch文档的描述以及如何操作文档的详细总结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于Elasticsearch文档的描述以及如何操作文档的详细总结</center></div><div class='banquan'>原文出处:本文由博客园博主李锋镝提供。<br/>
+原文连接:https://www.cnblogs.com/lifengdi/p/11544169.html</div><br>
+    <h2 id="文档">文档</h2>
+<h3 id="什么是文档">什么是文档</h3>
+<p>在大多数应用中，多数实体或对象可以被序列化为包含键值对的 JSON 对象。 一个 键 可以是一个字段或字段的名称，一个 值 可以是一个字符串，一个数字，一个布尔值， 另一个对象，一些数组值，或一些其它特殊类型诸如表示日期的字符串，或代表一个地理位置的对象：</p>
+<pre><code><code>{
+    &quot;name&quot;:         &quot;John Smith&quot;,
+    &quot;age&quot;:          42,
+    &quot;confirmed&quot;:    true,
+    &quot;join_date&quot;:    &quot;2019-06-01&quot;,
+    &quot;home&quot;: {
+        &quot;lat&quot;:      51.5,
+        &quot;lon&quot;:      0.1
+    },
+    &quot;accounts&quot;: [
+        {
+            &quot;type&quot;: &quot;facebook&quot;,
+            &quot;id&quot;:   &quot;johnsmith&quot;
+        },
+        {
+            &quot;type&quot;: &quot;twitter&quot;,
+            &quot;id&quot;:   &quot;johnsmith&quot;
+        }
+    ]
+}</code></code></pre>
+<p>通常情况下，我们使用的术语<code>对象</code>和<code>文档</code>是可以互相替换的。不过，有一个区别： 一个对象仅仅是类似于hash、hashmap 、字典或者关联数组的JSON对象，对象中也可以嵌套其他的对象。 对象可能包含了另外一些对象。在Elasticsearch中，术语<code>文档</code>有着特定的含义。它是指最顶层或者根对象, 这个根对象被序列化成JSON并存储到Elasticsearch中，指定了唯一ID。<br />
+需要注意的是字段的名字可以是任何合法的字符串，但<strong>不可以</strong>包含英文句号(.)。</p>
+<h3 id="文档元数据">文档元数据</h3>
+<p>一个文档不仅仅包含它的数据 ，也包含元数据——有关文档的信息。 三个必须的元数据元素如下：</p>
+<ul>
+<li><p>_index</p>
+<blockquote>
+<p>文档在哪存放</p>
+</blockquote></li>
+<li><p>_type</p>
+<blockquote>
+<p>文档表示的对象类别</p>
+</blockquote></li>
+<li><p>_id</p>
+<blockquote>
+<p>文档唯一标识</p>
+</blockquote></li>
+</ul>
+<p>还有其他的元数据，后面会陆续说到。</p>
+<h3 id="索引文档">索引文档</h3>
+<p>通过使用 <code>index</code> API ，文档可以被索引 —— 存储和使文档可被搜索 。 但是首先，我们要确定文档的位置。一个文档的 <code>_index</code> 、 <code>_type</code> 和 <code>_id</code> 唯一标识一个文档。 我们可以提供自定义的<code>_id</code>值，或者让<code>index</code> API自动生成。</p>
+<h4 id="使用自定义的id">使用自定义的ID</h4>
+<p>如果你的文档有一个自然的唯一的标识符，应该使用如下方式的<code>index</code> API并提供你自己的<code>_id</code></p>
+<pre class="bash"><code>PUT /{index}/{type}/{id}
+{
+  &quot;field&quot;: &quot;value&quot;,
+  ...
+}</code></code></pre>
+<p>例如：</p>
+<pre class="bash"><code>curl -X PUT &quot;localhost:9200/website/blog/123?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+  &quot;title&quot;: &quot;My first blog entry&quot;,
+  &quot;text&quot;:  &quot;Just trying this out...&quot;,
+  &quot;date&quot;:  &quot;2019/01/01&quot;
+}
+&#39;</code></code></pre>
+<p>Elasticsearch 响应体如下：</p>
+<pre><code><code>{
+   &quot;_index&quot;:    &quot;website&quot;,
+   &quot;_type&quot;:     &quot;blog&quot;,
+   &quot;_id&quot;:       &quot;123&quot;,
+   &quot;_version&quot;:  1,
+   &quot;created&quot;:   true
+}</code></code></pre>
+<p>_version：</p>
+<blockquote>
+<p>在 Elasticsearch中每个文档都有一个版本号。当每次对文档进行修改时（包括删除），<code>_version</code>的值会递增。<code>_version</code>确保你的应用程序中的一部分修改不会覆盖另一部分所做的修改。</p>
+</blockquote>
+<h4 id="使用elasticsearch自动生成id">使用Elasticsearch自动生成ID</h4>
+<p>请求的结构调整为：不再使用<code>PUT</code>谓词(“使用这个URL存储这个文档”)，而是使用<code>POST</code>谓词(“存储文档在这个URL命名空间下”)。</p>
+<p>现在该URL只需包含<code>_index</code>和<code>_type</code>:</p>
+<pre class="bash"><code>POST /website/blog/
+{
+  &quot;title&quot;: &quot;My second blog entry&quot;,
+  &quot;text&quot;:  &quot;Still trying this out...&quot;,
+  &quot;date&quot;:  &quot;2019/01/01&quot;
+}</code></code></pre>
+<p>除了<code>_id</code>是Elasticsearch自动生成的，响应的其他部分和前面的类似：</p>
+<pre><code><code>{
+   &quot;_index&quot;:    &quot;website&quot;,
+   &quot;_type&quot;:     &quot;blog&quot;,
+   &quot;_id&quot;:       &quot;AVFgSgVHUP18jI2wRx0w&quot;,
+   &quot;_version&quot;:  1,
+   &quot;created&quot;:   true
+}</code></code></pre>
+<p>自动生成的 ID 是 URL-safe、 基于Base64编码且长度为20个字符的GUID字符串。 这些GUID字符串由可修改的FlakeID模式生成，这种模式允许多个节点并行生成唯一ID，且互相之间的冲突概率几乎为零。</p>
+<h3 id="取回一个文档">取回一个文档</h3>
+<p>为了从Elasticsearch中检索出文档 ，我们仍然使用相同的<code>_index</code>、<code>_type</code>和<code>_id</code> ，但是HTTP谓词更改为GET：</p>
+<pre class="bash"><code>curl -X GET &quot;localhost:9200/website/blog/123?pretty&quot;</code></code></pre>
+<p>响应体增加了<code>_source</code>字段，这个字段包含我们索引数据时发送给Elasticsearch的原始JSON文档：</p>
+<pre><code><code>{
+  &quot;_index&quot; :   &quot;website&quot;,
+  &quot;_type&quot; :    &quot;blog&quot;,
+  &quot;_id&quot; :      &quot;123&quot;,
+  &quot;_version&quot; : 1,
+  &quot;found&quot; :    true,
+  &quot;_source&quot; :  {
+      &quot;title&quot;: &quot;My first blog entry&quot;,
+      &quot;text&quot;:  &quot;Just trying this out...&quot;,
+      &quot;date&quot;:  &quot;2019/01/01&quot;
+  }
+}</code></code></pre>
+<blockquote>
+<p>URL中增加pretty参数，将会调用Elasticsearch的<code>pretty-print</code>功能，该功能使JSON响应体更加可读。但是，<code>_source</code>字段不能被格式化打印出来。相反，我们得到的<code>_source</code>字段中的JSON串，刚好是和我们传给它的一样。</p>
+</blockquote>
+<p>GET请求的响应体包括<code>{&quot;found&quot;: true}</code>，这证实了文档已经被找到。 如果我们请求一个不存在的文档，我们仍旧会得到一个JSON响应体，但是found将会是false。 此外，HTTP 响应码将会是404 Not Found，而不是 200 OK。</p>
+<pre class="bash"><code>curl -i -XGET http://localhost:9200/website/blog/124?pretty</code></code></pre>
+<p>响应头类似这样：</p>
+<pre class="http"><code>HTTP/1.1 404 Not Found
+Content-Type: application/json; charset=UTF-8
+Content-Length: 83
+
+{
+  &quot;_index&quot; : &quot;website&quot;,
+  &quot;_type&quot; :  &quot;blog&quot;,
+  &quot;_id&quot; :    &quot;124&quot;,
+  &quot;found&quot; :  false
+}</code></code></pre>
+<h4 id="返回文档的一部分">返回文档的一部分</h4>
+<p>默认情况下，GET请求会返回整个文档，这个文档正如存储在<code>_source</code>字段中的一样。但是也许你只对其中的<code>title</code>字段感兴趣。单个字段能用<code>_source</code>参数请求得到，多个字段也能使用逗号分隔的列表来指定。</p>
+<pre class="bash"><code>curl -X GET &quot;localhost:9200/website/blog/123?_source=title,text&amp;pretty&quot;</code></code></pre>
+<p>该<code>_source</code>字段现在包含的只是我们请求的那些字段，并且已经将<code>date</code>字段过滤掉了。</p>
+<pre><code><code>{
+  &quot;_index&quot; :   &quot;website&quot;,
+  &quot;_type&quot; :    &quot;blog&quot;,
+  &quot;_id&quot; :      &quot;123&quot;,
+  &quot;_version&quot; : 1,
+  &quot;found&quot; :   true,
+  &quot;_source&quot; : {
+      &quot;title&quot;: &quot;My first blog entry&quot; ,
+      &quot;text&quot;:  &quot;Just trying this out...&quot;
+  }
+}</code></code></pre>
+<p>或者，如果你只想得到<code>_source</code>字段，不需要任何元数据，你能使用<code>_source</code>端点：</p>
+<pre class="bash"><code>curl -X GET &quot;localhost:9200/website/blog/123/_source?pretty&quot;</code></code></pre>
+<p>返回内容：</p>
+<pre><code><code>{
+   &quot;title&quot;: &quot;My first blog entry&quot;,
+   &quot;text&quot;:  &quot;Just trying this out...&quot;,
+   &quot;date&quot;:  &quot;2014/01/01&quot;
+}</code></code></pre>
+<h3 id="检查文档是否存在">检查文档是否存在</h3>
+<p>如果只想检查一个文档是否存在，根本不想关心内容，那么用<code>HEAD</code>方法来代替<code>GET</code>方法。<code>HEAD</code>请求没有返回体，只返回一个HTTP请求报头：</p>
+<pre class="bash"><code>curl -i -XHEAD http://localhost:9200/website/blog/123</code></code></pre>
+<p>文档存在：</p>
+<pre class="http"><code>HTTP/1.1 200 OK
+Content-Type: text/plain; charset=UTF-8
+Content-Length: 0</code></code></pre>
+<p>文档不存在：</p>
+<pre class="bash"><code>curl -i -XHEAD http://localhost:9200/website/blog/124</code></code></pre>
+<pre class="http"><code>HTTP/1.1 404 Not Found
+Content-Type: text/plain; charset=UTF-8
+Content-Length: 0</code></code></pre>
+<h3 id="更新整个文档">更新整个文档</h3>
+<p>在Elasticsearch中文档是<strong>不可改变</strong>的，不能修改它们。相反，如果想要更新现有的文档，需要<strong>重建索引</strong>或者进行替换， 我们可以使用相同的<code>index</code> API进行实现：</p>
+<pre class="bash"><code>curl -X PUT &quot;localhost:9200/website/blog/123?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+  &quot;title&quot;: &quot;My first blog entry&quot;,
+  &quot;text&quot;:  &quot;I am starting to get the hang of this...&quot;,
+  &quot;date&quot;:  &quot;2014/01/02&quot;
+}
+&#39;</code></code></pre>
+<p>在响应体中，我们能看到Elasticsearch已经增加<code>_version</code>字段值：</p>
+<pre><code><code>{
+  &quot;_index&quot; :   &quot;website&quot;,
+  &quot;_type&quot; :    &quot;blog&quot;,
+  &quot;_id&quot; :      &quot;123&quot;,
+  &quot;_version&quot; : 2,
+  &quot;created&quot;:   false 
+}</code></code></pre>
+<p>created：</p>
+<blockquote>
+<p><code>created</code>标志设置成false，是因为相同的索引、类型和ID的文档已经存在。</p>
+</blockquote>
+<p>在内部，Elasticsearch已将旧文档标记为已删除，并增加一个全新的文档。尽管不能再对旧版本的文档进行访问，但它并不会立即消失。当继续索引更多的数据，Elasticsearch会在后台清理这些已删除文档。</p>
+<h4 id="与update-api的区别">与update API的区别</h4>
+<p><code>update</code> API虽然它似乎对文档直接进行了修改，但实际上Elasticsearch按前述完全相同方式执行以下过程：</p>
+<ol>
+<li>从旧文档构建JSON</li>
+<li>更改该JSON</li>
+<li>删除旧文档</li>
+<li>索引一个新文档<br />
+唯一的区别在于, <code>update</code> API仅仅通过一个客户端请求来实现这些步骤，而不需要单独的<code>get</code>和<code>index</code>请求。</li>
+</ol>
+<h3 id="创建新文档">创建新文档</h3>
+<p>当我们索引一个文档，怎么确认我们正在创建一个完全新的文档，而不是覆盖现有的呢？</p>
+<p>请记住，<code>_index</code>、<code>_type</code>和<code>_id</code>的组合可以唯一标识一个文档。所以，确保创建一个新文档的最简单办法是，使用索引请求的<code>POST</code>形式让<code>Elasticsearch</code>自动生成唯一<code>_id</code>:</p>
+<pre class="bash"><code>POST /website/blog/
+{ ... }</code></code></pre>
+<p>如果已经有自己的<code>_id</code>，那么我们必须告诉Elasticsearch，只有在相同的<code>_index</code>、<code>_type</code>和<code>_id</code>不存在时才接受我们的索引请求。这里有两种方式，他们做的实际是相同的事情。使用哪种，取决于哪种使用起来更方便。<br />
+第一种方法使用<code>op_type</code>：</p>
+<pre class="bash"><code>PUT /website/blog/123?op_type=create
+{ ... }</code></code></pre>
+<p>第二种方法是在URL末端使用<code>/_create</code>：</p>
+<pre class="bash"><code>PUT /website/blog/123/_create
+{ ... }</code></code></pre>
+<p>如果创建新文档的请求成功执行，Elasticsearch会返回元数据和一个<code>201 Created</code>的<code>HTTP</code>响应码。</p>
+<p>另一方面，如果具有相同的<code>_index</code>、<code>_type</code>和<code>_id</code>的文档已经存在，Elasticsearch将会返回 <code>409 Conflict</code>响应码，以及如下的错误信息：</p>
+<pre><code><code>{
+   &quot;error&quot;: {
+      &quot;root_cause&quot;: [
+         {
+            &quot;type&quot;: &quot;document_already_exists_exception&quot;,
+            &quot;reason&quot;: &quot;[blog][123]: document already exists&quot;,
+            &quot;shard&quot;: &quot;0&quot;,
+            &quot;index&quot;: &quot;website&quot;
+         }
+      ],
+      &quot;type&quot;: &quot;document_already_exists_exception&quot;,
+      &quot;reason&quot;: &quot;[blog][123]: document already exists&quot;,
+      &quot;shard&quot;: &quot;0&quot;,
+      &quot;index&quot;: &quot;website&quot;
+   },
+   &quot;status&quot;: 409
+}</code></code></pre>
+<h3 id="删除文档">删除文档</h3>
+<p>删除文档的语法和我们所知道的规则相同，只是使用 <code>DELETE</code> 方法：</p>
+<pre class="bash"><code>curl -X DELETE &quot;localhost:9200/website/blog/123?pretty&quot;</code></code></pre>
+<p>如果找到该文档，Elasticsearch 将要返回一个 <code>200 ok</code> 的 HTTP 响应码，和一个类似以下结构的响应体。注意，字段 <code>_version</code> 值已经增加:</p>
+<pre><code><code>{
+  &quot;found&quot; :    true,
+  &quot;_index&quot; :   &quot;website&quot;,
+  &quot;_type&quot; :    &quot;blog&quot;,
+  &quot;_id&quot; :      &quot;123&quot;,
+  &quot;_version&quot; : 3
+}</code></code></pre>
+<p>如果文档没有 找到，我们将得到<code>404 Not Found</code>的响应码和类似这样的响应体：</p>
+<pre><code><code>{
+  &quot;found&quot; :    false,
+  &quot;_index&quot; :   &quot;website&quot;,
+  &quot;_type&quot; :    &quot;blog&quot;,
+  &quot;_id&quot; :      &quot;123&quot;,
+  &quot;_version&quot; : 4
+}</code></code></pre>
+<p>即使文档不存在（ <code>Found</code> 是 false ）， <code>_version</code> 值仍然会增加。这是 Elasticsearch 内部记录本的一部分，用来确保这些改变在跨多节点时以正确的顺序执行。</p>
+<p>同更新一样，删除文档不会立即将文档从磁盘中删除，只是将文档标记为已删除状态。随着你不断的索引更多的数据，Elasticsearch 将会在后台清理标记为已删除的文档。</p>
+<h3 id="处理冲突">处理冲突</h3>
+<p>当我们使用 <code>index</code> API 更新文档 ，可以一次性读取原始文档，做我们的修改，然后重新索引 整个文档 。 最近的索引请求将获胜：无论最后哪一个文档被索引，都将被唯一存储在 Elasticsearch 中。如果其他人同时更改这个文档，他们的更改将丢失。</p>
+<p>变更越频繁，读数据和更新数据的间隙越长，也就越可能丢失变更。</p>
+<p>在数据库领域中，有两种方法通常被用来确保并发更新时变更不会丢失：</p>
+<p><strong>悲观并发控制</strong></p>
+<blockquote>
+<p>这种方法被关系型数据库广泛使用，它假定有变更冲突可能发生，因此阻塞访问资源以防止冲突。 一个典型的例子是读取一行数据之前先将其锁住，确保只有放置锁的线程能够对这行数据进行修改。</p>
+</blockquote>
+<p><strong>乐观并发控制</strong></p>
+<blockquote>
+<p>Elasticsearch中使用的这种方法假定冲突是不可能发生的，并且不会阻塞正在尝试的操作。 然而，如果源数据在读写当中被修改，更新将会失败。应用程序接下来将决定该如何解决冲突。 例如，可以重试更新、使用新的数据、或者将相关情况报告给用户。</p>
+</blockquote>
+<h3 id="乐观并发控制">乐观并发控制</h3>
+<p>Elasticsearch 是分布式的。当文档创建、更新或删除时， 新版本的文档必须复制到集群中的其他节点。Elasticsearch 也是异步和并发的，这意味着这些复制请求被并行发送，并且到达目的地时也许顺序是乱的。 Elasticsearch需要一种方法确保文档的旧版本不会覆盖新的版本。</p>
+<p>我们之前说到的 <code>index</code> ， <code>GET</code> 和 <code>delete</code> 请求时，我们指出每个文档都有一个 <code>_version</code> （版本）号，当文档被修改时版本号递增。 Elasticsearch 使用这个 <code>_version</code> 号来确保变更以正确顺序得到执行。如果旧版本的文档在新版本之后到达，它可以被简单的忽略。</p>
+<p>我们可以利用 <code>_version</code> 号来确保 应用中相互冲突的变更不会导致数据丢失。我们通过指定想要修改文档的 version 号来达到这个目的。 如果该版本不是当前版本号，我们的请求将会失败。</p>
+<p>让我们创建一个新的博客文章：</p>
+<pre class="bash"><code>curl -X PUT &quot;localhost:9200/website/blog/1/_create?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+  &quot;title&quot;: &quot;My first blog entry&quot;,
+  &quot;text&quot;:  &quot;Just trying this out...&quot;
+}
+&#39;</code></code></pre>
+<p>响应体告诉我们，这个新创建的文档 <code>_version</code> 版本号是 1 。现在假设我们想编辑这个文档：我们加载其数据到 web 表单中， 做一些修改，然后保存新的版本。</p>
+<p>首先我们检索文档:</p>
+<pre class="bash"><code>curl -X GET &quot;localhost:9200/website/blog/1?pretty&quot;</code></code></pre>
+<p>响应体包含相同的 <code>_version</code> 版本号 1 ：</p>
+<pre><code><code>{
+  &quot;_index&quot; :   &quot;website&quot;,
+  &quot;_type&quot; :    &quot;blog&quot;,
+  &quot;_id&quot; :      &quot;1&quot;,
+  &quot;_version&quot; : 1,
+  &quot;found&quot; :    true,
+  &quot;_source&quot; :  {
+      &quot;title&quot;: &quot;My first blog entry&quot;,
+      &quot;text&quot;:  &quot;Just trying this out...&quot;
+  }
+}</code></code></pre>
+<p>现在，当我们尝试通过重建文档的索引来保存修改，我们指定 version 为我们的修改会被应用的版本：</p>
+<pre class="bash"><code>curl -X PUT &quot;localhost:9200/website/blog/1?version=1&amp;pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+  &quot;title&quot;: &quot;My first blog entry&quot;,
+  &quot;text&quot;:  &quot;Starting to get the hang of this...&quot;
+}
+&#39;</code></code></pre>
+<p>我们想这个在我们索引中的文档只有现在的 <code>_version</code> 为 1 时，本次更新才能成功。</p>
+<p>此请求成功，并且响应体告诉我们 <code>_version</code> 已经递增到 2 ：</p>
+<pre><code><code>{
+  &quot;_index&quot;:   &quot;website&quot;,
+  &quot;_type&quot;:    &quot;blog&quot;,
+  &quot;_id&quot;:      &quot;1&quot;,
+  &quot;_version&quot;: 2
+  &quot;created&quot;:  false
+}</code></code></pre>
+<p>然而，如果我们重新运行相同的索引请求，仍然指定 version=1 ， Elasticsearch 返回 <code>409 Conflict</code> HTTP 响应码，和一个如下所示的响应体：</p>
+<pre><code><code>{
+   &quot;error&quot;: {
+      &quot;root_cause&quot;: [
+         {
+            &quot;type&quot;: &quot;version_conflict_engine_exception&quot;,
+            &quot;reason&quot;: &quot;[blog][1]: version conflict, current [2], provided [1]&quot;,
+            &quot;index&quot;: &quot;website&quot;,
+            &quot;shard&quot;: &quot;3&quot;
+         }
+      ],
+      &quot;type&quot;: &quot;version_conflict_engine_exception&quot;,
+      &quot;reason&quot;: &quot;[blog][1]: version conflict, current [2], provided [1]&quot;,
+      &quot;index&quot;: &quot;website&quot;,
+      &quot;shard&quot;: &quot;3&quot;
+   },
+   &quot;status&quot;: 409
+}</code></code></pre>
+<p>这告诉我们在 Elasticsearch 中这个文档的当前 <code>_version</code> 号是 2 ，但我们指定的更新版本号为 1 。</p>
+<p>我们现在怎么做取决于我们的应用需求。我们可以告诉用户说其他人已经修改了文档，并且在再次保存之前检查这些修改内容。</p>
+<p>所有文档的更新或删除 API，都可以接受 <code>version</code> 参数，这允许你在代码中使用乐观的并发控制，这是一种明智的做法。</p>
+<h4 id="通过外部系统使用版本控制">通过外部系统使用版本控制</h4>
+<p>一个常见的设置是使用其它数据库作为主要的数据存储，使用 Elasticsearch 做数据检索， 这意味着主数据库的所有更改发生时都需要被复制到 Elasticsearch ，如果多个进程负责这一数据同步，你可能遇到类似于之前描述的并发问题。</p>
+<p>如果你的主数据库已经有了版本号，或一个能作为版本号的字段值比如 timestamp，那么你就可以在 Elasticsearch 中通过增加 <code>version_type=external</code> 到查询字符串的方式重用这些相同的版本号， 版本号必须是大于零的整数， 且小于 9.2E+18(一个 Java 中 long 类型的正值)。</p>
+<p>外部版本号的处理方式和我们之前讨论的内部版本号的处理方式有些不同， Elasticsearch 不是检查当前 <code>_version</code> 和请求中指定的版本号是否相同， 而是检查当前 <code>_version</code> 是否 小于 指定的版本号。 如果请求成功，外部的版本号作为文档的新 <code>_version</code> 进行存储。</p>
+<p>外部版本号不仅在索引和删除请求是可以指定，而且在 创建 新文档时也可以指定。</p>
+<p>例如，要创建一个新的具有外部版本号 5 的博客文章，我们可以按以下方法进行：</p>
+<pre class="bash"><code>curl -X PUT &quot;localhost:9200/website/blog/2?version=5&amp;version_type=external&amp;pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+  &quot;title&quot;: &quot;My first external blog entry&quot;,
+  &quot;text&quot;:  &quot;Starting to get the hang of this...&quot;
+}
+&#39;</code></code></pre>
+<p>在响应中，我们能看到当前的<code>_version</code>版本号是 5 ：</p>
+<pre><code><code>{
+  &quot;_index&quot;:   &quot;website&quot;,
+  &quot;_type&quot;:    &quot;blog&quot;,
+  &quot;_id&quot;:      &quot;2&quot;,
+  &quot;_version&quot;: 5,
+  &quot;created&quot;:  true
+}</code></code></pre>
+<p>现在我们更新这个文档，指定一个新的 version 号是 10 ：</p>
+<pre class="bash"><code>curl -X PUT &quot;localhost:9200/website/blog/2?version=10&amp;version_type=external&amp;pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+  &quot;title&quot;: &quot;My first external blog entry&quot;,
+  &quot;text&quot;:  &quot;This is a piece of cake...&quot;
+}
+&#39;</code></code></pre>
+<p>请求成功并将当前 <code>_version</code> 设为 10 ：</p>
+<pre><code><code>{
+  &quot;_index&quot;:   &quot;website&quot;,
+  &quot;_type&quot;:    &quot;blog&quot;,
+  &quot;_id&quot;:      &quot;2&quot;,
+  &quot;_version&quot;: 10,
+  &quot;created&quot;:  false
+}</code></code></pre>
+<p>如果你要重新运行此请求时，它将会失败，并返回像我们之前看到的同样的冲突错误， 因为指定的外部版本号不大于 Elasticsearch 的当前版本号。</p>
+<h3 id="文档的部分更新">文档的部分更新</h3>
+<p>使用 <code>update</code> API 我们可以部分更新文档。</p>
+<p>前边我们说过文档是不可变的：他们不能被修改，只能被替换。 <code>update</code> API必须遵循同样的规则。 从外部来看，我们在一个文档的某个位置进行部分更新。然而在内部， <code>update</code> API 简单使用与之前描述相同的 <em>检索-修改-重建索引</em> 的处理过程。 区别在于这个过程发生在分片内部，这样就避免了多次请求的网络开销。通过减少检索和重建索引步骤之间的时间，我们也减少了其他进程的变更带来冲突的可能性。</p>
+<p><code>update</code> 请求最简单的一种形式是接收文档的一部分作为 <code>doc</code> 的参数， 它只是与现有的文档进行合并。对象被合并到一起，覆盖现有的字段，增加新的字段。 例如，我们增加字段 <code>tags</code> 和 <code>views</code> 到我们的博客文章，如下所示：</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/website/blog/1/_update?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+   &quot;doc&quot; : {
+      &quot;tags&quot; : [ &quot;testing&quot; ],
+      &quot;views&quot;: 0
+   }
+}
+&#39;</code></code></pre>
+<p>如果请求成功，我们看到类似于 <code>index</code> 请求的响应：</p>
+<pre><code><code>{
+   &quot;_index&quot; :   &quot;website&quot;,
+   &quot;_id&quot; :      &quot;1&quot;,
+   &quot;_type&quot; :    &quot;blog&quot;,
+   &quot;_version&quot; : 3
+}</code></code></pre>
+<p>检索文档显示了更新后的 <code>_source</code> 字段：</p>
+<pre><code><code>{
+   &quot;_index&quot;:    &quot;website&quot;,
+   &quot;_type&quot;:     &quot;blog&quot;,
+   &quot;_id&quot;:       &quot;1&quot;,
+   &quot;_version&quot;:  3,
+   &quot;found&quot;:     true,
+   &quot;_source&quot;: {
+      &quot;title&quot;:  &quot;My first blog entry&quot;,
+      &quot;text&quot;:   &quot;Starting to get the hang of this...&quot;,
+      &quot;tags&quot;: [ &quot;testing&quot; ], 
+      &quot;views&quot;:  0 
+   }
+}</code></code></pre>
+<p>新的字段已被添加到 <code>_source</code> 中。</p>
+<h4 id="使用脚本部分更新文档">使用脚本部分更新文档</h4>
+<p>脚本可以在 <code>update</code> API中用来改变<code>_source</code>的字段内容， 它在更新脚本中称为 <code>ctx._source</code> 。 例如，我们可以使用脚本来增加博客文章中 <code>views</code> 的数量：</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/website/blog/1/_update?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+   &quot;script&quot; : &quot;ctx._source.views+=1&quot;
+}
+&#39;</code></code></pre>
+<p>我们也可以通过使用脚本给 <code>tags</code> 数组添加一个新的标签。在这个例子中，我们指定新的标签作为参数，而不是硬编码到脚本内部。 这使得 Elasticsearch 可以重用这个脚本，而不是每次我们想添加标签时都要对新脚本重新编译：</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/website/blog/1/_update?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+   &quot;script&quot; : &quot;ctx._source.tags+=new_tag&quot;,
+   &quot;params&quot; : {
+      &quot;new_tag&quot; : &quot;search&quot;
+   }
+}
+&#39;</code></code></pre>
+<p>获取文档并显示最后两次请求的效果：</p>
+<pre><code><code>{
+   &quot;_index&quot;:    &quot;website&quot;,
+   &quot;_type&quot;:     &quot;blog&quot;,
+   &quot;_id&quot;:       &quot;1&quot;,
+   &quot;_version&quot;:  5,
+   &quot;found&quot;:     true,
+   &quot;_source&quot;: {
+      &quot;title&quot;:  &quot;My first blog entry&quot;,
+      &quot;text&quot;:   &quot;Starting to get the hang of this...&quot;,
+      &quot;tags&quot;:  [&quot;testing&quot;, &quot;search&quot;], 
+      &quot;views&quot;:  1 
+   }
+}</code></code></pre>
+<p>我们可以看到<code>search</code>标签已追加到<code>tags</code>数组中，<code>views</code>字段已递增。</p>
+<p>通过设置 <code>ctx.op</code> 为 <code>delete</code> 来删除基于其内容的文档：</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/website/blog/1/_update?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+   &quot;script&quot; : &quot;ctx.op = ctx._source.views == count ? \u0027delete\u0027 : \u0027none\u0027&quot;,
+    &quot;params&quot; : {
+        &quot;count&quot;: 1
+    }
+}
+&#39;</code></code></pre>
+<h4 id="更新的文档可能尚不存在">更新的文档可能尚不存在</h4>
+<p>假设我们需要 在 Elasticsearch 中存储一个页面访问量计数器。 每当有用户浏览网页，我们对该页面的计数器进行累加。但是，如果它是一个新网页，我们不能确定计数器已经存在。 如果我们尝试更新一个不存在的文档，那么更新操作将会失败。</p>
+<p>在这样的情况下，我们可以使用<code>upsert</code>参数，指定如果文档不存在就应该先创建它：</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/website/pageviews/1/_update?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+   &quot;script&quot; : &quot;ctx._source.views+=1&quot;,
+   &quot;upsert&quot;: {
+       &quot;views&quot;: 1
+   }
+}
+&#39;</code></code></pre>
+<p>我们第一次运行这个请求时， <code>upsert</code> 值作为新文档被索引，初始化 <code>views</code> 字段为 1 。 在后续的运行中，由于文档已经存在， <code>script</code> 更新操作将替代 <code>upsert</code> 进行应用，对 <code>views</code> 计数器进行累加。</p>
+<h4 id="更新和冲突">更新和冲突</h4>
+<p><code>检索</code> 和 <code>重建索引</code> 步骤的间隔越小，变更冲突的机会越小。 但是它并不能完全消除冲突的可能性。 还是有可能在 <code>update</code> 设法重新索引之前，来自另一进程的请求修改了文档。</p>
+<p>为了避免数据丢失， <code>update</code> API 在 <code>检索</code> 步骤时检索得到文档当前的 <code>_version</code> 号，并传递版本号到 <code>重建索</code>引 步骤的 <code>index</code> 请求。 如果另一个进程修改了处于检索和重新索引步骤之间的文档，那么<code>_version</code>号将不匹配，更新请求将会失败。</p>
+<p>对于部分更新的很多使用场景，文档已经被改变也没有关系。 例如，如果两个进程都对页面访问量计数器进行递增操作，它们发生的先后顺序其实不太重要； 如果冲突发生了，我们唯一需要做的就是尝试再次更新。</p>
+<p>这可以通过 设置参数 <code>retry_on_conflict</code> 来自动完成， 这个参数规定了失败之前 <code>update</code> 应该重试的次数，它的默认值为 <code>0</code> 。</p>
+<p>指定失败重试次数，例如失败之前重试该更新5次：</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/website/pageviews/1/_update?retry_on_conflict=5&amp;pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+   &quot;script&quot; : &quot;ctx._source.views+=1&quot;,
+   &quot;upsert&quot;: {
+       &quot;views&quot;: 0
+   }
+}
+&#39;</code></code></pre>
+<p>在增量操作无关顺序的场景，例如递增计数器等这个方法十分有效，但是在其他情况下变更的顺序 是 非常重要的。 类似 <code>index</code> API ， <code>update</code> API 默认采用 <code>最终写入生效</code> 的方案，但它也接受一个 <code>version</code> 参数来允许你使用 <code>optimistic concurrency control</code> 指定想要更新文档的版本。</p>
+<h3 id="取回多个文档">取回多个文档</h3>
+<p>Elasticsearch的速度已经很快了，但还能更快。 将多个请求合并成一个，避免单独处理每个请求花费的网络延时和开销。 如果你需要从 Elasticsearch 检索很多文档，那么使用 <code>multi-get</code> 或者 <code>mget</code> API 来将这些检索请求放在一个请求中，将比逐个文档请求更快地检索到全部文档。</p>
+<p><code>mget</code> API 要求有一个 <code>docs</code> 数组作为参数，每个 元素包含需要检索文档的元数据， 包括 <code>_index</code> 、 <code>_type</code> 和 <code>_id</code> 。如果你想检索一个或者多个特定的字段，那么你可以通过 <code>_source</code> 参数来指定这些字段的名字：</p>
+<pre class="bash"><code>curl -X GET &quot;localhost:9200/_mget?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+   &quot;docs&quot; : [
+      {
+         &quot;_index&quot; : &quot;website&quot;,
+         &quot;_type&quot; :  &quot;blog&quot;,
+         &quot;_id&quot; :    2
+      },
+      {
+         &quot;_index&quot; : &quot;website&quot;,
+         &quot;_type&quot; :  &quot;pageviews&quot;,
+         &quot;_id&quot; :    1,
+         &quot;_source&quot;: &quot;views&quot;
+      }
+   ]
+}
+&#39;</code></code></pre>
+<p>该响应体也包含一个 <code>docs</code> 数组 ， 对于每一个在请求中指定的文档，这个数组中都包含有一个对应的响应，且顺序与请求中的顺序相同。 其中的每一个响应都和使用单个 <code>get request</code> 请求所得到的响应体相同：</p>
+<pre><code><code>{
+   &quot;docs&quot; : [
+      {
+         &quot;_index&quot; :   &quot;website&quot;,
+         &quot;_id&quot; :      &quot;2&quot;,
+         &quot;_type&quot; :    &quot;blog&quot;,
+         &quot;found&quot; :    true,
+         &quot;_source&quot; : {
+            &quot;text&quot; :  &quot;This is a piece of cake...&quot;,
+            &quot;title&quot; : &quot;My first external blog entry&quot;
+         },
+         &quot;_version&quot; : 10
+      },
+      {
+         &quot;_index&quot; :   &quot;website&quot;,
+         &quot;_id&quot; :      &quot;1&quot;,
+         &quot;_type&quot; :    &quot;pageviews&quot;,
+         &quot;found&quot; :    true,
+         &quot;_version&quot; : 2,
+         &quot;_source&quot; : {
+            &quot;views&quot; : 2
+         }
+      }
+   ]
+}</code></code></pre>
+<p>如果想检索的数据都在相同的 <code>_index</code> 中（甚至相同的 <code>_type</code> 中），则可以在 URL 中指定默认的 <code>/_index</code> 或者默认的 <code>/_index/_type</code> 。</p>
+<pre class="bash"><code>curl -X GET &quot;localhost:9200/website/blog/_mget?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{
+   &quot;docs&quot; : [
+      { &quot;_id&quot; : 2 },
+      { &quot;_type&quot; : &quot;pageviews&quot;, &quot;_id&quot; :   1 }
+   ]
+}
+&#39;</code></code></pre>
+<p>如果所有文档的 <code>_index</code> 和 <code>_type</code> 都是相同的，你可以只传一个 <code>ids</code> 数组，而不是整个 <code>docs</code> 数组：</p>
+<pre class="bash"><code>GET /website/blog/_mget
+{
+   &quot;ids&quot; : [ &quot;2&quot;, &quot;1&quot; ]
+}</code></code></pre>
+<p>我们请求的第二个文档是不存在的。我们指定类型为 <code>blog</code> ，但是文档 ID <code>1</code> 的类型是 <code>pageviews</code> ，这个不存在的情况将在响应体中被报告：</p>
+<pre><code><code>{
+  &quot;docs&quot; : [
+    {
+      &quot;_index&quot; :   &quot;website&quot;,
+      &quot;_type&quot; :    &quot;blog&quot;,
+      &quot;_id&quot; :      &quot;2&quot;,
+      &quot;_version&quot; : 10,
+      &quot;found&quot; :    true,
+      &quot;_source&quot; : {
+        &quot;title&quot;:   &quot;My first external blog entry&quot;,
+        &quot;text&quot;:    &quot;This is a piece of cake...&quot;
+      }
+    },
+    {
+      &quot;_index&quot; :   &quot;website&quot;,
+      &quot;_type&quot; :    &quot;blog&quot;,
+      &quot;_id&quot; :      &quot;1&quot;,
+      &quot;found&quot; :    false  
+    }
+  ]
+}</code></code></pre>
+<p><code>found=false</code> ：未找到该文档。<br />
+第二个文档未能找到并不妨碍第一个文档被检索到。每个文档都是单独检索和报告的。</p>
+<p>即使有某个文档没有找到，上述请求的HTTP状态码仍然是200。事实上，即使请求没有找到任何文档，它的状态码依然是200--因为<code>mget</code>请求本身已经成功执行。为了确定某个文档查找是成功或者失败，你需要检查<code>found</code>标记。</p>
+<h3 id="代价较小的批量操作">代价较小的批量操作</h3>
+<p>与 <code>mget</code> 可以使我们一次取回多个文档同样的方式， <code>bulk</code> API 允许在单个步骤中进行多次 <code>create</code> 、 <code>index</code> 、 <code>update</code> 或 <code>delete</code> 请求。如果你需要索引一个数据流比如日志事件，它可以排队和索引数百或数千批次。</p>
+<p><code>bulk</code>与其他的请求体格式稍有不同，如下所示：</p>
+<pre class="http"><code>{ action: { metadata }}\n
+{ request body        }\n
+{ action: { metadata }}\n
+{ request body        }\n
+...</code></code></pre>
+<p>这种格式类似一个有效的单行 JSON 文档 流 ，它通过换行符(\n)连接到一起。注意两个要点：</p>
+<ul>
+<li><p>每行一定要以换行符(\n)结尾，包括最后一行。这些换行符被用作一个标记，可以有效分隔行。</p></li>
+<li><p>这些行不能包含未转义的换行符，因为他们将会对解析造成干扰。这意味着这个 JSON 不 能使用 <code>pretty</code> 参数打印。</p></li>
+</ul>
+<p><code>action/metadata</code>行指定<code>哪一个文档</code>做什么操作。</p>
+<p><code>action</code>必须是以下选项之一:</p>
+<ul>
+<li>create
+<ul>
+<li>如果文档不存在，那么就创建它。</li>
+</ul></li>
+<li>index
+<ul>
+<li>创建一个新文档或者替换一个现有的文档。</li>
+</ul></li>
+<li>update
+<ul>
+<li>部分更新一个文档。</li>
+</ul></li>
+<li>delete
+<ul>
+<li>删除一个文档。</li>
+</ul></li>
+</ul>
+<p><code>metadata</code>应该指定被索引、创建、更新或者删除的文档的 <code>_index</code> 、 <code>_type</code> 和 <code>_id</code> 。</p>
+<p>例如，一个 <code>delete</code> 请求看起来是这样的：</p>
+<pre class="bash"><code>{ &quot;delete&quot;: { &quot;_index&quot;: &quot;website&quot;, &quot;_type&quot;: &quot;blog&quot;, &quot;_id&quot;: &quot;123&quot; }}</code></code></pre>
+<p><code>request body</code> 行由文档的 <code>_source</code> 本身组成--文档包含的字段和值。它是 <code>index</code> 和 <code>create</code> 操作所必需的，你必须提供文档以索引。</p>
+<p>它也是 <code>update</code> 操作所必需的，并且应该包含你传递给 <code>update</code> API 的相同请求体： <code>doc</code> 、 <code>upsert</code> 、 <code>script</code> 等等。 <strong>删除</strong>操作<strong>不需要</strong> <code>request body</code> 行。</p>
+<pre class="bash"><code>{ &quot;create&quot;:  { &quot;_index&quot;: &quot;website&quot;, &quot;_type&quot;: &quot;blog&quot;, &quot;_id&quot;: &quot;123&quot; }}
+{ &quot;title&quot;:    &quot;My first blog post&quot; }</code></code></pre>
+<p>如果不指定 <code>_id</code> ，将会自动生成一个 ID ：</p>
+<pre class="bash"><code>{ &quot;index&quot;: { &quot;_index&quot;: &quot;website&quot;, &quot;_type&quot;: &quot;blog&quot; }}
+{ &quot;title&quot;:    &quot;My second blog post&quot; }</code></code></pre>
+<p>为了把所有的操作组合在一起，一个完整的 <code>bulk</code> 请求有以下形式:</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/_bulk?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{ &quot;delete&quot;: { &quot;_index&quot;: &quot;website&quot;, &quot;_type&quot;: &quot;blog&quot;, &quot;_id&quot;: &quot;123&quot; }} 
+{ &quot;create&quot;: { &quot;_index&quot;: &quot;website&quot;, &quot;_type&quot;: &quot;blog&quot;, &quot;_id&quot;: &quot;123&quot; }}
+{ &quot;title&quot;:    &quot;My first blog post&quot; }
+{ &quot;index&quot;:  { &quot;_index&quot;: &quot;website&quot;, &quot;_type&quot;: &quot;blog&quot; }}
+{ &quot;title&quot;:    &quot;My second blog post&quot; }
+{ &quot;update&quot;: { &quot;_index&quot;: &quot;website&quot;, &quot;_type&quot;: &quot;blog&quot;, &quot;_id&quot;: &quot;123&quot;, &quot;_retry_on_conflict&quot; : 3} }
+{ &quot;doc&quot; : {&quot;title&quot; : &quot;My updated blog post&quot;} }
+&#39;</code></code></pre>
+<p>需要注意两点：</p>
+<ul>
+<li>请注意<code>delete</code>动作不能有请求体,它后面跟着的是另外一个操作。</li>
+<li>谨记最后一个换行符不要落下。<br />
+Elasticsearch 响应包含 <code>items</code> 数组， 这个数组的内容是以请求的顺序列出来的每个请求的结果。</li>
+</ul>
+<pre><code><code>{
+   &quot;took&quot;: 4,
+   &quot;errors&quot;: false, 
+   &quot;items&quot;: [
+      {  &quot;delete&quot;: {
+            &quot;_index&quot;:   &quot;website&quot;,
+            &quot;_type&quot;:    &quot;blog&quot;,
+            &quot;_id&quot;:      &quot;123&quot;,
+            &quot;_version&quot;: 2,
+            &quot;status&quot;:   200,
+            &quot;found&quot;:    true
+      }},
+      {  &quot;create&quot;: {
+            &quot;_index&quot;:   &quot;website&quot;,
+            &quot;_type&quot;:    &quot;blog&quot;,
+            &quot;_id&quot;:      &quot;123&quot;,
+            &quot;_version&quot;: 3,
+            &quot;status&quot;:   201
+      }},
+      {  &quot;create&quot;: {
+            &quot;_index&quot;:   &quot;website&quot;,
+            &quot;_type&quot;:    &quot;blog&quot;,
+            &quot;_id&quot;:      &quot;EiwfApScQiiy7TIKFxRCTw&quot;,
+            &quot;_version&quot;: 1,
+            &quot;status&quot;:   201
+      }},
+      {  &quot;update&quot;: {
+            &quot;_index&quot;:   &quot;website&quot;,
+            &quot;_type&quot;:    &quot;blog&quot;,
+            &quot;_id&quot;:      &quot;123&quot;,
+            &quot;_version&quot;: 4,
+            &quot;status&quot;:   200
+      }}
+   ]
+}</code></code></pre>
+<p>每个子请求都是独立执行，因此某个子请求的失败不会对其他子请求的成功与否造成影响。 如果其中任何子请求失败，最顶层的<code>error</code>标志被设置为true，并且在相应的请求报告出错误明细：</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/_bulk?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{ &quot;create&quot;: { &quot;_index&quot;: &quot;website&quot;, &quot;_type&quot;: &quot;blog&quot;, &quot;_id&quot;: &quot;123&quot; }}
+{ &quot;title&quot;:    &quot;Cannot create - it already exists&quot; }
+{ &quot;index&quot;:  { &quot;_index&quot;: &quot;website&quot;, &quot;_type&quot;: &quot;blog&quot;, &quot;_id&quot;: &quot;123&quot; }}
+{ &quot;title&quot;:    &quot;But we can update it&quot; }
+&#39;</code></code></pre>
+<p>在响应中，我们看到 <code>create</code> 文档 <code>123</code> 失败，因为它已经存在。但是随后的 <code>index</code> 请求，也是对文档 <code>123</code> 操作，就成功了：</p>
+<pre class="bash"><code>{
+   &quot;took&quot;: 3,
+   &quot;errors&quot;: true, 
+   &quot;items&quot;: [
+      {  &quot;create&quot;: {
+            &quot;_index&quot;:   &quot;website&quot;,
+            &quot;_type&quot;:    &quot;blog&quot;,
+            &quot;_id&quot;:      &quot;123&quot;,
+            &quot;status&quot;:   409, 
+            &quot;error&quot;:    &quot;DocumentAlreadyExistsException 
+                        [[website][4] [blog][123]:
+                        document already exists]&quot;
+      }},
+      {  &quot;index&quot;: {
+            &quot;_index&quot;:   &quot;website&quot;,
+            &quot;_type&quot;:    &quot;blog&quot;,
+            &quot;_id&quot;:      &quot;123&quot;,
+            &quot;_version&quot;: 5,
+            &quot;status&quot;:   200 
+      }}
+   ]
+}</code></code></pre>
+<p><code>errors=true</code>：一个或者多个请求失败。</p>
+<p><code>status=409</code>：这个请求的HTTP状态码报告为 <code>409 CONFLICT</code> 。</p>
+<p><code>error</code>：解释为什么请求失败的错误信息。</p>
+<p><code>status=200</code>：第二个请求成功，返回 HTTP 状态码 <code>200 OK</code> 。</p>
+<p>这也意味着<code>bulk</code>请求不是原子的： 不能用它来实现事务控制。每个请求是单独处理的，因此一个请求的成功或失败不会影响其他的请求。</p>
+<h4 id="不要重复指定index和type">不要重复指定Index和Type</h4>
+<p>也许你正在批量索引日志数据到相同的 <code>index</code> 和 <code>type</code> 中。 但为每一个文档指定相同的元数据是一种浪费。相反，可以像 <code>mget</code> API 一样，在 <code>bulk</code> 请求的 URL 中接收默认的 <code>/_index</code> 或者 <code>/_index/_type</code> ：</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/website/_bulk?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{ &quot;index&quot;: { &quot;_type&quot;: &quot;log&quot; }}
+{ &quot;event&quot;: &quot;User logged in&quot; }
+&#39;</code></code></pre>
+<p>可以覆盖元数据行中的 <code>_index</code> 和 <code>_type</code> , 但是它将使用URL中的这些元数据值作为默认值：</p>
+<pre class="bash"><code>curl -X POST &quot;localhost:9200/website/log/_bulk?pretty&quot; -H &#39;Content-Type: application/json&#39; -d&#39;
+{ &quot;index&quot;: {}}
+{ &quot;event&quot;: &quot;User logged in&quot; }
+{ &quot;index&quot;: { &quot;_type&quot;: &quot;blog&quot; }}
+{ &quot;title&quot;: &quot;Overriding the default type&quot; }
+&#39;</code></code></pre>
+<h4 id="多大是太大了">多大是太大了？</h4>
+<p>整个批量请求都需要由接收到请求的节点加载到内存中，因此该请求越大，其他请求所能获得的内存就越少。批量请求的大小有一个最佳值，大于这个值，性能将不再提升，甚至会下降。但是最佳值不是一个固定的值。它完全取决于<strong>硬件</strong>、<strong>文档的大小和复杂度</strong>、<strong>索引和搜索的负载</strong>的整体情况。</p>
+<p>幸运的是，很容易找到这个最佳点：通过批量索引典型文档，并不断增加批量大小进行尝试。 当性能开始下降，那么你的批量大小就太大了。一个好的办法是开始时将 1000 到 5000 个文档作为一个批次,如果你的文档非常大，那么就减少批量的文档个数。</p>
+<p>密切关注你的批量请求的物理大小往往非常有用，一千个 1KB 的文档是完全不同于一千个 1MB 文档所占的物理大小。一个好的批量大小在开始处理后所占用的物理大小约为 5-15 MB。</p>
+<p>原文地址：<a href="https://www.lifengdi.com/archives/article/tech/934" class="uri">https://www.lifengdi.com/archives/article/tech/934</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

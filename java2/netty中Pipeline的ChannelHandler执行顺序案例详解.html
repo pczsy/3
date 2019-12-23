@@ -1,0 +1,445 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修netty中Pipeline的ChannelHandler执行顺序案例详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>netty中Pipeline的ChannelHandler执行顺序案例详解</center></div><div class='banquan'>原文出处:本文由博客园博主田志良提供。<br/>
+原文连接:https://www.cnblogs.com/tianzhiliang/p/11739372.html</div><br>
+    <p><span style="font-size: 16px; color: #000000;"><strong>一、netty的Pipeline模型</strong></span></p>
+<p>netty的Pipeline模型用的是责任链设计模式，当boss线程监控到绑定端口上有accept事件，此时会为该socket连接实例化Pipeline，并将InboundHandler和OutboundHandler按序加载到Pipeline中，然后将该socket连接（也就是Channel对象）挂载到selector上。一个selector对应一个线程，该线程会轮询所有挂载在他身上的socket连接有没有read或write事件，然后通过线程池去执行Pipeline的业务流。selector如何查询哪些socket连接有read或write事件，主要取决于调用操作系统的哪种IO多路复用内核，如果是select（注意，此处的select是指操作系统内核的select IO多路复用，不是netty的seletor对象），那么将会遍历所有socket连接，依次询问是否有read或write事件，最终操作系统内核将所有IO事件的socket连接返回给netty进程，当有很多socket连接时，这种方式将会大大降低性能，因为存在大量socket连接的遍历和内核内存的拷贝。如果是epoll，性能将会大幅提升，因为他基于完成端口事件，已经维护好有IO事件的socket连接列表，selector直接取走，无需遍历，也少掉内核内存拷贝带来的性能损耗。</p>
+<p>Pipeline的责任链是通过ChannelHandlerContext对象串联的，ChannelHandlerContext对象里封装了ChannelHandler对象，通过prev和next节点实现双向链表。Pipeline的首尾节点分别是head和tail，当selector轮询到socket有read事件时，将会触发Pipeline责任链，从head开始调起第一个InboundHandler的ChannelRead事件，接着通过fire方法依次触发Pipeline上的下一个ChannelHandler，如下图：</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解0.png" alt="" width="762" height="345" /></p>
+<p>ChannelHandler分为InbounHandler和OutboundHandler，InboundHandler用来处理接收消息，OutboundHandler用来处理发送消息。head的ChannelHandler既是InboundHandler又是OutboundHandler，无论是read还是write都会经过head，所以head封装了unsafe方法，用来操作socket的read和write。tail的ChannelHandler只是InboundHandler，read的Pipleline处理将会最终到达tail。</p>
+<p><strong><span style="font-size: 16px;">二、通过六组实验验证InboundHandler和OutboundHandler的执行顺序</span></strong></p>
+<p>在做实验之前，先把实验代码贴出来。</p>
+<p>EchoServer类：</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('043f541d-7cc8-453e-8b38-98c2799c3ec4')"><img id="code_img_closed_043f541d-7cc8-453e-8b38-98c2799c3ec4" class="code_img_closed" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解1.png" alt="" /><img id="code_img_opened_043f541d-7cc8-453e-8b38-98c2799c3ec4" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('043f541d-7cc8-453e-8b38-98c2799c3ec4',event)" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解2.png" alt="" />
+<src id="cnblogs_code_open_043f541d-7cc8-453e-8b38-98c2799c3ec4" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.wisdlab.nettylab;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.bootstrap.ServerBootstrap;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelFuture;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelInitializer;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelOption;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.EventLoopGroup;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.nio.NioEventLoopGroup;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.socket.SocketChannel;
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.socket.nio.NioServerSocketChannel;
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;">13</span> <span style="color: #008000;"> * @ClassName EchoServer
+</span><span style="color: #008080;">14</span> <span style="color: #008000;"> * @Description TODO
+</span><span style="color: #008080;">15</span> <span style="color: #008000;"> * @Author felix
+</span><span style="color: #008080;">16</span> <span style="color: #008000;"> * @Date 2019/9/26 10:37
+</span><span style="color: #008080;">17</span> <span style="color: #008000;"> * @Version 1.0
+</span><span style="color: #008080;">18</span> <span style="color: #008000;"> *</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">19</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> EchoServer {
+</span><span style="color: #008080;">20</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> port;
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span>     <span style="color: #0000ff;">public</span> EchoServer(<span style="color: #0000ff;">int</span><span style="color: #000000;"> port) {
+</span><span style="color: #008080;">23</span>         <span style="color: #0000ff;">this</span>.port =<span style="color: #000000;"> port;
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+</span><span style="color: #008080;">27</span>         EventLoopGroup bossGroup = <span style="color: #0000ff;">new</span><span style="color: #000000;"> NioEventLoopGroup();
+</span><span style="color: #008080;">28</span>         EventLoopGroup workGroup = <span style="color: #0000ff;">new</span><span style="color: #000000;"> NioEventLoopGroup();
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">31</span>             ServerBootstrap serverBootstrap = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ServerBootstrap();
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">            serverBootstrap.group(bossGroup, workGroup)
+</span><span style="color: #008080;">33</span>                     .channel(NioServerSocketChannel.<span style="color: #0000ff;">class</span><span style="color: #000000;">)
+</span><span style="color: #008080;">34</span>                     .childHandler(<span style="color: #0000ff;">new</span> ChannelInitializer&lt;SocketChannel&gt;<span style="color: #000000;">() {
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">                        @Override
+</span><span style="color: #008080;">36</span>                         <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> initChannel(SocketChannel socketChannel) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">37</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">outboundhandler一定要放在最后一个inboundhandler之前
+</span><span style="color: #008080;">38</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">否则outboundhandler将不会执行到</span>
+<span style="color: #008080;">39</span>                             socketChannel.pipeline().addLast(<span style="color: #0000ff;">new</span><span style="color: #000000;"> EchoOutboundHandler3());
+</span><span style="color: #008080;">40</span>                             socketChannel.pipeline().addLast(<span style="color: #0000ff;">new</span><span style="color: #000000;"> EchoOutboundHandler2());
+</span><span style="color: #008080;">41</span>                             socketChannel.pipeline().addLast(<span style="color: #0000ff;">new</span><span style="color: #000000;"> EchoOutboundHandler1());
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span>                             socketChannel.pipeline().addLast(<span style="color: #0000ff;">new</span><span style="color: #000000;"> EchoInboundHandler1());
+</span><span style="color: #008080;">44</span>                             socketChannel.pipeline().addLast(<span style="color: #0000ff;">new</span><span style="color: #000000;"> EchoInboundHandler2());
+</span><span style="color: #008080;">45</span>                             socketChannel.pipeline().addLast(<span style="color: #0000ff;">new</span><span style="color: #000000;"> EchoInboundHandler3());
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">                    })
+</span><span style="color: #008080;">48</span>                     .option(ChannelOption.SO_BACKLOG, 10000<span style="color: #000000;">)
+</span><span style="color: #008080;">49</span>                     .childOption(ChannelOption.SO_KEEPALIVE, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">50</span>             System.out.println("EchoServer正在启动."<span style="color: #000000;">);
+</span><span style="color: #008080;">51</span> 
+<span style="color: #008080;">52</span>             ChannelFuture channelFuture =<span style="color: #000000;"> serverBootstrap.bind(port).sync();
+</span><span style="color: #008080;">53</span>             System.out.println("EchoServer绑定端口" +<span style="color: #000000;"> port);
+</span><span style="color: #008080;">54</span> 
+<span style="color: #008080;">55</span> <span style="color: #000000;">            channelFuture.channel().closeFuture().sync();
+</span><span style="color: #008080;">56</span>             System.out.println("EchoServer已关闭."<span style="color: #000000;">);
+</span><span style="color: #008080;">57</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">59</span>         } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">60</span> <span style="color: #000000;">            bossGroup.shutdownGracefully();
+</span><span style="color: #008080;">61</span> <span style="color: #000000;">            workGroup.shutdownGracefully();
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">64</span> 
+<span style="color: #008080;">65</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;">66</span>         <span style="color: #0000ff;">int</span> port = 8080<span style="color: #000000;">;
+</span><span style="color: #008080;">67</span>         <span style="color: #0000ff;">if</span> (args != <span style="color: #0000ff;">null</span> &amp;&amp; args.length &gt; 0<span style="color: #000000;">) {
+</span><span style="color: #008080;">68</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">69</span>                 port = Integer.parseInt(args[0<span style="color: #000000;">]);
+</span><span style="color: #008080;">70</span>             } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">71</span> <span style="color: #000000;">                e.printStackTrace();
+</span><span style="color: #008080;">72</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">73</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">74</span> 
+<span style="color: #008080;">75</span>         EchoServer server = <span style="color: #0000ff;">new</span><span style="color: #000000;"> EchoServer(port);
+</span><span style="color: #008080;">76</span> <span style="color: #000000;">        server.run();
+</span><span style="color: #008080;">77</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">78</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p>EchoInboundHandler1类：</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('6cc40abd-8ab2-4f58-a122-cdd5c94cd0fe')"><img id="code_img_closed_6cc40abd-8ab2-4f58-a122-cdd5c94cd0fe" class="code_img_closed" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解1.png" alt="" /><img id="code_img_opened_6cc40abd-8ab2-4f58-a122-cdd5c94cd0fe" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('6cc40abd-8ab2-4f58-a122-cdd5c94cd0fe',event)" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解2.png" alt="" />
+<src id="cnblogs_code_open_6cc40abd-8ab2-4f58-a122-cdd5c94cd0fe" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.wisdlab.nettylab;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.buffer.ByteBuf;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.buffer.Unpooled;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelHandlerContext;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelInboundHandlerAdapter;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.util.CharsetUtil;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;"> * @ClassName EchoInboundHandler1
+</span><span style="color: #008080;">11</span> <span style="color: #008000;"> * @Description TODO
+</span><span style="color: #008080;">12</span> <span style="color: #008000;"> * @Author felix
+</span><span style="color: #008080;">13</span> <span style="color: #008000;"> * @Date 2019/9/26 11:15
+</span><span style="color: #008080;">14</span> <span style="color: #008000;"> * @Version 1.0
+</span><span style="color: #008080;">15</span> <span style="color: #008000;"> *</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">16</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> EchoInboundHandler1 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelInboundHandlerAdapter {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelRead(ChannelHandlerContext ctx, Object msg) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">19</span>         System.out.println("进入 EchoInboundHandler1.channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>         String data =<span style="color: #000000;"> ((ByteBuf)msg).toString(CharsetUtil.UTF_8);
+</span><span style="color: #008080;">22</span>         System.out.println("EchoInboundHandler1.channelRead 收到数据：" +<span style="color: #000000;"> data);
+</span><span style="color: #008080;">23</span>         ctx.fireChannelRead(Unpooled.copiedBuffer("[EchoInboundHandler1] " +<span style="color: #000000;"> data, CharsetUtil.UTF_8));
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span>         System.out.println("退出 EchoInboundHandler1 channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">27</span> 
+<span style="color: #008080;">28</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">29</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelReadComplete(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">30</span>         System.out.println("[EchoInboundHandler1.channelReadComplete]"<span style="color: #000000;">);
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">34</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> exceptionCaught(ChannelHandlerContext ctx, Throwable cause) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">35</span>         System.out.println("[EchoInboundHandler1.exceptionCaught]" +<span style="color: #000000;"> cause.toString());
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">37</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p>EchoInboundHandler2类：</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('99bdade4-3204-44dc-8fb9-2a45ad83214e')"><img id="code_img_closed_99bdade4-3204-44dc-8fb9-2a45ad83214e" class="code_img_closed" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解1.png" alt="" /><img id="code_img_opened_99bdade4-3204-44dc-8fb9-2a45ad83214e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('99bdade4-3204-44dc-8fb9-2a45ad83214e',event)" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解2.png" alt="" />
+<src id="cnblogs_code_open_99bdade4-3204-44dc-8fb9-2a45ad83214e" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.wisdlab.nettylab;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.buffer.ByteBuf;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.buffer.Unpooled;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelHandlerContext;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelInboundHandlerAdapter;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.util.CharsetUtil;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;"> * @ClassName EchoInboundHandler2
+</span><span style="color: #008080;">11</span> <span style="color: #008000;"> * @Description TODO
+</span><span style="color: #008080;">12</span> <span style="color: #008000;"> * @Author felix
+</span><span style="color: #008080;">13</span> <span style="color: #008000;"> * @Date 2019/9/27 15:35
+</span><span style="color: #008080;">14</span> <span style="color: #008000;"> * @Version 1.0
+</span><span style="color: #008080;">15</span> <span style="color: #008000;"> *</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">16</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> EchoInboundHandler2 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelInboundHandlerAdapter {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelRead(ChannelHandlerContext ctx, Object msg) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">19</span>         System.out.println("进入 EchoInboundHandler2.channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>         String data =<span style="color: #000000;"> ((ByteBuf) msg).toString(CharsetUtil.UTF_8);
+</span><span style="color: #008080;">22</span>         System.out.println("EchoInboundHandler2.channelRead 接收到数据：" +<span style="color: #000000;"> data);
+</span><span style="color: #008080;">23</span>         <span style="color: #008000;">//</span><span style="color: #008000;">ctx.writeAndFlush(Unpooled.copiedBuffer("[第一次write] [EchoInboundHandler2] " + data, CharsetUtil.UTF_8));</span>
+<span style="color: #008080;">24</span>         ctx.channel().writeAndFlush(Unpooled.copiedBuffer("测试一下channel().writeAndFlush"<span style="color: #000000;">, CharsetUtil.UTF_8));
+</span><span style="color: #008080;">25</span>         ctx.fireChannelRead(Unpooled.copiedBuffer("[EchoInboundHandler2] " +<span style="color: #000000;"> data, CharsetUtil.UTF_8));
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>         System.out.println("退出 EchoInboundHandler2 channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">31</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelReadComplete(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">32</span>         System.out.println("[EchoInboundHandler2.channelReadComplete]读取数据完成"<span style="color: #000000;">);
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">36</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> exceptionCaught(ChannelHandlerContext ctx, Throwable cause) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">37</span>         System.out.println("[EchoInboundHandler2.exceptionCaught]"<span style="color: #000000;">);
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">39</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p>EchoInboundHandler3类：</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('ce30bb12-71e2-4bd2-a51d-417dc4305e64')"><img id="code_img_closed_ce30bb12-71e2-4bd2-a51d-417dc4305e64" class="code_img_closed" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解1.png" alt="" /><img id="code_img_opened_ce30bb12-71e2-4bd2-a51d-417dc4305e64" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ce30bb12-71e2-4bd2-a51d-417dc4305e64',event)" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解2.png" alt="" />
+<src id="cnblogs_code_open_ce30bb12-71e2-4bd2-a51d-417dc4305e64" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.wisdlab.nettylab;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.buffer.ByteBuf;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.buffer.Unpooled;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelHandlerContext;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelInboundHandlerAdapter;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.util.CharsetUtil;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;"> * @ClassName EchoInboundHandler3
+</span><span style="color: #008080;">11</span> <span style="color: #008000;"> * @Description TODO
+</span><span style="color: #008080;">12</span> <span style="color: #008000;"> * @Author felix
+</span><span style="color: #008080;">13</span> <span style="color: #008000;"> * @Date 2019/10/23 13:43
+</span><span style="color: #008080;">14</span> <span style="color: #008000;"> * @Version 1.0
+</span><span style="color: #008080;">15</span> <span style="color: #008000;"> *</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">16</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> EchoInboundHandler3 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelInboundHandlerAdapter {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelRead(ChannelHandlerContext ctx, Object msg) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">19</span>         System.out.println("进入 EchoInboundHandler3.channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>         String data =<span style="color: #000000;"> ((ByteBuf)msg).toString(CharsetUtil.UTF_8);
+</span><span style="color: #008080;">22</span>         System.out.println("EchoInboundHandler3.channelRead 接收到数据：" +<span style="color: #000000;"> data);
+</span><span style="color: #008080;">23</span>         <span style="color: #008000;">//</span><span style="color: #008000;">ctx.writeAndFlush(Unpooled.copiedBuffer("[第二次write] [EchoInboundHandler3] " + data, CharsetUtil.UTF_8));</span>
+<span style="color: #008080;">24</span> <span style="color: #000000;">        ctx.fireChannelRead(msg);
+</span><span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span>         System.out.println("退出 EchoInboundHandler3 channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">30</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelReadComplete(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">31</span>         System.out.println("[EchoInboundHandler3.channelReadComplete]读取数据完成"<span style="color: #000000;">);
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">35</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> exceptionCaught(ChannelHandlerContext ctx, Throwable cause) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">36</span>         System.out.println("[EchoInboundHandler3.exceptionCaught]"<span style="color: #000000;">);
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">38</span> 
+<span style="color: #008080;">39</span> 
+<span style="color: #008080;">40</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p>EchoOutboundHandler1类：</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('d63367e8-bace-4514-b2c4-5dd2ae7e282a')"><img id="code_img_closed_d63367e8-bace-4514-b2c4-5dd2ae7e282a" class="code_img_closed" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解1.png" alt="" /><img id="code_img_opened_d63367e8-bace-4514-b2c4-5dd2ae7e282a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('d63367e8-bace-4514-b2c4-5dd2ae7e282a',event)" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解2.png" alt="" />
+<src id="cnblogs_code_open_d63367e8-bace-4514-b2c4-5dd2ae7e282a" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.wisdlab.nettylab;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.buffer.Unpooled;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelHandlerContext;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelOutboundHandlerAdapter;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelPromise;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.util.CharsetUtil;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;"> * @ClassName EchoOutboundHandler1
+</span><span style="color: #008080;">11</span> <span style="color: #008000;"> * @Description TODO
+</span><span style="color: #008080;">12</span> <span style="color: #008000;"> * @Author felix
+</span><span style="color: #008080;">13</span> <span style="color: #008000;"> * @Date 2019/9/27 15:36
+</span><span style="color: #008080;">14</span> <span style="color: #008000;"> * @Version 1.0
+</span><span style="color: #008080;">15</span> <span style="color: #008000;"> *</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">16</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> EchoOutboundHandler1 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelOutboundHandlerAdapter {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">19</span>         System.out.println("进入 EchoOutboundHandler1.write"<span style="color: #000000;">);
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>         <span style="color: #008000;">//</span><span style="color: #008000;">ctx.writeAndFlush(Unpooled.copiedBuffer("[第一次write中的write]", CharsetUtil.UTF_8));</span>
+<span style="color: #008080;">22</span>         ctx.channel().writeAndFlush(Unpooled.copiedBuffer("在OutboundHandler里测试一下channel().writeAndFlush"<span style="color: #000000;">, CharsetUtil.UTF_8));
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">        ctx.write(msg);
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span>         System.out.println("退出 EchoOutboundHandler1.write"<span style="color: #000000;">);
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">27</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p>EchoOutboundHandler2类：</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('446fa94a-aef6-4289-b3dd-e8396f5c5403')"><img id="code_img_closed_446fa94a-aef6-4289-b3dd-e8396f5c5403" class="code_img_closed" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解1.png" alt="" /><img id="code_img_opened_446fa94a-aef6-4289-b3dd-e8396f5c5403" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('446fa94a-aef6-4289-b3dd-e8396f5c5403',event)" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解2.png" alt="" />
+<src id="cnblogs_code_open_446fa94a-aef6-4289-b3dd-e8396f5c5403" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.wisdlab.nettylab;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.buffer.Unpooled;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelHandlerContext;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelOutboundHandlerAdapter;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelPromise;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.util.CharsetUtil;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;"> * @ClassName EchoOutboundHandler2
+</span><span style="color: #008080;">11</span> <span style="color: #008000;"> * @Description TODO
+</span><span style="color: #008080;">12</span> <span style="color: #008000;"> * @Author felix
+</span><span style="color: #008080;">13</span> <span style="color: #008000;"> * @Date 2019/9/27 15:36
+</span><span style="color: #008080;">14</span> <span style="color: #008000;"> * @Version 1.0
+</span><span style="color: #008080;">15</span> <span style="color: #008000;"> *</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">16</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> EchoOutboundHandler2 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelOutboundHandlerAdapter {
+</span><span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">19</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">20</span>         System.out.println("进入 EchoOutboundHandler2.write"<span style="color: #000000;">);
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span>         <span style="color: #008000;">//</span><span style="color: #008000;">ctx.writeAndFlush(Unpooled.copiedBuffer("[第二次write中的write]", CharsetUtil.UTF_8));</span>
+<span style="color: #008080;">23</span> <span style="color: #000000;">        ctx.write(msg);
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span>         System.out.println("退出 EchoOutboundHandler2.write"<span style="color: #000000;">);
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">27</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p>EchoOutboundHandler3类：</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('7034c97f-bf28-4355-8c05-c5ca9b88a69b')"><img id="code_img_closed_7034c97f-bf28-4355-8c05-c5ca9b88a69b" class="code_img_closed" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解1.png" alt="" /><img id="code_img_opened_7034c97f-bf28-4355-8c05-c5ca9b88a69b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('7034c97f-bf28-4355-8c05-c5ca9b88a69b',event)" src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解2.png" alt="" />
+<src id="cnblogs_code_open_7034c97f-bf28-4355-8c05-c5ca9b88a69b" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.wisdlab.nettylab;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelHandlerContext;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelOutboundHandlerAdapter;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.ChannelPromise;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 8</span> <span style="color: #008000;"> * @ClassName EchoOutboundHandler3
+</span><span style="color: #008080;"> 9</span> <span style="color: #008000;"> * @Description TODO
+</span><span style="color: #008080;">10</span> <span style="color: #008000;"> * @Author felix
+</span><span style="color: #008080;">11</span> <span style="color: #008000;"> * @Date 2019/10/23 23:23
+</span><span style="color: #008080;">12</span> <span style="color: #008000;"> * @Version 1.0
+</span><span style="color: #008080;">13</span> <span style="color: #008000;"> *</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">14</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> EchoOutboundHandler3 <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelOutboundHandlerAdapter {
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">17</span>         System.out.println("进入 EchoOutboundHandler3.write"<span style="color: #000000;">);
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span> <span style="color: #000000;">        ctx.write(msg);
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>         System.out.println("退出 EchoOutboundHandler3.write"<span style="color: #000000;">);
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">23</span> 
+<span style="color: #008080;">24</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p><span style="color: #ff6600;"><strong>实验一：在InboundHandler中不触发fire方法，后续的InboundHandler还能顺序执行吗？</strong></span></p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解15.png" alt="" width="738" height="256" /></p>
+<p>如上图所示，InboundHandler2没有调用fire方法：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelRead(ChannelHandlerContext ctx, Object msg) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">2</span>         System.out.println("进入 EchoInboundHandler1.channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span>         String data =<span style="color: #000000;"> ((ByteBuf)msg).toString(CharsetUtil.UTF_8);
+</span><span style="color: #008080;">5</span>         System.out.println("EchoInboundHandler1.channelRead 收到数据：" +<span style="color: #000000;"> data);
+</span><span style="color: #008080;">6</span>         <span style="color: #008000;">//</span><span style="color: #008000;">ctx.fireChannelRead(Unpooled.copiedBuffer("[EchoInboundHandler1] " + data, CharsetUtil.UTF_8));</span>
+<span style="color: #008080;">7</span> 
+<span style="color: #008080;">8</span>         System.out.println("退出 EchoInboundHandler1 channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">9</span>     }</code></pre>
+
+<p>那么InboundHandler中的代码还会被执行到吗？看一下执行结果：</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解16.png" alt="" width="600" height="156" /></p>
+<p>由上图可知，InboundHandler2没有调用fire事件，InboundHandler3没有被执行。</p>
+<p><span style="background-color: #ccffcc;">结论：InboundHandler是通过fire事件决定是否要执行下一个InboundHandler，如果哪个InboundHandler没有调用fire事件，那么往后的Pipeline就断掉了。</span></p>
+<p><strong><span style="color: #ff9900;">实验二：InboundHandler和OutboundHandler的执行顺序是什么？</span></strong></p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解17.png" alt="" width="599" height="148" /></p>
+<p>加入Pipeline的ChannelHandler的顺序如上图所示，那么最后执行的顺序如何呢？执行结果如下：</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解18.png" alt="" width="863" height="345" /></p>
+<p>由上图可知，执行顺序为：</p>
+<p>InboundHandler1 =&gt; InboundHandler2 =&gt; <strong><span style="color: #ff9900;">OutboundHandler1 =&gt; OutboundHander2 =&gt; OutboundHandler3</span></strong> =&gt; InboundHandler3</p>
+<p><span style="background-color: #ccffcc;">所以，我们得到以下几个结论：</span></p>
+<p><span style="background-color: #ccffcc;">1、InboundHandler是按照Pipleline的加载顺序，<span style="color: #ff9900;"><strong>顺序</strong></span>执行。</span></p>
+<p><span style="background-color: #ccffcc;">2、OutboundHandler是按照Pipeline的加载顺序，<strong><span style="color: #ff9900;">逆序</span></strong>执行。</span></p>
+<p><strong><span style="color: #ff9900;">实验三：如果把OutboundHandler放在InboundHandler的后面，OutboundHandler会执行吗？</span></strong></p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解19.png" alt="" width="592" height="155" /></p>
+<p>执行结果如下：</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解20.png" alt="" width="789" height="209" /></p>
+<p>由此可见，OutboundHandler没有执行，为什么呢？因为Pipleline是执行完所有<span style="color: #ff9900;">有效的</span>InboundHandler，再返回执行在最后一个InboundHandler之前的OutboundHandler。注意，有效的InboundHandler是指fire事件触达到的InboundHandler，如果某个InboundHandler没有调用fire事件，后面的InboundHandler都是无效的InboundHandler。为了印证这一点，我们继续做一个实验，我们把其中一个OutboundHandler放在最后一个有效的InboundHandler之前，看看这唯一的一个OutboundHandler是否会执行，其他OutboundHandler是否不会执行。</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解21.png" alt="" width="551" height="170" /></p>
+<p>执行结果如下：</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解22.png" alt="" width="777" height="236" /></p>
+<p>由此可见，只执行了OutboundHandler1，其他OutboundHandler没有被执行。</p>
+<p><span style="background-color: #ccffcc;">所以，我们得到以下几个结论：</span></p>
+<p><span style="background-color: #ccffcc;">1、有效的InboundHandler是指通过fire事件能触达到的最后一个InboundHander。</span></p>
+<p><span style="background-color: #ccffcc;">2、如果想让所有的OutboundHandler都能被执行到，那么必须把OutboundHandler放在最后一个有效的InboundHandler之前。</span></p>
+<p><span style="background-color: #ccffcc;">3、推荐的做法是通过addFirst加载所有OutboundHandler，再通过addLast加载所有InboundHandler。</span></p>
+<p><strong><span style="color: #ff9900;">实验四：如果其中一个OutboundHandler没有执行write方法，那么消息会不会发送出去？</span></strong></p>
+<p>我们把OutboundHandler2的write方法注掉</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">2</span>         System.out.println("进入 EchoOutboundHandler3.write"<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span>         <span style="color: #008000;">//</span><span style="color: #008000;">ctx.write(msg);</span>
+<span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span>         System.out.println("退出 EchoOutboundHandler3.write"<span style="color: #000000;">);
+</span><span style="color: #008080;">7</span>     }</code></pre>
+
+<p>执行结果如下：</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解23.png" alt="" width="795" height="281" /></p>
+<p>可以看到，OutboundHandler3并没有被执行到，另外，客户端也没有收到发送的消息。</p>
+<p><span style="background-color: #ccffcc;">所以，我们得到以下几个结论：</span></p>
+<p><span style="background-color: #ccffcc;">1、OutboundHandler是通过write方法实现Pipeline的串联的。</span></p>
+<p><span style="background-color: #ccffcc;">2、如果OutboundHandler在Pipeline的处理链上，其中一个OutboundHandler没有调用write方法，最终消息将不会发送出去。</span></p>
+<p><strong><span style="color: #ff9900;">实验五：ctx.writeAndFlush 的OutboundHandler的执行顺序是什么？</span></strong></p>
+<p>我们设定ChannelHandler在Pipeline中的加载顺序如下：</p>
+<p><strong><span style="color: #ff9900;">OutboundHandler3</span> </strong>=&gt; InboundHandler1 =&gt; <strong><span style="color: #ff9900;">OutboundHandler2</span> </strong>=&gt; InboundHandler2 =&gt; <strong><span style="color: #ff9900;">OutboundHandler1</span> </strong>=&gt; InboundHandler3</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解24.png" alt="" width="517" height="204" /></p>
+<p>在InboundHander2中调用ctx.writeAndFlush：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelRead(ChannelHandlerContext ctx, Object msg) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;"> 2</span>         System.out.println("进入 EchoInboundHandler2.channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span>         String data =<span style="color: #000000;"> ((ByteBuf) msg).toString(CharsetUtil.UTF_8);
+</span><span style="color: #008080;"> 5</span>         System.out.println("EchoInboundHandler2.channelRead 接收到数据：" +<span style="color: #000000;"> data);
+</span><span style="color: #008080;"> 6</span>         ctx.writeAndFlush(Unpooled.copiedBuffer("[第一次write] [EchoInboundHandler2] " +<span style="color: #000000;"> data, CharsetUtil.UTF_8));
+</span><span style="color: #008080;"> 7</span>         <span style="color: #008000;">//</span><span style="color: #008000;">ctx.channel().writeAndFlush(Unpooled.copiedBuffer("测试一下channel().writeAndFlush", CharsetUtil.UTF_8));</span>
+<span style="color: #008080;"> 8</span>         ctx.fireChannelRead(Unpooled.copiedBuffer("[EchoInboundHandler2] " +<span style="color: #000000;"> data, CharsetUtil.UTF_8));
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>         System.out.println("退出 EchoInboundHandler2 channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">11</span>     }</code></pre>
+
+<p>执行结果如下：</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解25.png" alt="" width="800" height="279" /></p>
+<p>由上图可知，依次执行了OutboundHandler2和OutboundHandler3，为什么会这样呢？因为ctx.writeAndFlush是从当前的ChannelHandler开始，向前依次执行OutboundHandler的write方法，所以分别执行了OutboundHandler2和OutboundHandler3：</p>
+<p><span style="color: #ff0000;"><strong>OutboundHandler3&nbsp;</strong></span>=&gt; InboundHandler1 =&gt;&nbsp;<span style="color: #ff0000;"><strong>OutboundHandler2&nbsp;</strong></span>=&gt; <strong><span style="color: #ff0000;">InboundHandler2</span> </strong>=&gt;&nbsp;<span style="color: #000000;">OutboundHandler1&nbsp;</span>=&gt; InboundHandler3</p>
+<p><span style="background-color: #ccffcc;">所以，我们得到如下结论：</span></p>
+<p><span style="background-color: #ccffcc;">1、ctx.writeAndFlush是从当前ChannelHandler开始，逆序向前执行OutboundHandler。</span></p>
+<p><span style="background-color: #ccffcc;">2、ctx.writeAndFlush所在ChannelHandler后面的OutboundHandler将不会被执行。</span></p>
+<p><strong><span style="color: #ff9900;">实验六：ctx.channel().writeAndFlush 的OutboundHandler的执行顺序是什么？</span></strong></p>
+<p>还是实验五的代码，不同之处只是把ctx.writeAndFlush修改为ctx.channel().writeAndFlush。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelRead(ChannelHandlerContext ctx, Object msg) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;"> 2</span>         System.out.println("进入 EchoInboundHandler2.channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span>         String data =<span style="color: #000000;"> ((ByteBuf) msg).toString(CharsetUtil.UTF_8);
+</span><span style="color: #008080;"> 5</span>         System.out.println("EchoInboundHandler2.channelRead 接收到数据：" +<span style="color: #000000;"> data);
+</span><span style="color: #008080;"> 6</span>         <span style="color: #008000;">//</span><span style="color: #008000;">ctx.writeAndFlush(Unpooled.copiedBuffer("[第一次write] [EchoInboundHandler2] " + data, CharsetUtil.UTF_8));</span>
+<span style="color: #008080;"> 7</span>         ctx.channel().writeAndFlush(Unpooled.copiedBuffer("测试一下channel().writeAndFlush"<span style="color: #000000;">, CharsetUtil.UTF_8));
+</span><span style="color: #008080;"> 8</span>         ctx.fireChannelRead(Unpooled.copiedBuffer("[EchoInboundHandler2] " +<span style="color: #000000;"> data, CharsetUtil.UTF_8));
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>         System.out.println("退出 EchoInboundHandler2 channelRead"<span style="color: #000000;">);
+</span><span style="color: #008080;">11</span>     }</code></pre>
+
+<p>执行结果如下：</p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解26.png" alt="" width="710" height="283" /></p>
+<p><span style="background-color: #ccffcc;">由上图可知，所有OutboundHandler都执行了，由此我们得到结论：</span></p>
+<p><span style="background-color: #ccffcc;">1、ctx.channel().writeAndFlush 是从最后一个OutboundHandler开始，依次逆序向前执行其他OutboundHandler，即使最后一个ChannelHandler是OutboundHandler，在InboundHandler之前，也会执行该OutbondHandler。</span></p>
+<p><span style="background-color: #ccffcc;">2、千万不要在OutboundHandler的write方法里执行ctx.channel().writeAndFlush，否则就死循环了。</span></p>
+<p><img src="./images/netty中Pipeline的ChannelHandler执行顺序案例详解27.png" alt="" width="838" height="182" /></p>
+<p>&nbsp;<strong><span style="font-size: 16px;">三、总结</span></strong></p>
+<p>1、InboundHandler是通过fire事件决定是否要执行下一个InboundHandler，如果哪个InboundHandler没有调用fire事件，那么往后的Pipeline就断掉了。<br />2、InboundHandler是按照Pipleline的加载顺序，顺序执行。<br />3、OutboundHandler是按照Pipeline的加载顺序，逆序执行。<br />4、有效的InboundHandler是指通过fire事件能触达到的最后一个InboundHander。<br />5、如果想让所有的OutboundHandler都能被执行到，那么必须把OutboundHandler放在最后一个有效的InboundHandler之前。<br />6、推荐的做法是通过addFirst加载所有OutboundHandler，再通过addLast加载所有InboundHandler。<br />7、OutboundHandler是通过write方法实现Pipeline的串联的。<br />8、如果OutboundHandler在Pipeline的处理链上，其中一个OutboundHandler没有调用write方法，最终消息将不会发送出去。<br />9、ctx.writeAndFlush是从当前ChannelHandler开始，逆序向前执行OutboundHandler。<br />10、ctx.writeAndFlush所在ChannelHandler后面的OutboundHandler将不会被执行。<br />11、ctx.channel().writeAndFlush 是从最后一个OutboundHandler开始，依次逆序向前执行其他OutboundHandler，即使最后一个ChannelHandler是OutboundHandler，在InboundHandler之前，也会执行该OutbondHandler。<br />12、千万不要在OutboundHandler的write方法里执行ctx.channel().writeAndFlush，否则就死循环了。</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

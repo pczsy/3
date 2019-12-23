@@ -1,0 +1,64 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信头像地址失效踩坑记附带方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信头像地址失效踩坑记附带方案</center></div><div class='banquan'>原文出处:本文由博客园博主会飞的笨石头提供。<br/>
+原文连接:https://www.cnblogs.com/flyrock/p/11507341.html</div><br>
+    <h3 id="">微信头像失效问题说明？</h3>
+<p>最近工作遇到一个微信头像失效的问题，情况是这样的，我们一个h5页面在微信授权后打开，会存储微信相关昵称和头像信息，不过，我们没有保存图片到自己的服务器，而是仅仅存储微信头像地址，然而过了n多天后，用户在微信修改了自己的头像，这时候，我们的服务是无感知的，又过了n多天，用户去访问我们那个h5页面，发现自己的头像是这样的：</p>
+<p><img src="./images/微信头像地址失效踩坑记附带方案0.png" alt="" /></p>
+<p>用户找到我们，说自己有头像呀，怎么没显示呢？ 我们也反问他，是否最近改过头像呢，他说没，不过很早之前改过。</p>
+<p>而此时就比较尴尬，用户体验超级不好。</p>
+<p>然后我们就去查看官方文档，发现这么说的：</p>
+<p><a href="https://developers.weixin.qq.com/doc/oplatform/Mobile_App/WeChat_Login/Authorized_API_call_UnionID.html">官方文档说明-获取用户个人信息</a></p>
+<p><img src="./images/微信头像地址失效踩坑记附带方案1.png" alt="" /></p>
+<p>官方也建议自己保存下来处理。</p>
+<p>然后我们又去google了一把，看下别人是否也被同样的问题坑过。</p>
+<p><img src="./images/微信头像地址失效踩坑记附带方案2.png" alt="" /></p>
+<p><img src="./images/微信头像地址失效踩坑记附带方案3.png" alt="" /></p>
+<p>看来好多用户都遇到了，<a href="https://developers.weixin.qq.com/community/develop/doc/000aa00b654de0c4623825e885b800">相关问题链接</a></p>
+<p>经常看到还有人的头像时而好时而不好，那是因为</p>
+<blockquote>
+<p>旧的头像链接失效需要一定的时间，从 CDN 节点一个一个失效。你现在访问到的应该是旧的头像链接，每次访问可能到达不同的 CDN 节点，导致时有时无。</p>
+</blockquote>
+<h3 id="-1">那么如何解决这个问题呢？</h3>
+<p>我们这边也想了好多方案，我们考虑下几个方面，分两个思路</p>
+<h4 id="1cdn">思路1: 自己本地服务保存并CDN,缺点成本有点高</h4>
+<h4 id="2">思路2: 有个策略定时更新头像</h4>
+<ul>
+<li>定期更新下头像链接，不要一直缓存着，比如在 session_key 过期时一起更新下头像链接</li>
+<li>后台服务定期检查头像链接是否过期（怎么自动判断是否过期呢，下面会详细说明）</li>
+<li>前端根据头像链接判断是否过期，过期重新授权更新头像信息</li>
+</ul>
+<p>下面介绍下，怎么判断微信的头像是否过期了，经过研究发现：</p>
+<p>正常的微信图片返回的请求信息如下：</p>
+<p><img src="./images/微信头像地址失效踩坑记附带方案4.png" alt="" /></p>
+<p>然而异常的图片地址怎么返回的呢？</p>
+<p><img src="./images/微信头像地址失效踩坑记附带方案5.png" alt="" /></p>
+<p>可以看下异常情况，返回的信息不一样，可以根据X-Info: notexist:-6101 判断或者 X-ErrNo: -6101 关键字</p>
+<p><strong>不过还有一个疑问，如果本地存储的话，还会遇到，用户修改头像后，获取的地址可能不是最新的，虽然不会显示一个特别丑陋的头像，这里怎么解决呢，这里需要产品定义个策略，哪些场景需要定期授权，重新更新头像和用户信息等等。</strong></p>
+<h3 id="end">END</h3>
+<p>如有收获，请帮忙转发，后续会有更好文章贡献，您的鼓励是作者最大的动力！</p>
+<blockquote>
+<p>欢迎关注我的公众号：架构师的修炼，获得独家整理的学习资源和日常干货推送。</p>
+</blockquote>
+<p><img src="./images/微信头像地址失效踩坑记附带方案6.png" alt="" /></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,63 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修利用setenv进行tomcat 内存设置' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>利用setenv进行tomcat 内存设置</center></div><div class='banquan'>原文出处:本文由博客园博主alterem提供。<br/>
+原文连接:https://www.cnblogs.com/alterem/p/11504584.html</div><br>
+    <h2 id="part.1-系统环境及版本">part.1 系统环境及版本</h2>
+<p>系统环境： centos 7<br />
+版本： tomcat 7.0.78</p>
+<h2 id="part.2-步骤流程">part.2 步骤流程</h2>
+<h5 id="新建setenv.sh">2.1 新建setenv.sh</h5>
+<pre><code><code># cd /usr/local/tomcat/bin
+# touch setenv.sh</code></code></pre>
+<h5 id="添加内存信息">2.2 添加内存信息</h5>
+<pre><code><code># vim setenv.sh
+export CATALINA_OPTS=&quot;$CATALINA_OPTS -Xms{{ Xms }}&quot;
+export CATALINA_OPTS=&quot;$CATALINA_OPTS -Xmx{{ Xmx }}&quot;
+export CATALINA_OPTS=&quot;$CATALINA_OPTS -XX:MaxPermSize={{ MaxPermSize }}&quot;</code></code></pre>
+<h2 id="part.3-主要参数">part.3 主要参数</h2>
+<h5 id="堆设置">3.1堆设置</h5>
+<p>-Xms:初始堆大小<br />
+-Xmx:最大堆大小<br />
+-XX:NewSize=n:设置年轻代大小<br />
+-XX:NewRatio=n:设置年轻代和年老代的比值。如:为3，表示年轻代与年老代比值为1：3，年轻代占整个年轻代年老代和的1/4<br />
+-XX:SurvivorRatio=n:年轻代中Eden区与两个Survivor区的比值。注意Survivor区有两个。如：3，表示Eden：Survivor=3：2，一个Survivor区占整个年轻代的1/5<br />
+-XX:MaxPermSize=n:设置持久代大小</p>
+<h5 id="收集器设置">3.2 收集器设置</h5>
+<p>-XX:+UseSerialGC:设置串行收集器<br />
+-XX:+UseParallelGC:设置并行收集器<br />
+-XX:+UseParalledlOldGC:设置并行年老代收集器<br />
+-XX:+UseConcMarkSweepGC:设置并发收集器</p>
+<h5 id="垃圾回收统计信息">3.3 垃圾回收统计信息</h5>
+<p>-XX:+PrintGC<br />
+-XX:+PrintGCDetails<br />
+-XX:+PrintGCTimeStamps<br />
+-Xloggc:filename</p>
+<h5 id="并行收集器设置">3.4 并行收集器设置</h5>
+<p>-XX:ParallelGCThreads=n:设置并行收集器收集时使用的CPU数。并行收集线程数。<br />
+-XX:MaxGCPauseMillis=n:设置并行收集最大暂停时间<br />
+-XX:GCTimeRatio=n:设置垃圾回收时间占程序运行时间的百分比。公式为1/(1+n)</p>
+<h5 id="并发收集器设置">3.5 并发收集器设置</h5>
+<p>-XX:+CMSIncrementalMode:设置为增量模式。适用于单CPU情况。<br />
+-XX:ParallelGCThreads=n:设置并发收集器年轻代收集方式为并行收集时，使用的CPU数。并行收集线程数</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

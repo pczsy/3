@@ -1,0 +1,260 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Nacos（七）：Nacos共享配置' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Nacos（七）：Nacos共享配置</center></div><div class='banquan'>原文出处:本文由博客园博主larscheng提供。<br/>
+原文连接:https://www.cnblogs.com/larscheng/p/11416392.html</div><br>
+    <h1 id="前言">前言</h1>
+<p>本文参考文章：</p>
+<p><a href="http://blog.yuqiyu.com/spring-cloud-alibaba-nacos-config-share-custom.html">SpringCloud Alibaba - Nacos Config 自定义共享配置</a></p>
+<p>前景回顾：</p>
+<ul>
+<li><a href="https://www.larscheng.com/nacos-namespace/">Nacos（六）：多环境下如何“管理”及“隔离”配置和服务</a></li>
+<li><a href="https://www.larscheng.com/config-profile/">Nacos（五）：多环境下如何“读取”Nacos中相应环境的配置</a></li>
+<li><a href="https://www.larscheng.com/config-service/">Nacos（四）：SpringCloud项目中接入Nacos作为配置中心</a></li>
+</ul>
+<p>前几章已经基本介绍了springcloud项目结合Nacos的大部分用法，本文介绍一下Nacos作为配置中心时，如何读取共享配置</p>
+<h1 id="我的环境">我的环境</h1>
+<ul>
+<li>Windows10</li>
+<li>JDK8</li>
+<li>SpringCloud：Finchley.RELEASE</li>
+<li>SpringBoot：2.0.4.RELEASE</li>
+<li>spring-cloud-alibaba-dependencies：0.2.2.RELEASE</li>
+<li>Nacos-server：1.0.1</li>
+</ul>
+<p><strong>本文的项目Demo继续沿用之前文章中的聚合工程<code>Nacos</code>,若小伙伴还没有之前的环境，可至<a href="https://github.com/larscheng/larscheng-learning-demo/tree/master/Nacos">源码地址</a>中下载</strong></p>
+<h1 id="场景描述">场景描述</h1>
+<blockquote>
+<p>一个项目中服务数量增加后，配置文件相应增加，多个配置文件中会存在相同的配置，那么我们可以将相同的配置独立出来，作为该项目中各个服务的共享配置文件，每个服务都可以通过Nacos进行共享配置的读取</p>
+</blockquote>
+<p>下面用一个demo演示下，是否可行</p>
+<ul>
+<li>demo工程：nacos-config-share</li>
+<li>配置文件：nacos-config-share.yml</li>
+<li>共享配置文件：shareconfig1.yml，shareconfig2.yml</li>
+</ul>
+<h1 id="创建项目">创建项目</h1>
+<p>一如往常，还是在聚合工程Nacos下创建名为<code>nacos-config-share</code>的子工程，其pom.xml文件依赖与之前的项目都一致，如果您没有之前的项目可参考<a href="https://github.com/larscheng/larscheng-learning-demo/tree/master/Nacos">源码地址</a></p>
+<p>1、修改springboot启动类<code>NacosConfigShareApplication.java</code></p>
+<pre><code><code>@SpringBootApplication
+@EnableDiscoveryClient
+@RestController
+@RefreshScope
+public class NacosConfigShareApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(NacosConfigShareApplication.class, args);
+    }
+
+    @Value(&quot;${nacos.share}&quot;)
+    private String share;
+
+
+    @Value(&quot;${share.config1}&quot;)
+    private String shareConfig1;
+
+    @Value(&quot;${share.config2}&quot;)
+    private String shareConfig2;
+
+    @RequestMapping(&quot;/getValue&quot;)
+    public String getValue() {
+        return share;
+    }
+
+    @RequestMapping(&quot;/getShare1&quot;)
+    public String getShare1() {
+        return shareConfig1;
+    }
+
+    @RequestMapping(&quot;/getShare2&quot;)
+    public String getShare2() {
+        return shareConfig2;
+    }
+}
+</code></code></pre>
+<p>2、修改该项目的配置文件<code>bootstrap.yml</code></p>
+<pre class="yaml"><code>spring:
+  application:
+    name: nacos-config-share
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        server-addr: 127.0.0.1:8848
+        prefix: ${spring.application.name}
+        file-extension: yml
+        shared-dataids: shareconfig1.yml,shareconfig2.yml
+        refreshable-dataids: shareconfig1.yml,shareconfig2.yml
+</code></code></pre>
+<blockquote>
+<p>从配置文件可以看出，通过<code>shared-dataids</code>属性来指定要读取共享配置文件的<code>DataID</code>,多个文件用<code>,</code>分隔<br />
+使用<code>refreshable-dataids</code>指定共享配置文件支持自动刷新</p>
+</blockquote>
+<h1 id="新建配置文件">新建配置文件</h1>
+<p>这里我们作为演示，暂不加入Namespace，直接在公共空间中创建及测试</p>
+<p>创建配置文件<code>nacos-config-share.yml</code>,详细如下：</p>
+<ul>
+<li>DataId:<code>nacos-config-share.yml</code></li>
+<li>配置格式：<code>YAML</code></li>
+<li>配置内容：<br />
+<code>server:       port: 9984   nacos:        share: nacos-config-share</code></li>
+</ul>
+<p>创建共享配置文件1<code>shareconfig1.yml</code>,详细如下：</p>
+<ul>
+<li>DataId:<code>shareconfig1.yml</code></li>
+<li>配置格式：<code>YAML</code></li>
+<li>配置内容：<br />
+<code>share:        config1: 这里是共享配置文件1</code></li>
+</ul>
+<p>创建共享配置文件1<code>shareconfig2.yml</code>,详细如下：</p>
+<ul>
+<li>DataId:<code>shareconfig2.yml</code></li>
+<li>配置格式：<code>YAML</code></li>
+<li>配置内容：<br />
+<code>share:        config2: 这里是共享配置文件2</code></li>
+</ul>
+<p>创建成功后，配置列表如下图：</p>
+<p><img src="./images/Nacos（七）：Nacos共享配置0.png" alt="shareconfig" /></p>
+<h1 id="启动测试">启动测试</h1>
+<p>直接启动项目，如果启动成功。可以看到日志中如下信息：</p>
+<p><img src="./images/Nacos（七）：Nacos共享配置1.png" alt="startup" /></p>
+<p>访问启动类中提供的接口，测试下能否获取到共享配置文件中的值</p>
+<pre><code><code>访问127.0.0.1:9984/getValue,返回：nacos-config-share
+访问127.0.0.1:9984/getShare1,返回：这里是共享配置文件1
+访问127.0.0.1:9984/getShare2,返回：这里是共享配置文件2</code></code></pre>
+<p>再测试下<code>refreshable-dataids</code>配置的自动刷新是否生效</p>
+<p>在Nacos控制台中修改共享配置文件<code>shareconfig2.yml</code>的值为：<code>这里是共享配置文件2这里是共享配置文件2</code></p>
+<p>编辑保存后，重新请求 127.0.0.1:9984/getShare2 ，观察返回结果如下：</p>
+<blockquote>
+<p>这里是共享配置文件2这里是共享配置文件2</p>
+</blockquote>
+<p>以上返回结果说明通过在配置文件中指定<code>shared-dataids</code>和<code>refreshable-dataids</code>是可以实现共享配置文件的读取和自动刷新的。</p>
+<h1 id="需求变更">需求变更</h1>
+<blockquote>
+<p>假设现在要读取<code>shareconfig3.yml</code>和<code>shareconfig4.yml</code>文件但是它的Group为<code>SHARE3_GROUP</code>和<code>SHARE4_GROUP</code>, 即共享配置文件与项目自身配置文件不在同一Group中（<code>上边的例子是全都在DEFAULT_GROUP分组</code>） 那如果继续用上边的方法，就无法读取共享配置文件</p>
+</blockquote>
+<p>这时可以使用另一个配置<code>ext-config</code>，它可以由用户自定义指定需要加载的配置<code>DataID、Group以及是否自动刷新</code></p>
+<p>并且<code>ext-config</code>是一个集合（<code>List</code>），支持多个配置文件的指定。</p>
+<h1 id="新建共享配置文件">新建共享配置文件</h1>
+<p>先创建配置配置文件<code>shareconfig3.yml</code>和<code>shareconfig4.yml</code>，注意他们的Group属性</p>
+<ul>
+<li>DataId:<code>shareconfig3.yml</code></li>
+<li>Group：<code>SHARE3_GROUP</code></li>
+<li>配置格式：<code>YAML</code></li>
+<li>配置内容：<br />
+<code>share:        config3: 这里是共享配置文件3，Group:SHARE3_GROUP</code></li>
+<li>DataId:<code>shareconfig4.yml</code></li>
+<li>Group：<code>SHARE4_GROUP</code></li>
+<li>配置格式：<code>YAML</code></li>
+<li>配置内容：<br />
+<code>share:        config4: 这里是共享配置文件4，Group:SHARE4_GROUP</code></li>
+</ul>
+<p>创建成功页面如下：</p>
+<p><img src="./images/Nacos（七）：Nacos共享配置2.png" alt="shareconfig34" /></p>
+<h1 id="修改项目代码">修改项目代码</h1>
+<p>1、在启动类<code>NacosConfigShareApplication.java</code>中新增如下代码</p>
+<pre><code><code>    @Value(&quot;${share.config3}&quot;)
+    private String shareConfig3;
+
+    @Value(&quot;${share.config4}&quot;)
+    private String shareConfig4;
+
+
+    @RequestMapping(&quot;/getShare3&quot;)
+    public String getShare3() {
+        return shareConfig3;
+    }
+
+    @RequestMapping(&quot;/getShare4&quot;)
+    public String getShare4() {
+        return shareConfig4;
+    }</code></code></pre>
+<p>2、修改项目配置文件<code>bootstrap.yml</code>,增加<code>ext-config</code>配置</p>
+<pre class="yaml"><code>spring:
+  application:
+    name: nacos-config-share
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 127.0.0.1:8848
+      config:
+        server-addr: 127.0.0.1:8848
+        prefix: ${spring.application.name}
+        file-extension: yml
+        shared-dataids: shareconfig1.yml,shareconfig2.yml
+        refreshable-dataids: shareconfig1.yml,shareconfig2.yml
+        ext-config:
+          - data-id: shareconfig3.yml
+            group: SHARE3_GROUP
+            refresh: true
+          - data-id: shareconfig4.yml
+            group: SHARE4_GROUP
+            refresh: true</code></code></pre>
+<h1 id="启动进行测试">启动进行测试</h1>
+<p>项目经过修改后，可以看到</p>
+<ol>
+<li>项目自身的nacos配置文件属于DEFAULT_GROUP下,默认读取</li>
+<li>shareconfig1.yml,shareconfig2.yml 都属于DEFAULT_GROUP下，通过<code>shared-dataids</code>指定进行读取</li>
+<li>shareconfig3.yml,shareconfig4.yml 都属于<code>非DEFAULT_GROUP</code>下，通过<code>ext-config</code>配置属性进行自定义读取</li>
+</ol>
+<p>启动项目，测试所有的配置文件是否可以正常读取</p>
+<pre><code><code>访问127.0.0.1:9984/getValue,返回：nacos-config-share
+访问127.0.0.1:9984/getShare1,返回：这里是共享配置文件1
+访问127.0.0.1:9984/getShare2,返回：这里是共享配置文件2这里是共享配置文件2
+访问127.0.0.1:9984/getShare3,返回：这里是共享配置文件3，Group:SHARE3_GROUP
+访问127.0.0.1:9984/getShare4,返回：这里是共享配置文件4，Group:SHARE4_GROUP</code></code></pre>
+<p>修改<code>shareconfig4.yml</code>的配置内容为：<code>这里是共享配置文件4，Group:SHARE4_GROUP,支持自动刷新</code>，保存后，再次调用127.0.0.1:9984/getShare4，返回如下：</p>
+<blockquote>
+<p>这里是共享配置文件4，Group:SHARE4_GROUP,支持自动刷新</p>
+</blockquote>
+<p>调用接口后发现，两种共享配置的加载方式都可以正常读取，并且可以一起使用。<code>ext-config</code>的方式实现了用户自定义配置共享配置文件。</p>
+<h1 id="总结">总结</h1>
+<p>上面的demo已经演示Nacos共享配置的两种实现方式，两种方式针对不同的场景，总结如下：</p>
+<ul>
+<li><code>shared-dataids</code>方式：
+<ul>
+<li>适合于共享配置文件与项目默认配置文件处于相同Group时，直接两条命令就可以搞定</li>
+<li>优点：配置方便</li>
+<li>缺点：只能在同一Group中</li>
+</ul></li>
+<li><code>ext-config</code>方式：
+<ul>
+<li>它可以由开发者自定义要读取的共享配置文件的DataId、Group、refresh属性，这样刚好解决了<code>shared-dataids</code>存在的局限性。</li>
+<li>优点：可以与<code>shared-dataids</code>方案结合使用，用户自定义配置。灵活性强</li>
+<li>缺点：配置容易出错，要熟悉YAML语法</li>
+</ul></li>
+</ul>
+<blockquote>
+<p>可见两种方式各有长处，所以如果在开发中需要使用共享配置，大家可以是具体情况而定选择自己最合适的方案。</p>
+</blockquote>
+<p><strong><em>本文源码</em>：https://github.com/larscheng/larscheng-learning-demo/tree/master/Nacos</strong></p>
+<hr />
+<ul>
+<li>文章作者: <a href="https://www.larscheng.com/">LarsCheng</a></li>
+<li>文章链接: 本文首发于个人博客：https://www.larscheng.com/nacos-namespace/</li>
+<li>发布方式：<a href="https://www.openwrite.cn/">OpenWrite 最懂你的科技自媒体管理平台</a></li>
+<li>版权声明: 本博客所有文章除特别声明外，均采用 CC BY-NC-SA 4.0 许可协议。转载请注明来自 LarsCheng's Blog！</li>
+</ul>
+<hr />
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

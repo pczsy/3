@@ -1,0 +1,272 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微服务架构案例(02)：业务架构设计，系统分层管理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微服务架构案例(02)：业务架构设计，系统分层管理</center></div><div class='banquan'>原文出处:本文由博客园博主知了一笑提供。<br/>
+原文连接:https://www.cnblogs.com/cicada-smile/p/11769119.html</div><br>
+    <p>本文源码：<a href="https://github.com/cicadasmile/husky-spring-cloud">GitHub·点这里</a> || <a href="https://gitee.com/cicadasmile/husky-spring-cloud">GitEE·点这里</a></p>
+<p>更新进度(共6节)：</p>
+<p><a href="https://mp.weixin.qq.com/s?__biz=MzU4Njg0MzYwNw==&amp;mid=2247484173&amp;idx=1&amp;sn=0adceb6d5261aa1d59908043ff690423&amp;chksm=fdf457b5ca83dea3203e5901771ba1cb49ce05db5b700c21536111f2e251373a484da123f0c2&amp;token=1855594949&amp;lang=zh_CN#rd">01：项目技术选型简介，架构图解说明</a></p>
+<p>02：业务架构设计，系统分层管理</p>
+<h1 id="一业务架构设计">一、业务架构设计</h1>
+<h2 id="基础概念">1、基础概念</h2>
+<blockquote>
+<p>服务的架构设计决定软件的业务支撑能力，清晰的业务设计可以帮助开发人员理解系统。在业务架构设计过程中，需要根据用户需求作为核心方向，根据用户需求确定产品设计、框架搭建、服务划分、数据库规划。如果需求比较单一，单个应用服务可以支撑，则不需要设计复杂的微服务系统，如果根据对业务的判断，会在一段时间内出现业务并发，则最好开始的时候就考虑业务的扩展性，架构的支撑能力。</p>
+</blockquote>
+<h2 id="案例架构图">2、案例架构图</h2>
+<p><img src="./images/微服务架构案例(02)：业务架构设计，系统分层管理0.png" /></p>
+<p>基于该项目的架构设计，下面逐个描述一下业务设计。</p>
+<h1 id="二业务流程">二、业务流程</h1>
+<h2 id="数据入库服务">1、数据入库服务</h2>
+<ul>
+<li>流程图解</li>
+</ul>
+<p><img src="./images/微服务架构案例(02)：业务架构设计，系统分层管理1.png" /></p>
+<ul>
+<li>流程描述</li>
+</ul>
+<pre><code><code>1. 请求入库服务接口;
+2. 搜索数据，通过搜索服务Feign接口写入ES服务器;
+3. 相同的搜索数据，写入用户数据库;</code></code></pre>
+<ul>
+<li>程序入口</li>
+</ul>
+<p>所属代码包：mopsz-data-form</p>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/search/data&quot;)
+public class SearchDataController {
+    // 调用搜索服务Feign接口
+    @Resource
+    private BookInfoEsFeign bookInfoEsFeign ;
+    @Resource
+    private BookInfoService bookInfoService ;
+    @RequestMapping(&quot;/batchSave&quot;)
+    public String batchSave (){
+        // 省略业务代码
+    }
+}</code></code></pre>
+<h2 id="用户api服务">2、用户API服务</h2>
+<ul>
+<li>流程图解</li>
+</ul>
+<p><img src="./images/微服务架构案例(02)：业务架构设计，系统分层管理2.png" /></p>
+<ul>
+<li>流程描述</li>
+</ul>
+<pre><code><code>1. 用户请求进入，网关服务拦截;
+2. 调用Token管理服务，验证用户的身份令牌，使用Redis存储Token;
+3. 如果身份验证通过，则网关放行用户请求;
+4. 执行用户搜索请求处理;
+5、根据搜索条件，调用ES搜索服务，返回结果;
+6、将用户的搜索动作进行封装，请求MQ服务;
+7、MQ服务请消息转发到数据分析服务 ;
+8、数据分析服务安装策略分析用户请求，存储分析结果;</code></code></pre>
+<ul>
+<li>程序入口</li>
+</ul>
+<p>(1)、网关拦截</p>
+<p>所属代码包：mopsz-cloud-gateway</p>
+<pre><code><code>@Component
+public class FilterConfig extends ZuulFilter {
+    public static final Logger LOGGER = LoggerFactory.getLogger(FilterConfig.class) ;
+    private static final String GET_TOKEN = &quot;/token/getToken&quot;;
+    private static final String VERIFY_TOKEN = &quot;/token/verifyToken&quot;;
+    private static final String REFRESH_TOKEN = &quot;/token/refreshToken&quot;;
+    /**
+     * 拦截处理
+     */
+    @Override
+    public Object run() throws ZuulException {
+        RequestContext requestContext = RequestContext.getCurrentContext() ;
+        try {
+            doTokenProcess (requestContext);
+        } catch (Exception e){
+            LOGGER.info(&quot;异常：{}&quot;,e.getMessage());
+            throw new ZuulException(e.getMessage(), 403, e.getMessage());
+        }
+        return null ;
+    }
+    public void doTokenProcess (RequestContext requestContext) throws Exception {
+        HttpServletRequest request = requestContext.getRequest() ;
+        String reqUri = request.getRequestURI() ;
+        if (!reqUri.contains(GET_TOKEN)) {
+            String token = request.getHeader(&quot;token&quot;) ;
+            boolean flag = userTokenFeign.refreshToken(token) ;
+            if (!flag){
+                throw new ServiceException(&quot;Token 校验失败&quot;) ;
+            }
+            LOGGER.info(&quot;Token 校验通过&quot;);
+        }
+    }
+}</code></code></pre>
+<p>(2)、Token管理</p>
+<p>所属代码包：mopsz-basis-token</p>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/token&quot;)
+public class UserTokenController implements UserTokenFeign {
+    @Resource
+    private UserTokenService tokenService ;
+    /**
+     * 获取Token
+     */
+    @Override
+    @RequestMapping(&quot;/getToken&quot;)
+    public RespObject getToken (@RequestParam(&quot;userName&quot;) String userName,
+                                @RequestParam(&quot;passWord&quot;) String passWord){
+        try {
+            String token = tokenService.getToken(userName,passWord) ;
+            return RespObject.ok().put(Constant.MAP_KEY,token) ;
+        } catch (Exception e){
+            e.printStackTrace();
+            return RespObject.error() ;
+        }
+    }
+    /**
+     * 校验Token
+     */
+    @Override
+    @RequestMapping(&quot;/verifyToken&quot;)
+    public RespObject verifyToken(String token) {
+        try {
+            Integer userId = tokenService.verifyToken(token) ;
+            return RespObject.ok().put(Constant.MAP_KEY,userId) ;
+        } catch (Exception e){
+            e.printStackTrace();
+            return RespObject.error() ;
+        }
+    }
+    /**
+     * 刷新Token
+     */
+    @Override
+    @RequestMapping(&quot;/refreshToken&quot;)
+    public boolean refreshToken(String token) {
+        try {
+            return tokenService.refreshToken(token) ;
+        } catch (Exception e){
+            e.printStackTrace();
+            return false ;
+        }
+    }
+}</code></code></pre>
+<p>(3)、搜索接口</p>
+<p>所属代码包：mopsz-user-client</p>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/search/book/&quot;)
+public class BookSearchController {
+    @Resource
+    private BookInfoEsFeign bookInfoEsFeign ;
+    @Resource
+    private UserSearchFeign userSearchFeign ;
+    /**
+     * 关键字全文搜索
+     */
+    @RequestMapping(&quot;/getByKeyWord&quot;)
+    public List&lt;EsBookInfo&gt; getByKeyWord (@RequestParam(&quot;keyWord&quot;) String keyWord,
+                                          @RequestParam(&quot;userId&quot;) Integer userId){
+        // 搜索引擎执行
+        List&lt;EsBookInfo&gt; esBookInfoList = bookInfoEsFeign.getByKeyWord(keyWord) ;
+        // 执行异步分析
+        if (StringUtils.isNotEmpty(keyWord) &amp;&amp; esBookInfoList != null){
+            KeySearchModel keySearchModel = new KeySearchModel() ;
+            keySearchModel.setUserId(userId);
+            keySearchModel.setKeyWord(keyWord);
+            keySearchModel.setSearchResult(esBookInfoList);
+            userSearchFeign.sendBookSearch(JsonUtil.objToJson(keySearchModel));
+        }
+        return esBookInfoList ;
+    }
+}</code></code></pre>
+<p>(4)、请求分析</p>
+<p>所属代码包：mopsz-data-analy</p>
+<pre><code><code>@RestController
+public class BookEsDataController implements BookEsAnalyFeign {
+    @Resource
+    private BookEsDataService bookEsDataService ;
+    @Override
+    public void sendBookEsMsg(String msgBody) {
+        bookEsDataService.saveBookEsData(msgBody);
+    }
+}</code></code></pre>
+<h2 id="系统管理服务">3、系统管理服务</h2>
+<ul>
+<li>流程图解</li>
+</ul>
+<p><img src="./images/微服务架构案例(02)：业务架构设计，系统分层管理3.png" /></p>
+<ul>
+<li>流程描述</li>
+</ul>
+<p>整合流程基础SpringSecurity,JWT等组件开发。所属代码包：mopsz-admin-client。</p>
+<pre><code><code>1. 系统用户登录，安全配置：SecurityConfig ;
+2. 登录成功处理：LoginSuccessHandler ;
+3. 登录失败处理：LoginFailHandler ;
+4. 系统服务具备管理：业务数据库，缓存数据，ES服务等功能 ;</code></code></pre>
+<h2 id="数据分析服务">4、数据分析服务</h2>
+<ul>
+<li>流程图解</li>
+</ul>
+<p><img src="./images/微服务架构案例(02)：业务架构设计，系统分层管理4.png" /></p>
+<ul>
+<li>流程描述</li>
+</ul>
+<p>所属代码包：mopsz-data-analy</p>
+<pre><code><code>1. 接收MQ服务转发数据分析请求 ;
+2. 按照指定策略，分析数据，分析结果存储 ;</code></code></pre>
+<h1 id="三系统分层管理">三、系统分层管理</h1>
+<h2 id="分层示意图">1、分层示意图</h2>
+<p><img src="./images/微服务架构案例(02)：业务架构设计，系统分层管理5.png" /></p>
+<h2 id="结构层次描述">2、结构层次描述</h2>
+<ul>
+<li>公共代码块层</li>
+</ul>
+<p>管理系统工具类、数据表结构实体类、Mapper层、Service服务层等，按照数据库服务规划划分，作为整个系统的公共依赖代码块。</p>
+<ul>
+<li>数据管理层</li>
+</ul>
+<p>管理数据入库服务API，数据分析服务API两个模块。</p>
+<ul>
+<li>客户端接口层</li>
+</ul>
+<p>管理用户服务API，后台系统服务API。</p>
+<ul>
+<li>微服务接口层</li>
+</ul>
+<p>微服务之间的调用采用Feign接口的方式，按照不同服务提供的Feign接口进行封装，在该层统一管理，进行服务间的请求调用。</p>
+<ul>
+<li>通用业务服务层</li>
+</ul>
+<p>管理通用Token服务，消息发送服务，作为系统共用的业务服务层。</p>
+<ul>
+<li>中间件服务层</li>
+</ul>
+<p>管理RocketMQ消息队列服务、Redis缓存服务、Quart定时器服务、ES搜索服务，提供统一的Feign服务接口。</p>
+<ul>
+<li>微服务组件层</li>
+</ul>
+<p>管理整个系统的网关拦截服务、Eureka服务注册和发现 等微服务基础组件。</p>
+<h1 id="四源代码地址">四、源代码地址</h1>
+<pre><code><code>GitHub·地址
+https://github.com/cicadasmile/husky-spring-cloud
+GitEE·地址
+https://gitee.com/cicadasmile/husky-spring-cloud</code></code></pre>
+<p><img src="./images/微服务架构案例(02)：业务架构设计，系统分层管理6.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

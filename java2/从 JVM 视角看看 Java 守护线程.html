@@ -1,0 +1,236 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修从 JVM 视角看看 Java 守护线程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>从 JVM 视角看看 Java 守护线程</center></div><div class='banquan'>原文出处:本文由博客园博主LieBrother提供。<br/>
+原文连接:https://www.cnblogs.com/liebrother/p/11675467.html</div><br>
+    <p><embed src="https://img2018.cnblogs.com/blog/1563867/201910/1563867-20191015090110839-921428768.jpeg;charset=UTF-8" /></p>
+<blockquote>
+<p>Java 多线程系列第 7 篇。</p>
+</blockquote>
+<p>这篇我们来讲讲线程的另一个特性：守护线程 or 用户线程？</p>
+<p>我们先来看看 <code>Thread.setDaemon()</code> 方法的注释，如下所示。</p>
+<blockquote>
+<ol>
+<li>Marks this thread as either a daemon thread or a user thread.</li>
+</ol>
+</blockquote>
+<ol>
+<li>The Java Virtual Machine exits when the only threads running are all daemon threads.</li>
+<li>This method must be invoked before the thread is started.</li>
+</ol>
+<p>里面提到了 3 点信息，一一来做下解释：</p>
+<h2 id="官方特性">官方特性</h2>
+<h3 id="用户线程-or-守护线程">1. 用户线程 or 守护线程？</h3>
+<p>把 Java 线程分成 2 类，一类是<strong>用户线程</strong>，也就是我们创建线程时，默认的一类线程，属性 <code>daemon = false</code>；另一类是<strong>守护线程</strong>，当我们设置 <code>daemon = true</code> 时，就是这类线程。</p>
+<p>两者的一般关系是：用户线程就是运行在前台的线程，守护线程就是运行在后台的线程，一般情况下，守护线程是为用户线程提供一些服务。比如在 Java 中，我们常说的 GC 内存回收线程就是守护线程。</p>
+<h3 id="jvm-与用户线程共存亡">2. JVM 与用户线程共存亡</h3>
+<p>上面第二点翻译过来是：<strong>当所有用户线程都执行完，只存在守护线程在运行时，JVM 就退出</strong>。看了网上资料以及一些书籍，全都有这句话，但是也都只是有这句话，没有讲明是为啥，好像这句话就成了定理，不需要证明的样子。既然咱最近搭建了 JVM Debug 环境，那就得来查个究竟。（查得好辛苦，花了很久的时间才查出来）</p>
+<p>我们看到 JVM 源码 <code>thread.cpp</code> 文件，这里是实现线程的代码。我们通过上面那句话，说明是有一个地方监测着当前非守护线程的数量，不然怎么知道现在只剩下守护线程呢？很有可能是在移除线程的方法里面，跟着这个思路，我们看看该文件的 <code>remove()</code> 方法。代码如下。</p>
+<pre><code><code>/**
+ * 移除线程 p
+ */
+void Threads::remove(JavaThread* p, bool is_daemon) {
+
+  // Reclaim the ObjectMonitors from the omInUseList and omFreeList of the moribund thread.
+  ObjectSynchronizer::omFlush(p);
+
+  /**
+   * 创建一个监控锁对象 ml
+   */
+  // Extra scope needed for Thread_lock, so we can check
+  // that we do not remove thread without safepoint code notice
+  { MonitorLocker ml(Threads_lock);
+
+    assert(ThreadsSMRSupport::get_java_thread_list()-&gt;includes(p), &quot;p must be present&quot;);
+
+    // Maintain fast thread list
+    ThreadsSMRSupport::remove_thread(p);
+
+    // 当前线程数减 1
+    _number_of_threads--;
+    if (!is_daemon) {
+        /**
+         * 非守护线程数量减 1
+         */
+      _number_of_non_daemon_threads--;
+
+      /**
+       * 当非守护线程数量为 1 时，唤醒在 destroy_vm() 方法等待的线程
+       */
+      // Only one thread left, do a notify on the Threads_lock so a thread waiting
+      // on destroy_vm will wake up.
+      if (number_of_non_daemon_threads() == 1) {
+        ml.notify_all();
+      }
+    }
+    /**
+     * 移除掉线程
+     */
+    ThreadService::remove_thread(p, is_daemon);
+
+    // Make sure that safepoint code disregard this thread. This is needed since
+    // the thread might mess around with locks after this point. This can cause it
+    // to do callbacks into the safepoint code. However, the safepoint code is not aware
+    // of this thread since it is removed from the queue.
+    p-&gt;set_terminated_value();
+  } // unlock Threads_lock
+
+  // Since Events::log uses a lock, we grab it outside the Threads_lock
+  Events::log(p, &quot;Thread exited: &quot; INTPTR_FORMAT, p2i(p));
+}</code></code></pre>
+<p>我在里面加了一些注释，可以发现，果然是我们想的那样，里面有记录着非守护线程的数量，而且当非守护线程为 1 时，就会唤醒在 <code>destory_vm()</code> 方法里面等待的线程，我们确认已经找到 JVM 在非守护线程数为 1 时会触发唤醒监控 JVM 退出的线程代码。紧接着我们看看 <code>destory_vm()</code> 代码，同样是在 <code>thread.cpp</code> 文件下。</p>
+<pre><code><code>bool Threads::destroy_vm() {
+  JavaThread* thread = JavaThread::current();
+
+#ifdef ASSERT
+  _vm_complete = false;
+#endif
+  /**
+   * 等待自己是最后一个非守护线程条件
+   */
+  // Wait until we are the last non-daemon thread to execute
+  { MonitorLocker nu(Threads_lock);
+    while (Threads::number_of_non_daemon_threads() &gt; 1)
+        /**
+         * 非守护线程数大于 1，则一直等待
+         */
+      // This wait should make safepoint checks, wait without a timeout,
+      // and wait as a suspend-equivalent condition.
+      nu.wait(0, Mutex::_as_suspend_equivalent_flag);
+  }
+
+  /**
+   * 下面代码是关闭 VM 的逻辑
+   */
+  EventShutdown e;
+  if (e.should_commit()) {
+    e.set_reason(&quot;No remaining non-daemon Java threads&quot;);
+    e.commit();
+  }
+  ...... 省略余下代码
+}</code></code></pre>
+<p>我们这里看到当非守护线程数量大于 1 时，就一直等待，直到剩下一个非守护线程时，就会在线程执行完后，退出 JVM。这时候又有一个点需要定位，什么时候调用 <code>destroy_vm()</code> 方法呢？还是通过查看代码以及注释，发现是在 <code>main()</code> 方法执行完成后触发的。</p>
+<p>在 <code>java.c</code> 文件的 <code>JavaMain()</code> 方法里面，最后执行完调用了 <code>LEAVE()</code> 方法，该方法调用了 <code>(*vm)-&gt;DestroyJavaVM(vm);</code> 来触发 JVM 退出，最终调用 <code>destroy_vm()</code> 方法。</p>
+<pre><code><code>#define LEAVE() \
+    do { \
+        if ((*vm)-&gt;DetachCurrentThread(vm) != JNI_OK) { \
+            JLI_ReportErrorMessage(JVM_ERROR2); \
+            ret = 1; \
+        } \
+        if (JNI_TRUE) { \
+            (*vm)-&gt;DestroyJavaVM(vm); \
+            return ret; \
+        } \
+    } while (JNI_FALSE)</code></code></pre>
+<p>所以我们也知道了，为啥 main 线程可以比子线程先退出？虽然 main 线程退出前调用了 <code>destroy_vm()</code> 方法，但是在 <code>destroy_vm()</code> 方法里面等待着非守护线程执行完，子线程如果是非守护线程，则 JVM 会一直等待，不会立即退出。</p>
+<p>我们对这个点总结一下：<strong>Java 程序在 main 线程执行退出时，会触发执行 JVM 退出操作，但是 JVM 退出方法 <code>destroy_vm()</code> 会等待所有非守护线程都执行完，里面是用变量 number_of_non_daemon_threads 统计非守护线程的数量，这个变量在新增线程和删除线程时会做增减操作</strong>。</p>
+<p>另外衍生一点就是：<strong>当 JVM 退出时，所有还存在的守护线程会被抛弃，既不会执行 finally 部分代码，也不会执行 stack unwound 操作（也就是也不会 catch 异常）</strong>。这个很明显，JVM 都退出了，守护线程自然退出了，当然这是守护线程的一个特性。</p>
+<h3 id="是男是女生下来就注定了">3. 是男是女？生下来就注定了</h3>
+<p>这个比较好理解，就是线程是用户线程还是守护线程，在线程还未启动时就得确定。在调用 <code>start()</code> 方法之前，还只是个对象，没有映射到 JVM 中的线程，这个时候可以修改 <code>daemon</code> 属性，调用 <code>start()</code> 方法之后，JVM 中就有一个线程映射这个线程对象，所以不能做修改了。</p>
+<h2 id="其他的特性">其他的特性</h2>
+<h3 id="守护线程属性继承自父线程">1.守护线程属性继承自父线程</h3>
+<p>这个咱就不用写代码来验证了，直接看 Thread 源代码构造方法里面就可以知道，代码如下所示。</p>
+<pre><code><code>private Thread(ThreadGroup g, Runnable target, String name,
+               long stackSize, AccessControlContext acc,
+               boolean inheritThreadLocals) {
+   ...省略一堆代码
+    this.daemon = parent.isDaemon();
+   ...省略一堆代码
+}</code></code></pre>
+<h3 id="守护线程优先级比用户线程低">2.守护线程优先级比用户线程低</h3>
+<p>看到很多书籍和资料都这么说，我也很怀疑。所以写了下面代码来测试是不是守护线程优先级比用户线程低？</p>
+<pre><code><code>public class TestDaemon {
+    static AtomicLong daemonTimes = new AtomicLong(0);
+    static AtomicLong userTimes = new AtomicLong(0);
+
+    public static void main(String[] args) {
+        int count = 2000;
+        List&lt;MyThread&gt; threads = new ArrayList&lt;&gt;(count);
+        for (int i = 0; i &lt; count; i ++) {
+            MyThread userThread = new MyThread();
+            userThread.setDaemon(false);
+            threads.add(userThread);
+
+            MyThread daemonThread = new MyThread();
+            daemonThread.setDaemon(true);
+            threads.add(daemonThread);
+        }
+
+        for (int i = 0; i &lt; count; i++) {
+            threads.get(i).start();
+        }
+
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(&quot;daemon 统计：&quot; + daemonTimes.get());
+        System.out.println(&quot;user 统计：&quot; + userTimes.get());
+        System.out.println(&quot;daemon 和 user 相差时间：&quot; + (daemonTimes.get() - userTimes.get()) + &quot;ms&quot;);
+
+    }
+
+    static class MyThread extends Thread {
+        @Override
+        public void run() {
+            if (this.isDaemon()) {
+                daemonTimes.getAndAdd(System.currentTimeMillis());
+            } else {
+                userTimes.getAndAdd(System.currentTimeMillis());
+            }
+        }
+    }
+}</code></code></pre>
+<p>运行结果如下。</p>
+<pre><code><code>结果1：
+daemon 统计：1570785465411405
+user 统计：1570785465411570
+daemon 和 user 相差时间：-165ms
+
+结果2：
+daemon 统计：1570786615081403
+user 统计：1570786615081398
+daemon 和 user 相差时间：5ms</code></code></pre>
+<p>是不是很惊讶，居然相差无几，但是这个案例我也不能下定义说：守护线程和用户线程优先级是一样的。看了 JVM 代码也没找到守护线程优先级比用户线程低，这个点还是保持怀疑，有了解的朋友可以留言说一些，互相交流学习。</p>
+<h2 id="总结">总结</h2>
+<p>总结一下这篇文章讲解的点，一个是线程被分为 2 种类型，一种是用户线程，另一种是守护线程；如果要把线程设置为守护线程，需要在线程调用<code>start()</code>方法前设置 <code>daemon</code> 属性；还有从 JVM 源码角度分析为什么当用户线程都执行完的时候，JVM 会自动退出。接着讲解了守护线程有继承性，父线程是守护线程，那么子线程默认就是守护线程；另外对一些书籍和资料所说的 <strong>守护线程优先级比用户线程低</strong> 提出自己的疑问，并希望有了解的朋友能帮忙解答。</p>
+<p>如果觉得这篇文章看了有收获，麻烦点个<code>在看</code>，支持一下，原创不易。</p>
+<p><code>推荐阅读</code></p>
+<p><a href="https://mp.weixin.qq.com/s/GsdMqNAHGY4VoLtA0nSXEA">写了那么多年 Java 代码，终于 debug 到 JVM 了</a></p>
+<p><a href="https://mp.weixin.qq.com/s/5gO0YJZB7huG9cOByH5Qow">原创 | 全网最新最简单的 openjdk13 代码编译</a></p>
+<p><a href="https://mp.weixin.qq.com/s/Fh8d9ITNhvwYlfF2kY8P-g">了解Java线程优先级，更要知道对应操作系统的优先级，不然会踩坑</a></p>
+<p><a href="https://mp.weixin.qq.com/s/NSlEeXMK22-clfDv44h60w">线程最最基础的知识</a></p>
+<p><a href="https://mp.weixin.qq.com/s/cIj_uzT6gZjROO44rNFHFQ">老板叫你别阻塞了</a></p>
+<p><a href="https://mp.weixin.qq.com/s/Euc2NKvK_TsqvcT-DWpD5A">吃个快餐都能学到串行、并行、并发</a></p>
+<p><a href="https://mp.weixin.qq.com/s/yWqFw_S7suYpqszuJFDsGg">泡一杯茶，学一学同异步</a></p>
+<p><a href="https://mp.weixin.qq.com/s/HJIVxnzyDesYPGGyJsaFyQ">进程知多少？</a></p>
+<p><a href="https://mp.weixin.qq.com/s/WiPwb7AyVlxyr1_kYXt96w">设计模式看了又忘，忘了又看？</a></p>
+<p><strong>后台回复『设计模式』可以获取《一故事一设计模式》电子书</strong></p>
+<p><code>觉得文章有用帮忙转发&amp;点赞，多谢朋友们！</code></p>
+<p><embed src="https://img2018.cnblogs.com/blog/1563867/201910/1563867-20191015090111830-1982558537.jpeg;charset=UTF-8" /></p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn?from=article_bottom">OpenWrite</a> 发布！</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

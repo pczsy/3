@@ -1,0 +1,57 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修为什么Java进程使用的RAM比Heap Size大？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>为什么Java进程使用的RAM比Heap Size大？</center></div><div class='banquan'>原文出处:本文由博客园博主javaadu提供。<br/>
+原文连接:https://www.cnblogs.com/javaadu/p/11567496.html</div><br>
+    <p>Java进程使用的虚拟内存确实比Java Heap要大很多。JVM包括很多子系统：垃圾收集器、类加载系统、JIT编译器等等，这些子系统各自都需要一定数量的RAM才能正常工作。</p>
+<p>当一个Java进程运行时，也不仅仅是JVM在消耗RAM，很多本地库（Java类库中引用的本地库）可能需要分配原生内存，这些内存无法被JVM的Native Memory Tracking机制监控到。Java应用自身也可能通过DirectByteBuffers等类来使用堆外内存。</p>
+<p>那么，当一个Java进程运行时，有哪些部分在消耗内存呢？这里我们只展示哪些可以被Native Memory Tracking监控到的部分。</p>
+<h2 id="一jvm部分">一、JVM部分</h2>
+<p><strong>Java Heap：</strong> 最明显的部分，Java对象在这个区域分配和回收，Heap的最大值由-Xmx决定。</p>
+<p><strong>Garbage Collector：</strong>GC的数据结构和算法需要额外的内存对堆内存进行管理。这些数据结构包括：Mark Bitmap、Mark Stack（用于跟踪存活的对象）、Remembered Sets（用于记录region之间的引用）等等。这些数据结构中的一些是可以直接调整的，例如：-XX:MarkStackSizeMax，其他的则依赖于堆的分布，例如：分区大小，-XX:G1HeapRegionSize，这个值越大Remembered Sets的值越小。不同的GC算法需要的额外内存是不同的，-XX:+UseSerialGC和-XX:+UseShenandoahGC需要较小的额外内存，G1和CMS则需要Heap size的10%作为额外内存。</p>
+<p><strong>Code Cache：</strong>用于存放动态生成的代码：JIT编译的方法、拦截器和运行时存根。这个区域的大小由-XX:ReservedCodeCacheSize确定（默认是240M）。使用-XX-TieredCompilation关掉多层编译，可以减少需要编译的代码，从而减少Code Cache的使用。</p>
+<p><strong>Compiler：</strong>JIT编译器需要一些内存来才能工作。这个值可以通过关闭多层编译或减少执行编译的线程数（-XX:CICompilerCount）来调整.</p>
+<p><strong>Class loading：</strong>类的元数据（方法的字节码、符号表、常量池、注解等）被存放在off-heap区域，也叫Metaspace。当前JVM进程加载了越多的类，就会使用越多的metaspace。通过设置-XX:MaxMetaspaceSize（默认是无限）或-XX:CompressedClassSpaceSize（默认是1G）可以限制元空间的大小</p>
+<p><strong>Symbol tables：</strong>JVM中维护了两个重要的哈希表：Symbol表包括类、方法、接口等语言元素的名称、签名、ID等，String table记录了被interned过的字符串的引用。如果Native Tracking表明String table使用了很大的内存，那么说明该Java应用存在对String.intern方法的滥用。</p>
+<p><strong>Threads：</strong>线程栈也会使用RAM，栈的大小由-Xss确定。默认是1个线程最大有1M的线程栈，幸运得失事情并没有这么糟糕——OS使用惰性策略分配内存页，实际上每个Java线程使用的RAM很小（一般80~200K），作者使用这个脚本（<a href="https://github.com/apangin/jstackmem）来统计有多少RSS空间是属于Java线程的" class="uri">https://github.com/apangin/jstackmem）来统计有多少RSS空间是属于Java线程的</a>。</p>
+<h2 id="二堆外内存direct-buffers">二、堆外内存（Direct buffers）</h2>
+<p>Java应用可以通过ByteBuffer.allocateDirect显式申请堆外内存；默认的堆外内存大小是-Xmx，但是这个值可被-XX:MaxDirectMemorySize覆盖。在JDK11之前，Direct ByteBuffers被NMT（Native Memory Tracking）列举在other部分，可以通过JMC观察到堆外内存的使用情况。</p>
+<p>除了DirectByteBuffers，MappedByteBuffers也会使用本地内存，MappedByteBuffers的作用是将文件内容映射到进程的虚拟内存中，NMT没有跟踪它们，想要限制这部分的大小并不容易，可以通过pmap -x <pid>命令观察当前进程使用的实际大小：</p>
+<pre><code><code>Address           Kbytes    RSS    Dirty Mode  Mapping
+...
+00007f2b3e557000   39592   32956       0 r--s- some-file-17405-Index.db
+00007f2b40c01000   39600   33092       0 r--s- some-file-17404-Index.db</code></code></pre>
+<h2 id="三本地库native-libraries">三、本地库（Native libraries）</h2>
+<p>由System.loadLibrary加载的JNI代码也会按需分配RAM，并且这部分内存不受JVM管理。在这里需要关注的是Java类库，未关闭的Java资源会导致本地内存泄漏，典型的例子是：ZipInputStream或DirectoryStream。</p>
+<p>JVMTI agent，特别是jdwp调试agent，也可能导致内存的过量使用（PS：去年写memory agent代码造成的内存泄漏记忆犹新）。</p>
+<h2 id="四allocator-issues">四、Allocator issues</h2>
+<p>一个Java进程可以通过系统调用（mmap）或标准库（malloc）方法来向OS申请内存。malloc自己又通过mmap来向OS申请比较大的内存，并通过自己的算法来管理这些内存，这可能会导致内存碎片，从而导致过量使用虚拟内存。jemalloc是另外一个内存分配器，它比常规的malloc分配器需要更少的footprint，因此可以在自己的C++代码中尝试使用jemalloc方法。</p>
+<h2 id="结论">结论</h2>
+<p>无法准确统计一个Java进程使用的虚拟内存，因为有太多因素需要考虑，列举如下：</p>
+<pre><code><code>Total memory = Heap + Code Cache + Metaspace + Symbol tables +
+               Other JVM structures + Thread stacks +
+               Direct buffers + Mapped files +
+               Native Libraries + Malloc overhead + ...</code></code></pre>
+<hr />
+<p>本号（javaadu）专注于后端技术、JVM问题排查和优化、Java面试题、个人成长和自我管理等主题，为读者提供一线开发者的工作和成长经验，期待你能在这里有所收获。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

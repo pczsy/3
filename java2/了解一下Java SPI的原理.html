@@ -1,0 +1,238 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修了解一下Java SPI的原理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>了解一下Java SPI的原理</center></div><div class='banquan'>原文出处:本文由博客园博主web_bird提供。<br/>
+原文连接:https://www.cnblogs.com/zhiyouwu/p/11598907.html</div><br>
+    <h2 id="了解一下java-spi的原理">了解一下Java SPI的原理</h2>
+<h3 id="为什么写这篇文章">1 为什么写这篇文章？</h3>
+<p>近期，本人在学习dubbo相关的知识，但是在dubbo官网中有提到Java的 SPI，这个名词之前未接触过，所以就去看了看，感觉还是有很多地方有使用的，比如jdbc、log相关的技术上均有使用，还是很有用处的，就在这里总结一下自己的学习内容！（本文有参考相关资料：比如dubbo官网、相关blog等）</p>
+<h3 id="spi是什么">2 SPI是什么？</h3>
+<p>Java SPI(Service Provider Interface)是JDK内置的一种动态加载扩展点的实现。在ClassPath的META-INF/services目录下放置一个与接口同名的文本文件，文件的内容为接口的实现类，多个实现类用换行符分隔。JDK中使用java.util.ServiceLoader来加载具体的实现。</p>
+<p><img src="./images/了解一下Java SPI的原理0.png" /></p>
+<blockquote>
+<p>Java SPI 实际上是“基于接口的编程＋策略模式＋配置文件”组合实现的动态加载机制。</p>
+</blockquote>
+<h3 id="自定义一个spi">3 自定义一个SPI</h3>
+<h4 id="创建工程">3.1 创建工程</h4>
+<p>创建dubbo-spi的工程，这里展示一下完整的spi示例程序结构：</p>
+<p><img src="./images/了解一下Java SPI的原理1.png" /></p>
+<h4 id="创建接口">3.2 创建接口</h4>
+<p>在包top.flygrk.ishare.spi.service下创建接口： SPIService</p>
+<pre><code><code>package top.flygrk.ishare.spi.service;
+
+/**
+ * @Package top.flygrk.ishare.spi.service
+ * @Version V1.0
+ * @Description: SPIService 接口
+ */
+public interface SPIService {
+    /**
+     * 接口方法： say()
+     */
+    String say();
+}
+</code></code></pre>
+<h4 id="创建实现类-aspiserviceimpl和bspiserviceimpl">3.3 创建实现类： ASPIServiceImpl和BSPIServiceImpl</h4>
+<p>在包top.flygrk.ishare.spi.service.impl下创建ASPIServiceImpl和BSPIServiceImpl类，均实现SPIservice接口：</p>
+<ul>
+<li>ASPIServiceImpl</li>
+</ul>
+<pre><code><code>package top.flygrk.ishare.spi.service.impl;
+
+import top.flygrk.ishare.spi.service.SPIService;
+
+/**
+ * @Package top.flygrk.ishare.spi.service.impl
+ * @Version V1.0
+ * @Description: SPIService 实现类 ASPIServiceImpl
+ */
+public class ASPIServiceImpl implements SPIService {
+    @Override
+    public String say() {
+        return &quot;ASPIServiceImpl&quot;;
+    }
+}
+</code></code></pre>
+<ul>
+<li>BSPIServiceImpl</li>
+</ul>
+<pre><code><code>package top.flygrk.ishare.spi.service.impl;
+
+import top.flygrk.ishare.spi.service.SPIService;
+
+/**
+ * @Package top.flygrk.ishare.spi.service.impl
+ * @Version V1.0
+ * @Description: SPIService 实现类 BSPIServiceImpl
+ */
+public class BSPIServiceImpl implements SPIService {
+    @Override
+    public String say() {
+        return &quot;BSPIServiceImpl&quot;;
+    }
+}
+</code></code></pre>
+<h4 id="创建文件top.flygrk.ishare.spi.service.spiservice">3.4 创建文件top.flygrk.ishare.spi.service.SPIService</h4>
+<p>在resource目录下，创建META-INF/services目录，并在该目录下创建top.flygrk.ishare.spi.service.SPIService文件（该文件名为接口的全路径，需保持一致），并在该文件中配置两个实现类的全路径：</p>
+<pre><code><code>top.flygrk.ishare.spi.service.impl.ASPIServiceImpl
+top.flygrk.ishare.spi.service.impl.BSPIServiceImpl</code></code></pre>
+<h4 id="创建测试类testspiservice">3.5 创建测试类TestSPIService</h4>
+<p>在包top.flygrk.ishare.demo下创建TestSPIService类，用于测试该SPI服务</p>
+<pre><code><code>package top.flygrk.ishare.demo;
+
+import top.flygrk.ishare.spi.service.SPIService;
+
+import java.util.Iterator;
+import java.util.ServiceLoader;
+
+/**
+ * @Package top.flygrk.ishare.demo
+ * @Version V1.0
+ * @Description: 测试 SPIService
+ */
+public class TestSPIService {
+
+    public static void main(String[] args) {
+        // ServiceLoader实现了Iterable接口，可以遍历出所有的服务实现者
+        ServiceLoader&lt;SPIService&gt; serviceLoaders = ServiceLoader.load(SPIService.class);
+
+        /*
+         * 方法1： 迭代器
+         */
+        Iterator&lt;SPIService&gt; spiServiceIterator = serviceLoaders.iterator();
+        while (spiServiceIterator != null &amp;&amp; spiServiceIterator.hasNext()) {
+            SPIService spiService = spiServiceIterator.next();
+            System.out.println(spiService.getClass().getName() + &quot; : &quot; + spiService.say());
+        }
+
+
+        /*
+         * 迭代方法2： foreach
+         */
+//        for (SPIService spiService : serviceLoaders) {
+//            System.out.println(spiService.getClass().getName() + &quot; : &quot; + spiService.say());
+//        }
+
+    }
+
+}
+</code></code></pre>
+<h4 id="测试类运行结果">3.6 测试类运行结果</h4>
+<pre><code><code>top.flygrk.ishare.spi.service.impl.ASPIServiceImpl : ASPIServiceImpl
+top.flygrk.ishare.spi.service.impl.BSPIServiceImpl : BSPIServiceImpl</code></code></pre>
+<h3 id="spi原理分析">4 SPI原理分析</h3>
+<p>在我们阅读源码前，我们先提出以下几个问题，然后我们再去带着问题去源码中找答案：</p>
+<ul>
+<li>1) META-INF/services目录下的文件有什么用？为什么要用接口的全路径命名？是否可以更改接口名称？里面的内容为什么要用实现类的全路径？</li>
+<li>2） ServiceLoader 是如何获取到SPIService的全部实现的？</li>
+<li>3） 如果我们只想取ASPIServiceImpl，并不想去操作BSPIServiceImpl，如何去操作？</li>
+</ul>
+<h4 id="serviceloader结构">4.1 ServiceLoader结构</h4>
+<p>我们先看一下ServiceLoader类的结构：</p>
+<p><img src="./images/了解一下Java SPI的原理2.png" /></p>
+<p>进入ServiceLoader类的源码，我们可以看到以下定义的一些常量：</p>
+<p><img src="./images/了解一下Java SPI的原理3.png" /></p>
+<p>各位肯定注意到了一点： <code>private static final String PREFIX = &quot;META-INF/services/&quot;;</code>， 这个PREFIX后面的路径不正是我们在上述示例中创建和接口保持一致的文件的目录吗？还有services、loader、acc、lookupIterator和providers表达的意思在源码上方的注释中也进行了描述，下面我将各个属性的释义标注一下：</p>
+<pre><code><code>// 配置文件的目录
+private static final String PREFIX = &quot;META-INF/services/&quot;;
+// 要加载服务的类或者接口
+// The class or interface representing the service being loaded
+private final Class&lt;S&gt; service;
+// 服务加载器
+// The class loader used to locate, load, and instantiate providers
+private final ClassLoader loader;
+// 访问控制上下文
+// The access control context taken when the ServiceLoader is created
+private final AccessControlContext acc;
+// 服务实例的缓存
+// Cached providers, in instantiation order
+private LinkedHashMap&lt;String,S&gt; providers = new LinkedHashMap&lt;&gt;();
+// 懒加载的迭代器
+// The current lazy-lookup iterator
+private LazyIterator lookupIterator;</code></code></pre>
+<h4 id="serviceloader的加载过程">4.2 ServiceLoader的加载过程</h4>
+<p>看完了上面ServiceLoader的结构，下面我们再来看看ServiceLoader是如何一步步加载的。我们在TestSPIService类上的main方法第一行打上断点：</p>
+<p><img src="./images/了解一下Java SPI的原理4.png" /></p>
+<p>然后使用debug的方式调试，进入ServiceLoader的源码，会依次进入以下几个函数：</p>
+<p><img src="./images/了解一下Java SPI的原理5.png" /></p>
+<p><img src="./images/了解一下Java SPI的原理6.png" /></p>
+<p><img src="./images/了解一下Java SPI的原理7.png" /></p>
+<p><img src="./images/了解一下Java SPI的原理8.png" /></p>
+<p>经过这些步骤之后，serviceLoader内部包含有一个Iterator迭代器，下面我们来仔细看一下这个迭代器的作用！</p>
+<h4 id="迭代器lookupiterator的操作">4.3 迭代器lookupIterator的操作</h4>
+<p>在上述4.2步骤加载完成之后，serviceLoader内的lookupIterator的内容如下：</p>
+<p><img src="./images/了解一下Java SPI的原理9.png" /></p>
+<p>然后使用iterator()方法获取Iterator迭代器时，执行如下的程序：</p>
+<p><img src="./images/了解一下Java SPI的原理10.png" alt="file" /></p>
+<p>在经过上述过程之后，我们拿到了Iterator迭代器，这时我们看下spiServiceIterator的内容：</p>
+<p><img src="./images/了解一下Java SPI的原理11.png" /></p>
+<p>是不是很奇怪，还是只有SPIService，不要忘记了，他内部的迭代器可是懒加载的！我们继续跟进代码，进入到hasNext()方法。</p>
+<p><img src="./images/了解一下Java SPI的原理12.png" /></p>
+<p>从上面可以知道，acc一直为null的，所以这时候，他进入了hasNextService()方法：</p>
+<p><img src="./images/了解一下Java SPI的原理13.png" /></p>
+<p>重头戏来了，我们可以看到其中的 PREFIX， 这个内容就是我们配置的文件。再仔细的跟进代码，我们会进入到parse()方法，该方法用于按照行读取出文件中的内容，并保存到<code>Iterator&lt;String&gt;</code> 中。</p>
+<p><img src="./images/了解一下Java SPI的原理14.png" /></p>
+<p>故而，再通过 <code>nextName = pending.next();</code> 执行后，获取到<code>top.flygrk.ishare.spi.service.impl.ASPIServiceImpl</code>，继而进行后续的next()方法操作。</p>
+<p><img src="./images/了解一下Java SPI的原理15.png" /></p>
+<p>然后进入到nextService()方法：</p>
+<p><img src="./images/了解一下Java SPI的原理16.png" /></p>
+<p>再nextService()方法里，使用了反射的技术，根据前面从文件中读取到的实现类全路径<code>top.flygrk.ishare.spi.service.impl.ASPIServiceImpl</code>获取到该实现类的对象！走到这里，也就基本上了解了SPI，但是我们能只获取ASPIServiceImpl，而不去获取BSPIServiceImpl吗？对不起，这里不允许这样，只能通过迭代器遍历出所有的内容！除非人为干预（外层循环比对完成之后退出循环）。接下来的步骤就和前面几乎一致了，这里不再细述～</p>
+<h3 id="spi-优缺点">5 SPI 优缺点</h3>
+<p>我们评价一门思想往往需要从其优缺点的方向进行考虑。SPI同样也是有一定的优缺点存在的，下面我们来仔细的看下它有哪些优缺点：</p>
+<h4 id="优点">5.1 优点</h4>
+<ul>
+<li>解耦：最大的优点也就是解耦了，通过SPI可以使第三方服务模块的逻辑与业务代码相分离，而不耦合在一起。应用程序可以根据实际业务进行扩展。</li>
+</ul>
+<h4 id="缺点">5.2 缺点</h4>
+<blockquote>
+<p>参考dubbo官方文档</p>
+</blockquote>
+<ul>
+<li>需要遍历所有的实现，并实例化，然后我们在循环中才能找到我们需要的实现。</li>
+<li>配置文件中只是简单的列出了所有的扩展实现，而没有给他们命名。导致在程序中很难去准确的引用它们。</li>
+<li>扩展如果依赖其他的扩展，做不到自动注入和装配</li>
+<li>不提供类似于Spring的IOC和AOP功能</li>
+<li>扩展很难和其他的框架集成，比如扩展里面依赖了一个Spring bean，原生的Java SPI不支持</li>
+</ul>
+<h3 id="spi案例分析">6 SPI案例分析</h3>
+<p>在我们常用的框架中，有很多都是有使用SPI的方式，其中包括JDBC加载不同类型数据库的驱动、SLF4J加载不同提供商的日志实现类、Spring 框架、Dubbo框架。</p>
+<p>这里需要注意，dubbo框架的SPI是对原生的Java SPI 进行了扩展的。关于dubbo的SPI我们将在后面详细讲解。现在，我们来以JDBC加载的方式来简单的看看其SPI的方式。</p>
+<p>我们先找到mysql的包，其结构如下：</p>
+<p><img src="./images/了解一下Java SPI的原理17.png" /></p>
+<p>在META-INF/services 目录下，存在 文件 java.sql.Driver，其内容为：</p>
+<p><img src="./images/了解一下Java SPI的原理18.png" /></p>
+<p>通过这个路径，我们也可以找到 com.mysql.jdbc.Driver类，它实现了java.sql.Driver接口：</p>
+<p><img src="./images/了解一下Java SPI的原理19.png" /></p>
+<p>诸如Oracle，同样也有此机制，这里就不再细述了，请自行验证查看～</p>
+<hr />
+<h3 id="blog">Blog:</h3>
+<ul>
+<li>简书： https://www.jianshu.com/u/91378a397ffe</li>
+<li>csdn： https://blog.csdn.net/ZhiyouWu</li>
+<li>开源中国： https://my.oschina.net/u/3204088</li>
+<li>掘金： https://juejin.im/user/5b5979efe51d451949094265</li>
+<li>博客园： https://www.cnblogs.com/zhiyouwu/</li>
+<li>微信公众号： 源码湾</li>
+<li>微信： WZY1782357529 (欢迎沟通交流)</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

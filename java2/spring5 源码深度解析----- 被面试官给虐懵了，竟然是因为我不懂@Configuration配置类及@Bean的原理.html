@@ -1,0 +1,966 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修spring5 源码深度解析----- 被面试官给虐懵了，竟然是因为我不懂@Configuration配置类及@Bean的原理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>spring5 源码深度解析----- 被面试官给虐懵了，竟然是因为我不懂@Configuration配置类及@Bean的原理</center></div><div class='banquan'>原文出处:本文由博客园博主chen_hao提供。<br/>
+原文连接:https://www.cnblogs.com/java-chen-hao/p/11640177.html</div><br>
+    <p>@Configuration注解提供了全新的bean创建方式。最初spring通过xml配置文件初始化bean并完成依赖注入工作。从spring3.0开始，在spring framework模块中提供了这个注解，搭配@Bean等注解，可以完全不依赖xml配置，在运行时完成bean的创建和初始化工作。例如：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> IBean {
+
+}
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> AppBean <span style="color: #0000ff;">implements</span><span style="color: #000000;"> IBean{
+
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">@Configuration申明了AppConfig是一个配置类</span>
+<span style="color: #000000;">@Configuration 
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AppConfig {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">@Bean注解申明了一个bean，bean名称默认为方法名appBean</span>
+<span style="color: #000000;">    @Bean 
+    IBean appBean(){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> AppBean();
+    }
+}</span></code></pre>
+
+<p>默认情况下bean的名称和方法名称相同，你也可以使用name属性来指定,如<strong><span class="hljs-meta">@Bean(name = <span class="hljs-string">"myBean")</span></span></strong></p>
+<h2>@Configuration注解使用</h2>
+<p>我们先来看看@Configuration 这个注解的定义</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Target(ElementType.TYPE)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+<strong>@Component</strong> </span><span style="color: #008000;">//</span><span style="color: #008000;">@Component元注解</span>
+<span style="color: #0000ff;">public</span> @<span style="color: #0000ff;">interface</span><span style="color: #000000;"> Configuration {
+    String value() </span><span style="color: #0000ff;">default</span> ""<span style="color: #000000;">;
+}</span></code></pre>
+
+<p>我们看到源码里面，@Configuration 标记了@Component元注解，因此可以被@ComponentScan扫描并处理，在Spring容器初始化时<strong>Configuration类&nbsp;</strong>会被注册到Bean容器中，最后还会实例化。</p>
+<h3>使用@Autowired/@Inject</h3>
+<p>因为@Configuration本身也是一个@Component，因此配置类本身也会被注册到应用上下文，并且也可以使用IOC的<strong>@Autowired/@Inject</strong>等注解来注入所需bean。我们来修改配置类如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Configuration
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AppConfig {
+   <strong> @Autowired
+    </strong></span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Environment env;
+    @Bean
+    IBean appBean(){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> AppBean();
+    }
+}</span></code></pre>
+
+<h3>使用@CompomentScan</h3>
+<p>配置类也可以自己添加注解@CompomentScan，来显式扫描需使用组件。</p>
+<h4>@Configuration 使用@Component 进行原注解，因此@Configuration 类也可以被组件扫描到（特别是使用XML元素）。</h4>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Configuration
+<strong>@ComponentScan(</strong></span><strong>"abc.xxx"<span style="color: #000000;">)
+</span></strong><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AppConfig {
+    @Bean
+    IBean appBean(){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> AppBean();
+    }
+}</span></code></pre>
+
+<h3>在这里认识几个注解: @Controller, @Service, @Repository, @Component</h3>
+<ul class="list-paddingleft-2">
+<li>
+<p>@Controller: 表明一个注解的类是一个"Controller"，也就是控制器，可以把它理解为MVC 模式的Controller 这个角色。这个注解是一个特殊的@Component，允许实现类通过类路径的扫描扫描到。它通常与@RequestMapping 注解一起使用。</p>
+</li>
+<li>
+<p>@Service: 表明这个带注解的类是一个"Service"，也就是服务层，可以把它理解为MVC 模式中的Service层这个角色，这个注解也是一个特殊的@Component，允许实现类通过类路径的扫描扫描到</p>
+</li>
+<li>
+<p>@Repository: 表明这个注解的类是一个"Repository",团队实现了JavaEE 模式中像是作为"Data Access Object" 可能作为DAO来使用，当与 PersistenceExceptionTranslationPostProcessor 结合使用时，这样注释的类有资格获得Spring转换的目的。这个注解也是@Component 的一个特殊实现，允许实现类能够被自动扫描到</p>
+</li>
+<li>
+<p>@Component: 表明这个注释的类是一个组件，当使用基于注释的配置和类路径扫描时，这些类被视为自动检测的候选者。</p>
+</li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+<strong>@Component
+</strong></span><span style="color: #0000ff;">public</span> @<span style="color: #0000ff;">interface</span><span style="color: #000000;"> Controller {
+
+    @AliasFor(annotation </span>= Component.<span style="color: #0000ff;">class</span><span style="color: #000000;">)
+    String value() </span><span style="color: #0000ff;">default</span> ""<span style="color: #000000;">;
+
+}
+
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+<strong>@Component
+</strong></span><span style="color: #0000ff;">public</span> @<span style="color: #0000ff;">interface</span><span style="color: #000000;"> Service {
+
+    @AliasFor(annotation </span>= Component.<span style="color: #0000ff;">class</span><span style="color: #000000;">)
+    String value() </span><span style="color: #0000ff;">default</span> ""<span style="color: #000000;">;
+
+}
+
+@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+<strong>@Component
+</strong></span><span style="color: #0000ff;">public</span> @<span style="color: #0000ff;">interface</span><span style="color: #000000;"> Repository {
+
+    @AliasFor(annotation </span>= Component.<span style="color: #0000ff;">class</span><span style="color: #000000;">)
+    String value() </span><span style="color: #0000ff;">default</span> ""<span style="color: #000000;">;
+
+}</span></code></pre>
+
+<p>我们可以看到<strong>@Controller, @Service, @Repository</strong>这三个注解上都有<strong>@Component</strong>这个注解</p>
+<p>也就是说，上面四个注解标记的类都能够通过@ComponentScan 扫描到，上面四个注解最大的区别就是使用的场景和语义不一样，比如你定义一个Service类想要被Spring进行管理，你应该把它定义为@Service 而不是@Controller因为我们从语义上讲，@Service更像是一个服务的类，而不是一个控制器的类，@Component通常被称作组件，它可以标注任何你没有严格予以说明的类，比如说是一个配置类，它不属于MVC模式的任何一层，这个时候你更习惯于把它定义为 @Component。@Controller，@Service，@Repository 的注解上都有@Component，所以这三个注解都可以用@Component进行替换。</p>
+<h3>同@Import注解组合使用</h3>
+<p>新建一个配置类，例如数据库配置类：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Configuration
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DatabaseConfig {
+    @Bean
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> DataSource dataSource(){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSource(){
+            ...
+        };
+    }
+}</span></code></pre>
+
+<p>然后在AppConfig中用@Import来导入配置类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Configuration
+@Import(DatabaseConfig.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AppConfig {
+    @Autowired
+    </span><span style="color: #0000ff;">public</span> DataSource dataSource; <span style="color: #008000;">//</span><span style="color: #008000;">注入的bean在DatabaseConfig.class中定义</span>
+<span style="color: #000000;">    @Bean
+    IBean appBean(){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> AppBean();
+    }
+}</span></code></pre>
+
+<p>最后执行：</p>
+<src class="cnblogs_code">
+<pre><code>ApplicationContext context = <span style="color: #0000ff;">new</span> AnnotationConfigApplicationContext(AppConfig.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+DatabaseConfig dataSourceConfig </span>= context.getBean(DatabaseConfig.<span style="color: #0000ff;">class</span>);</code></pre>
+
+<p>可以看到只注册了AppConfig.class，容器自动会把@Import指向的配置类初始化。</p>
+<h3>同@Profile注解组合使用</h3>
+<p>在配置类中可以申明@Profile注解，仅当满足profile条件时，才会处理配置类，也可以将@Profile注解加载配置类中的每一个@Bean来实现更细粒度的条件控制。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Configuration
+@Profile(</span>"develop"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DatabaseConfig {
+    @Bean
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> DataSource dataSource(){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSource(){...};
+    }
+}</span></code></pre>
+
+<h3>嵌套使用@Configuration</h3>
+<p>在配置类中可以创建静态内部类，并添加@Configuration注解，这样上下文只需要注册最外面的配置类，内部的配置类会自动被加载。这样做省略了@Import，因为本身就在配置类内部，无需再特别指定了。</p>
+<src class="cnblogs_code">
+<pre><code><strong><span style="color: #000000;">@Configuration
+</span></strong><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AppConfig {
+    @Autowired
+    </span><span style="color: #0000ff;">public</span> DataSource dataSource; <span style="color: #008000;">//</span><span style="color: #008000;">注入的bean在内部定义</span>
+<strong><span style="color: #000000;">
+    @Configuration
+    </span></strong><span style="color: #0000ff;">public</span> <strong><span style="color: #0000ff;">static</span> </strong><span style="color: #0000ff;">class</span><span style="color: #000000;"> DatabaseConfig{
+        @Bean
+        DataSource dataSource(){
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSource() {...};
+        }
+    }
+    
+    @Bean
+    IBean appBean(){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> AppBean();
+    }
+}</span></code></pre>
+
+<p><strong>注意：任何嵌套的@Configuration 都必须是static 的。</strong></p>
+<h3>@Lazy初始化</h3>
+<p>默认情况下，配置类中的Bean都随着应用上下文被初始化，可以在配置类中添加@Lazy注解来延迟初始化，当然也可以在每个@Bean注解上添加，来实现更细粒度的控制。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Configuration
+<strong>@Lazy</strong></span><strong><span style="color: #008000;">//</span><span style="color: #008000;">延时加载</span></strong>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AppConfig {
+    @Bean
+    IBean appBean(){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> AppBean();
+    }
+}</span></code></pre>
+
+<h3>配置类约束</h3>
+<ul>
+<li>配置类必须为显式申明的类，而不能通过工厂类方法返回实例。允许运行时类增强。</li>
+<li>配置类不允许标记final。</li>
+<li>配置类必须全局可见（不允许定义在方法本地内部类中）</li>
+<li>嵌套配置类必须申明为static 内部类</li>
+<li>@Bean方法不可以再创建新的配置类（所有实例都当做bean处理，不解析相关配置注解）</li>
+</ul>
+<h2>@Configuration源码</h2>
+<h3>ApplicationContext的refresh方法</h3>
+<p>在我之前的一篇文章<a id="post_title_link_11579591" href="https://www.cnblogs.com/java-chen-hao/p/11579591.html">spring5 源码深度解析-----ApplicationContext容器refresh过程</a>中写过，Spring容器启动时，即ApplicationContext接口实现类的对象实例执行refresh方法时，在Bean初始化完成之前，有一个扩展点，用来操作BeanFactory，来扩展对应的功能，比喻往BeanFactory中注册BeanDefintion,我们回顾一下ApplicationContext的refresh函数：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> refresh() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeansException, IllegalStateException {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">synchronized</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.startupShutdownMonitor) {
+</span><span style="color: #008080;"> 3</span>         <span style="color: #008000;">//</span><span style="color: #008000;">准备刷新的上下文 环境  </span>
+<span style="color: #008080;"> 4</span> <span style="color: #000000;">        prepareRefresh();
+</span><span style="color: #008080;"> 5</span>         <span style="color: #008000;">//</span><span style="color: #008000;">初始化BeanFactory，并进行XML文件读取  </span>
+<span style="color: #008080;"> 6</span>         ConfigurableListableBeanFactory beanFactory =<span style="color: #000000;"> obtainFreshBeanFactory();
+</span><span style="color: #008080;"> 7</span>         <span style="color: #008000;">//</span><span style="color: #008000;">对beanFactory进行各种功能填充  </span>
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">        prepareBeanFactory(beanFactory);
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            postProcessBeanFactory(beanFactory);
+</span><span style="color: #008080;">11</span>           <strong>  <span style="color: #008000;">//</span></strong><span style="color: #008000;"><strong>激活各种beanFactory处理器 </strong> </span>
+<span style="color: #008080;">12</span> <strong><span style="color: #000000;">            invokeBeanFactoryPostProcessors(beanFactory);
+</span></strong><span style="color: #008080;">13</span>             <span style="color: #008000;">//</span><span style="color: #008000;">注册拦截Bean创建的Bean处理器，这里只是注册，真正的调用实在getBean时候 </span>
+<span style="color: #008080;">14</span> <span style="color: #000000;">            registerBeanPostProcessors(beanFactory);
+</span><span style="color: #008080;">15</span>             <span style="color: #008000;">//</span><span style="color: #008000;">为上下文初始化Message源，即不同语言的消息体，国际化处理  </span>
+<span style="color: #008080;">16</span> <span style="color: #000000;">            initMessageSource();
+</span><span style="color: #008080;">17</span>             <span style="color: #008000;">//</span><span style="color: #008000;">初始化应用消息广播器，并放入&ldquo;applicationEventMulticaster&rdquo;bean中  </span>
+<span style="color: #008080;">18</span> <span style="color: #000000;">            initApplicationEventMulticaster();
+</span><span style="color: #008080;">19</span>             <span style="color: #008000;">//</span><span style="color: #008000;">留给子类来初始化其它的Bean  </span>
+<span style="color: #008080;">20</span> <span style="color: #000000;">            onRefresh();
+</span><span style="color: #008080;">21</span>             <span style="color: #008000;">//</span><span style="color: #008000;">在所有注册的bean中查找Listener bean，注册到消息广播器中  </span>
+<span style="color: #008080;">22</span> <span style="color: #000000;">            registerListeners();
+</span><span style="color: #008080;">23</span>             <span style="color: #008000;">//</span><span style="color: #008000;">初始化剩下的单实例（非惰性的）  </span>
+<span style="color: #008080;">24</span> <span style="color: #000000;">            finishBeanFactoryInitialization(beanFactory);
+</span><span style="color: #008080;">25</span>             <span style="color: #008000;">//</span><span style="color: #008000;">完成刷新过程，通知生命周期处理器lifecycleProcessor刷新过程，同时发出ContextRefreshEvent通知别人  </span>
+<span style="color: #008080;">26</span> <span style="color: #000000;">            finishRefresh();
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">28</span>         <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (BeansException ex) {
+</span><span style="color: #008080;">29</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (logger.isWarnEnabled()) {
+</span><span style="color: #008080;">30</span>                 logger.warn("Exception encountered during context initialization - " +
+<span style="color: #008080;">31</span>                         "cancelling refresh attempt: " +<span style="color: #000000;"> ex);
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">            destroyBeans();
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">            cancelRefresh(ex);
+</span><span style="color: #008080;">35</span>             <span style="color: #0000ff;">throw</span><span style="color: #000000;"> ex;
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">37</span>         <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">            resetCommonCaches();
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">41</span> }</code></pre>
+
+<p>看到第12行，在初始化BeanFactory后，会<strong>激活各种beanFactory处理器，</strong>我们来看看invokeBeanFactoryPostProcessors方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory, List&lt;BeanFactoryPostProcessor&gt;<span style="color: #000000;"> beanFactoryPostProcessors) {
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> Invoke BeanDefinitionRegistryPostProcessors first, if any.
+</span><span style="color: #008080;"> 4</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 1、首先调用BeanDefinitionRegistryPostProcessors</span>
+<span style="color: #008080;"> 5</span>     Set&lt;String&gt; processedBeans = <span style="color: #0000ff;">new</span> HashSet&lt;&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> beanFactory是BeanDefinitionRegistry类型</span>
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">if</span> (beanFactory <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> BeanDefinitionRegistry) {
+</span><span style="color: #008080;"> 9</span>         BeanDefinitionRegistry registry =<span style="color: #000000;"> (BeanDefinitionRegistry) beanFactory;
+</span><span style="color: #008080;">10</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 定义BeanFactoryPostProcessor</span>
+<span style="color: #008080;">11</span>         List&lt;BeanFactoryPostProcessor&gt; regularPostProcessors = <span style="color: #0000ff;">new</span> ArrayList&lt;&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">12</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 定义BeanDefinitionRegistryPostProcessor集合</span>
+<span style="color: #008080;">13</span>         List&lt;BeanDefinitionRegistryPostProcessor&gt; registryProcessors = <span style="color: #0000ff;">new</span> ArrayList&lt;&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 循环手动注册的beanFactoryPostProcessors</span>
+<span style="color: #008080;">16</span>         <span style="color: #0000ff;">for</span><span style="color: #000000;"> (BeanFactoryPostProcessor postProcessor : beanFactoryPostProcessors) {
+</span><span style="color: #008080;">17</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 如果是BeanDefinitionRegistryPostProcessor的实例话,则调用其postProcessBeanDefinitionRegistry方法,对bean进行注册操作</span>
+<span style="color: #008080;">18</span>             <span style="color: #0000ff;">if</span> (postProcessor <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> BeanDefinitionRegistryPostProcessor) {
+</span><span style="color: #008080;">19</span>                <strong> <span style="color: #008000;">//</span><span style="color: #008000;"> 如果是BeanDefinitionRegistryPostProcessor类型,则直接调用其postProcessBeanDefinitionRegistry</span></strong>
+<span style="color: #008080;">20</span>                 BeanDefinitionRegistryPostProcessor registryProcessor =<span style="color: #000000;"> (BeanDefinitionRegistryPostProcessor) postProcessor;
+</span><span style="color: #008080;">21</span> <strong><span style="color: #000000;">                registryProcessor.postProcessBeanDefinitionRegistry(registry);
+</span></strong><span style="color: #008080;">22</span> <span style="color: #000000;">                registryProcessors.add(registryProcessor);
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">24</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 否则则将其当做普通的BeanFactoryPostProcessor处理,直接加入regularPostProcessors集合,以备后续处理</span>
+<span style="color: #008080;">25</span>             <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">                regularPostProcessors.add(postProcessor);
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">29</span>         <span style="color: #008000;">//</span><span style="color: #008000;">略....</span>
+<span style="color: #008080;">30</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 2、如果不是BeanDefinitionRegistry的实例,那么直接调用其回调函数即可--&gt;postProcessBeanFactory</span>
+<span style="color: #008080;">33</span>     <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">34</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Invoke factory processors registered with the context instance.</span>
+<span style="color: #008080;">35</span> <span style="color: #000000;">        invokeBeanFactoryPostProcessors(beanFactoryPostProcessors, beanFactory);
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">37</span>     <span style="color: #008000;">//</span><span style="color: #008000;">略....</span>
+<span style="color: #008080;">38</span> }</code></pre>
+
+<p>我们看看第21行，看看其实现类，如下截图，发现其中有一个<strong>ConfigurationClassPostProcessor，这个类就是本章的重点</strong></p>
+<p>ConfigurationClassPostProcessor这个BeanFactoryPostProcessor，来开启整个@Configuration注解的系列类的加载的，即开启基于@Configuration的类配置代替beans标签的容器配置的相关bean的加载。</p>
+<p><img src="./images/spring5 源码深度解析----- 被面试官给虐懵了，竟然是因为我不懂@Configuration配置类及@Bean的原理0.png" alt="" /></p>
+<h3>ConfigurationClassPostProcessor</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">生成唯一标识，用于重复处理验证</span>
+   <span style="color: #0000ff;">int</span> registryId =<span style="color: #000000;"> System.identityHashCode(registry);
+   </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.registriesPostProcessed.contains(registryId)) {
+      </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> IllegalStateException(
+            </span>"postProcessBeanDefinitionRegistry already called on this post-processor against " +<span style="color: #000000;"> registry);
+   }
+   </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.factoriesPostProcessed.contains(registryId)) {
+      </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> IllegalStateException(
+            </span>"postProcessBeanFactory already called on this post-processor against " +<span style="color: #000000;"> registry);
+   }
+   </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.registriesPostProcessed.add(registryId);
+   </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">解析Java类配置bean</span>
+</strong><span style="color: #000000;"><strong>   processConfigBeanDefinitions(registry);</strong>
+}</span></code></pre>
+
+<p>processConfigBeanDefinitions(registry)处理逻辑：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> processConfigBeanDefinitions(BeanDefinitionRegistry registry) {
+   List</span>&lt;BeanDefinitionHolder&gt; configCandidates = <span style="color: #0000ff;">new</span> ArrayList&lt;&gt;<span style="color: #000000;">();
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;"><strong>所有已经注册的bean</strong> </span>
+   <strong>String[] candidateNames =<span style="color: #000000;"> registry.getBeanDefinitionNames();
+   </span></strong><span style="color: #008000;">/<strong>/</strong></span><strong><span style="color: #008000;">遍历bean定义信息</span></strong>
+   <span style="color: #0000ff;">for</span><span style="color: #000000;"> (String beanName : candidateNames) {
+      BeanDefinition beanDef </span>=<span style="color: #000000;"> registry.getBeanDefinition(beanName);
+      </span><span style="color: #0000ff;">if</span> (ConfigurationClassUtils.isFullConfigurationClass(beanDef) ||<span style="color: #000000;">
+            ConfigurationClassUtils.isLiteConfigurationClass(beanDef)) {
+         </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (logger.isDebugEnabled()) {
+            logger.debug(</span>"Bean definition has already been processed as a configuration class: " +<span style="color: #000000;"> beanDef);
+         }
+      }
+　　  </span><span style="color: #008000;">//<strong>1.</strong></span><span style="color: #008000;"><strong>如果当前的bean是Javabean配置类（含有@Configuration注解的类），则加入到集合configCandidates中</strong>，</span>
+      <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (ConfigurationClassUtils.<strong>checkConfigurationClassCandidate</strong>(beanDef, <span style="color: #0000ff;">this</span><span style="color: #000000;">.metadataReaderFactory)) {
+         configCandidates.add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> BeanDefinitionHolder(beanDef, beanName));
+      }
+   }
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> Return immediately if no @Configuration classes were found
+　 </span><span style="color: #008000;">//</span><span style="color: #008000;"> 没有@Configuration注解的类，直接退出</span>
+   <span style="color: #0000ff;">if</span><span style="color: #000000;"> (configCandidates.isEmpty()) {
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+   }
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> 多个Java配置类，按@Ordered注解排序</span>
+   configCandidates.sort((bd1, bd2) -&gt;<span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">int</span> i1 =<span style="color: #000000;"> ConfigurationClassUtils.getOrder(bd1.getBeanDefinition());
+      </span><span style="color: #0000ff;">int</span> i2 =<span style="color: #000000;"> ConfigurationClassUtils.getOrder(bd2.getBeanDefinition());
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Integer.compare(i1, i2);
+   });
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> Detect any custom bean name generation strategy supplied through the enclosing application context</span>
+   SingletonBeanRegistry sbr = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+   </span><span style="color: #0000ff;">if</span> (registry <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> SingletonBeanRegistry) {
+      sbr </span>=<span style="color: #000000;"> (SingletonBeanRegistry) registry;
+      </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.localBeanNameGeneratorSet) {
+         BeanNameGenerator generator </span>=<span style="color: #000000;"> (BeanNameGenerator) sbr.getSingleton(CONFIGURATION_BEAN_NAME_GENERATOR);
+         </span><span style="color: #0000ff;">if</span> (generator != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">this</span>.componentScanBeanNameGenerator =<span style="color: #000000;"> generator;
+            </span><span style="color: #0000ff;">this</span>.importBeanNameGenerator =<span style="color: #000000;"> generator;
+         }
+      }
+   }
+
+   </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.environment == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">this</span>.environment = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StandardEnvironment();
+   }
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> Parse each @Configuration class
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">初始化一个ConfigurationClassParser解析器，可以解析@Congiguration配置类</span>
+   ConfigurationClassParser parser = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConfigurationClassParser(
+         </span><span style="color: #0000ff;">this</span>.metadataReaderFactory, <span style="color: #0000ff;">this</span>.problemReporter, <span style="color: #0000ff;">this</span><span style="color: #000000;">.environment,
+         </span><span style="color: #0000ff;">this</span>.resourceLoader, <span style="color: #0000ff;">this</span><span style="color: #000000;">.componentScanBeanNameGenerator, registry);
+
+   Set</span>&lt;BeanDefinitionHolder&gt; candidates = <span style="color: #0000ff;">new</span> LinkedHashSet&lt;&gt;<span style="color: #000000;">(configCandidates);
+   Set</span>&lt;ConfigurationClass&gt; alreadyParsed = <span style="color: #0000ff;">new</span> HashSet&lt;&gt;<span style="color: #000000;">(configCandidates.size());
+   </span><span style="color: #0000ff;">do</span><span style="color: #000000;"> {
+　　　</span><strong><span style="color: #008000;">//</span><span style="color: #008000;">2.解析Java配置类</span>
+</strong><span style="color: #000000;"><strong>      parser.parse(candidates);</strong>
+　　　</span><span style="color: #008000;">//</span><span style="color: #008000;">主要校验配置类不能使用final修饰符（CGLIB代理是生成一个子类，因此原先的类不能使用final修饰）</span>
+<span style="color: #000000;">      parser.validate();
+
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">排除已处理过的配置类</span>
+      Set&lt;ConfigurationClass&gt; configClasses = <span style="color: #0000ff;">new</span> LinkedHashSet&lt;&gt;<span style="color: #000000;">(parser.getConfigurationClasses());
+      configClasses.removeAll(alreadyParsed);
+       
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Read the model and create bean definitions based on its content</span>
+      <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.reader == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+         </span><span style="color: #0000ff;">this</span>.reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConfigurationClassBeanDefinitionReader(
+               registry, </span><span style="color: #0000ff;">this</span>.sourceExtractor, <span style="color: #0000ff;">this</span>.resourceLoader, <span style="color: #0000ff;">this</span><span style="color: #000000;">.environment,
+               </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.importBeanNameGenerator, parser.getImportRegistry());
+      }
+　　　 </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">3.加载bean定义信息，主要实现将@bean @Configuration @Import @ImportResource @ImportRegistrar注册为bean</span>
+      <span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>.reader.loadBeanDefinitions(configClasses);</strong>
+      alreadyParsed.addAll(configClasses);
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">清空已处理的配置类</span>
+<span style="color: #000000;">      candidates.clear();
+　　　</span><span style="color: #008000;">//</span><span style="color: #008000;">再次获取容器中bean定义数量  如果大于 之前获取的bean定义数量，则说明有新的bean注册到容器中，需要再次解析</span>
+      <span style="color: #0000ff;">if</span> (registry.getBeanDefinitionCount() &gt;<span style="color: #000000;"> candidateNames.length) {
+         String[] newCandidateNames </span>=<span style="color: #000000;"> registry.getBeanDefinitionNames();
+         Set</span>&lt;String&gt; oldCandidateNames = <span style="color: #0000ff;">new</span> HashSet&lt;&gt;<span style="color: #000000;">(Arrays.asList(candidateNames));
+         Set</span>&lt;String&gt; alreadyParsedClasses = <span style="color: #0000ff;">new</span> HashSet&lt;&gt;<span style="color: #000000;">();
+         </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (ConfigurationClass configurationClass : alreadyParsed) {
+            alreadyParsedClasses.add(configurationClass.getMetadata().getClassName());
+         }
+         </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (String candidateName : newCandidateNames) {
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">oldCandidateNames.contains(candidateName)) {
+               BeanDefinition bd </span>=<span style="color: #000000;"> registry.getBeanDefinition(candidateName);
+　　　　　　　　</span><span style="color: #008000;">//</span><span style="color: #008000;">新注册的bean如果也是@Configuration配置类,则添加到数据，等待解析</span>
+               <span style="color: #0000ff;">if</span> (ConfigurationClassUtils.checkConfigurationClassCandidate(bd, <span style="color: #0000ff;">this</span>.metadataReaderFactory) &amp;&amp;
+                     !<span style="color: #000000;">alreadyParsedClasses.contains(bd.getBeanClassName())) {
+                  candidates.add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> BeanDefinitionHolder(bd, candidateName));
+               }
+            }
+         }
+         candidateNames </span>=<span style="color: #000000;"> newCandidateNames;
+      }
+   }
+   </span><span style="color: #0000ff;">while</span> (!<span style="color: #000000;">candidates.isEmpty());
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> Register the ImportRegistry as a bean in order to support ImportAware @Configuration classes</span>
+   <span style="color: #0000ff;">if</span> (sbr != <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">sbr.containsSingleton(IMPORT_REGISTRY_BEAN_NAME)) {
+      sbr.registerSingleton(IMPORT_REGISTRY_BEAN_NAME, parser.getImportRegistry());
+   }
+
+   </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.metadataReaderFactory <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> CachingMetadataReaderFactory) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Clear cache in externally provided MetadataReaderFactory; this is a no-op
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> for a shared cache since it'll be cleared by the ApplicationContext.</span>
+      ((CachingMetadataReaderFactory) <span style="color: #0000ff;">this</span><span style="color: #000000;">.metadataReaderFactory).clearCache();
+   }
+}</span></code></pre>
+
+<p>processConfigBeanDefinitions整个方法可以大体划分为三个阶段：</p>
+<ol>
+<li>从容器中获取和Configuration有关系的BeanDefinition</li>
+<li>以该BeanDefinition为起点，进行解析操作，得到解析结果集</li>
+<li>将解析到的结果集加载到容器中，即构造成一个BeanDefinition放到容器中待初始化</li>
+</ol>
+<p><strong>1、判断类是否与@Configuration有关</strong></p>
+<p>在上面第1步中，有@Configuration注解的会加入到集合当中，这个判断是在<code>ConfigurationClassUtils#checkConfigurationClassCandidate</code>当中实现</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> checkConfigurationClassCandidate(BeanDefinition beanDef, MetadataReaderFactory metadataReaderFactory) {
+    String className </span>=<span style="color: #000000;"> beanDef.getBeanClassName();
+    </span><span style="color: #0000ff;">if</span> (className == <span style="color: #0000ff;">null</span> || beanDef.getFactoryMethodName() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取注解元数据信息</span>
+<span style="color: #000000;">    AnnotationMetadata metadata;
+    </span><span style="color: #0000ff;">if</span> (beanDef <span style="color: #0000ff;">instanceof</span> AnnotatedBeanDefinition &amp;&amp;<span style="color: #000000;">
+            className.equals(((AnnotatedBeanDefinition) beanDef).getMetadata().getClassName())) {
+        metadata </span>=<span style="color: #000000;"> ((AnnotatedBeanDefinition) beanDef).getMetadata();
+    }
+    </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (beanDef <span style="color: #0000ff;">instanceof</span> AbstractBeanDefinition &amp;&amp;<span style="color: #000000;"> ((AbstractBeanDefinition) beanDef).hasBeanClass()) {
+        Class</span>&lt;?&gt; beanClass =<span style="color: #000000;"> ((AbstractBeanDefinition) beanDef).getBeanClass();
+        metadata </span>= <span style="color: #0000ff;">new</span> StandardAnnotationMetadata(beanClass, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            MetadataReader metadataReader </span>=<span style="color: #000000;"> metadataReaderFactory.getMetadataReader(className);
+            metadata </span>=<span style="color: #000000;"> metadataReader.getAnnotationMetadata();
+        }
+        </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException ex) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 查找当前注解是否是与@Configuration相关
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 该方法还会判断该注解上的注解是否有@Configuration，一直往上寻找
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 因为有的注解为复合注解</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (<strong>isFullConfigurationCandidate</strong>(metadata)) {
+        beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_FULL);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 查找当前注解上是否有ComponentScan、Component、Import、ImportResource注解
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果没有则查找Bean注解，同上，一直往上查找</span>
+    <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (<strong>isLiteConfigurationCandidate</strong>(metadata)) {
+        beanDef.setAttribute(CONFIGURATION_CLASS_ATTRIBUTE, CONFIGURATION_CLASS_LITE);
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+}</span></code></pre>
+
+<p>我们看看<strong>isFullConfigurationCandidate和</strong><strong>isLiteConfigurationCandidate</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> isFullConfigurationCandidate(AnnotationMetadata metadata) {
+    </span><span style="color: #0000ff;">return</span> metadata.isAnnotated(<strong>Configuration.<span style="color: #0000ff;">class</span></strong><span style="color: #000000;"><strong>.getName()</strong>);
+}</span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> isLiteConfigurationCandidate(AnnotationMetadata metadata) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Do not consider an interface or an annotation...</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (metadata.isInterface()) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Any of the typical annotations found?</span>
+    <span style="color: #0000ff;">for</span><span style="color: #000000;"> (String indicator : <strong>candidateIndicators</strong>) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (<strong>metadata.isAnnotated(indicator)</strong>) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Finally, let's look for @Bean methods...</span>
+    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><strong><span style="color: #0000ff;">return</span> metadata.hasAnnotatedMethods(Bean.<span style="color: #0000ff;">class</span></strong><span style="color: #000000;"><strong>.getName());</strong>
+    }
+    </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable ex) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (logger.isDebugEnabled()) {
+            logger.debug(</span>"Failed to introspect @Bean methods on class [" + metadata.getClassName() + "]: " +<span style="color: #000000;"> ex);
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+}
+
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> Set&lt;String&gt; candidateIndicators = <span style="color: #0000ff;">new</span> HashSet&lt;&gt;(8<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">static</span><span style="color: #000000;"> {
+    candidateIndicators.add(<strong>Component</strong>.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">.getName());
+    candidateIndicators.add(<strong>ComponentScan</strong>.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">.getName());
+    candidateIndicators.add(<strong>Import</strong>.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">.getName());
+    candidateIndicators.add(<strong>ImportResource</strong>.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">.getName());
+}</span></code></pre>
+
+<p><strong>2、解析Java配置类parser.parse(candidates)</strong></p>
+<p>parser.parse(candidates)方法最终调用processConfigurationClass方法来处理@Configuration配置类，ConfigurationClassParser. processConfigurationClass()方法实现代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> processConfigurationClass(ConfigurationClass configClass) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">判断是否需要解析</span>
+   <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.conditionEvaluator.shouldSkip(configClass.getMetadata(), ConfigurationPhase.PARSE_CONFIGURATION)) {
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+   }
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">判断同一个配置类是否重复加载过，如果重复加载过，则合并，否则从集合中移除旧的配置类，后续逻辑将处理新的配置类</span>
+   ConfigurationClass existingClass = <span style="color: #0000ff;">this</span><span style="color: #000000;">.configurationClasses.get(configClass);
+   </span><span style="color: #0000ff;">if</span> (existingClass != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (configClass.isImported()) {
+         </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (existingClass.isImported()) {
+            existingClass.mergeImportedBy(configClass);
+         }
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> Otherwise ignore new imported config class; existing non-imported class overrides it.</span>
+         <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+      }
+      </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> Explicit bean definition found, probably replacing an import.
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> Let's remove the old one and go with the new one.</span>
+         <span style="color: #0000ff;">this</span><span style="color: #000000;">.configurationClasses.remove(configClass);
+         </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.knownSuperclasses.values().removeIf(configClass::equals);
+      }
+   }
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> Recursively process the configuration class and its superclass hierarchy.</span>
+   SourceClass sourceClass =<span style="color: #000000;"> asSourceClass(configClass);
+   </span><span style="color: #0000ff;">do</span><span style="color: #000000;"> {
+　　   </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">【真正解析配置类】</span>
+      sourceClass =</strong><span style="color: #000000;"><strong> doProcessConfigurationClass(configClass, sourceClass);</strong>
+   }
+   </span><span style="color: #0000ff;">while</span> (sourceClass != <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">再次添加到到集合中</span>
+   <span style="color: #0000ff;">this</span><span style="color: #000000;">.configurationClasses.put(configClass, configClass);
+}</span></code></pre>
+
+<p>doProcessConfigurationClass方法主要实现从配置类中解析所有bean，包括处理内部类，父类以及各种注解</p>
+<p>ConfigurationClassParser. doProcessConfigurationClass()解析配置类逻辑如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> SourceClass doProcessConfigurationClass(ConfigurationClass configClass, SourceClass sourceClass)
+      </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">递归处理任何成员（嵌套）类</span>
+<span style="color: #000000;">   processMemberClasses(configClass, sourceClass);
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理@PropertySource注解</span>
+   <span style="color: #0000ff;">for</span><span style="color: #000000;"> (AnnotationAttributes propertySource : AnnotationConfigUtils.attributesForRepeatable(
+         sourceClass.getMetadata(), PropertySources.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">,
+         org.springframework.context.annotation.PropertySource.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)) {
+      </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.environment <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> ConfigurableEnvironment) {
+         processPropertySource(propertySource);
+      }
+      </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+         logger.warn(</span>"Ignoring @PropertySource annotation on [" + sourceClass.getMetadata().getClassName() +
+               "]. Reason: Environment must implement ConfigurableEnvironment"<span style="color: #000000;">);
+      }
+   }
+
+   </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 处理@ComponentScan 
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">获取@ComponentScan注解信息</span></strong>
+   Set&lt;AnnotationAttributes&gt; componentScans =<span style="color: #000000;"> AnnotationConfigUtils.attributesForRepeatable(
+         sourceClass.getMetadata(), ComponentScans.</span><span style="color: #0000ff;">class</span>, <strong>ComponentScan.<span style="color: #0000ff;">class</span></strong><span style="color: #000000;">);
+   </span><span style="color: #0000ff;">if</span> (!componentScans.isEmpty() &amp;&amp;
+         !<span style="color: #0000ff;">this</span><span style="color: #000000;">.conditionEvaluator.shouldSkip(sourceClass.getMetadata(), ConfigurationPhase.REGISTER_BEAN)) {
+      </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (AnnotationAttributes componentScan : componentScans) {
+
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> 按@CmponentScan注解扫描bean</span>
+         Set&lt;BeanDefinitionHolder&gt; scannedBeanDefinitions =
+               <strong><span style="color: #0000ff;">this</span><span style="color: #000000;">.componentScanParser.parse(componentScan, sourceClass.getMetadata().getClassName());
+         </span></strong><span style="color: #008000;">//</span><span style="color: #008000;"> 遍历扫描出的bean定义是否是配置类bean</span>
+         <span style="color: #0000ff;">for</span><span style="color: #000000;"> (BeanDefinitionHolder holder : scannedBeanDefinitions) {
+            BeanDefinition bdCand </span>=<span style="color: #000000;"> holder.getBeanDefinition().getOriginatingBeanDefinition();
+            </span><span style="color: #0000ff;">if</span> (bdCand == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+               bdCand </span>=<span style="color: #000000;"> holder.getBeanDefinition();
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">若果扫描出的bean定义是配置类（含有@COnfiguration）,则继续调用parse方法，内部再次调用doProcessConfigurationClas(),递归解析</span>
+            <span style="color: #0000ff;">if</span> (ConfigurationClassUtils.checkConfigurationClassCandidate(bdCand, <span style="color: #0000ff;">this</span><span style="color: #000000;">.metadataReaderFactory)) {
+               parse(bdCand.getBeanClassName(), holder.getBeanName());
+            }
+         }
+      }
+   }
+
+   </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">处理@Import注解</span></strong>
+   <strong>processImports</strong>(configClass, sourceClass, getImports(sourceClass), <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">处理@ImportResource注解</span>
+   AnnotationAttributes importResource = AnnotationConfigUtils.attributesFor(sourceClass.getMetadata(), ImportResource.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+   </span><span style="color: #0000ff;">if</span> (importResource != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+      String[] resources </span>= importResource.getStringArray("locations"<span style="color: #000000;">);
+      Class</span>&lt;? <span style="color: #0000ff;">extends</span> BeanDefinitionReader&gt; readerClass = importResource.getClass("reader"<span style="color: #000000;">);
+      </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (String resource : resources) {
+         String resolvedResource </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.environment.resolveRequiredPlaceholders(resource);
+         configClass.addImportedResource(resolvedResource, readerClass);
+      }
+   }
+
+   </span><strong><span style="color: #008000;">//</span></strong><span style="color: #008000;"><strong>处理@Bean注解</strong> </span>
+   Set&lt;MethodMetadata&gt; beanMethods =<span style="color: #000000;"><strong> retrieveBeanMethodMetadata</strong>(sourceClass);
+   </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (MethodMetadata methodMetadata : beanMethods) {
+      </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">将解析出的所有@Bean注解方法添加到configClass配置类信息中</span>
+      configClass.addBeanMethod(<span style="color: #0000ff;">new</span></strong><span style="color: #000000;"><strong> BeanMethod(methodMetadata, configClass));</strong>
+   }
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">处理接口中所有添加@Bean注解的方法，内部通过遍历所有接口，解析得到@Bean注解方法，并添加到configClass配置类信息中</span>
+<span style="color: #000000;">   processInterfaces(configClass, sourceClass);
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果有父类，则返回父类，递归执行doProcessConfigurationClass()解析父类</span>
+   <span style="color: #0000ff;">if</span><span style="color: #000000;"> (sourceClass.getMetadata().hasSuperClass()) {
+      String superclass </span>=<span style="color: #000000;"> sourceClass.getMetadata().getSuperClassName();
+      </span><span style="color: #0000ff;">if</span> (superclass != <span style="color: #0000ff;">null</span> &amp;&amp; !superclass.startsWith("java") &amp;&amp;
+            !<span style="color: #0000ff;">this</span><span style="color: #000000;">.knownSuperclasses.containsKey(superclass)) {
+         </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.knownSuperclasses.put(superclass, configClass);
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> Superclass found, return its annotation metadata and recurse</span>
+         <span style="color: #0000ff;">return</span><span style="color: #000000;"> sourceClass.getSuperClass();
+      }
+   }
+
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> No superclass -&gt; processing is complete</span>
+   <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+}</span></code></pre>
+
+<p>下面看两个很重要的注解@Bean和@ComponentScan的实现过程</p>
+<ul>
+<li>
+<h3>@ComponentScan注解解析过程</h3>
+</li>
+</ul>
+<src class="cnblogs_code">
+<pre><code>Set&lt;BeanDefinitionHolder&gt; scannedBeanDefinitions =  <span style="color: #0000ff;">this</span>.componentScanParser.parse(componentScan, sourceClass.getMetadata().getClassName());</code></pre>
+
+<p>@ComponentScan注解解析，从上面的代码可以看出@ComponentScan注解解析通过调用ComponentScanAnnotationParser的parse方法完成，而parse()方法内部处理了一些scanner属性(过滤器设置)和basePackages包名处理，最终通过调用ClassPathBeanDefinitionScanner.doScan方法实现扫面工作</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> Set&lt;BeanDefinitionHolder&gt; parse(AnnotationAttributes componentScan, <span style="color: #0000ff;">final</span><span style="color: #000000;"> String declaringClass) {
+   ClassPathBeanDefinitionScanner scanner </span>= <span style="color: #0000ff;">new</span> ClassPathBeanDefinitionScanner(<span style="color: #0000ff;">this</span><span style="color: #000000;">.registry,
+         componentScan.getBoolean(</span>"useDefaultFilters"), <span style="color: #0000ff;">this</span>.environment, <span style="color: #0000ff;">this</span><span style="color: #000000;">.resourceLoader);
+
+   Class</span>&lt;? <span style="color: #0000ff;">extends</span> BeanNameGenerator&gt; generatorClass = componentScan.getClass("nameGenerator"<span style="color: #000000;">);
+   </span><span style="color: #0000ff;">boolean</span> useInheritedGenerator = (BeanNameGenerator.<span style="color: #0000ff;">class</span> ==<span style="color: #000000;"> generatorClass);
+   scanner.setBeanNameGenerator(useInheritedGenerator </span>? <span style="color: #0000ff;">this</span><span style="color: #000000;">.beanNameGenerator :
+         BeanUtils.instantiateClass(generatorClass));
+
+   ScopedProxyMode scopedProxyMode </span>= componentScan.getEnum("scopedProxy"<span style="color: #000000;">);
+   </span><span style="color: #0000ff;">if</span> (scopedProxyMode !=<span style="color: #000000;"> ScopedProxyMode.DEFAULT) {
+      scanner.setScopedProxyMode(scopedProxyMode);
+   }
+   </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      Class</span>&lt;? <span style="color: #0000ff;">extends</span> ScopeMetadataResolver&gt; resolverClass = componentScan.getClass("scopeResolver"<span style="color: #000000;">);
+      scanner.setScopeMetadataResolver(BeanUtils.instantiateClass(resolverClass));
+   }
+
+   scanner.setResourcePattern(componentScan.getString(</span>"resourcePattern"<span style="color: #000000;">));
+
+   </span><span style="color: #0000ff;">for</span> (AnnotationAttributes filter : componentScan.getAnnotationArray("includeFilters"<span style="color: #000000;">)) {
+      </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (TypeFilter typeFilter : typeFiltersFor(filter)) {
+         scanner.addIncludeFilter(typeFilter);
+      }
+   }
+   </span><span style="color: #0000ff;">for</span> (AnnotationAttributes filter : componentScan.getAnnotationArray("excludeFilters"<span style="color: #000000;">)) {
+      </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (TypeFilter typeFilter : typeFiltersFor(filter)) {
+         scanner.addExcludeFilter(typeFilter);
+      }
+   }
+
+   </span><span style="color: #0000ff;">boolean</span> lazyInit = componentScan.getBoolean("lazyInit"<span style="color: #000000;">);
+   </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (lazyInit) {
+      scanner.getBeanDefinitionDefaults().setLazyInit(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+   }
+
+   Set</span>&lt;String&gt; basePackages = <span style="color: #0000ff;">new</span> LinkedHashSet&lt;&gt;<span style="color: #000000;">();
+   String[] basePackagesArray </span>= componentScan.getStringArray("basePackages"<span style="color: #000000;">);
+   </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (String pkg : basePackagesArray) {
+      String[] tokenized </span>= StringUtils.tokenizeToStringArray(<span style="color: #0000ff;">this</span><span style="color: #000000;">.environment.resolvePlaceholders(pkg),
+            ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS);
+      Collections.addAll(basePackages, tokenized);
+   }
+   </span><span style="color: #0000ff;">for</span> (Class&lt;?&gt; clazz : componentScan.getClassArray("basePackageClasses"<span style="color: #000000;">)) {
+      basePackages.add(ClassUtils.getPackageName(clazz));
+   }
+   </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (basePackages.isEmpty()) {
+      basePackages.add(ClassUtils.getPackageName(declaringClass));
+   }
+
+   scanner.addExcludeFilter(</span><span style="color: #0000ff;">new</span> AbstractTypeHierarchyTraversingFilter(<span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">false</span><span style="color: #000000;">) {
+      @Override
+      </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> matchClassName(String className) {
+         </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> declaringClass.equals(className);
+      }
+   });
+   </span><strong><span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> scanner.doScan(StringUtils.toStringArray(basePackages));</strong>
+}</span></code></pre>
+
+<p>doScan扫描basePackages下所有bean</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> Set&lt;BeanDefinitionHolder&gt;<span style="color: #000000;"> doScan(String... basePackages) {
+   Assert.notEmpty(basePackages, </span>"At least one base package must be specified"<span style="color: #000000;">);
+   Set</span>&lt;BeanDefinitionHolder&gt; beanDefinitions = <span style="color: #0000ff;">new</span> LinkedHashSet&lt;&gt;<span style="color: #000000;">();
+   </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (String basePackage : basePackages) {
+　　　 </span><span style="color: #008000;">//</span><span style="color: #008000;">根据basePackage加载包下所有java文件，并扫描出所有bean组件    </span>
+      Set&lt;BeanDefinition&gt; candidates =<span style="color: #000000;"><strong> findCandidateComponents(basePackage);</strong>
+　　　 </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历beandefition</span>
+      <span style="color: #0000ff;">for</span><span style="color: #000000;"> (BeanDefinition candidate : candidates) {
+　　　　  </span><span style="color: #008000;">//</span><span style="color: #008000;">解析作用域Scope</span>
+         ScopeMetadata scopeMetadata = <span style="color: #0000ff;">this</span><span style="color: #000000;">.scopeMetadataResolver.resolveScopeMetadata(candidate);
+         candidate.setScope(scopeMetadata.getScopeName());
+         String beanName </span>= <span style="color: #0000ff;">this</span>.beanNameGenerator.generateBeanName(candidate, <span style="color: #0000ff;">this</span><span style="color: #000000;">.registry);
+         </span><span style="color: #0000ff;">if</span> (candidate <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> AbstractBeanDefinition) {
+            postProcessBeanDefinition((AbstractBeanDefinition) candidate, beanName);
+         }
+　　　　  </span><span style="color: #008000;">//</span><span style="color: #008000;">通用注解解析到candidate结构中，主要是处理Lazy, primary DependsOn, Role ,Description这五个注解</span>
+         <span style="color: #0000ff;">if</span> (candidate <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> AnnotatedBeanDefinition) {
+            AnnotationConfigUtils.processCommonDefinitionAnnotations((AnnotatedBeanDefinition) candidate);
+         }
+　　　　  </span><span style="color: #008000;">//</span><span style="color: #008000;">检查当前bean是否已经注册，不存在则注册</span>
+         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (checkCandidate(beanName, candidate)) {
+          <strong>  BeanDefinitionHolder definitionHolder </strong></span><strong>= <span style="color: #0000ff;">new</span></strong><span style="color: #000000;"><strong> BeanDefinitionHolder(candidate, beanName);</strong>
+            definitionHolder </span>= AnnotationConfigUtils.applyScopedProxyMode(scopeMetadata, definitionHolder, <span style="color: #0000ff;">this</span><span style="color: #000000;">.registry);
+           <strong> beanDefinitions.add(definitionHolder);</strong>
+　　　　　　  </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 注册到ioc容器中，主要是一些@Component组件，@Bean注解方法并没有在此处注册，beanname和beandefinition 键值对</span>
+            registerBeanDefinition(definitionHolder, <span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>.registry);</strong>
+         }
+      }
+   }
+   </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> beanDefinitions;
+}</span></code></pre>
+
+<p>ClassPathBeanDefinitionScanner.scanCandidateComponents实现bean定义信息扫描</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> Set&lt;BeanDefinition&gt;<span style="color: #000000;"> scanCandidateComponents(String basePackage) {
+   Set</span>&lt;BeanDefinition&gt; candidates = <span style="color: #0000ff;">new</span> LinkedHashSet&lt;&gt;<span style="color: #000000;">();
+   </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+　　　</span><span style="color: #008000;">//</span><span style="color: #008000;"> @ComponentScan("com.sl.springlearning.extension")包路径处理：packageSearchPath = <strong>classpath*:com/sl/springlearning/extension/**/*.class</strong></span>
+      String packageSearchPath = ResourcePatternResolver.CLASSPATH_ALL_URL_PREFIX +<span style="color: #000000;">
+            resolveBasePackage(basePackage) </span>+ '/' + <span style="color: #0000ff;">this</span><span style="color: #000000;">.resourcePattern;
+　　　</span><strong><span style="color: #008000;">//</span><span style="color: #008000;">获取当前包下所有的class文件</span>
+      Resource[] resources =<span style="color: #000000;"> getResourcePatternResolver().getResources(packageSearchPath);
+      </span></strong><span style="color: #0000ff;">boolean</span> traceEnabled =<span style="color: #000000;"> logger.isTraceEnabled();
+      </span><span style="color: #0000ff;">boolean</span> debugEnabled =<span style="color: #000000;"> logger.isDebugEnabled();
+      </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (Resource resource : resources) {
+         </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (traceEnabled) {
+            logger.trace(</span>"Scanning " +<span style="color: #000000;"> resource);
+         }
+         </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (resource.isReadable()) {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+               MetadataReader metadataReader </span>=<span style="color: #000000;"> getMetadataReaderFactory().getMetadataReader(resource);
+　　　　　　　   </span><span style="color: #008000;">//</span><span style="color: #008000;">按照scanner过滤器过滤，比如配置类本身将被过滤掉，没有@Component等组件注解的类将过滤掉
+               </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">包含@Component注解的组件将创建BeanDefinition</span></strong>
+               <span style="color: #0000ff;">if</span><span style="color: #000000;"> (<strong>isCandidateComponent</strong>(metadataReader)) {
+                  <strong>ScannedGenericBeanDefinition sbd </strong></span><strong>= <span style="color: #0000ff;">new</span></strong><span style="color: #000000;"><strong> ScannedGenericBeanDefinition(metadataReader);</strong>
+                  sbd.setResource(resource);
+                  sbd.setSource(resource);
+                  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isCandidateComponent(sbd)) {
+                     </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (debugEnabled) {
+                        logger.debug(</span>"Identified candidate component class: " +<span style="color: #000000;"> resource);
+                     }
+                     candidates.add(sbd);
+                  }
+                  </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                     </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (debugEnabled) {
+                        logger.debug(</span>"Ignored because not a concrete top-level class: " +<span style="color: #000000;"> resource);
+                     }
+                  }
+               } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (traceEnabled) {
+                     logger.trace(</span>"Ignored because not matching any filter: " +<span style="color: #000000;"> resource);
+                  }
+               }
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable ex) {
+               </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> BeanDefinitionStoreException(
+                     </span>"Failed to read candidate component class: " +<span style="color: #000000;"> resource, ex);
+            }
+         }
+         </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (traceEnabled) {
+               logger.trace(</span>"Ignored because not readable: " +<span style="color: #000000;"> resource);
+            }
+         }
+      }
+   }
+   </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException ex) {
+      </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> BeanDefinitionStoreException("I/O failure during classpath scanning"<span style="color: #000000;">, ex);
+   }
+   </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> candidates;
+}</span></code></pre>
+
+<ul>
+<li><strong>@Bean注解解析过程</strong></li>
+</ul>
+<p>retrieveBeanMethodMetadata方法实现了@Bean方法的解析，但并未将实现bean实例的创建。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> Set&lt;MethodMetadata&gt;<span style="color: #000000;"> retrieveBeanMethodMetadata(SourceClass sourceClass) {
+   AnnotationMetadata original </span>=<span style="color: #000000;"> sourceClass.getMetadata();
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">获取所有@Bean注解的方法</span>
+   Set&lt;MethodMetadata&gt; beanMethods = original.getAnnotatedMethods(Bean.<span style="color: #0000ff;">class</span><span style="color: #000000;">.getName());
+    </span></strong><span style="color: #008000;">//</span><span style="color: #008000;"> 如果配置类中有多个@Bean注解的方法，则排序</span>
+   <span style="color: #0000ff;">if</span> (beanMethods.size() &gt; 1 &amp;&amp; original <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> StandardAnnotationMetadata) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Try reading the class file via ASM for deterministic declaration order...
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Unfortunately, the JVM's standard reflection returns methods in arbitrary
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> order, even between different runs of the same application on the same JVM.</span>
+      <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+         AnnotationMetadata asm </span>=
+               <span style="color: #0000ff;">this</span><span style="color: #000000;">.metadataReaderFactory.getMetadataReader(original.getClassName()).getAnnotationMetadata();
+         Set</span>&lt;MethodMetadata&gt; asmMethods = asm.getAnnotatedMethods(Bean.<span style="color: #0000ff;">class</span><span style="color: #000000;">.getName());
+         </span><span style="color: #0000ff;">if</span> (asmMethods.size() &gt;=<span style="color: #000000;"> beanMethods.size()) {
+            Set</span>&lt;MethodMetadata&gt; selectedMethods = <span style="color: #0000ff;">new</span> LinkedHashSet&lt;&gt;<span style="color: #000000;">(asmMethods.size());
+            </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (MethodMetadata asmMethod : asmMethods) {
+               </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (MethodMetadata beanMethod : beanMethods) {
+                  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (beanMethod.getMethodName().equals(asmMethod.getMethodName())) {
+                     selectedMethods.add(beanMethod);
+                     </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                  }
+               }
+            }
+            </span><span style="color: #0000ff;">if</span> (selectedMethods.size() ==<span style="color: #000000;"> beanMethods.size()) {
+               </span><span style="color: #008000;">//</span><span style="color: #008000;"> All reflection-detected methods found in ASM method set -&gt; proceed</span>
+               beanMethods =<span style="color: #000000;"> selectedMethods;
+            }
+         }
+      }
+      </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException ex) {
+         logger.debug(</span>"Failed to read class file via ASM for determining @Bean method order"<span style="color: #000000;">, ex);
+         </span><span style="color: #008000;">//</span><span style="color: #008000;"> No worries, let's continue with the reflection metadata we started with...</span>
+<span style="color: #000000;">      }
+   }
+   </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> beanMethods;
+}</span></code></pre>
+
+<p><strong>3.加载bean定义信息&nbsp;&nbsp;this.reader.loadBeanDefinitions(configClasses)</strong></p>
+<p>　　回到<code>ConfigurationClassPostProcessor#processConfigBeanDefinitions</code>方法，当调用完parse方法之后，能得到一批ConfigurationClass集合，但是这时候只是获取到，而容器中还没有对应的注册信息，那么接下来就是对这批集合进行注册处理</p>
+<p>　　ConfigurationClassBeanDefinitionReader.loadBeanDefinitions()方法的功能就是将之前解析出的configClasses配置类信息中所有配置相关的信息添加到spring的bean定义，主要是配置类中的@Bean注解方法，配置类@ImportResource和@Import(实现ImportBeanDefinitionRegistrar接口方式)的bean注册</p>
+<p>ConfigurationClassBeanDefinitionReader.loadBeanDefinitions()方法 实现逻辑如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> loadBeanDefinitions(Set&lt;ConfigurationClass&gt;<span style="color: #000000;"> configurationModel) {
+   TrackedConditionEvaluator trackedConditionEvaluator </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> TrackedConditionEvaluator();
+   </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (ConfigurationClass configClass : configurationModel) {
+      <strong>loadBeanDefinitionsForConfigurationClass</strong>(configClass, trackedConditionEvaluator);
+   }
+}</span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> loadBeanDefinitionsForConfigurationClass(
+      ConfigurationClass configClass, TrackedConditionEvaluator trackedConditionEvaluator) {
+     </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (trackedConditionEvaluator.shouldSkip(configClass)) {
+      String beanName </span>=<span style="color: #000000;"> configClass.getBeanName();
+      </span><span style="color: #0000ff;">if</span> (StringUtils.hasLength(beanName) &amp;&amp; <span style="color: #0000ff;">this</span><span style="color: #000000;">.registry.containsBeanDefinition(beanName)) {
+         </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.registry.removeBeanDefinition(beanName);
+      }
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.importRegistry.removeImportingClass(configClass.getMetadata().getClassName());
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+   }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">与@Import注解相关</span>
+   <span style="color: #0000ff;">if</span><span style="color: #000000;"> (configClass.isImported()) {
+      registerBeanDefinitionForImportedConfigurationClass(configClass);
+   }
+　<strong>　</strong></span><strong><span style="color: #008000;">//</span><span style="color: #008000;">将@Bean方法注册为bean</span>
+   <span style="color: #0000ff;">for</span><span style="color: #000000;"> (BeanMethod beanMethod : configClass.getBeanMethods()) {
+      loadBeanDefinitionsForBeanMethod(beanMethod);
+   }
+   </span></strong><span style="color: #008000;">//</span><span style="color: #008000;">将configClass中中ImportResource指定的资源注册为bean</span>
+<span style="color: #000000;">   loadBeanDefinitionsFromImportedResources(configClass.getImportedResources());
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">将configClass中ImportedRegistrar注册为bean</span>
+<span style="color: #000000;">   loadBeanDefinitionsFromRegistrars(configClass.getImportBeanDefinitionRegistrars());
+}</span></code></pre>
+
+<p>主要看下loadBeanDefinitionsForBeanMethod方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> loadBeanDefinitionsForBeanMethod(BeanMethod beanMethod) {
+    ConfigurationClass configClass </span>=<span style="color: #000000;"> beanMethod.getConfigurationClass();
+    MethodMetadata metadata </span>=<span style="color: #000000;"> beanMethod.getMetadata();
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">获取方法名</span>
+    String methodName =<span style="color: #000000;"> metadata.getMethodName();
+
+    </span></strong><span style="color: #008000;">//</span><span style="color: #008000;"> Do we need to mark the bean as skipped by its condition?</span>
+    <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.conditionEvaluator.shouldSkip(metadata, ConfigurationPhase.REGISTER_BEAN)) {
+        configClass.skippedBeanMethods.add(methodName);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (configClass.skippedBeanMethods.contains(methodName)) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取@Bean注解的元数据信息</span>
+    AnnotationAttributes bean = AnnotationConfigUtils.attributesFor(metadata, Bean.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+    Assert.state(bean </span>!= <span style="color: #0000ff;">null</span>, "No @Bean annotation attributes"<span style="color: #000000;">);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Consider name and any aliases
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">获取@Bean注解是否有name属性，如@Bean(name = "myBean")</span></strong>
+    List&lt;String&gt; names = <span style="color: #0000ff;">new</span> ArrayList&lt;&gt;(Arrays.asList(bean.getStringArray("name"<span style="color: #000000;">)));
+    </span><span style="color: #008000;">//默认</span><span style="color: #008000;">bean的名称和方法名称相同,但是如果设置了name，就取name作为beanName</span>
+    String beanName = (!names.isEmpty() ? names.remove(0<span style="color: #000000;">) : methodName);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">创建一个BeanMethod的BeanDefinition</span>
+   <strong> ConfigurationClassBeanDefinition beanDef = <span style="color: #0000ff;">new</span></strong><span style="color: #000000;"><strong> ConfigurationClassBeanDefinition(configClass, metadata);</strong>
+    beanDef.setResource(configClass.getResource());
+    beanDef.setSource(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.sourceExtractor.extractSource(metadata, configClass.getResource()));
+
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">设置工厂方法
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">后期Bean的实例化，getBean的时候，会判断BeanMethod是否存在FactoryMethod，如果存在，就使用反射调用工厂方法，返回工厂方法中的对象</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (metadata.isStatic()) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> static @Bean method</span>
+<span style="color: #000000;">        beanDef.setBeanClassName(configClass.getMetadata().getClassName());
+        beanDef.setFactoryMethodName(methodName);
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> instance @Bean method</span>
+<span style="color: #000000;">        beanDef.setFactoryBeanName(configClass.getBeanName());
+        beanDef.setUniqueFactoryMethodName(methodName);
+    }
+    </span></strong><span style="color: #008000;">//</span><span style="color: #008000;">....</span>
+    <span style="color: #0000ff;">this</span><span style="color: #000000;">.registry.registerBeanDefinition(beanName, beanDefToRegister);
+}</span></code></pre>
+
+<p>上面只列出了核心代码，主要是构造了BeanDefinition，然后注册进容器，而BeanDefinition的一些属性则是由注解中获取，这部分代码省略。</p>
+<p>另外，可以看到@Bean的方式构造的BeanDefinition的时候，与普通的不同，这种方式是会设置工厂方法去初始化，也就是说，AppConfig&nbsp;类下的appBean方法被Spring当成一个工厂方法，也就是说这种方式与下列的初始化方式原理类似：</p>
+<src class="cnblogs_code">
+<pre><code>&lt;bean id="appConfig" <span style="color: #0000ff;">class</span>="com.example.springboot.springbootdemo.bean.AppConfig"/&gt;
+
+&lt;bean id="appBean" factory-bean="appConfig" factory-method="appBean"&gt;&lt;/bean&gt;</code></pre>
+
+<h2>总结</h2>
+<p>处理逻辑理了一遍后，看一下ConfigurationClassPostProcessor处理器解析@configuration配置类主要过程：</p>
+<p>　　1. Spring容器初始化时注册默认后置处理器ConfigurationClassPostProcessor</p>
+<p>　　2. Spring容器初始化执行refresh()方法中调用ConfigurationClassPostProcessor</p>
+<p>　　3. ConfigurationClassPostProcessor处理器借助ConfigurationClassParser完成配置类解析</p>
+<p>　　4. ConfigurationClassParser配置内解析过程中完成嵌套的MemberClass、@PropertySource注解、@ComponentScan注解（扫描package下的所有Class并进行迭代解析，主要是@Component组件解析及注册）、@ImportResource、@Bean等处理</p>
+<p>　　5. 完成@Bean注册， @ImportResource指定bean的注册以及@Import(实现ImportBeanDefinitionRegistrar接口方式)的bean注册</p>
+<p>　　6.有@Bean注解的方法在解析的时候作为ConfigurationClass的一个属性，最后还是会转换成BeanDefinition进行处理， 而实例化的时候会作为一个工厂方法进行Bean的创建</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

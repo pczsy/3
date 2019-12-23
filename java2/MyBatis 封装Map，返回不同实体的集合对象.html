@@ -1,0 +1,96 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修MyBatis 封装Map，返回不同实体的集合对象' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>MyBatis 封装Map，返回不同实体的集合对象</center></div><div class='banquan'>原文出处:本文由博客园博主Arebirth提供。<br/>
+原文连接:https://www.cnblogs.com/arebirth/p/mybatisone.html</div><br>
+    <p><strong>博文发布出发点：</strong></p>
+<p><strong>　　1.现在有一个需求，就是从100个表中获得任意表中的数据，按照正常的思维模式和处理方式，</strong></p>
+<p><strong>　　　　我们首先会创建100个实体类（累死！），然后通过resultType一一对应实体类，这种方式简直...&nbsp;</strong></p>
+<p><strong>　　2.我们不通过创建实体类，来获得一个表中的所有数据，或者部分数据的键值对形式的值，我们该怎么做？</strong></p>
+<p><strong>那么我们下面将会用一种相对高效的方式来解决问题！</strong></p>
+<p>&nbsp;</p>
+<p><strong>最初的想法，汇聚成了如下的代码</strong></p>
+<src class="cnblogs_code">
+<pre><code>List<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Object</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;"> findStatisData();
+
+</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mapper </span><span style="color: #ff0000;">namespace</span><span style="color: #0000ff;">="cn.arebirth.mapper.IncomeMapper"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">select </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="findStatisData"</span><span style="color: #ff0000;"> resultType</span><span style="color: #0000ff;">="java.lang.Object"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+        select * from data
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">select</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mapper</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>但是这样写拿到的数据只有一列，这时为什么？？sql语句都没有问题？</p>
+<p>原因是，当我们的resultType写成一个实体类的时候，MyBatis首先会找这个实体类里面的字段，然后根据字段进行映射，</p>
+<p>但是我们的Object对象它里面有字段吗？？？</p>
+<p>当然是没有的，所以只能获得一个值。</p>
+<p>-------------------------------------------------------------------</p>
+<p>像这种想要返回实体类的东西我们还得借助Map&lt;String,Object&gt;，为什么呢？</p>
+<p>String就相当于实体类里面的具体属性字段，而Object就是存储值的</p>
+<p>&nbsp;</p>
+<p><strong><span style="color: #000000;">所以我们的写法应该是这样的</span></strong></p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code>/*<br />　　Warning：<br />　　　　这里边如果是要获取多个值的话就必须写成List&lt;Map&lt;String,Object&gt;&gt;<br />　　　　如果要写成Map&lt;String,Object&gt;，它只会获取一条数据，如果你查询的是多条数据的话，还会报异常！！<br />*/<br />List<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Map</span><span style="color: #ff0000;">&lt;String,Object</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">&gt; findStatisData();
+
+</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mapper </span><span style="color: #ff0000;">namespace</span><span style="color: #0000ff;">="cn.arebirth.mapper.IncomeMapper"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">select </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="findStatisData"</span><span style="color: #ff0000;"> resultType</span><span style="color: #0000ff;">="java.util.Map"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+        select * from data
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">select</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mapper</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p>这样的话我们就可以获得所有的字段名加值的lList集合嵌套Map的值了。</p>
+<p>&nbsp;</p>
+<p><strong>最终我们可以通过如下的方式，打印出所有的key（留给比较懵逼的同学看）</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">package cn.arebirth.test;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.ibatis.session.SqlSession;
+import org.junit.Test;
+
+import cn.arebirth.mapper.IncomeMapper;
+import cn.arebirth.util.MyBatisUtil;
+
+public class TestIncome {
+    
+    @Test
+    public void test() {
+        SqlSession session = MyBatisUtil.getSession();
+        IncomeMapper mapper = session.getMapper(IncomeMapper.class);
+        
+        List</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Map</span><span style="color: #ff0000;">&lt;String,Object</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">&gt; data = mapper.findStatisData();
+        for (int i = 0; i </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;"> data.size</span><span style="color: #ff0000;">(); i++) {
+            HashMap&lt;Object, Object</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;"> map = (HashMap)data.get(i);
+            Set</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Object</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;"> keySet = map.keySet();
+            System.out.println(keySet.toString());
+        }
+    }
+    
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

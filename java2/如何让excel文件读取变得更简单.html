@@ -1,0 +1,289 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何让excel文件读取变得更简单' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何让excel文件读取变得更简单</center></div><div class='banquan'>原文出处:本文由博客园博主执偕提供。<br/>
+原文连接:https://www.cnblogs.com/zhixie/p/11717739.html</div><br>
+    <p>今天给大家安利一款excel文件导入神器，easyexcel，官方地址：（<a href="https://github.com/alibaba/easyexcel" class="uri">https://github.com/alibaba/easyexcel</a>）。<br />
+在官网文档中有介绍了其性能。<br />
+<img src="./images/如何让excel文件读取变得更简单0.png" alt="poi vs easyexcel 内存消耗对比2003" /><br />
+<img src="./images/如何让excel文件读取变得更简单1.png" alt="poi vs easyexcel 内存消耗对比2007" /><br />
+<img src="./images/如何让excel文件读取变得更简单2.png" alt="poi vs easyexcel 用时 2003" /><br />
+<img src="./images/如何让excel文件读取变得更简单3.png" alt="poi vs easyexcel 用时 2007" /><br />
+从上面的性能测试可以看出easyexcel在解析耗时上比poiuserModel模式弱了一些。主要原因是我内部采用了反射做模型字段映射，中间我也加了cache，但感觉这点差距可以接受的。但在内存消耗上差别就比较明显了，easyexcel在后面文件再增大，内存消耗几乎不会增加了。但poi userModel就不一样了，简直就要爆掉了。想想一个excel解析200M，同时有20个人再用估计一台机器就挂了。</p>
+<h2 id="如何使用呢">如何使用呢</h2>
+<p>1、引入maven依赖</p>
+<pre><code><code>   &lt;dependency&gt;
+        &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
+        &lt;artifactId&gt;easyexcel&lt;/artifactId&gt;
+        &lt;version&gt;2.0.5&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>由于改jar包对poi进行了一些封装，因此需要注释掉项目引用的poi依赖，不然会有版本冲突。<br />
+2、创建接收excel数据的实体</p>
+<pre><code><code>@Data
+public class Person {
+
+    @ExcelProperty(value = &quot;姓名&quot;,index = 1)
+    private String name;
+
+    @ExcelProperty(&quot;性别&quot;)
+    private String sex;
+
+    @ExcelProperty(&quot;年龄&quot;)
+    private int age;
+}</code></code></pre>
+<p>@ExcelProperty 这个注解用于指定该属性对应excel文件中的哪一列数据。里面有两个属性，一个是value,另一个是index（从0开始），这里不建议 index 和 name 同时用，要么一个对象只用index，要么一个对象只用name去匹配。<br />
+3、增加person监听器</p>
+<pre><code><code>@Slf4j
+public class PersonListener extends AnalysisEventListener&lt;Person&gt; {
+
+    /**
+     * 每隔5条存储数据库，实际使用中可以3000条，然后清理list ，方便内存回收
+     */
+    private static final int BATCH_COUNT = 5;
+    List&lt;Person&gt; list = new ArrayList();
+
+    @Override
+    public void invoke(Person person, AnalysisContext analysisContext) {
+        log.info(&quot;解析到一条数据:{}&quot;,person);
+        if (list.size() &gt;= BATCH_COUNT) {
+            saveData();
+            list.clear();
+        }
+    }
+
+    @Override
+    public void doAfterAllAnalysed(AnalysisContext analysisContext) {
+        saveData();
+        log.info(&quot;所有数据解析完成！&quot;);
+    }
+    @Override
+    public void onException(Exception exception, AnalysisContext context) {
+        log.error(&quot;解析失败，但是继续解析下一行&quot;, exception);
+
+    }
+    /**
+     * 加上存储数据库
+     */
+    private void saveData(){
+        log.info(&quot;{}条数据，开始存储数据库！&quot;, list.size());
+        log.info(&quot;存储数据库成功！&quot;);
+    }
+}</code></code></pre>
+<p>4、文件上传方法</p>
+<pre><code><code>@RestController
+@Slf4j
+public class PersonController {
+    
+    @PostMapping(&quot;importFile&quot;)
+    public String readPerson(MultipartFile file){
+        
+        PersonListener personListener = new PersonListener();
+        try {
+
+            // headRowNumber(2) 这里可以设置1，因为头就是一行。如果多行头，可以设置其他值。不传入也可以，他没有指定头，也就是默认1行
+            EasyExcel.read(file.getInputStream(), Person.class,personListener).sheet().headRowNumber(1).doRead();
+
+        }catch (IOException ioe){
+
+            log.info(&quot;读取excel异常={}&quot;,ioe);
+        }
+        return &quot;&quot;;
+    }
+}</code></code></pre>
+<p>这样代码基本就算完成了。接下来我们看看如何在</p>
+<h2 id="spring框架中使用">spring框架中使用</h2>
+<p>我们知道，在spring中文件入库的时候可能需要调用service，service调用dao入库。那我们如何在这个PersonListener中调用service呢。<br />
+首先，在PersonController中注入service.</p>
+<pre><code><code>    @Autowired
+    private PersonService personService;</code></code></pre>
+<p>然后，在PersonListener中增加一个有参构造器。</p>
+<pre><code><code>   private PersonService personService;
+    
+    public PersonListener(PersonService personService){
+
+        this.personService = personService;
+    }</code></code></pre>
+<p>最后在PersonController中new PersonListener的时候将service传进来即可。</p>
+<pre><code><code>    @Autowired
+    private PersonService personService;
+    @PostMapping(&quot;importFile&quot;)
+    public String readPerson(MultipartFile file){
+
+        PersonListener personListener = new PersonListener(personService);
+        try {
+
+            // headRowNumber(2) 这里可以设置1，因为头就是一行。如果多行头，可以设置其他值。不传入也可以，他没有指定头，也就是默认1行
+            EasyExcel.read(file.getInputStream(), Person.class,personListener).sheet().headRowNumber(2).doRead();
+
+        }catch (IOException ioe){
+
+            log.info(&quot;读取excel异常={}&quot;,ioe);
+        }
+        return &quot;&quot;;
+    }</code></code></pre>
+<p><strong>接下来我们在看一下，有一个需求是这样的，我们需要统计一下导入成功数和失败数并且要不失败数写入到一个excel中返回给页面，如何实现？</strong><br />
+我们调整一下PersonListener</p>
+<pre><code><code>@Slf4j
+public class PersonListener extends AnalysisEventListener&lt;Person&gt; {
+
+    private int successCount = 0; // 成功量
+    
+    private int exceptionCount = 0; // 异常量
+
+    private List&lt;Person&gt; exceptionList = new ArrayList&lt;&gt;(); // 异常数据
+
+    /**
+     * 每隔5条存储数据库，实际使用中可以3000条，然后清理list ，方便内存回收
+     */
+    private static final int BATCH_COUNT = 5;
+    List&lt;Person&gt; list = new ArrayList();
+
+    private PersonService personService;
+
+    public PersonListener(PersonService personService){
+
+        this.personService = personService;
+    }
+
+    @Override
+    public void invoke(Person person, AnalysisContext analysisContext) {
+        log.info(&quot;解析到一条数据:{}&quot;,person);
+        successCount++;
+                list.add(person);
+        if (list.size() &gt;= BATCH_COUNT) {
+            saveData();
+            list.clear();
+        }
+    }
+
+    @Override
+    public void doAfterAllAnalysed(AnalysisContext analysisContext) {
+        saveData();
+        log.info(&quot;所有数据解析完成！&quot;);
+    }
+    @Override
+    public void onException(Exception exception, AnalysisContext context) {
+        log.error(&quot;解析失败，但是继续解析下一行&quot;, exception);
+
+        Person person  = (Person)context.readRowHolder().getCurrentRowAnalysisResult();
+        exceptionList.add(person);
+        exceptionCount++;
+
+    }
+    /**
+     * 加上存储数据库
+     */
+    private void saveData(){
+        log.info(&quot;{}条数据，开始存储数据库！&quot;, list.size());
+        log.info(&quot;存储数据库成功！&quot;);
+    }
+    /**
+     * 插入结果返回
+     * @return
+     */
+    public Map&lt;String,Object&gt; getData(){
+
+        Map&lt;String,Object&gt; map = new HashMap&lt;&gt;();
+        map.put(&quot;success&quot;,successCount);
+        map.put(&quot;exception&quot;,exceptionCount);
+        return map;
+    }
+
+    /**
+     * 失败数据返回
+     * @return
+     */
+    public List&lt;Person&gt; getExceptionList(){
+
+        return exceptionList;
+    }
+}</code></code></pre>
+<p>在PersonController中将异常数据写入文件。</p>
+<pre><code><code>@RestController
+@Slf4j
+public class PersonController {
+
+    @Autowired
+    private PersonService personService;
+
+    @PostMapping(&quot;importFile&quot;)
+    public String readPerson(MultipartFile file){
+
+        PersonListener personListener = new PersonListener(personService);
+        try {
+
+            // headRowNumber(1) 这里可以设置1，因为头就是一行。如果多行头，可以设置其他值。不传入也可以，他没有指定头，也就是默认1行
+            EasyExcel.read(file.getInputStream(), Person.class,personListener).sheet().headRowNumber(1).doRead();
+
+        }catch (IOException ioe){
+
+            log.info(&quot;读取excel异常={}&quot;,ioe);
+        }
+        Map&lt;String, Object&gt; data = personListener.getData();
+        String exception = data.get(&quot;exception&quot;) + &quot;&quot;;
+        int exceptionCount = Integer.parseInt(exception);
+        if(exceptionCount&gt;0){
+            String fileName = System.currentTimeMillis() + &quot;.xlsx&quot;;
+            // 这里 需要指定写用哪个class去读，然后写到第一个sheet，名字为模板 然后文件流会自动关闭
+            EasyExcel.write(&quot;E://upload/file/&quot;+fileName, Person.class).sheet(&quot;模板&quot;).doWrite(personListener.getExceptionList());
+            data.put(&quot;fileName&quot;,fileName);
+        }
+        return data.toString();
+    }
+}</code></code></pre>
+<p>我们写个页面测试一下</p>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;文件上传&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;form action=&quot;/importFile&quot; method=&quot;post&quot; enctype=&quot;multipart/form-data&quot;&gt;
+    &lt;input type=&quot;file&quot;  name=&quot;file&quot;/&gt;
+    &lt;button type=&quot;submit&quot;&gt;提交&lt;/button&gt;
+&lt;/form&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></code></pre>
+<p>下面是测试的日志文件</p>
+<pre><code><code>2019-10-20 11:21:59.809  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 解析到一条数据:Person(name=执偕, sex=男, age=18)
+2019-10-20 11:21:59.811  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 解析到一条数据:Person(name=执偕2, sex=男, age=19)
+2019-10-20 11:21:59.811  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 解析到一条数据:Person(name=执偕3, sex=男, age=20)
+2019-10-20 11:21:59.811  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 解析到一条数据:Person(name=执偕4, sex=男, age=21)
+2019-10-20 11:21:59.812  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 解析到一条数据:Person(name=执偕5, sex=男, age=22)
+2019-10-20 11:21:59.812  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 5条数据，开始存储数据库！
+2019-10-20 11:21:59.812  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 存储数据库成功！
+2019-10-20 11:21:59.812  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 解析到一条数据:Person(name=执偕6, sex=男, age=23)
+2019-10-20 11:21:59.812  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 解析到一条数据:Person(name=执偕7, sex=男, age=24)
+2019-10-20 11:21:59.813  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 解析到一条数据:Person(name=执偕8, sex=男, age=25)
+2019-10-20 11:21:59.813  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 解析到一条数据:Person(name=执偕9, sex=男, age=26)
+2019-10-20 11:21:59.813  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 4条数据，开始存储数据库！
+2019-10-20 11:21:59.813  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 存储数据库成功！
+2019-10-20 11:21:59.813  INFO 17748 --- [nio-8080-exec-1] c.zhixie.easyexcel.demo.PersonListener   : 所有数据解析完成！</code></code></pre>
+<p>今天就介绍到这了，文中的代码我已上传到码云上，<br />
+<strong>地址：</strong>https://gitee.com/javaXiaoCaiJi/zhixie-code-example/tree/master/easyexcel</p>
+<blockquote>
+<p>如果文章对您有帮助，请记得点赞关注哟~<br />
+欢迎大家关注我的公众号<情系IT>，每日技术推送文章供大家学习参考。</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

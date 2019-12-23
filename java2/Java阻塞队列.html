@@ -1,0 +1,75 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java阻塞队列' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java阻塞队列</center></div><div class='banquan'>原文出处:本文由博客园博主MrHH提供。<br/>
+原文连接:https://www.cnblogs.com/HuiH/p/11823215.html</div><br>
+    <p><span style="font-size: 16px;"><span style="color: #ff0000;"><strong>一、阻塞队列：用于保存等待执行的任务。</strong></span>在阻塞队列中，线程阻塞的两种情况：</span></p>
+<p><span style="font-size: 16px;">　　1.当队列中没有数据的情况下，消费者端的所有线程都会被自动阻塞（挂起），直到有数据放入队列。</span></p>
+<p>　　<img src="./images/Java阻塞队列0.png" alt="" width="335" height="229" /></p>
+<p>　　<span style="font-size: 16px;">2.当队列中填满数据的情况下， 生产者端的所有线程都会被自动阻塞，知道队列中有空位置，线程被自动唤醒。</span></p>
+<p>　　<img src="./images/Java阻塞队列1.png" alt="" width="348" height="239" /></p>
+<p><strong><span style="font-size: 16px; color: #ff0000;">二、阻塞队列的主要方法</span></strong></p>
+<p><img src="./images/Java阻塞队列2.png" alt="" width="800" height="183" /></p>
+<p>　<span style="font-size: 16px;">　抛出异常：抛出一个异常；</span></p>
+<p><span style="font-size: 16px;">　　特殊值：返回一个特殊值（null或false，视情况而定）</span></p>
+<p><span style="font-size: 16px;">　　阻塞：在成功操作之前，一直阻塞线程</span></p>
+<p><span style="font-size: 16px;">　　超时：放弃前只在最大的时间内阻塞</span></p>
+<p><span style="color: #0000ff; font-size: 16px;"><strong>插入操作</strong></span></p>
+<p><span style="font-size: 16px;">　　1）public abstract boolean add(E paramE)：将指定元素插入此队列中（如果立即可行且不会违反容量限制），成功是返回true，如果当前没有可用空间，则抛出异常。如果钙元素是null，则会抛出NullPointerException异常。</span></p>
+<p><span style="font-size: 16px;">　　2）public abstract boolean offer(E paramE)：将指定元素插入此队列中（如果立即可行且不会违反容量限制），成功时返回true，如果当前没有可用的空间，则返回false。</span></p>
+<p><span style="font-size: 16px;">　　3）public abstract void put(E paramE)throws InterruptedExcaption：将指定元素插入队列中，将等待可用的空间（如果有必要）。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 16px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> put(E paramE) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> InterruptedException {
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">     checkNotNull(paramE);
+</span><span style="color: #008080;"> 3</span>      ReentrantLock  localReentrantLock = <span style="color: #0000ff;">this</span><span style="color: #000000;">.lock;
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">     localReentrantLock.lockInterruptibly();
+</span><span style="color: #008080;"> 5</span>   <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 6</span>          <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">this</span>.count == <span style="color: #0000ff;">this</span><span style="color: #000000;">.items.length)
+</span><span style="color: #008080;"> 7</span>          <span style="color: #0000ff;">this</span>.notFull.await();<span style="color: #008000;">//</span><span style="color: #008000;">如果队列满了，则线程阻塞等待</span>
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">         enqueue(paramE);
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">         localReentrantLock.unlock();
+</span><span style="color: #008080;">10</span>      } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">         localReentrantLock.unlock();
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">     }
+</span><span style="color: #008080;">13</span>  }</span></code></pre>
+
+<p><span style="font-size: 16px;">　　4）offer(E o,long timeout, TimeUnit unit)：可以设定等待的时间，如果指定的时间内，还不能往队列中加入BlockingQueue，则返回失败。</span></p>
+<p><span style="font-size: 16px;"><strong><span style="color: #0000ff;">获取数据操作</span></strong></span></p>
+<p><span style="font-size: 16px;">　　1）poll(time)：取走BlockingQueue里排在首位的对象，若不能立即取出，则可以等time参数规定的时间，取不到时返回null；</span></p>
+<p><span style="font-size: 16px;">　　2）poll(long timeout,TimeUnit unit)：从BlockingQueue取出一个队首的对象，如果在指定的时间内，队列一旦有数据可取，则立即返回队列中的数据。否则直到时间超时还没有数据可取，返回失败；</span></p>
+<p><span style="font-size: 16px;">　　3）take()：取走BlockingQueue里排在首位的对象，若BlockingQueue为空，阻断进入等待状态直到BlockingQueue有新的数据被加入；</span></p>
+<p><span style="font-size: 16px;">　　4）drainTo()：一次性从BlockingQueue获取所有可用的数据对象（还可以指定获取数据的个数），通过该方法，可以提升获取数据效率，不需要多次分批加锁或释放锁。</span></p>
+<p><span style="color: #ff0000;"><strong><span style="font-size: 16px;">三、Java中的阻塞队列</span></strong></span></p>
+<p><span style="font-size: 16px;">　<span style="color: #0000ff;"><strong>　1. ArrayBlockingQueue：</strong></span><span style="color: #ff0000;">由数组结构实现的有界阻塞队列。此队列按照先进先出（FIFO）的原则对元素进行排序。默认情况下不保证访问者公平的访问队列</span>，所谓的公平访问队列是指阻塞的所有生产者线程或消费者线程，当队列可用时，可以按照阻塞的先后顺序访问队列，即先阻塞的生产者线程，可以先往队列里插入元素，先阻塞的消费者线程，可以先从队列里获取元素。通常情况下为了保证公平性会降低吞吐量。我们可以使用以下代码创建一个公平的阻塞队列：</span></p>
+<p><span style="font-size: 16px;">　　　　ArrayBlockingQueue fairQueue = new ArrayBlockingQueue(1000,ture);</span></p>
+<p><span style="font-size: 16px;">　　<span style="color: #0000ff;"><strong>2. LinkedBlockingQueue：</strong></span><span style="color: #ff0000;">由链表结构组成的有界阻塞队列。<span style="color: #000000;">同ArrayBlockingQueue类似，</span>此队列按照先进先出（FIFO）的原则对元素进行排序。</span>而LinkedBlockingQueue之所以能够高效地处理并发数据，还因为其对于生产者端和消费者端分别<span style="color: #ff0000;">采用了独立的锁来控制数据同步</span>，在高并发的情况下生产者和消费者可以并行地操作队列中的数据，以此来提高整个队列的并发性能。吞吐量通常要高于ArrayBlockingQueue。</span></p>
+<p><span style="font-size: 16px;">　　　　LinkedBlockingQueue会默认一个类似无限大小的容量（Integer.MAX_VALUE）。</span></p>
+<p><span style="font-size: 16px;">　　<strong><span style="color: #0000ff;">3. PriorityBlockingQueue：</span></strong><span style="color: #ff0000;">支持优先级排序的无界阻塞队列。默认情况下元素采取升序排列。</span>可以自定义实现compareTo() 方法来指定元素进行排序规则，或初始化PriorityBlockingQueue时，制定构造函数Comparator来对元素进行排序。需要注意的是不能保证同优先级元素的顺序。</span></p>
+<p><span style="font-size: 16px;">　<span style="color: #0000ff;"><strong>　4. DelayQueue：</strong></span><span style="color: #ff0000;">使用优先级队列实现的支持延时获取元素的无界阻塞队列。</span>队列使用PriorityQueue来实现。队列中的元素必须实现Delayed接口，在创建元素是可以指定多久才能从队列中获取当前元素。只有在延迟期满时才能从队列中提取元素。我们可以将DelayQueue运用在以下场景中：</span></p>
+<p><span style="font-size: 16px;">　　　　1）缓存系统的设计：可以用DelayQueue保存缓存元素的有效期，使用一个线程循环查询DelayQueue，一旦能从DelayQueue中获取元素时，表示缓存有效期到了。</span></p>
+<p><span style="font-size: 16px;">　　　　2）定时任务调度：使用DelayQueue保存当天将会执行的任务和执行时间，一旦从DelayQueue中获取到任务就开始执行，从比如TimerQueue就是使用DelayQueue实现的。</span></p>
+<p><span style="font-size: 16px;">　<span style="color: #0000ff;"><strong>　5. SynchronousQueue：</strong></span><span style="color: #ff0000;">是一个不存储元素的阻塞队列。每个插入操作必须等到另一个线程调用移除操作，否则插入操作一直处于阻塞状态。</span>SynchronousQueue负责把生产者线程处理的数据直接传递给消费者线程。队列本身并不存储任何元素，非常适合于传递性场景，比如在一个线程中使用的数据，传递给另外一个线程使用，SynchronousQueue的吞吐量高于LinkedBlockingQueue和ArrayBlockingQueue。</span></p>
+<p><span style="font-size: 16px;">　　<span style="color: #0000ff;"><strong>6. LinkedTransferQueue：</strong></span><span style="color: #ff0000;">由链表结构组成的无界阻塞队列。</span>相对于其他阻塞队列，LinkedTransferQueue多了tryTransfer和transfer方法。</span></p>
+<p><strong style="font-size: 16px;">　　　　1）transfer方法：</strong><span style="font-size: 16px;">如果当前有消费者正在等待接收元素（消费者使用take方法或带时间限制的poll方法时），transfer方法可以把生产者传入的元素立刻transfer（传输）给消费者。如果没有消费者在等待接收元素，transfer方法会将元素存放在队列的tail节点，并等待该元素被消费者消费了才返回。</span></p>
+<p><span style="font-size: 16px;">　　　　<strong>2）tryTransfer方法：</strong>是用来试探下生产者传入的元素是否能直接传给消费者。如果没有消费者等待接收元素，则返回false。tryTransfer方法与transfer方法的区别是tryTransfer方法无论消费者是否接收，方法立即返回，而transfer方法是必须等到消费者消费了才返回。对于带有时间限制的tryTransfer(E o,long timeout,TimeUnit unit)方法，则是试图把生产者传入的元素直接传给消费者，但是如果没有消费者消费该元素则等待指定的时间再返回，如果超时还没消费元素，则返回false，如果在超市时间内消费了元素，则返回true。</span></p>
+<p><span style="font-size: 16px;">　<span style="color: #0000ff;"><strong>　7.LinkedBlockingDeque：</strong></span><span style="color: #ff0000;">由链表结构组成的双向阻塞队列。所谓双向队列指可以从队列的两端插入和移除元素。</span>双端队列因为多了一个操作队列的入口，在多线程同时入队时，也就减少了一半的竞争。相比其他的阻塞队列，LinkedBlockingDeque多了addFirst，addLast，offerFirst，offerLast，peekFirst，peekLast等方法，以First单词结尾的方法，表示插入、获取（peek）或移除双端队列第一个元素。以Last单词结尾的方法，表示插入、获取或移除双端队列的最后一个元素。另外插入方法add等同于addLast，移除方法remove等同于removeFirst。但是take方法却等同于takeFirst，使用时还是用带有First和Last后缀的方法更清楚。在初始化LinkedBlockingQueue时可以设置容量防止其过度膨胀。另外双向阻塞队列可以运用在&ldquo;工作窃取&rdquo;模式中。</span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,48 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Redis主从复制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Redis主从复制</center></div><div class='banquan'>原文出处:本文由博客园博主久伴成忆提供。<br/>
+原文连接:https://www.cnblogs.com/starluke/p/11713510.html</div><br>
+    <src><span style="font-size: 18px;"><strong>一、Redis主从复制原理&nbsp;&nbsp;</strong></span><br /><span style="font-family: 宋体;">&nbsp; &nbsp; 1.主从复制的原理以及过程必须要掌握，这样我们才知道为什么会出现这些问题<br />&nbsp; &nbsp; 2.</span><span style="font-family: 宋体;">主从复制过程大体可以分为</span>3<span style="font-family: 宋体;">个阶段：连接建立阶段（即准备阶段）、数据同步阶段、命令传播阶段。<br />&nbsp; &nbsp; 3.</span><span style="font-family: 宋体;">在从节点执行</span>&nbsp;slaveof&nbsp;<span style="font-family: 宋体;">命令后，复制过程便开始运作，下面图示大概可以看到，<br />&nbsp;&nbsp;&nbsp;&nbsp;</span><span style="font-family: 宋体;">从图中可以看出复制过程大致分为</span>6<span style="font-family: 宋体;">个过程</span>
+<src><img src="./images/Redis主从复制0.png" alt="" />
+<p><span style="font-family: 宋体;">主从配置之后的日志记录也可以看出这个流程。</span></p>
+<p>1）<strong>保存主节点（master）信息。</strong></p>
+<p><span style="font-family: 微软雅黑;">执行</span>&nbsp;slaveof 后 Redis 会打印日志。</p>
+<p>2）<strong><span style="font-family: 微软雅黑;">从节点（</span>slave）内部通过每秒运行的定时任务维护复制相关逻辑，当定时任务发现存在新的主节点后，会尝试与该节点建立网络连接</strong></p>
+<p align="justify"><img src="./images/Redis主从复制1.png" alt="" />&nbsp;</p>
+<p align="justify"><span style="font-size: 18px; font-family: 'Microsoft YaHei';"><strong>&nbsp;从节点与主节点建立网络连接</strong></span></p>
+<p align="justify">&nbsp;&nbsp; &nbsp; &nbsp;&nbsp;<span style="font-family: 宋体;">从节点会建立一个</span>&nbsp;socket 套接字，从节点建立了一个端口为51234的套接字，专门用于接受主节点发送的复制命令。从节点连接成功后打印日志</p>
+<p align="justify"><span style="font-family: 宋体;">如果从节点无法建立连接，定时任务会无限重试直到连接成功或者执行</span>&nbsp;slaveof no one 取消复制<br />&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-family: 宋体;">关于连接失败，可以在从节点执行</span>&nbsp;info replication 查看 master_link_down_since_seconds 指标，它会记录与主节点连接失败的系统时间。从节点连接主节点失败时也会每秒打印如下日志，方便发现问题：</p>
+<p align="justify"># Error condition on socket for SYNC: {socket_error_reason}</p>
+<p align="justify">&nbsp;&nbsp;&nbsp;3）<strong>发送 ping 命令。</strong></p>
+<p align="justify">&nbsp;</p>
+<p align="justify"><span style="font-family: 微软雅黑;">连接建立成功后从节点发送</span>&nbsp;ping 请求进行首次通信，ping 请求主要目的如下：</p>
+<p align="justify">&nbsp;&nbsp;&nbsp;&nbsp;&middot;检测主从之间网络套接字是否可用。</p>
+<p align="justify">&nbsp;&nbsp;&nbsp;&nbsp;&middot;检测主节点当前是否可接受处理命令。</p>
+<p align="justify"><span style="font-family: 微软雅黑;">&nbsp;&nbsp;&nbsp;&nbsp;如果发送</span>&nbsp;ping 命令后，从节点没有收到主节点的 pong 回复或者超时，比如网络超时或者主节点正在阻塞无法响应命令，从节点会断开复制连接，下次定时任务会发起重连。</p>
+<src><img src="./images/Redis主从复制2.png" alt="" />&nbsp;
+<p align="justify"><span style="font-family: 微软雅黑;">从节点发送的</span>&nbsp;ping 命令成功返回，Redis 打印如下日志，并继续后续复制流程。</p>
+<p>4）<strong>权限验证</strong>。如果主节点设置了 requirepass 参数，则需要密码验证，从节点必须配置 masterauth 参数保证与主节点相同的密码才能通过验证；如果验证失败复制将终止，从节点重新发起复制流程。</p>
+<p>5）<span style="font-family: 宋体;"><strong>同步数据集</strong>。主从复制连接正常通信后，对于首次建立复制的场景，主节点会把持有的数据全部发送给从节点，这部分操作是耗时最长的步骤。</span></p>
+<p>6）<strong>命令持续复制</strong>。当主节点把当前的数据同步给从节点后，便完成了复制的建立流程。接下来主节点会持续地把写命令发送给从节点，保证主从数据一致性。</p>
+<p><span style="color: #ff6600; font-size: 16px;">进阶之路：<a href="https://jq.qq.com/?_wv=1027&amp;k=5jZlevv" target="_blank"><span style="color: #ff6600;">想要了解更多的进阶优化知识点的话可以点击这里奥！</span></a></span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

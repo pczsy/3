@@ -1,0 +1,56 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Redis面试篇 -- 如何保证缓存与数据库的双写一致性？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Redis面试篇 -- 如何保证缓存与数据库的双写一致性？</center></div><div class='banquan'>原文出处:本文由博客园博主盛世半月提供。<br/>
+原文连接:https://www.cnblogs.com/yzh-blog/p/11676852.html</div><br>
+    <src><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">　　如果不是严格要求&ldquo;缓存和数据库&rdquo;必须保证一致性的话，最好不要做这个方案：即 读请求和写请求串行化，串到一个内存队列里面去。串行化可以保证一定不会出现不一致的情况，但会导致系统吞吐量大幅度降低。</span>
+<src><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">解决这个问题的最经典的模式，就是<strong>Cache Aside Pattern</strong>。</span>
+<src><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">Cache Aside Pattern：</span>
+<src><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">&nbsp; <span style="background-color: #ffffff;">&nbsp; （1）读的时候先读缓存，如果缓存不存在的话就读数据库，取出数据库后更新缓存；如果存在的话直接读取缓存的信息。</span></span>
+<src><span style="background-color: #ffffff; font-family: 'Microsoft YaHei'; font-size: 16px;">&nbsp; &nbsp; （2）写的时候，先更新数据库，再删除缓存。</span>
+<src><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">说到这个问题，又会出现很多问题：</span>
+<src><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">&nbsp; &nbsp; （1）为什么是删除缓存，而不是更新缓存？</span>
+<src><span><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">&nbsp; &nbsp; （2）为什么是先更新数据库，再删除缓存？不是先删除缓存，再更新数据库？</span><br /></span>
+<src><span><span>&nbsp;</span></span><hr />
+<h3><span style="font-family: 'Microsoft YaHei'; font-size: 18px;"><strong>写的时候为什么是删除缓存不是更新缓存？</strong></span></h3>
+<src>&nbsp;　　<span style="font-family: 'Microsoft YaHei'; font-size: 16px;">很多时候复杂的缓存场景，缓存不是仅仅从数据库中取出来的值。可能是关联多张表的数据并通过计算才是缓存需要的值。并且，更新缓存的代价有时候很高。对于需要频繁写操作，而读操作很少的时候，每次进行数据库的修改，缓存也要随之更新，会造成系统吞吐的下降，但此时缓存并不会被频繁访问到，用到的缓存才去算缓存。</span>
+<src><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">&nbsp; &nbsp;　&nbsp; 删除缓存而不是更新缓存，是一种懒加载的思想，不是每次都重复更新缓存，只有用到的时候才去更新缓存，同时即使有大量的读请求，实际也就更新了一次，后面的请求不会重复读。</span>
+<src>&nbsp;
+<h4><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><strong>Cache Aside Pattern存在的问题</strong></span></h4>
+<src><span style="font-family: 幼圆; font-size: 16px;">问题：先更新数据库，再删除缓存，如果更新缓存失败了，导致数据库中是新数据，缓存中是旧数据，就出现数据不一致的问题。</span>
+<src><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">解决思路：<strong>先删除缓存，再更新数据库。</strong></span>
+<ul>
+<li>
+<src><span style="font-family: 黑体; font-size: 16px;">缓存删除失败：如果缓存删除失败，那么数据库信息没有被修改，保持了数据的一致性；</span>
+
+</li>
+<li>
+<src><span style="font-family: 黑体; font-size: 16px;">缓存删除成功，数据库更新失败：此时数据库里的是旧数据，缓存是空的，查询时发现缓存不存在，就查询数据库并更新缓存，数据保持一致。</span>
+</li>
+</ul>
+<src><span style="font-family: 幼圆; font-size: 16px;">问题：上面的方案存在不足，如果删除完缓存更新数据库时，如果一个请求过来查询数据，缓存不存在，就查询数据库的旧数据，更新旧数据到缓存中。随后数据更新完成，修改了数据库的数据，此时缓存和数据库的数据就会出现不一致了。高并发下会出现这种数据库+缓存不一致的情况。 如果不采用给缓存设置过期时间策略，该数据永远都是脏数据。</span>
+<src><span style="font-family: 黑体; font-size: 16px;">解决方案：采用双删除策略。写请求先删除缓存，再去更新数据库，等待一段时间后异步删除缓存。这样可以保证在读取错误数据时能及时被修正过来。</span>
+<src><span style="font-family: 黑体; font-size: 16px;">还有一种策略，就是：写请求先修改缓存为指定值，然后再去更新数据库，再更新缓存。读请求过来后，会先读缓存，判断是指定值后就进入循环读取状态，等到写请求更新缓存。如果循环超时就去数据库读取数据，更新缓存</span>。
+<src><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">这种方案保证了读写的一致性，但由于读请求等待写请求的完成，会降低系统的吞吐量。</span>
+<src>&nbsp;
+<src>&nbsp;
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

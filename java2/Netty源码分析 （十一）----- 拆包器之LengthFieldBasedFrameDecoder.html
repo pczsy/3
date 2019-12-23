@@ -1,0 +1,522 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Netty源码分析 （十一）----- 拆包器之LengthFieldBasedFrameDecoder' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Netty源码分析 （十一）----- 拆包器之LengthFieldBasedFrameDecoder</center></div><div class='banquan'>原文出处:本文由博客园博主chen_hao提供。<br/>
+原文连接:https://www.cnblogs.com/java-chen-hao/p/11571229.html</div><br>
+    <p>本篇文章主要是介绍使用LengthFieldBasedFrameDecoder解码器自定义协议。通常，协议的格式如下:</p>
+<p><img src="./images/Netty源码分析 （十一）----- 拆包器之LengthFieldBasedFrameDecoder0.png" alt="" /></p>
+<p>LengthFieldBasedFrameDecoder是netty解决拆包粘包问题的一个重要的类，主要结构就是header+body结构。我们只需要传入正确的参数就可以发送和接收正确的数据，那么重点就在于这几个参数的意义。下面我们就具体了解一下这几个参数的意义。先来看一下LengthFieldBasedFrameDecoder主要的构造方法：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> LengthFieldBasedFrameDecoder(
+            </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> maxFrameLength,
+            </span><span style="color: #0000ff;">int</span> lengthFieldOffset, <span style="color: #0000ff;">int</span><span style="color: #000000;"> lengthFieldLength,
+            </span><span style="color: #0000ff;">int</span> lengthAdjustment, <span style="color: #0000ff;">int</span> initialBytesToStrip)</code></pre>
+
+<p>那么这几个重要的参数如下：</p>
+<ul>
+<li>maxFrameLength：最大帧长度。也就是可以接收的数据的最大长度。如果超过，此次数据会被丢弃。</li>
+<li>lengthFieldOffset：长度域偏移。就是说数据开始的几个字节可能不是表示数据长度，需要后移几个字节才是长度域。</li>
+<li>lengthFieldLength：长度域字节数。用几个字节来表示数据长度。</li>
+<li>lengthAdjustment：数据长度修正。因为长度域指定的长度可以使header+body的整个长度，也可以只是body的长度。如果表示header+body的整个长度，那么我们需要修正数据长度。</li>
+<li>initialBytesToStrip：跳过的字节数。如果你需要接收header+body的所有数据，此值就是0，如果你只想接收body数据，那么需要跳过header所占用的字节数。</li>
+</ul>
+<p>下面我们根据几个例子的使用来具体说明这几个参数的使用。</p>
+<h2>LengthFieldBasedFrameDecoder 的用法</h2>
+<h3 id="需求1">需求1</h3>
+<p>长度域为2个字节，我们要求发送和接收的数据如下所示：</p>
+<src class="cnblogs_code">
+<pre><code>     发送的数据 (14 bytes)          接收到数据 (14<span style="color: #000000;"> bytes)
+</span>+--------+----------------+      +--------+----------------+
+| Length | Actual Content |-----&gt;| Length | Actual Content |
+|  12    | "HELLO, WORLD" |      |   12   | "HELLO, WORLD" |
++--------+----------------+      +--------+----------------+</code></pre>
+
+<p>留心的你肯定发现了，长度域只是实际内容的长度，不包括长度域的长度。下面是参数的值：</p>
+<ul>
+<li>lengthFieldOffset=0：开始的2个字节就是长度域，所以不需要长度域偏移。</li>
+<li>lengthFieldLength=2：长度域2个字节。</li>
+<li>lengthAdjustment=0：数据长度修正为0，因为长度域只包含数据的长度，所以不需要修正。</li>
+<li>initialBytesToStrip=0：发送和接收的数据完全一致，所以不需要跳过任何字节。</li>
+</ul>
+<h3 id="需求2">需求2</h3>
+<p>长度域为2个字节，我们要求发送和接收的数据如下所示：</p>
+<src class="cnblogs_code">
+<pre><code>   发送的数据 (14 bytes)        接收到数据 (12<span style="color: #000000;"> bytes)
+</span>+--------+----------------+      +----------------+
+| Length | Actual Content |-----&gt;| Actual Content |
+|  12    | "HELLO, WORLD" |      | "HELLO, WORLD" |
++--------+----------------+      +----------------+</code></pre>
+
+<p>参数值如下：</p>
+<ul>
+<li>lengthFieldOffset=0：开始的2个字节就是长度域，所以不需要长度域偏移。</li>
+<li>lengthFieldLength=2：长度域2个字节。</li>
+<li>lengthAdjustment=0：数据长度修正为0，因为长度域只包含数据的长度，所以不需要修正。</li>
+<li>initialBytesToStrip=2：我们发现接收的数据没有长度域的数据，所以要跳过长度域的2个字节。</li>
+</ul>
+<h3 id="需求3">需求3</h3>
+<p>长度域为2个字节，我们要求发送和接收的数据如下所示：</p>
+<src class="cnblogs_code">
+<pre><code> BEFORE DECODE (14 bytes)         AFTER DECODE (14<span> bytes)
++--------+----------------+      +--------+----------------+
+| Length | Actual Content |-----&gt;| Length | Actual Content |
+| 14     | "HELLO, WORLD" |      |  14    | "HELLO, WORLD" |
++--------+----------------+      +--------+----------------+  </span></code></pre>
+
+<p>留心的你肯定又发现了，长度域表示的长度是总长度 也就是header+body的总长度。参数如下：</p>
+<ul>
+<li>lengthFieldOffset=0：开始的2个字节就是长度域，所以不需要长度域偏移。</li>
+<li>lengthFieldLength=2：长度域2个字节。</li>
+<li>lengthAdjustment=-2：因为长度域为总长度，所以我们需要修正数据长度，也就是减去2。</li>
+<li>initialBytesToStrip=0：我们发现接收的数据没有长度域的数据，所以要跳过长度域的2个字节。</li>
+</ul>
+<h3 id="需求4">需求4</h3>
+<p>长度域为2个字节，我们要求发送和接收的数据如下所示：</p>
+<src class="cnblogs_code">
+<pre><code>   BEFORE DECODE (17 bytes)                      AFTER DECODE (17<span> bytes)
++----------+----------+----------------+      +----------+----------+----------------+
+| meta     |  Length  | Actual Content |-----&gt;| meta | Length | Actual Content |
+|  0xCAFE  | 12       | "HELLO, WORLD" |      |  0xCAFE  | 12       | "HELLO, WORLD" |
++----------+----------+----------------+      +----------+----------+----------------+</span></code></pre>
+
+<p>我们发现，数据的结构有点变化，变成了 meta+header+body的结构。meta一般表示元数据，魔数等。我们定义这里meta有三个字节。参数如下：</p>
+<ul>
+<li>lengthFieldOffset=3：开始的3个字节是meta，然后才是长度域，所以长度域偏移为3。</li>
+<li>lengthFieldLength=2：长度域2个字节。</li>
+<li>lengthAdjustment=0：长度域指定的长度位数据长度，所以数据长度不需要修正。</li>
+<li>initialBytesToStrip=0：发送和接收数据相同，不需要跳过数据。</li>
+</ul>
+<h3 id="需求5">需求5</h3>
+<p>长度域为2个字节，我们要求发送和接收的数据如下所示：</p>
+<src class="cnblogs_code">
+<pre><code>    BEFORE DECODE (17 bytes)                      AFTER DECODE (17<span> bytes)
++----------+----------+----------------+      +----------+----------+----------------+
+|  Length  | meta     | Actual Content |-----&gt;| Length | meta | Actual Content |
+|   12     |  0xCAFE  | "HELLO, WORLD" |      |    12    |  0xCAFE  | "HELLO, WORLD" |
++----------+----------+----------------+      +----------+----------+----------------+</span></code></pre>
+
+<p>我们发现，数据的结构有点变化，变成了 header+meta+body的结构。meta一般表示元数据，魔数等。我们定义这里meta有三个字节。参数如下：</p>
+<ul>
+<li>lengthFieldOffset=0：开始的2个字节就是长度域，所以不需要长度域偏移。</li>
+<li>lengthFieldLength=2：长度域2个字节。</li>
+<li>lengthAdjustment=3：我们需要把meta+body当做body处理，所以数据长度需要加3。</li>
+<li>initialBytesToStrip=0：发送和接收数据相同，不需要跳过数据。</li>
+</ul>
+<h3 id="需求6">需求6</h3>
+<p>长度域为2个字节，我们要求发送和接收的数据如下所示：</p>
+<src class="cnblogs_code">
+<pre><code>    BEFORE DECODE (16 bytes)                    AFTER DECODE (13<span> bytes)
++------+--------+------+----------------+      +------+----------------+
+| HDR1 | Length | HDR2 | Actual Content |-----&gt;| HDR2 | Actual Content |
+| 0xCA | 0x000C | 0xFE | "HELLO, WORLD" |      | 0xFE | "HELLO, WORLD" |
++------+--------+------+----------------+      +------+----------------+</span></code></pre>
+
+<p>我们发现，数据的结构有点变化，变成了 hdr1+header+hdr2+body的结构。我们定义这里hdr1和hdr2都只有1个字节。参数如下：</p>
+<ul>
+<li>lengthFieldOffset=1：开始的1个字节是长度域，所以需要设置长度域偏移为1。</li>
+<li>lengthFieldLength=2：长度域2个字节。</li>
+<li>lengthAdjustment=1：我们需要把hdr2+body当做body处理，所以数据长度需要加1。</li>
+<li>initialBytesToStrip=3：接收数据不包括hdr1和长度域相同，所以需要跳过3个字节。</li>
+</ul>
+<h2>LengthFieldBasedFrameDecoder 源码剖析</h2>
+<h3>实现拆包抽象</h3>
+<p>在前面的文章中我们知道，具体的拆包协议只需要实现</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span> decode(ChannelHandlerContext ctx, ByteBuf in, List&lt;Object&gt; out) </code></pre>
+
+<p>其中 in 表示目前为止还未拆的数据，拆完之后的包添加到 out这个list中即可实现包向下传递，第一层实现比较简单</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">void</span> decode(ChannelHandlerContext ctx, ByteBuf in, List&lt;Object&gt; out) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+    Object decoded </span>=<span style="color: #000000;"> decode(ctx, in);
+    </span><span style="color: #0000ff;">if</span> (decoded != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        out.add(decoded);
+    }
+}</span></code></pre>
+
+<p>重载的protected函数decode做真正的拆包动作</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> Object decode(ChannelHandlerContext ctx, ByteBuf in) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+    </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.discardingTooLongFrame) {
+        </span><span style="color: #0000ff;">long</span> bytesToDiscard = <span style="color: #0000ff;">this</span><span style="color: #000000;">.bytesToDiscard;
+        </span><span style="color: #0000ff;">int</span> localBytesToDiscard = (<span style="color: #0000ff;">int</span>)Math.min(bytesToDiscard, (<span style="color: #0000ff;">long</span><span style="color: #000000;">)in.readableBytes());
+        in.skipBytes(localBytesToDiscard);
+        bytesToDiscard </span>-= (<span style="color: #0000ff;">long</span><span style="color: #000000;">)localBytesToDiscard;
+        </span><span style="color: #0000ff;">this</span>.bytesToDiscard =<span style="color: #000000;"> bytesToDiscard;
+        </span><span style="color: #0000ff;">this</span>.failIfNecessary(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果当前可读字节还未达到长度长度域的偏移，那说明肯定是读不到长度域的，直接不读</span>
+    <span style="color: #0000ff;">if</span> (in.readableBytes() &lt; <span style="color: #0000ff;">this</span><span style="color: #000000;">.lengthFieldEndOffset) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 拿到长度域的实际字节偏移，就是长度域的开始下标
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里就是需求4，开始的几个字节并不是长度域</span>
+        <span style="color: #0000ff;">int</span> actualLengthFieldOffset = in.readerIndex() + <span style="color: #0000ff;">this</span><span style="color: #000000;">.lengthFieldOffset;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 拿到实际的未调整过的包长度
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 就是读取长度域的十进制值，最原始传过来的包的长度</span>
+        <span style="color: #0000ff;">long</span> frameLength = <span style="color: #0000ff;">this</span>.getUnadjustedFrameLength(in, actualLengthFieldOffset, <span style="color: #0000ff;">this</span>.lengthFieldLength, <span style="color: #0000ff;">this</span><span style="color: #000000;">.byteOrder);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果拿到的长度为负数，直接跳过长度域并抛出异常</span>
+        <span style="color: #0000ff;">if</span> (frameLength &lt; 0L<span style="color: #000000;">) {
+            in.skipBytes(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.lengthFieldEndOffset);
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> CorruptedFrameException("negative pre-adjustment length field: " +<span style="color: #000000;"> frameLength);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 调整包的长度</span>
+            frameLength += (<span style="color: #0000ff;">long</span>)(<span style="color: #0000ff;">this</span>.lengthAdjustment + <span style="color: #0000ff;">this</span><span style="color: #000000;">.lengthFieldEndOffset);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 整个数据包的长度还没有长度域长，直接抛出异常</span>
+            <span style="color: #0000ff;">if</span> (frameLength &lt; (<span style="color: #0000ff;">long</span>)<span style="color: #0000ff;">this</span><span style="color: #000000;">.lengthFieldEndOffset) {
+                in.skipBytes(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.lengthFieldEndOffset);
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> CorruptedFrameException("Adjusted frame length (" + frameLength + ") is less " + "than lengthFieldEndOffset: " + <span style="color: #0000ff;">this</span><span style="color: #000000;">.lengthFieldEndOffset);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数据包长度超出最大包长度，进入丢弃模式</span>
+            } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (frameLength &gt; (<span style="color: #0000ff;">long</span>)<span style="color: #0000ff;">this</span><span style="color: #000000;">.maxFrameLength) {
+                </span><span style="color: #0000ff;">long</span> discard = frameLength - (<span style="color: #0000ff;">long</span><span style="color: #000000;">)in.readableBytes();
+                </span><span style="color: #0000ff;">this</span>.tooLongFrameLength =<span style="color: #000000;"> frameLength;
+                </span><span style="color: #0000ff;">if</span> (discard &lt; 0L<span style="color: #000000;">) {
+                    in.skipBytes((</span><span style="color: #0000ff;">int</span><span style="color: #000000;">)frameLength);
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    </span><span style="color: #0000ff;">this</span>.discardingTooLongFrame = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">this</span>.bytesToDiscard =<span style="color: #000000;"> discard;
+                    in.skipBytes(in.readableBytes());
+                }
+
+                </span><span style="color: #0000ff;">this</span>.failIfNecessary(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">int</span> frameLengthInt = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)frameLength;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">当前可读的字节数小于包中的length，什么都不做，等待下一次解码</span>
+                <span style="color: #0000ff;">if</span> (in.readableBytes() &lt;<span style="color: #000000;"> frameLengthInt) {
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">跳过的字节不能大于数据包的长度，否则就抛出 CorruptedFrameException 的异常</span>
+                } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.initialBytesToStrip &gt;<span style="color: #000000;"> frameLengthInt) {
+                    in.skipBytes(frameLengthInt);
+                    </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> CorruptedFrameException("Adjusted frame length (" + frameLength + ") is less " + "than initialBytesToStrip: " + <span style="color: #0000ff;">this</span><span style="color: #000000;">.initialBytesToStrip);
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">根据initialBytesToStrip的设置来跳过某些字节</span>
+                    in.skipBytes(<span style="color: #0000ff;">this</span><span style="color: #000000;">.initialBytesToStrip);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">拿到当前累积数据的读指针</span>
+                    <span style="color: #0000ff;">int</span> readerIndex =<span style="color: #000000;"> in.readerIndex();
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">拿到待抽取数据包的实际长度</span>
+                    <span style="color: #0000ff;">int</span> actualFrameLength = frameLengthInt - <span style="color: #0000ff;">this</span><span style="color: #000000;">.initialBytesToStrip;
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">进行抽取</span>
+                    ByteBuf frame = <span style="color: #0000ff;">this</span><span style="color: #000000;">.extractFrame(ctx, in, readerIndex, actualFrameLength);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">移动读指针</span>
+                    in.readerIndex(readerIndex +<span style="color: #000000;"> actualFrameLength);
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> frame;
+                }
+            }
+        }
+    }
+}</span></code></pre>
+
+<p>下面分几个部分来分析一下这个重量级函数</p>
+<h3>获取frame长度</h3>
+<h4>获取需要待拆包的包大小</h4>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 拿到长度域的实际字节偏移，就是长度域的开始下标
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里就是需求4，开始的几个字节并不是长度域</span>
+<span style="color: #0000ff;">int</span> actualLengthFieldOffset = in.readerIndex() + <span style="color: #0000ff;">this</span><span style="color: #000000;">.lengthFieldOffset;
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 拿到实际的未调整过的包长度
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 就是读取长度域的十进制值，最原始传过来的包的长度</span>
+<span style="color: #0000ff;">long</span> frameLength = <span style="color: #0000ff;">this</span>.getUnadjustedFrameLength(in, actualLengthFieldOffset, <span style="color: #0000ff;">this</span>.lengthFieldLength, <span style="color: #0000ff;">this</span><span style="color: #000000;">.byteOrder);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 调整包的长度</span>
+frameLength += (<span style="color: #0000ff;">long</span>)(<span style="color: #0000ff;">this</span>.lengthAdjustment + <span style="color: #0000ff;">this</span>.lengthFieldEndOffset);</code></pre>
+
+<p>上面这一段内容有个扩展点 getUnadjustedFrameLength，如果你的长度域代表的值表达的含义不是正常的int,short等基本类型，你可以重写这个函数</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">long</span> getUnadjustedFrameLength(ByteBuf buf, <span style="color: #0000ff;">int</span> offset, <span style="color: #0000ff;">int</span><span style="color: #000000;"> length, ByteOrder order) {
+    buf </span>=<span style="color: #000000;"> buf.order(order);
+    </span><span style="color: #0000ff;">long</span><span style="color: #000000;"> frameLength;
+    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (length) {
+    </span><span style="color: #0000ff;">case</span> 1<span style="color: #000000;">:
+        frameLength </span>=<span style="color: #000000;"> buf.getUnsignedByte(offset);
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">case</span> 2<span style="color: #000000;">:
+        frameLength </span>=<span style="color: #000000;"> buf.getUnsignedShort(offset);
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">case</span> 3<span style="color: #000000;">:
+        frameLength </span>=<span style="color: #000000;"> buf.getUnsignedMedium(offset);
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">case</span> 4<span style="color: #000000;">:
+        frameLength </span>=<span style="color: #000000;"> buf.getUnsignedInt(offset);
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">case</span> 8<span style="color: #000000;">:
+        frameLength </span>=<span style="color: #000000;"> buf.getLong(offset);
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> DecoderException(
+                </span>"unsupported lengthFieldLength: " + lengthFieldLength + " (expected: 1, 2, 3, 4, or 8)"<span style="color: #000000;">);
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> frameLength;
+}</span></code></pre>
+
+<h3>跳过指定字节长度</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> frameLengthInt = (<span style="color: #0000ff;">int</span><span style="color: #000000;">)frameLength;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">当前可读的字节数小于包中的length，什么都不做，等待下一次解码</span>
+<span style="color: #0000ff;">if</span> (in.readableBytes() &lt;<span style="color: #000000;"> frameLengthInt) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">跳过的字节不能大于数据包的长度，否则就抛出 CorruptedFrameException 的异常</span>
+} <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.initialBytesToStrip &gt;<span style="color: #000000;"> frameLengthInt) {
+    in.skipBytes(frameLengthInt);
+    </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> CorruptedFrameException("Adjusted frame length (" + frameLength + ") is less " + "than initialBytesToStrip: " + <span style="color: #0000ff;">this</span><span style="color: #000000;">.initialBytesToStrip);
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">根据initialBytesToStrip的设置来跳过某些字节</span>
+in.skipBytes(<span style="color: #0000ff;">this</span>.initialBytesToStrip);</code></pre>
+
+<p>先验证当前是否已经读到足够的字节，如果读到了，在下一步抽取一个完整的数据包之前，需要根据initialBytesToStrip的设置来跳过某些字节(见文章开篇)，当然，跳过的字节不能大于数据包的长度，否则就抛出 CorruptedFrameException 的异常</p>
+<h3>抽取frame</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">根据initialBytesToStrip的设置来跳过某些字节</span>
+in.skipBytes(<span style="color: #0000ff;">this</span><span style="color: #000000;">.initialBytesToStrip);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">拿到当前累积数据的读指针</span>
+<span style="color: #0000ff;">int</span> readerIndex =<span style="color: #000000;"> in.readerIndex();
+</span><span style="color: #008000;">//</span><span style="color: #008000;">拿到待抽取数据包的实际长度</span>
+<span style="color: #0000ff;">int</span> actualFrameLength = frameLengthInt - <span style="color: #0000ff;">this</span><span style="color: #000000;">.initialBytesToStrip;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">进行抽取</span>
+ByteBuf frame = <span style="color: #0000ff;">this</span><span style="color: #000000;">.extractFrame(ctx, in, readerIndex, actualFrameLength);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">移动读指针</span>
+in.readerIndex(readerIndex +<span style="color: #000000;"> actualFrameLength);
+</span><span style="color: #0000ff;">return</span> frame;</code></pre>
+
+<p>到了最后抽取数据包其实就很简单了，拿到当前累积数据的读指针，然后拿到待抽取数据包的实际长度进行抽取，抽取之后，移动读指针</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> ByteBuf extractFrame(ChannelHandlerContext ctx, ByteBuf buffer, <span style="color: #0000ff;">int</span> index, <span style="color: #0000ff;">int</span><span style="color: #000000;"> length) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> buffer.retainedSlice(index, length);
+}</span></code></pre>
+
+<p>抽取的过程是简单的调用了一下 ByteBuf 的retainedSliceapi，该api无内存copy开销</p>
+<h2>自定义解码器</h2>
+<h3>协议实体的定义</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyProtocolBean {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">类型  系统编号 0xA 表示A系统，0xB 表示B系统</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;"> type;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">信息标志  0xA 表示心跳包    0xB 表示超时包  0xC 业务信息包</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;"> flag;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">内容长度</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> length;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">内容</span>
+    <span style="color: #0000ff;">private</span><span style="color: #000000;"> String content;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">省略get/set</span>
+}</code></pre>
+
+<h3>服务器端</h3>
+<h4>服务端的实现</h4>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Server {
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> MAX_FRAME_LENGTH = 1024 * 1024;  <span style="color: #008000;">//</span><span style="color: #008000;">最大长度</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> LENGTH_FIELD_LENGTH = 4;  <span style="color: #008000;">//</span><span style="color: #008000;">长度字段所占的字节数</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> LENGTH_FIELD_OFFSET = 2;  <span style="color: #008000;">//</span><span style="color: #008000;">长度偏移</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> LENGTH_ADJUSTMENT = 0<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> INITIAL_BYTES_TO_STRIP = 0<span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> port;
+
+    </span><span style="color: #0000ff;">public</span> Server(<span style="color: #0000ff;">int</span><span style="color: #000000;"> port) {
+        </span><span style="color: #0000ff;">this</span>.port =<span style="color: #000000;"> port;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> start(){
+        EventLoopGroup bossGroup </span>= <span style="color: #0000ff;">new</span> NioEventLoopGroup(1<span style="color: #000000;">);
+        EventLoopGroup workerGroup </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NioEventLoopGroup();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            ServerBootstrap sbs </span>= <span style="color: #0000ff;">new</span> ServerBootstrap().group(bossGroup,workerGroup).channel(NioServerSocketChannel.<span style="color: #0000ff;">class</span>).localAddress(<span style="color: #0000ff;">new</span><span style="color: #000000;"> InetSocketAddress(port))
+                    .childHandler(</span><span style="color: #0000ff;">new</span> ChannelInitializer&lt;SocketChannel&gt;<span style="color: #000000;">() {
+
+                        </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> initChannel(SocketChannel ch) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+                            ch.pipeline().addLast(</span><span style="color: #0000ff;">new</span> MyProtocolDecoder(MAX_FRAME_LENGTH,LENGTH_FIELD_OFFSET,LENGTH_FIELD_LENGTH,LENGTH_ADJUSTMENT,INITIAL_BYTES_TO_STRIP,<span style="color: #0000ff;">false</span><span style="color: #000000;">));
+                            ch.pipeline().addLast(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> ServerHandler());
+                        };
+
+                    }).option(ChannelOption.SO_BACKLOG, </span>128<span style="color: #000000;">)
+                    .childOption(ChannelOption.SO_KEEPALIVE, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 绑定端口，开始接收进来的连接</span>
+            ChannelFuture future =<span style="color: #000000;"> sbs.bind(port).sync();
+
+            System.out.println(</span>"Server start listen at " +<span style="color: #000000;"> port );
+            future.channel().closeFuture().sync();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            bossGroup.shutdownGracefully();
+            workerGroup.shutdownGracefully();
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> port;
+        </span><span style="color: #0000ff;">if</span> (args.length &gt; 0<span style="color: #000000;">) {
+            port </span>= Integer.parseInt(args[0<span style="color: #000000;">]);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            port </span>= 8080<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Server(port).start();
+    }
+}</span></code></pre>
+
+<h4 class="line-numbers  language-java"><code class="java  language-java">自定义解码器MyProtocolDecoder</code></h4>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> MyProtocolDecoder <span style="color: #0000ff;">extends</span><span style="color: #000000;"> LengthFieldBasedFrameDecoder {
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> HEADER_SIZE = 6<span style="color: #000000;">;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> maxFrameLength  帧的最大长度
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> lengthFieldOffset length字段偏移的地址
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> lengthFieldLength length字段所占的字节长
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> lengthAdjustment 修改帧数据长度字段中定义的值，可以为负数 因为有时候我们习惯把头部记入长度,若为负数,则说明要推后多少个字段
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> initialBytesToStrip 解析时候跳过多少个长度
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> failFast 为true，当frame长度超过maxFrameLength时立即报TooLongFrameException异常，为false，读取完整个帧再报异
+     </span><span style="color: #008000;">*/</span>
+
+    <span style="color: #0000ff;">public</span> MyProtocolDecoder(<span style="color: #0000ff;">int</span> maxFrameLength, <span style="color: #0000ff;">int</span> lengthFieldOffset, <span style="color: #0000ff;">int</span> lengthFieldLength, <span style="color: #0000ff;">int</span> lengthAdjustment, <span style="color: #0000ff;">int</span> initialBytesToStrip, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> failFast) {
+
+        </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(maxFrameLength, lengthFieldOffset, lengthFieldLength, lengthAdjustment, initialBytesToStrip, failFast);
+
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">protected</span> Object decode(ChannelHandlerContext ctx, ByteBuf in) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">在这里调用父类的方法,实现指得到想要的部分,我在这里全部都要,也可以只要body部分</span>
+        in = (ByteBuf) <span style="color: #0000ff;">super</span><span style="color: #000000;">.decode(ctx,in);  
+
+        </span><span style="color: #0000ff;">if</span>(in == <span style="color: #0000ff;">null</span><span style="color: #000000;">){
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span>(in.readableBytes()&lt;<span style="color: #000000;">HEADER_SIZE){
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception("字节数不足"<span style="color: #000000;">);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">读取type字段</span>
+        <span style="color: #0000ff;">byte</span> type =<span style="color: #000000;"> in.readByte();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">读取flag字段</span>
+        <span style="color: #0000ff;">byte</span> flag =<span style="color: #000000;"> in.readByte();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">读取length字段</span>
+        <span style="color: #0000ff;">int</span> length =<span style="color: #000000;"> in.readInt();
+        
+        </span><span style="color: #0000ff;">if</span>(in.readableBytes()!=<span style="color: #000000;">length){
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception("标记的长度不符合实际长度"<span style="color: #000000;">);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">读取body</span>
+        <span style="color: #0000ff;">byte</span> []bytes = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[in.readableBytes()];
+        in.readBytes(bytes);
+
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> MyProtocolBean(type,flag,length,<span style="color: #0000ff;">new</span> String(bytes,"UTF-8"<span style="color: #000000;">));
+
+    }
+}</span></code></pre>
+
+<h4>服务端Hanlder</h4>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ServerHandler <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelInboundHandlerAdapter {
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelRead(ChannelHandlerContext ctx, Object msg) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        MyProtocolBean myProtocolBean </span>= (MyProtocolBean)msg;  <span style="color: #008000;">//</span><span style="color: #008000;">直接转化成协议消息实体</span>
+<span style="color: #000000;">        System.out.println(myProtocolBean.getContent());
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelActive(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        </span><span style="color: #0000ff;">super</span><span style="color: #000000;">.channelActive(ctx);
+    }
+}</span></code></pre>
+
+<h3>客户端和客户端Handler</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Client {
+    </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String HOST = System.getProperty("host", "127.0.0.1"<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> PORT = Integer.parseInt(System.getProperty("port", "8080"<span style="color: #000000;">));
+    </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> SIZE = Integer.parseInt(System.getProperty("size", "256"<span style="color: #000000;">));
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Configure the client.</span>
+        EventLoopGroup group = <span style="color: #0000ff;">new</span><span style="color: #000000;"> NioEventLoopGroup();
+
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            Bootstrap b </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bootstrap();
+            b.group(group)
+                    .channel(NioSocketChannel.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+                    .option(ChannelOption.TCP_NODELAY, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">)
+                    .handler(</span><span style="color: #0000ff;">new</span> ChannelInitializer&lt;SocketChannel&gt;<span style="color: #000000;">() {
+                        @Override
+                        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> initChannel(SocketChannel ch) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+                            ch.pipeline().addLast(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> MyProtocolEncoder());
+                            ch.pipeline().addLast(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> ClientHandler());
+                        }
+                    });
+
+            ChannelFuture future </span>=<span style="color: #000000;"> b.connect(HOST, PORT).sync();
+            future.channel().closeFuture().sync();
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+            group.shutdownGracefully();
+        }
+    }
+
+}</span></code></pre>
+
+<h4>客户端编码器</h4>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> MyProtocolEncoder <span style="color: #0000ff;">extends</span> MessageToByteEncoder&lt;MyProtocolBean&gt;<span style="color: #000000;"> {
+
+    @Override
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> encode(ChannelHandlerContext ctx, MyProtocolBean msg, ByteBuf out) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        </span><span style="color: #0000ff;">if</span>(msg == <span style="color: #0000ff;">null</span><span style="color: #000000;">){
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Exception("msg is null"<span style="color: #000000;">);
+        }
+        out.writeByte(msg.getType());
+        out.writeByte(msg.getFlag());
+        out.writeInt(msg.getLength());
+        out.writeBytes(msg.getContent().getBytes(Charset.forName(</span>"UTF-8"<span style="color: #000000;">)));
+    }
+}</span></code></pre>
+
+<ul>
+<li>编码的时候,只需要按照定义的顺序依次写入到ByteBuf中.</li>
+</ul>
+<h4>客户端Handler</h4>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ClientHandler <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelInboundHandlerAdapter {
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelRead(ChannelHandlerContext ctx, Object msg) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        </span><span style="color: #0000ff;">super</span><span style="color: #000000;">.channelRead(ctx, msg);
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelActive(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+
+        MyProtocolBean myProtocolBean </span>= <span style="color: #0000ff;">new</span> MyProtocolBean((<span style="color: #0000ff;">byte</span>)0xA, (<span style="color: #0000ff;">byte</span>)0xC, "Hello,Netty".length(), "Hello,Netty"<span style="color: #000000;">);
+        ctx.writeAndFlush(myProtocolBean);
+
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h4 class="line-numbers  language-java">&nbsp;</h4>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

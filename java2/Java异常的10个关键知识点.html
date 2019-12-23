@@ -1,0 +1,510 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java异常的10个关键知识点' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java异常的10个关键知识点</center></div><div class='banquan'>原文出处:本文由博客园博主工程师搁浅提供。<br/>
+原文连接:https://www.cnblogs.com/aishangJava/p/11936640.html</div><br>
+    <h2>前言</h2>
+<p>总结了Java异常十个关键知识点，面试或者工作中都有用哦，加油。</p>
+<h3>一. 异常是什么</h3>
+<p><strong>异常是指阻止当前方法或作用域继续执行的问题</strong>。比如你读取的文件不存在，数组越界，进行除法时，除数为0等都会导致异常。</p>
+<p>一个<strong>文件找不到的异常</strong>：</p>
+<src class="cnblogs_Highlighter">
+<pre><code>public class TestException {	
+    public static void main(String[] args) throws IOException {	
+        InputStream is = new FileInputStream("jaywei.txt");	
+        int b;	
+        while ((b = is.read()) != -1) {	
+        }	
+    }	
+}
+</code></pre>
+
+<p><strong>运行结果：</strong></p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">Exception in thread "main" java.io.FileNotFoundException: jaywei.txt (系统找不到指定的文件。)	
+    at java.io.FileInputStream.open0(Native Method)	
+    at java.io.FileInputStream.open(FileInputStream.java:195)	
+    at java.io.FileInputStream.&lt;init&gt;(FileInputStream.java:138)	
+    at java.io.FileInputStream.&lt;init&gt;(FileInputStream.java:93)	
+    at exception.TestException.main(TestException.java:10)
+</code></pre>
+
+<h3>二. 异常的层次结构</h3>
+<p><img src="./images/Java异常的10个关键知识点0.png" alt="" /></p>
+<p>从前从前，有位老人，他的名字叫<strong>Throwable</strong>，他生了两个儿子，大儿子叫<strong>Error</strong>,二儿子叫<strong>Exception</strong>。</p>
+<h4>Error</h4>
+<p>表示编译时或者系统错误，如虚拟机相关的错误，OutOfMemoryError等，error是无法处理的。</p>
+<h4>Exception</h4>
+<p>代码异常，Java程序员关心的基类型通常是Exception。它能被程序本身可以处理，这也是它跟Error的区别。</p>
+<p>它可以分为RuntimeException（运行时异常）和CheckedException（可检查的异常）。</p>
+<p><strong>常见的RuntimeException异常：</strong></p>
+<src class="cnblogs_Highlighter">
+<pre><code>- NullPointerException 空指针异常	
+- ArithmeticException 出现异常的运算条件时，抛出此异常	
+- IndexOutOfBoundsException 数组索引越界异常	
+- ClassNotFoundException 找不到类异常	
+- IllegalArgumentException(非法参数异常)
+</code></pre>
+
+<p><strong>常见的 Checked Exception 异常：</strong></p>
+<src class="cnblogs_Highlighter">
+<pre><code>- IOException (操作输入流和输出流时可能出现的异常)	
+- ClassCastException(类型转换异常类)
+</code></pre>
+
+<ul class="list-paddingleft-2">
+<li>
+<p>Checked Exception就是编译器要求你必须处置的异常。</p>
+</li>
+<li>
+<p>与之相反的是，Unchecked Exceptions，它指编译器不要求强制处置的异常，它包括Error和RuntimeException 以及他们的子类。</p>
+</li>
+</ul>
+<h3>三、异常处理</h3>
+<p>当异常出现后，会在堆上创建异常对象。当前的执行路径被终止，并且从当前环境中弹出对异常对象的引用。这时候<strong>异常处理</strong>程序，使程序从错误状态恢复，使程序继续运行下去。</p>
+<p>异常处理主要有抛出异常、捕获异常、声明异常。如图：</p>
+<p><img src="./images/Java异常的10个关键知识点1.png" alt="" /></p>
+<h4>捕获异常</h4>
+<src class="cnblogs_Highlighter">
+<pre><code>try{	
+// 程序代码	
+}catch(Exception e){	
+//Catch 块	
+}finaly{	
+  //无论如何,都会执行的代码块	
+}
+</code></pre>
+
+<p>我们可以通过 <code><span>try<span>...<span>catch<span>...</span></span></span></span></code>捕获异常代码，再通过 <code><span>finaly</span></code>执行最后的操作，如关闭流等操作。</p>
+<h4>声明抛出异常</h4>
+<p>除了 <code><span>try<span>...<span>catch<span>...</span></span></span></span></code>捕获异常，我们还可以通过throws声明抛出异常。</p>
+<p>当你定义了一个方法时，可以用 <code><span>throws</span></code>关键字声明。使用了 <code><span>throws</span></code>关键字表明，该方法不处理异常，而是把异常留给它的调用者处理。是不是觉得TA不负责任?</p>
+<p>哈哈,看一下demo吧</p>
+<src class="cnblogs_Highlighter">
+<pre><code>//该方法通过throws声明了IO异常。	
+ private void readFile() throws IOException {	
+        InputStream is = new FileInputStream("jaywei.txt");	
+        int b;	
+        while ((b = is.read()) != -1) {	
+        }	
+    }
+</code></pre>
+
+<p>从方法中声明抛出的任何异常都必须使用throws子句。</p>
+<h4>抛出异常</h4>
+<p>throw关键字作用是抛出一个 <code><span>Throwable</span></code>类型的异常，它一般出现在函数体中。在异常处理中，try语句要捕获的是一个异常对象，其实此异常对象也可以自己抛出。</p>
+<p>例如抛出一个 RuntimeException 类的异常对象：</p>
+<src class="cnblogs_Highlighter">
+<pre><code>throw new RuntimeException(e);
+</code></pre>
+
+<p>任何Java代码都可以通过 Java 的throw语句抛出异常。</p>
+<h4>注意点</h4>
+<ul class="list-paddingleft-2">
+<li>
+<p>非检查异常（Error、RuntimeException 或它们的子类）不可使用 throws 关键字来声明要抛出的异常。</p>
+</li>
+<li>
+<p>一个方法出现编译时异常，就需要 try-catch/ throws 处理，否则会导致编译错误。</p>
+</li>
+</ul>
+<h3>四、try-catch-finally-return执行顺序</h3>
+<p><strong>try-catch-finally-return 执行描述</strong></p>
+<ul class="list-paddingleft-2">
+<li>
+<p>如果不发生异常，不会执行catch部分。</p>
+</li>
+<li>
+<p>不管有没有发生异常，finally都会执行到。</p>
+</li>
+<li>
+<p>即使try和catch中有return时，finally仍然会执行</p>
+</li>
+<li>
+<p>finally是在return后面的表达式运算完后再执行的。（此时并没有返回运算后的值，而是先把要返回的值保存起来，若finally中无return，则不管finally中的代码怎么样，返回的值都不会改变，仍然是之前保存的值），该情况下函数返回值是在finally执行前确定的)</p>
+</li>
+<li>
+<p>finally部分就不要return了，要不然，就回不去try或者catch的return了。</p>
+</li>
+</ul>
+<p><strong>看一个例子</strong></p>
+<src class="cnblogs_Highlighter">
+<pre><code> public static void main(String[] args) throws IOException {	
+        System.out.println("result：" + test());	
+    }	
+    private static int test() {	
+        int temp = 1;	
+        try {	
+            System.out.println("start execute try,temp is:"+temp);	
+            return ++temp;	
+        } catch (Exception e) {	
+            System.out.println("start execute catch temp is: "+temp);	
+            return ++temp;	
+        } finally {	
+            System.out.println("start execute finally,temp is:" + temp);	
+            ++temp;	
+        }	
+    }
+</code></pre>
+
+<p><strong>运行结果：</strong></p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">start execute try,temp is:1	
+start execute finally,temp is:2	
+result:2
+</code></pre>
+
+<p><strong>分析</strong></p>
+<ul class="list-paddingleft-2">
+<li>
+<p>先执行try部分，输出日志，执行&nbsp;<code><span>++<span>temp</span></span></code>表达式，temp变为2,这个值被保存起来。</p>
+</li>
+<li>
+<p>因为没有发生异常，所以catch代码块跳过。</p>
+</li>
+<li>
+<p>执行finally代码块，输出日志，执行&nbsp;<code><span>++<span>temp</span></span></code>表达式.</p>
+</li>
+<li>
+<p>返回try部分保存的值2.</p>
+</li>
+</ul>
+<h3>五、Java异常类的几个重要方法</h3>
+<p>先来喵一眼异常类的所有方法，如下图:</p>
+<p><img src="./images/Java异常的10个关键知识点2.png" alt="" /></p>
+<h4>getMessage</h4>
+<src class="cnblogs_Highlighter">
+<pre><code>Returns the detail message string of this throwable.
+</code></pre>
+
+<p>getMessage会返回Throwable的 <code><span>detailMessage</span></code>属性，而 <code><span>detailMessage</span></code>就表示发生异常的详细消息描述。</p>
+<p>举个例子， <code><span>FileNotFoundException</span></code>异常发生时，这个 <code><span>detailMessage</span></code>就包含这个找不到文件的名字。</p>
+<h4>getLocalizedMessage</h4>
+<src class="cnblogs_Highlighter">
+<pre><code>Creates a localized description of this throwable.Subclasses may override this	
+method in order to produce alocale-specific message. For subclasses that do not	
+override thismethod, the default implementation returns the same result	
+as getMessage()
+</code></pre>
+
+<p>throwable的本地化描述。子类可以重写此方法，以生成特定于语言环境的消息。对于不覆盖此方法的子类，默认实现返回与相同的结果 getMessage()。</p>
+<h4>getCause</h4>
+<src class="cnblogs_Highlighter">
+<pre><code>Returns the cause of this throwable or null if thecause is nonexistent or unknown.
+</code></pre>
+
+<p>返回此可抛出事件的原因，或者，如果原因不存在或未知，返回null。</p>
+<h4>printStackTrace</h4>
+<src class="cnblogs_Highlighter">
+<pre><code>Prints this throwable and its backtrace to thestandard error stream.	
+The first line of output contains the result of the toString() method for	
+this object.Remaining lines represent data previously recorded by the	
+method fillInStackTrace(). 
+</code></pre>
+
+<p>该方法将堆栈跟踪信息打印到标准错误流。</p>
+<p>输出的第一行，包含此对象toString()方法的结果。剩余的行表示，先前被方法fillInStackTrace()记录的数据。如下例子:</p>
+<src class="cnblogs_Highlighter">
+<pre><code> java.lang.NullPointerException	
+         at MyClass.mash(MyClass.java:9)	
+         at MyClass.crunch(MyClass.java:6)	
+         at MyClass.main(MyClass.java:3)
+</code></pre>
+
+<h3>六、自定义异常</h3>
+<p>自定义异常通常是定义一个继承自 Exception 类的子类。</p>
+<p><strong>那么，为什么需要自定义异常？</strong></p>
+<ul class="list-paddingleft-2">
+<li>
+<p>Java提供的异常体系不可能预见所有的错误。</p>
+</li>
+<li>
+<p>业务开发中，使用自定义异常，可以让项目代码更加规范，也便于管理。</p>
+</li>
+</ul>
+<p>下面是我司自定义异常类的一个简单demo</p>
+<src class="cnblogs_Highlighter">
+<pre><code>public class BizException extends Exception {	
+    //错误信息	
+    private String message;	
+    //错误码	
+    private String errorCode;	
+    public BizException() {	
+    }	
+    public BizException(String message, String errorCode) {	
+        this.message = message;	
+        this.errorCode = errorCode;	
+    }	
+    @Override	
+    public String getMessage() {	
+        return message;	
+    }	
+    public void setMessage(String message) {	
+        this.message = message;	
+    }	
+    public String getErrorCode() {	
+        return errorCode;	
+    }	
+    public void setErrorCode(String errorCode) {	
+        this.errorCode = errorCode;	
+    }	
+}
+</code></pre>
+
+<p><strong>跑个main方测试一下</strong></p>
+<src class="cnblogs_Highlighter">
+<pre><code>public class TestBizException {	
+    public static void testBizException() throws BizException {	
+        System.out.println("throwing BizException from testBizException()");	
+        throw new BizException("100","哥，我错了");	
+    }	
+    public static void main(String[] args) {	
+        try {	
+            testBizException();	
+        } catch (BizException e) {	
+            System.out.println("自己定义的异常");	
+            e.printStackTrace();	
+        }	
+    }	
+}
+</code></pre>
+
+<p><strong>运行结果：</strong></p>
+<src class="cnblogs_Highlighter">
+<pre><code>exception.BizException: 100	
+throwing BizException from testBizException()	
+自己定义的异常	
+    at exception.TestBizException.testBizException(TestBizException.java:7)	
+    at exception.TestBizException.main(TestBizException.java:12)
+</code></pre>
+
+<h3>七、Java7 新的 try-with-resources语句</h3>
+<p>try-with-resources，是Java7提供的一个新功能，它用于自动资源管理。</p>
+<ul class="list-paddingleft-2">
+<li>
+<p>资源是指在程序用完了之后必须要关闭的对象。</p>
+</li>
+<li>
+<p>try-with-resources保证了每个声明了的资源在语句结束的时候会被关闭</p>
+</li>
+<li>
+<p>什么样的对象才能当做资源使用呢？只要实现了java.lang.AutoCloseable接口或者java.io.Closeable接口的对象，都OK。</p>
+</li>
+</ul>
+<p><strong>在 <code><span>try<span>-<span>with<span>-<span>resources</span></span></span></span></span></code>出现之前</strong></p>
+<src class="cnblogs_Highlighter">
+<pre><code>try{	
+    //open resources like File, Database connection, Sockets etc	
+} catch (FileNotFoundException e) {	
+    // Exception handling like FileNotFoundException, IOException etc	
+}finally{	
+    // close resources	
+}
+</code></pre>
+
+<p><strong>Java7， <code><span>try<span>-<span>with<span>-<span>resources</span></span></span></span></span></code>出现之后，使用资源实现</strong></p>
+<src class="cnblogs_Highlighter">
+<pre><code>try(// open resources here){	
+    // use resources	
+} catch (FileNotFoundException e) {	
+    // exception handling	
+}	
+// resources are closed as soon as try-catch block is executed.
+</code></pre>
+
+<p>Java7使用资源demo</p>
+<src class="cnblogs_Highlighter">
+<pre><code>public class Java7TryResourceTest {	
+    public static void main(String[] args) {	
+        try (BufferedReader br = new BufferedReader(new FileReader(	
+                "C:/jaywei.txt"))) {	
+            System.out.println(br.readLine());	
+        } catch (IOException e) {	
+            e.printStackTrace();	
+        }	
+    }	
+}
+</code></pre>
+
+<p><strong>使用了 <code><span>try<span>-<span>with<span>-<span>resources</span></span></span></span></span></code>的好处</strong></p>
+<ul class="list-paddingleft-2">
+<li>
+<p>代码更加优雅，行数更少。</p>
+</li>
+<li>
+<p>资源自动管理，不用担心内存泄漏问题。</p>
+</li>
+</ul>
+<h3>八、异常链</h3>
+<p>我们常常会想要在捕获一个异常后抛出另一个异常，并且希望把原始异常的信息保存下来，这被称为<strong>异常链</strong>。</p>
+<p><strong>throw</strong> 抛出的是一个新的异常信息，这样会导致原有的异常信息丢失。在JDk1.4以前，程序员必须自己编写代码来保存原始异常信息。现在所有 <code><span>Throwable</span></code> 子类在构造器中都可以接受一个 <code><span>cause<span>(异常因由)</span></span></code> 对象作为参数。</p>
+<p>这个 <code><span>cause</span></code>就用来表示原始异常，这样通过把原始异常传递给新的异常，使得即使当前位置创建并抛出了新的异常，也能通过这个异常链追踪到异常最初发生的位置。</p>
+<p>使用方式如下：</p>
+<src class="cnblogs_Highlighter">
+<pre><code>public class TestChainException {	
+    public void readFile() throws MyException{	
+        try {	
+            InputStream is = new FileInputStream("jay.txt");	
+            Scanner in = new Scanner(is);	
+            while (in.hasNext()) {	
+                System.out.println(in.next());	
+            }	
+        } catch (FileNotFoundException e) {	
+            //e 保存异常信息	
+            throw new MyException("文件在哪里呢", e);	
+        }	
+    }	
+    public void invokeReadFile() throws MyException{	
+        try {	
+            readFile();	
+        } catch (MyException e) {	
+            //e 保存异常信息	
+            throw new MyException("文件找不到", e);	
+        }	
+    }	
+    public static void main(String[] args) {	
+        TestChainException t = new TestChainException();	
+        try {	
+            t.invokeReadFile();	
+        } catch (MyException e) {	
+            e.printStackTrace();	
+        }	
+    }	
+}	
+//MyException 构造器	
+public MyException(String message, Throwable cause) {	
+        super(message, cause);	
+    }
+</code></pre>
+
+<p><strong>运行结果：</strong></p>
+<p><img src="./images/Java异常的10个关键知识点3.png" alt="" /></p>
+<p>我们可以看到异常信息有保存下来的，如果把cause（也就是FileNotFoundException 的e）去掉呢，看一下运行结果：</p>
+<p><img src="./images/Java异常的10个关键知识点4.png" alt="" /></p>
+<p>可以发现，少了 <code><span>Throwable<span>cause</span></span></code>，原始异常信息不翼而飞了。</p>
+<h3>九、异常匹配</h3>
+<p>抛出异常的时候,异常处理系统会按照代码的书写顺序找出"最近"的处理程序。找到匹配的处理程序之后,它就认为异常将得到处理,然后就不再继续查找。</p>
+<p>查找的时候并不要求抛出的异常同处理程序的异常完全匹配。派生类的对象也可以配备其基类的处理程序</p>
+<p>看demo</p>
+<src class="cnblogs_Highlighter">
+<pre><code>package exceptions;	
+//: exceptions/Human.java	
+// Catching exception hierarchies.	
+class Annoyance extends Exception {}	
+class Sneeze extends Annoyance {}	
+public class Human {	
+  public static void main(String[] args) {	
+    // Catch the exact type:	
+    try {	
+      throw new Sneeze();	
+    } catch(Sneeze s) {	
+      System.out.println("Caught Sneeze");	
+    } catch(Annoyance a) {	
+      System.out.println("Caught Annoyance");	
+    }	
+    // Catch the base type:	
+    try {	
+      throw new Sneeze();	
+    } catch(Annoyance a) {	
+      System.out.println("Caught Annoyance");	
+    }	
+  }	
+}
+</code></pre>
+
+<p><strong>运行结果：</strong></p>
+<p><img src="./images/Java异常的10个关键知识点5.png" alt="" /></p>
+<p>catch(Annoyance a)会捕获Annoyance以及所有从它派生的异常。捕获基类的异常,就可以匹配所有派生类的异常</p>
+<src class="cnblogs_Highlighter">
+<pre><code>try {	
+      throw new Sneeze();	
+    } catch(Annoyance a) {	
+    } catch(Sneeze s) { //这句编译器会报错,因为异常已由前面catch子句处理	
+    }
+</code></pre>
+
+<h3>十、Java常见异常</h3>
+<h4>NullPointerException</h4>
+<p>空指针异常，最常见的一个异常类。简言之，调用了未经初始化的对象或者是不存在的对象，就会产生该异常。</p>
+<h4>ArithmeticException</h4>
+<p>算术异常类，程序中出现了除数为0这样的运算，就会出现这样的异常。</p>
+<h4>ClassCastException</h4>
+<p>类型强制转换异常,它是JVM在检测到两个类型间转换不兼容时引发的运行时异常。</p>
+<h4>ArrayIndexOutOfBoundsException</h4>
+<p>数组下标越界异常，跟数组打交道时，需要注意一下这个异常。</p>
+<h4>FileNotFoundException</h4>
+<p>文件未找到异常，一般是要读或者写的文件，找不到，导致该异常。</p>
+<h4>SQLException</h4>
+<p>操作数据库异常，它是Checked Exception（检查异常）；</p>
+<h4>IOException</h4>
+<p>IO异常，一般跟读写文件息息相关，它也是Checked Exception（检查异常）。平时读写文件，记得IO流关闭！</p>
+<h4>NoSuchMethodException</h4>
+<p>方法未找到异常</p>
+<h4>NumberFormatException</h4>
+<p>字符串转换为数字异常</p>
+<h2>总结</h2>
+<p>这个总结独辟蹊径，以几道经典异常面试题结束吧，以帮助大家复习一下，嘻嘻。</p>
+<ul class="list-paddingleft-2">
+<li>
+<p>java 异常有哪几种，特点是什么？（知识点二可答）</p>
+</li>
+<li>
+<p>什么是Java中的异常？（知识点一可答）</p>
+</li>
+<li>
+<p>error和exception有什么区别？（知识点二可答）</p>
+</li>
+<li>
+<p>什么是异常链？（知识点八可答）</p>
+</li>
+<li>
+<p>try-catch-finally-return执行顺序（知识点四可答）</p>
+</li>
+<li>
+<p>列出常见的几种RunException （知识点二可答）</p>
+</li>
+<li>
+<p>Java异常类的重要方法是什么？（知识点五可答）</p>
+</li>
+<li>
+<p>error和exception的区别，CheckedException，RuntimeException的区别。（知识点二可答）</p>
+</li>
+<li>
+<p>请列出5个运行时异常。（知识点二可答）</p>
+</li>
+<li>
+<p>Java 7 新的 try-with-resources 语句（知识点七可答）</p>
+</li>
+<li>
+<p>怎么自定义异常？（知识点六可答）</p>
+</li>
+<li>
+<p>说一下常见异常以及产生原因（知识点十可答）</p>
+</li>
+<li>
+<p>谈谈异常匹配（知识点九可答）</p>
+</li>
+<li>
+<p>谈谈异常处理（知识点三可答）</p>
+</li>
+</ul>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

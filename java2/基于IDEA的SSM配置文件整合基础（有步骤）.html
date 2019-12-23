@@ -1,0 +1,365 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于IDEA的SSM配置文件整合基础（有步骤）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于IDEA的SSM配置文件整合基础（有步骤）</center></div><div class='banquan'>原文出处:本文由博客园博主源鱼提供。<br/>
+原文连接:https://www.cnblogs.com/yyuanyu/p/11762126.html</div><br>
+    <h2><span style="font-family: 仿宋;">今天进行了SSM框架的整合，遇到了很多的错误，但所幸都有解决，以下为基础的整合步骤，后续待完善</span></h2>
+<h3><span style="font-family: 仿宋;"><span style="color: #333300;">1.SSM整合所需要</span>：</span></h3>
+<p>　　<span style="color: #993300;">spring的jar(包含tx)、springmvc的jar、mybatis.jar、mybatis-spring.jar、tomcat、commons-dbcp.jar等</span></p>
+<h3><span style="font-family: 仿宋;">2.创建Maven项目</span></h3>
+<p>&nbsp;<img src="./images/基于IDEA的SSM配置文件整合基础（有步骤）0.png" alt="" width="528" height="440" /></p>
+<p><img src="./images/基于IDEA的SSM配置文件整合基础（有步骤）1.png" alt="" width="533" height="120" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px; color: #ff0000;"><span style="font-family: 仿宋;">这里选择如下图，否则Maven创建可能不成功 Name：archetypeCatalog&nbsp; &nbsp;&nbsp;</span><span style="font-family: 仿宋;">Value：internal</span></span></p>
+<p><span style="color: #000000;"><span style="font-family: 仿宋;"><img src="./images/基于IDEA的SSM配置文件整合基础（有步骤）2.png" alt="" width="613" height="511" /></span></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;然后一直next，最后Maven项目创建成功，如下图</p>
+<p><img src="./images/基于IDEA的SSM配置文件整合基础（有步骤）3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>&nbsp;</h3>
+<h3><span style="font-family: 仿宋;">3.更改web.xml文件，由于默认的是web2.3,这个版本有点老了，这里我选择用4.0</span></h3>
+<p><span style="font-family: 仿宋;"><img src="./images/基于IDEA的SSM配置文件整合基础（有步骤）4.png" alt="" width="612" height="228" /></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/基于IDEA的SSM配置文件整合基础（有步骤）5.png" alt="" width="607" height="387" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/基于IDEA的SSM配置文件整合基础（有步骤）6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;">&nbsp;这样web的版本就更改了</span></p>
+<h3><span style="font-family: 仿宋;">&nbsp;<span style="color: #000000;">4.导入所需要的依赖jar包</span></span></h3>
+<p>&nbsp;</p>
+<src class="cnblogs_Highlighter">
+<pre><code> &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;junit&lt;/groupId&gt;
+      &lt;artifactId&gt;junit&lt;/artifactId&gt;
+      &lt;version&gt;4.11&lt;/version&gt;
+      &lt;scope&gt;test&lt;/scope&gt;
+    &lt;/dependency&gt;
+
+    &lt;!--springmvc--&gt;
+    &lt;!-- https://mvnrepository.com/artifact/org.springframework/spring-webmvc --&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.springframework&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-webmvc&lt;/artifactId&gt;
+      &lt;version&gt;4.3.18.RELEASE&lt;/version&gt;
+    &lt;/dependency&gt;
+
+    &lt;!-- https://mvnrepository.com/artifact/javax.servlet/javax.servlet-api --&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;javax.servlet&lt;/groupId&gt;
+      &lt;artifactId&gt;javax.servlet-api&lt;/artifactId&gt;
+      &lt;version&gt;3.1.0&lt;/version&gt;
+      &lt;scope&gt;provided&lt;/scope&gt;
+    &lt;/dependency&gt;
+
+
+    &lt;!--mybatis--&gt;
+    &lt;!--Mysql--&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;mysql&lt;/groupId&gt;
+      &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+      &lt;version&gt;8.0.16&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;!--Mybatis--&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.mybatis&lt;/groupId&gt;
+      &lt;artifactId&gt;mybatis&lt;/artifactId&gt;
+      &lt;version&gt;3.5.2&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;!--Log4j--&gt;
+    &lt;!-- https://mvnrepository.com/artifact/log4j/log4j --&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;log4j&lt;/groupId&gt;
+      &lt;artifactId&gt;log4j&lt;/artifactId&gt;
+      &lt;version&gt;1.2.17&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;!--dbcp--&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;commons-dbcp&lt;/groupId&gt;
+      &lt;artifactId&gt;commons-dbcp&lt;/artifactId&gt;
+      &lt;version&gt;1.4&lt;/version&gt;
+    &lt;/dependency&gt;
+
+
+    &lt;!--Mybatis与Spring整合jar--&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.mybatis&lt;/groupId&gt;
+      &lt;artifactId&gt;mybatis-spring&lt;/artifactId&gt;
+      &lt;version&gt;1.3.2&lt;/version&gt;
+    &lt;/dependency&gt;
+
+    &lt;!--增加事务支持--&gt;
+    &lt;!-- https://mvnrepository.com/artifact/org.springframework/spring-tx --&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.springframework&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-tx&lt;/artifactId&gt;
+      &lt;version&gt;4.3.18.RELEASE&lt;/version&gt;
+    &lt;/dependency&gt;
+
+    &lt;!-- https://mvnrepository.com/artifact/org.springframework/spring-jdbc --&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.springframework&lt;/groupId&gt;
+      &lt;artifactId&gt;spring-jdbc&lt;/artifactId&gt;
+      &lt;version&gt;4.3.18.RELEASE&lt;/version&gt;
+    &lt;/dependency&gt;
+
+  &lt;/dependencies&gt;
+</code></pre>
+
+<p>&nbsp;</p>
+<p><span style="color: #ff0000; font-size: 18px;">　　注意：IDEA中的Maven项目需要指定读取资源路径，否则可能无法读取资源（.properties、Mapper）</span></p>
+<src class="cnblogs_Highlighter">
+<pre><code>&lt;build&gt;   
+    &lt;resources&gt;
+      &lt;!--指定xml文件位置--&gt;
+      &lt;resource&gt;
+        &lt;directory&gt;src/main/java&lt;/directory&gt;
+        &lt;includes&gt;
+          &lt;include&gt;**/*.properties&lt;/include&gt;
+          &lt;include&gt;**/*.xml&lt;/include&gt;
+        &lt;/includes&gt;
+        &lt;!--这里写成true会造成编译注释错误--&gt;
+        &lt;filtering&gt;false&lt;/filtering&gt;
+      &lt;/resource&gt;
+
+      &lt;!--指定xml文件位置--&gt;
+      &lt;resource&gt;
+        &lt;directory&gt;src/main/resource&lt;/directory&gt;
+        &lt;includes&gt;
+          &lt;include&gt;**/*.properties&lt;/include&gt;
+          &lt;include&gt;**/*.xml&lt;/include&gt;
+        &lt;/includes&gt;
+        &lt;!--这里写成true会造成编译注释错误--&gt;
+        &lt;filtering&gt;false&lt;/filtering&gt;
+      &lt;/resource&gt;
+    &lt;/resources&gt;
+&lt;/build&gt;
+</code></pre>
+
+<p>　　<img src="./images/基于IDEA的SSM配置文件整合基础（有步骤）7.png" alt="" width="291" height="355" /></p>
+<p>&nbsp;</p>
+<h3><span style="font-family: 仿宋;">5.建立需要的包，如dao、service、controller、并根据数据库建立对应的类</span></h3>
+<p><img src="./images/基于IDEA的SSM配置文件整合基础（有步骤）8.png" alt="" width="288" height="362" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3><span style="font-family: 仿宋;">6.配置Mybatis-config.xml、spring-dao.xml、spring-service.xml、spring-mvc.xml、applicationContext.xml（这里，我将文件分开其实除了Mybatis-config.xml，其余都可以整合一起写）</span></h3>
+<p><span style="font-family: 仿宋;">6.1、</span>Mybatis-config.xml</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">&lt;?xml version="1.0" encoding="UTF-8" ?&gt;
+&lt;!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd"&gt;
+&lt;configuration&gt;
+    &lt;!--增加日志的支持--&gt;
+    &lt;settings&gt;
+        &lt;setting name="logImpl" value="log4j"/&gt;
+    &lt;/settings&gt;
+    &lt;!--取别名--&gt;
+    &lt;typeAliases&gt;
+        &lt;package name="com.study.pojo"/&gt;
+    &lt;/typeAliases&gt;
+    
+    &lt;mappers&gt;
+        &lt;package name="com.study.dao"/&gt;
+    &lt;/mappers&gt;
+&lt;/configuration&gt;
+</code></pre>
+
+<p>　　6.2、spring-dao.xml</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+"&gt;
+
+    &lt;context:component-scan base-package="com.study.dao.impl"/&gt;
+    &lt;context:property-placeholder location="classpath:db.properties"/&gt;
+    &lt;!--配置数据源--&gt;
+    &lt;bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource"&gt;
+        &lt;property name="driverClassName" value="${jdbc.driver}"/&gt;
+        &lt;property name="url" value="${jdbc.url}"/&gt;
+        &lt;property name="username" value="${jdbc.username}"/&gt;
+        &lt;property name="password" value="${jdbc.password}"/&gt;
+    &lt;/bean&gt;
+    &lt;!--生成sqlsessionfactory--&gt;
+    &lt;bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean"&gt;
+        &lt;property name="dataSource" ref="dataSource"/&gt;
+        &lt;property name="configLocation" value="classpath:mybatis-config.xml"/&gt;
+    &lt;/bean&gt;
+    &lt;!--生成方法--&gt;
+    &lt;bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate"&gt;
+        &lt;constructor-arg index="0" ref="sqlSessionFactory"/&gt;
+    &lt;/bean&gt;
+
+
+&lt;/beans&gt;
+</code></pre>
+
+<p>　　6.3、spring-service.xml</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+"&gt;
+    &lt;import resource="spring-dao.xml"/&gt;
+    &lt;context:component-scan base-package="com.study.service.impl"/&gt;
+    &lt;bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager"&gt;
+        &lt;property name="dataSource" ref="dataSource"/&gt;
+    &lt;/bean&gt;
+
+&lt;/beans&gt;
+</code></pre>
+
+<p>　　</p>
+<p>6.4、spring-mvc.xml</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:mvc="http://www.springframework.org/schema/mvc"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/mvc
+       http://www.springframework.org/schema/mvc/spring-mvc.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+"&gt;
+
+    &lt;!--配置扫描器--&gt;
+    &lt;context:component-scan base-package="com.study.controller"/&gt;
+    &lt;mvc:annotation-driven/&gt;
+    &lt;!--静态--&gt;
+    &lt;mvc:default-servlet-handler/&gt;
+    &lt;bean class="org.springframework.web.servlet.view.InternalResourceViewResolver"&gt;
+        &lt;property name="prefix" value="/WEB-INF/jsp/"/&gt;
+        &lt;property name="suffix" value=".jsp"/&gt;
+    &lt;/bean&gt;
+&lt;/beans&gt;
+</code></pre>
+
+<p>　　</p>
+<p>6.5、applicationContext.xml</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans.xsd
+"&gt;
+
+    &lt;import resource="spring-mvc.xml"/&gt;
+    &lt;import resource="spring-dao.xml"/&gt;
+    &lt;import resource="spring-service.xml"/&gt;
+
+&lt;/beans&gt;
+</code></pre>
+
+<p>　　6.6、db.properties（使用的dbcp数据连接池，不整合时候可以不加jdbc但是整合后不在前面加上jdbc就会出现错误）</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">jdbc.driver=com.mysql.cj.jdbc.Driver
+jdbc.url=jdbc:mysql://localhost:3306/自己的数据库名字?useUnicode=true&amp;characterEncoding=utf-8&amp;autoReconnect=true&amp;failOverReadOnly=false
+jdbc.username=账户
+jdbc.password=密码
+</code></pre>
+
+<p>　　6.7、log4j.properties（这个可以网上找）</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">log4j.rootLogger=DEBUG,Console
+log4j.appender.Console=org.apache.log4j.ConsoleAppender
+log4j.appender.Console.layout=org.apache.log4j.PatternLayout
+log4j.appender.Console.layout.ConversionPattern=%d [%t] %-5p [%c] - %m%n
+log4j.logger.org.apache=INFO
+</code></pre>
+
+<h3><span style="color: #ff0000; font-family: 仿宋;">　　至此，配置文件基本整合完毕</span></h3>
+<h3><span style="color: #000000; font-family: 仿宋;">7、根据需求，在对应层面编写对应的代码</span></h3>
+<p><span style="color: #000000; font-family: 仿宋;">提示：</span></p>
+<p><span style="color: #000000; font-family: 仿宋;">　　　　Controller层的注解为@Controller</span></p>
+<p><span style="color: #000000; font-family: 仿宋;">　　　　Service层的注解为　　@Service</span></p>
+<p><span style="color: #000000; font-family: 仿宋;">　　　　Dao层的注解为　　　　@</span>Repository</p>
+<h3><span style="color: #000000; font-family: 仿宋;">8、关于maven导包问题</span></h3>
+<p><span style="color: #000000; font-family: 仿宋;">建议：尽量使用Maven进行导包，如果手动导包可能会出现一些莫名的错误</span></p>
+<h3><span style="color: #000000; font-family: 仿宋;">9、问题总结</span></h3>
+<p><span style="color: #000000; font-family: 仿宋;">　　Ⅰ、在创建Maven项目的时候有两点需要注意：①.需要指定资源文件路径、也就是在pom.xml文件的build中添加指定。②.在进行导包的时候尽量使用Maven进行导包</span></p>
+<p><span style="color: #000000; font-family: 仿宋;">　　Ⅱ、注解的使用，不同的层使用不同的注解（@Controller、@Service、@Repository</span><span style="color: #000000; font-family: 仿宋;">），但是这些注解都来自同一个父注解，可以自行网上查看</span></p>
+<p><span style="color: #000000; font-family: 仿宋;">　　Ⅲ、关于在配置文件中必须配置的属性（大概）：①.DispatcherServlet（<span style="color: #800000;">SpringMVC的核心</span>） ②、dataSource(<span style="color: #800000;">数据源</span>)③、DataSourceTransactionManager（</span><span style="color: #000000; font-family: 仿宋;"><span style="color: #800000;">事务支持</span>，没这个整合会出错）④、SqlSessionFactoryBean（获取sqlsessionFactory）⑤、SqlSessionTemplate</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3><span style="font-family: 仿宋;">关于后台传Json到前端乱码问题:</span></h3>
+<h5><span style="font-family: 仿宋;">解决方式一：在RequestMapping中添加produces = "application/json;charset=utf- 8"</span></h5>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">@RequestMapping(value = "/a",produces = "application/json;charset=utf- 8")</code></pre>
+
+<p>&nbsp;</p>
+<h5><span style="font-family: 仿宋;">解决方式二：在&lt;mvc:annotation-driven&gt;中加入如下代码</span></h5>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">    &lt;!--配置扫描器--&gt;
+    &lt;context:component-scan base-package="com.study.controller"/&gt;
+    &lt;mvc:annotation-driven&gt;
+        &lt;!--解决Json乱码问题--&gt;
+        &lt;mvc:message-converters register-defaults="true"&gt;
+
+            &lt;bean class="org.springframework.http.converter.StringHttpMessageConverter"&gt;
+                &lt;property name="supportedMediaTypes" value="text/html;charset=UTF-8" /&gt;
+            &lt;/bean&gt;
+
+            &lt;bean id="jacksonMessageConverter" class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"&gt;
+                &lt;property name="objectMapper"&gt;
+                    &lt;bean class="org.springframework.http.converter.json.Jackson2ObjectMapperFactoryBean"&gt;
+                        &lt;property name="failOnEmptyBeans" value="false"/&gt;
+                    &lt;/bean&gt;
+                &lt;/property&gt;
+            &lt;/bean&gt;
+        &lt;/mvc:message-converters&gt;
+    &lt;/mvc:annotation-driven&gt;
+</code></pre>
+
+<p>　　</p>
+<p>&nbsp;</p>
+<p><span style="color: #000000; font-family: 仿宋;">附：有问题欢迎大家指出</span></p>
+<p>&nbsp;</p>
+<pre><code></code></pre>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="color: #000000; font-family: 仿宋;">&nbsp;</span></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

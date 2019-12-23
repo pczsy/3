@@ -1,0 +1,126 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot系列：Spring Boot集成Spring Cache' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot系列：Spring Boot集成Spring Cache</center></div><div class='banquan'>原文出处:本文由博客园博主杨小格子提供。<br/>
+原文连接:https://www.cnblogs.com/imyanger/p/11723560.html</div><br>
+    <h3 id="一关于spring-cache">一、关于Spring Cache</h3>
+<p>缓存在现在的应用中越来越重要，<br />
+Spring从3.1开始定义了org.springframework.cache.Cache和org.springframework.cache.CacheManager接口来统一不同的缓存技术，并支持使用JCache（JSR-107）注解简化我们开发。</p>
+<p>通过SpringCache，可以快速嵌入自己的Cache实现，主要是@Cacheable、@CachePut、@CacheEvict、@CacheConfig、@Caching等注解来实现。</p>
+<ul>
+<li>@Cacheable：作用于方法上，用于对于方法返回结果进行缓存，如果已经存在该缓存，则直接从缓存中获取，缓存的key可以从入参中指定，缓存的value为方法返回值。</li>
+<li>@CachePut：作用于方法上，无论是否存在该缓存，每次都会重新添加缓存，缓存的key可以从入参中指定，缓存的value为方法返回值，常用作于更新。</li>
+<li>@CacheEvict：作用于方法上，用于清除缓存。</li>
+<li>@CacheConfig：作用在类上，统一配置本类的缓存注解的属性。</li>
+<li>@Caching：作用于方法上，用于一次性设置多个缓存。</li>
+<li>@EnableCaching：作用于类上，用于开启注解功能。</li>
+</ul>
+<h3 id="二演示示例">二、演示示例</h3>
+<p>欲使用Spring Cache，需要先引入Spring Cache的依赖。</p>
+<pre><code><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;!--Spring Cache依赖--&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-cache&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>然后在启动类上，我们需要使用@EnableCaching来声明开启缓存。</p>
+<pre><code><code>@EnableCaching //开启缓存
+@SpringBootApplication
+public class SpringbootApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(SpringbootApplication.class, args);
+    }
+
+}</code></code></pre>
+<p>这样就可以使用注解来操作缓存了，创建CacheService类，其中dataMap的Map存储数据，省去了数据库的操作。</p>
+<pre><code><code>@Slf4j
+@Service
+public class CacheService {
+
+    private Map&lt;Integer, User&gt; dataMap = new HashMap &lt;Integer, User&gt;(){
+        {
+            for (int i = 1; i &lt; 100 ; i++) {
+                User u = new User(&quot;code&quot; + i, &quot;name&quot; + i);
+                put(i, u);
+            }
+        }
+     };
+
+    // 获取数据
+    @Cacheable(value = &quot;cache&quot;, key = &quot;&#39;user:&#39; + #id&quot;)
+    public User get(int id){
+        log.info(&quot;通过id{}查询获取&quot;, id);
+        return dataMap.get(id);
+    }
+
+    // 更新数据
+    @CachePut(value = &quot;cache&quot;, key = &quot;&#39;user:&#39; + #id&quot;)
+    public User set(int id, User u){
+        log.info(&quot;更新id{}数据&quot;, id);
+        dataMap.put(id, u);
+        return u;
+     }
+     
+    //删除数据
+    @CacheEvict(value = &quot;cache&quot;, key = &quot;&#39;user:&#39; + #id&quot;)
+    public User del(int id){
+        log.info(&quot;删除id{}数据&quot;, id);
+        dataMap.remove(id);
+        return u;
+    }
+
+}</code></code></pre>
+<p>get方法模拟查询，@Cacheable用于添加缓存，set方法用于修改，@CachePut更新缓存，del方法用于删除数据， @CacheEvict删除缓存。需要注意的是，注解的value表示缓存分类，并不是指缓存的对象值。</p>
+<p>然后在创建CacheApi，用于调用CacheService进行测试。</p>
+<pre><code><code>@RestController
+@RequestMapping(&quot;cache&quot;)
+public class CacheApi {
+
+    @Autowired
+    private CacheService cacheService;
+
+    @GetMapping(&quot;get&quot;)
+    public User  get(@RequestParam int id){
+        return cacheService.get(id);
+    }
+
+    @PostMapping(&quot;set&quot;)
+    public User  set(@RequestParam int id, @RequestParam String code, @RequestParam String name){
+        User u = new User(code, name);
+        return cacheService.set(id, u);
+    }
+
+    @DeleteMapping(&quot;del&quot;)
+    public void  del(@RequestParam int id){
+        cacheService.del(id);
+    }
+
+}</code></code></pre>
+<p>然后我们打开swagger-ui界面（http://localhost:10900/swagger-ui.html）进行测试，多次调用查询，可以看到， CacheService的get方法，对于同一id仅仅执行一遍。然后再调用更新，再次get时，即可发现数据已经更新，而调用del，则可以清除缓存，再次查询又会调用方法。</p>
+<p><img src="./images/SpringBoot系列：Spring Boot集成Spring Cache0.png" /></p>
+<p>源码地址：<a href="https://github.com/imyanger/springboot-project/tree/master/p20-springboot-cache" class="uri">https://github.com/imyanger/springboot-project/tree/master/p20-springboot-cache</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,519 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Netty源码分析 （六）----- 客户端接入accept过程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Netty源码分析 （六）----- 客户端接入accept过程</center></div><div class='banquan'>原文出处:本文由博客园博主chen_hao提供。<br/>
+原文连接:https://www.cnblogs.com/java-chen-hao/p/11477358.html</div><br>
+    <p>通读本文，你会了解到<br />1.netty如何接受新的请求<br />2.netty如何给新请求分配reactor线程<br />3.netty如何给每个新连接增加ChannelHandler</p>
+<h2>netty中的reactor线程</h2>
+<p>netty中最核心的东西莫过于两种类型的reactor线程，可以看作netty中两种类型的发动机，驱动着netty整个框架的运转</p>
+<p>一种类型的reactor线程是boos线程组，专门用来接受新的连接，然后封装成channel对象扔给worker线程组；还有一种类型的reactor线程是worker线程组，专门用来处理连接的读写</p>
+<p>不管是boos线程还是worker线程，所做的事情均分为以下三个步骤</p>
+<ol>
+<li>轮询注册在selector上的IO事件</li>
+<li>处理IO事件</li>
+<li>执行异步task</li>
+
+
+
+</ol>
+<p>对于boos线程来说，第一步轮询出来的基本都是 accept 事件，表示有新的连接，而worker线程轮询出来的基本都是read/write事件，表示网络的读写事件</p>
+<h2>新连接的建立</h2>
+<p>简单来说，新连接的建立可以分为三个步骤<br />1.检测到有新的连接<br />2.将新的连接注册到worker线程组<br />3.注册新连接的读事件</p>
+<h3>检测到有新连接进入</h3>
+<p>我们已经知道，当服务端绑启动之后，服务端的channel已经注册到boos reactor线程中，reactor不断检测有新的事件，直到检测出有accept事件发生</p>
+<p><strong>NioEventLoop.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
+    </span><strong><span style="color: #0000ff;">final</span> NioUnsafe unsafe =<span style="color: #000000;"> ch.unsafe();
+    </span></strong><span style="color: #008000;">//</span><span style="color: #008000;">检查该SelectionKey是否有效，如果无效，则关闭channel</span>
+    <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">k.isValid()) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> close the channel if the key is not valid anymore</span>
+<span style="color: #000000;">        unsafe.close(unsafe.voidPromise());
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">int</span> readyOps =<span style="color: #000000;"> k.readyOps();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> to a spin loop
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果准备好READ或ACCEPT则触发unsafe.read() ,检查是否为0，如上面的源码英文注释所说：解决JDK可能会产生死循环的一个bug。</span>
+        <span style="color: #0000ff;">if</span> ((readyOps &amp; (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0<span style="color: #000000;">) {
+            unsafe.read();
+            </span><span style="color: #0000ff;">if</span> (!ch.isOpen()) {<span style="color: #008000;">//</span><span style="color: #008000;">如果已经关闭，则直接返回即可，不需要再处理该channel的其他事件
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> Connection already closed - no need to handle write.</span>
+                <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果准备好了WRITE则将缓冲区中的数据发送出去，如果缓冲区中数据都发送完成，则清除之前关注的OP_WRITE标记</span>
+        <span style="color: #0000ff;">if</span> ((readyOps &amp; SelectionKey.OP_WRITE) != 0<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Call forceFlush which will also take care of clear the OP_WRITE once there is nothing left to write</span>
+<span style="color: #000000;">            ch.unsafe().forceFlush();
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果是OP_CONNECT，则需要移除OP_CONNECT否则Selector.select(timeout)将立即返回不会有任何阻塞，这样可能会出现cpu 100%</span>
+        <span style="color: #0000ff;">if</span> ((readyOps &amp; SelectionKey.OP_CONNECT) != 0<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> remove OP_CONNECT as otherwise Selector.select(..) will always return without blocking
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> See </span><span style="color: #008000; text-decoration: underline;">https://github.com/netty/netty/issues/924</span>
+            <span style="color: #0000ff;">int</span> ops =<span style="color: #000000;"> k.interestOps();
+            ops </span>&amp;= ~<span style="color: #000000;">SelectionKey.OP_CONNECT;
+            k.interestOps(ops);
+
+            unsafe.finishConnect();
+        }
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (CancelledKeyException ignored) {
+        unsafe.close(unsafe.voidPromise());
+    }
+}</span></code></pre>
+
+<p>该方法主要是对SelectionKey k进行了检查，有如下几种不同的情况</p>
+<p>1）OP_ACCEPT，接受客户端连接</p>
+<p>2）OP_READ, 可读事件, 即 Channel 中收到了新数据可供上层读取。</p>
+<p>3）OP_WRITE, 可写事件, 即上层可以向 Channel 写入数据。</p>
+<p>4）OP_CONNECT, 连接建立事件, 即 TCP 连接已经建立, Channel 处于 active 状态。</p>
+<p>本篇博文主要来看下当boss线程 selector检测到OP_ACCEPT事件时，内部干了些什么。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">if</span> ((readyOps &amp; (SelectionKey.OP_READ | SelectionKey.<strong>OP_ACCEPT</strong>)) != 0 || readyOps == 0<span style="color: #000000;">) {
+    <strong>unsafe.read();
+    </strong></span><span style="color: #0000ff;">if</span> (!ch.isOpen()) {<span style="color: #008000;">//</span><span style="color: #008000;">如果已经关闭，则直接返回即可，不需要再处理该channel的其他事件
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Connection already closed - no need to handle write.</span>
+        <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p>boos reactor线程已经轮询到&nbsp;<code>SelectionKey.OP_ACCEPT</code>&nbsp;事件，说明有新的连接进入，此时将调用channel的&nbsp;<code>unsafe</code>来进行实际的操作,<strong>此时的channel为</strong>&nbsp;<strong>NioServerSocketChannel，则unsafe为<strong>NioServerSocketChannel的属性NioMessageUnsafe</strong></strong></p>
+<p>那么，我们进入到它的<code>read</code>方法，进入新连接处理的第二步</p>
+<h3>注册到reactor线程</h3>
+<p><strong>NioMessageUnsafe.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> List&lt;Object&gt; readBuf = <span style="color: #0000ff;">new</span> ArrayList&lt;Object&gt;<span style="color: #000000;">();
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> read() {
+    </span><span style="color: #0000ff;">assert</span><span style="color: #000000;"> eventLoop().inEventLoop();
+    </span><span style="color: #0000ff;">final</span> ChannelPipeline pipeline =<span style="color: #000000;"> pipeline();
+    </span><span style="color: #0000ff;">final</span> RecvByteBufAllocator.Handle allocHandle =<span style="color: #000000;"> unsafe().recvBufAllocHandle();
+    </span><span style="color: #0000ff;">do</span><span style="color: #000000;"> {
+        </span><strong><span style="color: #0000ff;">int</span> localRead =<span style="color: #000000;"> doReadMessages(readBuf);
+        </span></strong><span style="color: #0000ff;">if</span> (localRead == 0<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span> (localRead &lt; 0<span style="color: #000000;">) {
+            closed </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+        }
+    } </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (allocHandle.continueReading());
+    </span><span style="color: #0000ff;">int</span> size =<span style="color: #000000;"> readBuf.size();
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; size; i ++<span style="color: #000000;">) {
+     <strong>   pipeline.fireChannelRead(readBuf.get(i));</strong>
+    }
+    readBuf.clear();
+    <strong>pipeline.fireChannelReadComplete();</strong>
+}</span></code></pre>
+
+<p>调用&nbsp;<code>doReadMessages</code>&nbsp;方法不断地读取消息，用&nbsp;<code>readBuf</code>&nbsp;作为容器，这里，其实可以猜到读取的是一个个连接，然后调用&nbsp;<code>pipeline.fireChannelRead()</code>，将每条新连接经过一层服务端channel的洗礼，之后清理容器，触发&nbsp;<code>pipeline.fireChannelReadComplete()</code></p>
+<p><code>下面我们具体看下这两个方法</code></p>
+<p>1.doReadMessages(List)<br />2.pipeline.fireChannelRead(NioSocketChannel)</p>
+<h3>doReadMessages()</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">int</span> doReadMessages(List&lt;Object&gt; buf) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+   <strong> SocketChannel ch </strong></span><strong>=<span style="color: #000000;"> javaChannel().accept();
+
+    </span></strong><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (ch != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            buf.add(</span><span style="color: #0000ff;">new</span> NioSocketChannel(<span style="color: #0000ff;">this</span><span style="color: #000000;">, ch));
+            </span><span style="color: #0000ff;">return</span> 1<span style="color: #000000;">;
+        }
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable t) {
+        logger.warn(</span>"Failed to create a new channel from an accepted socket."<span style="color: #000000;">, t);
+
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            ch.close();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable t2) {
+            logger.warn(</span>"Failed to close a socket."<span style="color: #000000;">, t2);
+        }
+    }
+
+    </span><span style="color: #0000ff;">return</span> 0<span style="color: #000000;">;
+}</span></code></pre>
+
+<p>我们终于窥探到netty调用jdk底层nio的边界&nbsp;<code>javaChannel().accept();</code>，由于netty中reactor线程第一步就扫描到有accept事件发生，因此，这里的<code>accept</code>方法是立即返回的，返回jdk底层nio创建的一条channel</p>
+<p>ServerSocketChannel有阻塞和非阻塞两种模式：</p>
+<p>a、阻塞模式：ServerSocketChannel.accept() 方法监听新进来的连接，当 accept()方法返回的时候,它返回一个包含新进来的连接的 SocketChannel。阻塞模式下, accept()方法会一直阻塞到有新连接到达。</p>
+<p>b、非阻塞模式：，accept() 方法会立刻返回，如果还没有新进来的连接,返回的将是null。 因此，需要检查返回的SocketChannel是否是null.</p>
+<p>在NioServerSocketChannel的构造函数分析中，我们知道，<strong>其通过ch.configureBlocking(false);语句设置当前的ServerSocketChannel为非阻塞的</strong>。</p>
+<p>netty将jdk的&nbsp;<code>SocketChannel</code>&nbsp;封装成自定义的&nbsp;<code>NioSocketChannel</code>，加入到list里面，这样外层就可以遍历该list，做后续处理</p>
+<p>从上一篇文章中，我们已经知道服务端的创建过程中会创建netty中一系列的核心组件，包括pipeline,unsafe等等，那么，接受一条新连接的时候是否也会创建这一系列的组件呢？</p>
+<p>带着这个疑问，我们跟进去</p>
+<p><strong>NioSocketChannel.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> NioSocketChannel(Channel parent, SocketChannel socket) {
+    </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(parent, socket);
+    config </span>= <span style="color: #0000ff;">new</span> NioSocketChannelConfig(<span style="color: #0000ff;">this</span><span style="color: #000000;">, socket.socket());
+}</span></code></pre>
+
+<p>我们重点分析&nbsp;<code>super(parent, socket)，<code>NioSocketChannel</code>的父类为&nbsp;<code>AbstractNioByteChannel</code></code></p>
+<p><strong>AbstractNioByteChannel.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span><span style="color: #000000;"> AbstractNioByteChannel(Channel parent, SelectableChannel ch) {
+    </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(parent, ch, <strong>SelectionKey.OP_READ</strong>);
+}</span></code></pre>
+
+<p>这里，我们看到jdk nio里面熟悉的影子&mdash;&mdash;&nbsp;<code>SelectionKey.OP_READ</code>，一般在原生的jdk nio编程中，也会注册这样一个事件，表示对channel的读感兴趣</p>
+<p>我们继续往上，追踪到<code>AbstractNioByteChannel</code>的父类&nbsp;<code>AbstractNioChannel</code>, 这里，我相信读了上一篇文章你对于这部分代码肯定是有印象的</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> AbstractNioChannel(Channel parent, SelectableChannel ch, <span style="color: #0000ff;">int</span><span style="color: #000000;"> readInterestOp) {
+    </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(parent);
+    </span><span style="color: #0000ff;">this</span>.ch =<span style="color: #000000;"> ch;
+    </span><span style="color: #0000ff;">this</span>.readInterestOp =<span style="color: #000000;"> readInterestOp;
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+       <strong> ch.configureBlocking(</strong></span><strong><span style="color: #0000ff;">false</span></strong><span style="color: #000000;"><strong>);</strong>
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException e) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            ch.close();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException e2) {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (logger.isWarnEnabled()) {
+                logger.warn(
+                        </span>"Failed to close a partially initialized socket."<span style="color: #000000;">, e2);
+            }
+        }
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ChannelException("Failed to enter non-blocking mode."<span style="color: #000000;">, e);
+    }
+}</span></code></pre>
+
+<p>在创建服务端channel的时候，最终也会进入到这个方法，<code>super(parent)</code>, 便是在<code>AbstractChannel</code>中创建一系列和该channel绑定的组件，如下</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span><span style="color: #000000;"> AbstractChannel(Channel parent) {
+    </span><span style="color: #0000ff;">this</span>.parent =<span style="color: #000000;"> parent;
+    id </span>=<span style="color: #000000;"> newId();
+    <strong>unsafe </strong></span><strong>=<span style="color: #000000;"> newUnsafe();
+    pipeline </span>=</strong><span style="color: #000000;"><strong> newChannelPipeline();</strong>
+}</span></code></pre>
+
+<p>而这里的&nbsp;<code>readInterestOp</code>&nbsp;表示该channel关心的事件是&nbsp;<code>SelectionKey.OP_READ</code>，后续会将该事件注册到selector，之后设置该通道为非阻塞模式，在channel中创建&nbsp;<strong>unsafe 和一条&nbsp;</strong><strong>pipeline&nbsp;</strong></p>
+<h3>pipeline.fireChannelRead(NioSocketChannel)</h3>
+<p>对于&nbsp;<strong><code class="java  language-java">pipeline</code></strong><code class="java  language-java">我们前面已经了解过，在netty的各种类型的channel中，都会包含一个pipeline，字面意思是管道，我们可以理解为一条流水线工艺，流水线工艺有起点，有结束，中间还有各种各样的流水线关卡，一件物品，在流水线起点开始处理，经过各个流水线关卡的加工，最终到流水线结束</code></p>
+<p>对应到netty里面，流水线的开始就是<code>HeadContxt</code>，流水线的结束就是<code>TailConext</code>，<code>HeadContxt</code>中调用<code>Unsafe</code>做具体的操作，<code>TailConext</code>中用于向用户抛出pipeline中未处理异常以及对未处理消息的警告</p>
+<p>通过前面的文章中，我们已经知道在服务端的channel初始化时，在pipeline中，已经自动添加了一个pipeline处理器&nbsp;<strong><code>ServerBootstrapAcceptor</code></strong>, 并已经将用户代码中设置的一系列的参数传入了构造函数，接下来，我们就来看下<code>ServerBootstrapAcceptor</code></p>
+<p><strong>ServerBootstrapAcceptor.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> ServerBootstrapAcceptor <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelInboundHandlerAdapter {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> EventLoopGroup childGroup;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> ChannelHandler childHandler;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> Entry&lt;ChannelOption&lt;?&gt;, Object&gt;<span style="color: #000000;">[] childOptions;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> Entry&lt;AttributeKey&lt;?&gt;, Object&gt;<span style="color: #000000;">[] childAttrs;
+
+    ServerBootstrapAcceptor(
+            EventLoopGroup childGroup, ChannelHandler childHandler,
+            Entry</span>&lt;ChannelOption&lt;?&gt;, Object&gt;[] childOptions, Entry&lt;AttributeKey&lt;?&gt;, Object&gt;<span style="color: #000000;">[] childAttrs) {
+        </span><span style="color: #0000ff;">this</span>.childGroup =<span style="color: #000000;"> childGroup;
+        </span><span style="color: #0000ff;">this</span>.childHandler =<span style="color: #000000;"> childHandler;
+        </span><span style="color: #0000ff;">this</span>.childOptions =<span style="color: #000000;"> childOptions;
+        </span><span style="color: #0000ff;">this</span>.childAttrs =<span style="color: #000000;"> childAttrs;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> channelRead(ChannelHandlerContext ctx, Object msg) {
+        </span><span style="color: #0000ff;">final</span> Channel child =<span style="color: #000000;"> (Channel) msg;
+
+       <strong> child.pipeline().addLast(childHandler);
+
+        </strong></span><span style="color: #0000ff;">for</span> (Entry&lt;ChannelOption&lt;?&gt;, Object&gt;<span style="color: #000000;"> e: childOptions) {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">if</span> (!child.config().setOption((ChannelOption&lt;Object&gt;<span style="color: #000000;">) e.getKey(), e.getValue())) {
+                    logger.warn(</span>"Unknown channel option: " +<span style="color: #000000;"> e);
+                }
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable t) {
+                logger.warn(</span>"Failed to set a channel option: " +<span style="color: #000000;"> child, t);
+            }
+        }
+
+        </span><span style="color: #0000ff;">for</span> (Entry&lt;AttributeKey&lt;?&gt;, Object&gt;<span style="color: #000000;"> e: childAttrs) {
+            child.attr((AttributeKey</span>&lt;Object&gt;<span style="color: #000000;">) e.getKey()).set(e.getValue());
+        }
+
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+           <strong> childGroup.register(child)</strong>.addListener(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> ChannelFutureListener() {
+                @Override
+                </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> operationComplete(ChannelFuture future) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+                    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">future.isSuccess()) {
+                        forceClose(child, future.cause());
+                    }
+                }
+            });
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable t) {
+            forceClose(child, t);
+        }
+    }
+}</span></code></pre>
+
+<p>前面的&nbsp;<code>pipeline.fireChannelRead(NioSocketChannel);</code>&nbsp;最终通过head-&gt;unsafe-&gt;ServerBootstrapAcceptor的调用链，调用到这里的&nbsp;<code>ServerBootstrapAcceptor</code>&nbsp;的<code>channelRead</code>方法，而&nbsp;<code>channelRead</code>&nbsp;一上来就把这里的msg强制转换为&nbsp;<code>Channel</code></p>
+<p>然后，拿到该channel，也就是我们之前new出来的&nbsp;<code>NioSocketChannel中</code>对应的pipeline，将用户代码中的&nbsp;<code>childHandler</code>，添加到pipeline，这里的&nbsp;<code>childHandler</code>&nbsp;在用户代码中的体现为</p>
+<src class="cnblogs_code">
+<pre><code>ServerBootstrap b = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ServerBootstrap();
+b.group(bossGroup, workerGroup)
+ .channel(NioServerSocketChannel.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+ .<strong>childHandler</strong>(</span><span style="color: #0000ff;">new</span> ChannelInitializer&lt;SocketChannel&gt;<span style="color: #000000;">() {
+     @Override
+     </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> initChannel(SocketChannel ch) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+         ChannelPipeline p </span>=<span style="color: #000000;"> ch.pipeline();
+         p.addLast(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> EchoServerHandler());
+     }
+ });</span></code></pre>
+
+<p>其实对应的是&nbsp;<code>ChannelInitializer</code>，到了这里，<code>NioSocketChannel</code>中pipeline对应的处理器为 head-&gt;ChannelInitializer-&gt;tail，牢记，后面会再次提到！</p>
+<p>接着，设置&nbsp;<code>NioSocketChannel</code>&nbsp;对应的 attr和option，然后进入到&nbsp;<code>childGroup.register(child)</code>，这里的childGroup就是我们在启动代码中new出来的<code>NioEventLoopGroup</code></p>
+<p>我们进入到<code>NioEventLoopGroup</code>的<code>register</code>方法，代理到其父类<code>MultithreadEventLoopGroup</code></p>
+<p><strong>MultithreadEventLoopGroup.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> ChannelFuture register(Channel channel) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> next().register(channel);
+}</span></code></pre>
+
+<p>这里又扯出来一个 next()方法，我们跟进去</p>
+<p><strong>MultithreadEventLoopGroup.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> EventLoop next() {
+    </span><span style="color: #0000ff;">return</span> (EventLoop) <span style="color: #0000ff;">super</span><span style="color: #000000;">.next();
+}</span></code></pre>
+
+<p>回到其父类</p>
+<p><strong>MultithreadEventExecutorGroup.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> EventExecutor next() {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> chooser.next();
+}</span></code></pre>
+
+<p>这里的chooser对应的类为&nbsp;<code>EventExecutorChooser</code>，字面意思为事件执行器选择器，放到我们这里的上下文中的作用就是从worker reactor线程组中选择一个reactor线程</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> EventExecutorChooserFactory {
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Returns a new {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> EventExecutorChooser}.
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    EventExecutorChooser newChooser(EventExecutor[] executors);
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Chooses the next {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> EventExecutor} to use.
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @UnstableApi
+    </span><span style="color: #0000ff;">interface</span><span style="color: #000000;"> EventExecutorChooser {
+
+        </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+         * Returns the new {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> EventExecutor} to use.
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        EventExecutor next();
+    }
+}</span></code></pre>
+
+<p>chooser的实现有两种</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">class</span> DefaultEventExecutorChooserFactory <span style="color: #0000ff;">implements</span><span style="color: #000000;"> EventExecutorChooserFactory {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> DefaultEventExecutorChooserFactory INSTANCE = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DefaultEventExecutorChooserFactory();
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> DefaultEventExecutorChooserFactory() { }
+
+    @SuppressWarnings(</span>"unchecked"<span style="color: #000000;">)
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> EventExecutorChooser newChooser(EventExecutor[] executors) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isPowerOfTwo(executors.length)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> PowerOfTowEventExecutorChooser(executors);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> GenericEventExecutorChooser(executors);
+        }
+    }
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">boolean</span> isPowerOfTwo(<span style="color: #0000ff;">int</span><span style="color: #000000;"> val) {
+        </span><span style="color: #0000ff;">return</span> (val &amp; -val) ==<span style="color: #000000;"> val;
+    }
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">class</span> PowerOfTowEventExecutorChooser <span style="color: #0000ff;">implements</span><span style="color: #000000;"> EventExecutorChooser {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> AtomicInteger idx = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AtomicInteger();
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> EventExecutor[] executors;
+
+        PowerOfTowEventExecutorChooser(EventExecutor[] executors) {
+            </span><span style="color: #0000ff;">this</span>.executors =<span style="color: #000000;"> executors;
+        }
+
+        @Override
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> EventExecutor next() {
+            </span><span style="color: #0000ff;">return</span> executors[idx.getAndIncrement() &amp; executors.length - 1<span style="color: #000000;">];
+        }
+    }
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">class</span> GenericEventExecutorChooser <span style="color: #0000ff;">implements</span><span style="color: #000000;"> EventExecutorChooser {
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> AtomicInteger idx = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AtomicInteger();
+        </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> EventExecutor[] executors;
+
+        GenericEventExecutorChooser(EventExecutor[] executors) {
+            </span><span style="color: #0000ff;">this</span>.executors =<span style="color: #000000;"> executors;
+        }
+
+        @Override
+        </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> EventExecutor next() {
+            </span><span style="color: #0000ff;">return</span> executors[Math.abs(idx.getAndIncrement() %<span style="color: #000000;"> executors.length)];
+        }
+    }
+}</span></code></pre>
+
+<p>默认情况下，chooser通过&nbsp;<code>DefaultEventExecutorChooserFactory</code>被创建，在创建reactor线程选择器的时候，会判断reactor线程的个数，如果是2的幂，就创建<code>PowerOfTowEventExecutorChooser</code>，否则，创建<code>GenericEventExecutorChooser</code></p>
+<p>两种类型的选择器在选择reactor线程的时候，都是通过Round-Robin的方式选择reactor线程，唯一不同的是，<code>PowerOfTowEventExecutorChooser</code>是通过与运算，而<code>GenericEventExecutorChooser</code>是通过取余运算，与运算的效率要高于求余运算</p>
+<p>选择完一个reactor线程，即&nbsp;<code>NioEventLoop</code>&nbsp;之后，我们回到注册的地方</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> ChannelFuture register(Channel channel) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> next().register(channel);
+}</span></code></pre>
+
+<p><strong>SingleThreadEventLoop.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ChannelFuture register(Channel channel) {
+    </span><span style="color: #0000ff;">return</span> register(<span style="color: #0000ff;">new</span> DefaultChannelPromise(channel, <span style="color: #0000ff;">this</span><span style="color: #000000;">));
+}</span></code></pre>
+
+<p>其实，这里已经和服务端启动的过程一样了，可以参考我前面的文章</p>
+<p><strong>AbstractNioChannel.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> register0(ChannelPromise promise) {
+    </span><span style="color: #0000ff;">boolean</span> firstRegistration =<span style="color: #000000;"> neverRegistered;
+    doRegister();
+    neverRegistered </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    registered </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+    pipeline.invokeHandlerAddedIfNeeded();
+
+    safeSetSuccess(promise);
+    pipeline.fireChannelRegistered();
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isActive()) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (firstRegistration) {
+            pipeline.fireChannelActive();
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (config().isAutoRead()) {
+            beginRead();
+        }
+    }
+}</span></code></pre>
+
+<p>和服务端启动过程一样，先是调用&nbsp;<code>doRegister();</code>做真正的注册过程，如下</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> doRegister() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+    </span><span style="color: #0000ff;">boolean</span> selected = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (;;) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            selectionKey </span>= javaChannel().register(eventLoop().selector, 0, <span style="color: #0000ff;">this</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (CancelledKeyException e) {
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">selected) {
+                eventLoop().selectNow();
+                selected </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> e;
+            }
+        }
+    }
+}</span></code></pre>
+
+<p>将该条channel绑定到一个<code>selector</code>上去，一个selector被一个reactor线程使用，后续该channel的事件轮询，以及事件处理，异步task执行都是由此reactor线程来负责</p>
+<p>绑定完reactor线程之后，调用&nbsp;<code>pipeline.invokeHandlerAddedIfNeeded()</code></p>
+<p>前面我们说到，到目前为止<code>NioSocketChannel</code>&nbsp;的pipeline中有三个处理器，head-&gt;ChannelInitializer-&gt;tail，最终会调用到&nbsp;<code>ChannelInitializer</code>&nbsp;的&nbsp;<code>handlerAdded</code>&nbsp;方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> handlerAdded(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ctx.channel().isRegistered()) {
+       <strong> initChannel(ctx);</strong>
+    }
+}</span></code></pre>
+
+<p><code>handlerAdded</code>方法调用&nbsp;<code>initChannel</code>&nbsp;方法之后，调用<code>remove(ctx);</code>将自身删除，如下</p>
+<p><strong>AbstractNioChannel.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">boolean</span> initChannel(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+    </span><span style="color: #0000ff;">if</span> (initMap.putIfAbsent(ctx, Boolean.TRUE) == <span style="color: #0000ff;">null</span><span style="color: #000000;">) { 
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+           <strong> initChannel((C) ctx.channel());</strong>
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable cause) {
+            exceptionCaught(ctx, cause);
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+          <strong>  remove(ctx);</strong>
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+}</span></code></pre>
+
+<p>而这里的&nbsp;<code>initChannel</code>&nbsp;方法又是神马玩意？让我们回到用户方法，比如下面这段用户代码</p>
+<p><strong>用户代码</strong></p>
+<src class="cnblogs_code">
+<pre><code>ServerBootstrap b = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ServerBootstrap();
+b.group(bossGroup, workerGroup)
+ .channel(NioServerSocketChannel.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+ .option(ChannelOption.SO_BACKLOG, </span>100<span style="color: #000000;">)
+ .handler(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> LoggingHandler(LogLevel.INFO))
+ .childHandler(</span><span style="color: #0000ff;">new</span> ChannelInitializer&lt;SocketChannel&gt;<span style="color: #000000;">() {
+     @Override
+     </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> initChannel(SocketChannel ch) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+         ChannelPipeline p </span>=<span style="color: #000000;"> ch.pipeline();
+         p.addLast(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> LoggingHandler(LogLevel.INFO));
+         p.addLast(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> EchoServerHandler());
+     }
+ });</span></code></pre>
+
+<p>原来最终跑到我们自己的代码里去了啊！完了之后，<code>NioSocketChannel</code>绑定的pipeline的处理器就包括 head-&gt;LoggingHandler-&gt;EchoServerHandler-&gt;tail</p>
+<h3>注册读事件</h3>
+<p>接下来，我们还剩下这些代码没有分析完</p>
+<p><strong>AbstractNioChannel.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> register0(ChannelPromise promise) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ..</span>
+<span style="color: #000000;">    pipeline.fireChannelRegistered();
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isActive()) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (firstRegistration) {
+            pipeline.fireChannelActive();
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (config().isAutoRead()) {
+            beginRead();
+        }
+    }
+}</span></code></pre>
+
+<p><code>pipeline.fireChannelRegistered();</code>，其实没有干啥有意义的事情，最终无非是再调用一下业务pipeline中每个处理器的&nbsp;<code>ChannelHandlerAdded</code>方法处理下回调</p>
+<p><code>isActive()</code>在连接已经建立的情况下返回true，所以进入方法块，进入到&nbsp;<code>pipeline.fireChannelActive();</code>在这里我详细步骤先省略，直接进入到关键环节</p>
+<p><strong>AbstractNioChannel.java</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> doBeginRead() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Channel.read() or ChannelHandlerContext.read() was called</span>
+    <span style="color: #0000ff;">final</span> SelectionKey selectionKey = <span style="color: #0000ff;">this</span><span style="color: #000000;">.selectionKey;
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">selectionKey.isValid()) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+
+    readPending </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> interestOps =<span style="color: #000000;"> selectionKey.interestOps();
+    </span><span style="color: #0000ff;">if</span> ((interestOps &amp; readInterestOp) == 0<span style="color: #000000;">) {
+        selectionKey.interestOps(interestOps </span>|<span style="color: #000000;"> readInterestOp);
+    }
+}</span></code></pre>
+
+<p>这里其实就是将&nbsp;<code>SelectionKey.OP_READ</code>事件注册到selector中去，表示这条通道已经可以开始处理read事件了</p>
+<h2>总结</h2>
+<p>至此，netty中关于新连接的处理已经向你展示完了，我们做下总结</p>
+<p>1.boos reactor线程轮询到有新的连接进入<br />2.通过封装jdk底层的channel创建&nbsp;<code>NioSocketChannel</code>以及一系列的netty核心组件<br />3.将该条连接通过chooser，选择一条worker reactor线程绑定上去<br />4.注册读事件，开始新连接的读写</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

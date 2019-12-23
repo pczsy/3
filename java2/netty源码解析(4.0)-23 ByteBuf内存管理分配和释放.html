@@ -1,0 +1,238 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修netty源码解析(4.0)-23 ByteBuf内存管理分配和释放' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>netty源码解析(4.0)-23 ByteBuf内存管理分配和释放</center></div><div class='banquan'>原文出处:本文由博客园博主自带buff提供。<br/>
+原文连接:https://www.cnblogs.com/brandonli/p/11562902.html</div><br>
+    <p>　　ByteBuf内存分配和释放由具体实现负责，抽象类型只定义的内存分配和释放的时机。</p>
+<p>&nbsp;</p>
+<p>　　内存分配分两个阶段: 第一阶段，初始化时分配内存。第二阶段: 内存不够用时分配新的内存。ByteBuf抽象层没有定义第一阶段的行为，但定义了第二阶段的方法：</p>
+<p>　　public abstract ByteBuf capacity(int newCapacity)</p>
+<p>　　这个方法负责分配一个长度为newCapacity的新内存。</p>
+<p>&nbsp;</p>
+<p>　　内存释放的抽象实现在AbstractReferenceCountedByteBuf中实现，这个类实现引用计数，当调用release方法把引用计数变成0时，会调用</p>
+<p>　　protected abstract void deallocate()</p>
+<p>　　执行真正的内存释放操作。</p>
+<p>&nbsp;</p>
+<h1>内存相关的属性</h1>
+<p>　　ByteBuf定义了两个内存相关的属性:</p>
+<p>　　<strong>capacity</strong>: 当前的当前的容量，也就是当前使用的内存大小。使用capacity()方法获得。</p>
+<p>　　<strong>maxCapacity</strong>: 最大容量，也就是可以使用的最大内存大小。使用newCapacity()方法获得。</p>
+<p>&nbsp;</p>
+<h1>内存分配时机</h1>
+<p>　　AbstractByteBuf定义了内存分配的时机。当writeXX方法被调用的时候，如果如果发现可写空间不足，就调用capacity分配新的内存。下面以writeInt为例详细分析这个过程。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">public</span> ByteBuf writeInt(<span style="color: #0000ff;">int</span><span style="color: #000000;"> value) {
+</span><span style="color: #008080;"> 3</span>         ensureWritable0(4<span style="color: #000000;">);
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">        _setInt(writerIndex, value);
+</span><span style="color: #008080;"> 5</span>         writerIndex += 4<span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    }    
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">void</span> ensureWritable0(<span style="color: #0000ff;">int</span><span style="color: #000000;"> minWritableBytes) {
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        ensureAccessible();
+</span><span style="color: #008080;">12</span>         <span style="color: #0000ff;">if</span> (minWritableBytes &lt;=<span style="color: #000000;"> writableBytes()) {
+</span><span style="color: #008080;">13</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>         <span style="color: #0000ff;">if</span> (minWritableBytes &gt; maxCapacity -<span style="color: #000000;"> writerIndex) {
+</span><span style="color: #008080;">17</span>             <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> IndexOutOfBoundsException(String.format(
+</span><span style="color: #008080;">18</span>                     "writerIndex(%d) + minWritableBytes(%d) exceeds maxCapacity(%d): %s"<span style="color: #000000;">,
+</span><span style="color: #008080;">19</span>                     writerIndex, minWritableBytes, maxCapacity, <span style="color: #0000ff;">this</span><span style="color: #000000;">));
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Normalize the current capacity to the power of 2.</span>
+<span style="color: #008080;">23</span>         <span style="color: #0000ff;">int</span> newCapacity = calculateNewCapacity(writerIndex +<span style="color: #000000;"> minWritableBytes);
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Adjust to the new capacity.</span>
+<span style="color: #008080;">26</span> <span style="color: #000000;">        capacity(newCapacity);
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">28</span>         </code></pre>
+
+<p>　　3行: ensureWritable确保当前能写入4Byte的数据。</p>
+<p>　　11行: 确保当前ByteBuf是可以访问的。防止多线程环境下，ByteBuf内存被释放后读写数据。</p>
+<p>　　12，13行: 如果内存够用，就此作罢。</p>
+<p>　　16行:&nbsp; 如果需要内存大于maxCapacity抛出异常。</p>
+<p>　　23, 26行行: 计算新内存的大小, 调用capacity(int)分配新内存。</p>
+<p>　　</p>
+<p>　　重新分配内存之前的一个重要步骤的计算新内存的大小。这个工作由calculateNewCapacity方法完成，它的代码如下:</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> calculateNewCapacity(<span style="color: #0000ff;">int</span><span style="color: #000000;"> minNewCapacity) {
+</span><span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> maxCapacity = <span style="color: #0000ff;">this</span><span style="color: #000000;">.maxCapacity;
+</span><span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> threshold = 1048576 * 4; <span style="color: #008000;">//</span><span style="color: #008000;"> 4 MiB page</span>
+<span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">if</span> (minNewCapacity ==<span style="color: #000000;"> threshold) {
+</span><span style="color: #008080;"> 6</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> threshold;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> If over threshold, do not double but just increase by threshold.</span>
+<span style="color: #008080;">10</span>         <span style="color: #0000ff;">if</span> (minNewCapacity &gt;<span style="color: #000000;"> threshold) {
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">int</span> newCapacity = minNewCapacity / threshold *<span style="color: #000000;"> threshold;
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">if</span> (newCapacity &gt; maxCapacity -<span style="color: #000000;"> threshold) {
+</span><span style="color: #008080;">13</span>                 newCapacity =<span style="color: #000000;"> maxCapacity;
+</span><span style="color: #008080;">14</span>             } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">15</span>                 newCapacity +=<span style="color: #000000;"> threshold;
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">17</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> newCapacity;
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Not over threshold. Double up to 4 MiB, starting from 64.</span>
+<span style="color: #008080;">21</span>         <span style="color: #0000ff;">int</span> newCapacity = 64<span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>         <span style="color: #0000ff;">while</span> (newCapacity &lt;<span style="color: #000000;"> minNewCapacity) {
+</span><span style="color: #008080;">23</span>             newCapacity &lt;&lt;= 1<span style="color: #000000;">;
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> Math.min(newCapacity, maxCapacity);
+</span><span style="color: #008080;">27</span>     }</code></pre>
+
+<p>　　1行：接受一个最小的新内存参数minNewCapacity。</p>
+<p>　　3行： 定义一个4MB的阈值常量threshold。</p>
+<p>　　5，6行: 如果minNewCapacity==threshold，那么新内存大小就是threshold。</p>
+<p>　　10-17行: 如果minNewCapacity&gt;threshold, 新内存大小是min(maxCapacity, threshold * n)且threshold * n &gt;= minNewCapacity。</p>
+<p>　　21-26行: 如果minNewCapacity&lt;threshold, 新内存大小是min(maxCapacity, 64 * 2<sup>n</sup>)且64 * 2<sup>n</sup> &gt;= minNewCapacity。</p>
+<p>&nbsp;</p>
+<h1>内存分配和释放的具体实现</h1>
+<p>　　本章涉及到的内存分配和释放的具体实现只涉及到unpooled类型的ByteBuf，即:</p>
+<p>　　UnpooledHeapByteBuf</p>
+<p>　　UnpooledDirectByteBuf</p>
+<p>　　UnpooledUnsafeHeapByteBuf</p>
+<p>　　UnpooledUnsafeDirectByteBuf</p>
+<p>　　这几个具体实现中涉及到的内存分配和释放代码比较简洁，更容易明白ByteBuf内存管理的原理。相比之下，pooled类型的ByteBuf内存分配和释放的代码要复杂很多，会在后面的章节独立分析。</p>
+<p>　　</p>
+<h2>　　UnpooledHeapByteBuf和UnpooledUnsafeHeapByteBuf实现</h2>
+<p>　　 UnpooledHeapByteBuf中，内存分配的实现代码主要集中在capacity(int)和allocateArray()方法中。capacity分配新内存的步骤是</p>
+<ul>
+<li>调用allocateArray分配一块新内存。</li>
+<li>把旧内存中的实际复制到新内存中。</li>
+<li>使用新内存替换旧内存(24行)。</li>
+<li>释放掉旧内存(25行)。</li>
+</ul>
+<p>　　&nbsp;代码如下:</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">public</span> ByteBuf capacity(<span style="color: #0000ff;">int</span><span style="color: #000000;"> newCapacity) {
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        checkNewCapacity(newCapacity);
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">int</span> oldCapacity =<span style="color: #000000;"> array.length;
+</span><span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">byte</span>[] oldArray =<span style="color: #000000;"> array;
+</span><span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">if</span> (newCapacity &gt;<span style="color: #000000;"> oldCapacity) {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">byte</span>[] newArray =<span style="color: #000000;"> allocateArray(newCapacity);
+</span><span style="color: #008080;"> 9</span>             System.arraycopy(oldArray, 0, newArray, 0<span style="color: #000000;">, oldArray.length);
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            setArray(newArray);
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">            freeArray(oldArray);
+</span><span style="color: #008080;">12</span>         } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (newCapacity &lt;<span style="color: #000000;"> oldCapacity) {
+</span><span style="color: #008080;">13</span>             <span style="color: #0000ff;">byte</span>[] newArray =<span style="color: #000000;"> allocateArray(newCapacity);
+</span><span style="color: #008080;">14</span>             <span style="color: #0000ff;">int</span> readerIndex =<span style="color: #000000;"> readerIndex();
+</span><span style="color: #008080;">15</span>             <span style="color: #0000ff;">if</span> (readerIndex &lt;<span style="color: #000000;"> newCapacity) {
+</span><span style="color: #008080;">16</span>                 <span style="color: #0000ff;">int</span> writerIndex =<span style="color: #000000;"> writerIndex();
+</span><span style="color: #008080;">17</span>                 <span style="color: #0000ff;">if</span> (writerIndex &gt;<span style="color: #000000;"> newCapacity) {
+</span><span style="color: #008080;">18</span>                     writerIndex(writerIndex =<span style="color: #000000;"> newCapacity);
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">20</span>                 System.arraycopy(oldArray, readerIndex, newArray, readerIndex, writerIndex -<span style="color: #000000;"> readerIndex);
+</span><span style="color: #008080;">21</span>             } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">                setIndex(newCapacity, newCapacity);
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">            setArray(newArray);
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">            freeArray(oldArray);
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">27</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span>     </code></pre>
+
+<p>　　capacity中复制旧内存数据到新内存中的时候分两种情况(newCapacity，oldCapacity分别是新旧内存的大小):</p>
+<ul>
+<li>newCapacity&gt;oldCapacity，这种情况比较简单，直接复制就好了(第8行)。不影响readerIndex和writerIndex。</li>
+<li>newCapacity&lt;oldCapacity,&nbsp; 这种情况比较复杂。capacity尽量把可读的数据复制新内存中。
+<ul>
+<li>如果readerIndex&lt;newCapacity且writerIndex&lt;newCapacity。可读数据会全部转移到新内存中。readerIndex和writerIndex保持不变。</li>
+<li>如果readerIndex&lt;newCapacity且writeIndex&gt;newCapacity。可端数据会部分转移的新内存中，会丢失部分可读数据。readerIndex不变，writerIndex变成newCapacity。</li>
+<li>如果readerIndex&gt;newCapacity，数据全部丢失，readerIndex和writerIndex都会变成newCapacity。</li>
+</ul>
+</li>
+</ul>
+<p>&nbsp;　　allocateArray方法负责分配一块新内存，它的实现是new byte[]。freeArray方法负责释放内存，这个方法是个空方法。</p>
+<p>　　UnpooledUnsafeHeapByteBuf是UnloopedHeadpByteBuf的直接子类，在内存管理上的差别是allocateArray的实现，UnpooledUnsafeHeapByteBuf的实现是:　　</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">byte</span>[] allocateArray(<span style="color: #0000ff;">int</span><span style="color: #000000;"> initialCapacity) {
+</span><span style="color: #008080;">3</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> PlatformDependent.allocateUninitializedArray(initialCapacity);
+</span><span style="color: #008080;">4</span>     }</code></pre>
+
+<p>&nbsp;</p>
+<h2>　　UnpooledDirectByteBuf和UnpooledUnsafeDirectByteBuf实现</h2>
+<p>　　UnpooledDirectByteBuf类使用DirectByteBuffer作为内存，使用了DirectByteBuffer的能力来实现ByteBuf接口。allocateDirect和freeDirect方法负责分配和释放DirectByteBuffer。capacity(int)方法和UnloopedHeapByteBuf类似，使用allocateDirect创建一个新的DirectByteBuffer, 把旧内存数据复制到新内存中，然后使用新内存替换旧内存，最后调用freeDirect方法释放掉旧的DirectByteBuffer。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">protected</span> ByteBuffer allocateDirect(<span style="color: #0000ff;">int</span><span style="color: #000000;"> initialCapacity) {
+</span><span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> ByteBuffer.allocateDirect(initialCapacity);
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> freeDirect(ByteBuffer buffer) {
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">        PlatformDependent.freeDirectBuffer(buffer);
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> 　　<span style="color: #000000;">@Override
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">public</span> ByteBuf capacity(<span style="color: #0000ff;">int</span><span style="color: #000000;"> newCapacity) {
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        checkNewCapacity(newCapacity);
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>         <span style="color: #0000ff;">int</span> readerIndex =<span style="color: #000000;"> readerIndex();
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">int</span> writerIndex =<span style="color: #000000;"> writerIndex();
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>         <span style="color: #0000ff;">int</span> oldCapacity =<span style="color: #000000;"> capacity;
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">if</span> (newCapacity &gt;<span style="color: #000000;"> oldCapacity) {
+</span><span style="color: #008080;">18</span>             ByteBuffer oldBuffer =<span style="color: #000000;"> buffer;
+</span><span style="color: #008080;">19</span>             ByteBuffer newBuffer =<span style="color: #000000;"> allocateDirect(newCapacity);
+</span><span style="color: #008080;">20</span>             oldBuffer.position(0<span style="color: #000000;">).limit(oldBuffer.capacity());
+</span><span style="color: #008080;">21</span>             newBuffer.position(0<span style="color: #000000;">).limit(oldBuffer.capacity());
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">            newBuffer.put(oldBuffer);
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            newBuffer.clear();
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">            setByteBuffer(newBuffer);
+</span><span style="color: #008080;">25</span>         } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (newCapacity &lt;<span style="color: #000000;"> oldCapacity) {
+</span><span style="color: #008080;">26</span>             ByteBuffer oldBuffer =<span style="color: #000000;"> buffer;
+</span><span style="color: #008080;">27</span>             ByteBuffer newBuffer =<span style="color: #000000;"> allocateDirect(newCapacity);
+</span><span style="color: #008080;">28</span>             <span style="color: #0000ff;">if</span> (readerIndex &lt;<span style="color: #000000;"> newCapacity) {
+</span><span style="color: #008080;">29</span>                 <span style="color: #0000ff;">if</span> (writerIndex &gt;<span style="color: #000000;"> newCapacity) {
+</span><span style="color: #008080;">30</span>                     writerIndex(writerIndex =<span style="color: #000000;"> newCapacity);
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">                oldBuffer.position(readerIndex).limit(writerIndex);
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">                newBuffer.position(readerIndex).limit(writerIndex);
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">                newBuffer.put(oldBuffer);
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">                newBuffer.clear();
+</span><span style="color: #008080;">36</span>             } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">                setIndex(newCapacity, newCapacity);
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">            setByteBuffer(newBuffer);
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">41</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">42</span>     }</code></pre>
+
+<p>　　对比UnloopedHeapByteBuf的capacity(int)方法，发现这两个实现非常类似，也分两种情况处理:</p>
+<ul>
+<li>18-24行，newCapacity &gt; oldCapacity的情况。</li>
+<li>26-39行, newCapacity &lt; oldCapacity的情况。</li>
+</ul>
+<p>　　两种情况对readerIndex和writerIndex的影响也一样，不同的是数据复制时的具体实现。　　</p>
+<p>　　UnpooledUnsafeDirectByteBuf和UnpooledDirectByteBuf同属于AbstractReferenceCountedByteBuf的派生类，它们之间没有继承关系。但内存分配和释放实现是一样的，不同的地方是内存I/O。UnpooledUnsafeDirectByteBuf使用UnsafeByteBufUtil类之间读写DirectByteBuffer的内存，没有使用DirectByteBuffer的I/O能力。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

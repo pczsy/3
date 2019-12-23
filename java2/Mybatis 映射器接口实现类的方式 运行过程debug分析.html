@@ -1,0 +1,346 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Mybatis 映射器接口实现类的方式 运行过程debug分析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Mybatis 映射器接口实现类的方式 运行过程debug分析</center></div><div class='banquan'>原文出处:本文由博客园博主木卯生十木提供。<br/>
+原文连接:https://www.cnblogs.com/jxearlier/p/11625253.html</div><br>
+    <p><span style="font-family: 宋体; font-size: 15px;">查询一张表的所有数据。</span></p>
+<p><span style="font-family: 宋体; font-size: 15px;">环境：</span></p>
+<p><span style="font-family: 宋体; font-size: 15px;">使用工具IntelliJ IDEA 2018.2版本。</span></p>
+<p><span style="font-family: 宋体;"><span style="font-size: 15px;">创建Maven工程不用骨架</span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+<span style="color: #008080;"> 2</span> &lt;project xmlns="http://maven.apache.org/POM/4.0.0"
+<span style="color: #008080;"> 3</span>          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<span style="color: #008080;"> 4</span>          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+<span style="color: #008080;"> 5</span>     &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+<span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     &lt;groupId&gt;com.jxjdemo&lt;/groupId&gt;
+<span style="color: #008080;"> 8</span>     &lt;artifactId&gt;day34_mybatis1_curd_dao&lt;/artifactId&gt;
+<span style="color: #008080;"> 9</span>     &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+<span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>     &lt;properties&gt;&lt;!--锁定编译版本与字符集--&gt;
+<span style="color: #008080;">12</span>         &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+<span style="color: #008080;">13</span>         &lt;maven.compiler.source&gt;1.8&lt;/maven.compiler.source&gt;
+<span style="color: #008080;">14</span>         &lt;maven.compiler.target&gt;1.8&lt;/maven.compiler.target&gt;
+<span style="color: #008080;">15</span>     &lt;/properties&gt;
+<span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>     &lt;dependencies&gt;
+<span style="color: #008080;">18</span>         &lt;dependency&gt;&lt;!--导入mysql依赖--&gt;
+<span style="color: #008080;">19</span>             &lt;groupId&gt;mysql&lt;/groupId&gt;
+<span style="color: #008080;">20</span>             &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+<span style="color: #008080;">21</span>             &lt;version&gt;5.1.47&lt;/version&gt;
+<span style="color: #008080;">22</span>         &lt;/dependency&gt;
+<span style="color: #008080;">23</span> 
+<span style="color: #008080;">24</span>         &lt;dependency&gt; &lt;!--导入mybatis依赖--&gt;
+<span style="color: #008080;">25</span>             &lt;groupId&gt;org.mybatis&lt;/groupId&gt;
+<span style="color: #008080;">26</span>             &lt;artifactId&gt;mybatis&lt;/artifactId&gt;
+<span style="color: #008080;">27</span>             &lt;version&gt;3.5.2&lt;/version&gt;
+<span style="color: #008080;">28</span>         &lt;/dependency&gt;
+<span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span>         &lt;dependency&gt; &lt;!--导入日志依赖--&gt;
+<span style="color: #008080;">31</span>             &lt;groupId&gt;log4j&lt;/groupId&gt;
+<span style="color: #008080;">32</span>             &lt;artifactId&gt;log4j&lt;/artifactId&gt;
+<span style="color: #008080;">33</span>             &lt;version&gt;1.2.17&lt;/version&gt;
+<span style="color: #008080;">34</span>         &lt;/dependency&gt;
+<span style="color: #008080;">35</span> 
+<span style="color: #008080;">36</span>         &lt;dependency&gt;
+<span style="color: #008080;">37</span>             &lt;groupId&gt;junit&lt;/groupId&gt;
+<span style="color: #008080;">38</span>             &lt;artifactId&gt;junit&lt;/artifactId&gt;
+<span style="color: #008080;">39</span>             &lt;version&gt;4.12&lt;/version&gt;
+<span style="color: #008080;">40</span>         &lt;/dependency&gt;
+<span style="color: #008080;">41</span>     &lt;/dependencies&gt;
+<span style="color: #008080;">42</span> &lt;/project&gt;</code></pre>
+
+<ol>
+<li><span style="font-family: 宋体; font-size: 15px;"><span style="font-family: 宋体; font-size: 15px;">表User</span></span></li>
+</ol>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.jxjdemo.domain;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Date;
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> User {
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer id;
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String username;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">private</span> Date birthday; <span style="color: #008000;">//</span><span style="color: #008000;">框架会帮我们自动转</span>
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String sex;
+</span><span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String address;
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">return</span> "User{" +
+<span style="color: #008080;">14</span>                 "id=" + id +
+<span style="color: #008080;">15</span>                 ", username='" + username + '\'' +
+<span style="color: #008080;">16</span>                 ", birthday=" + birthday +
+<span style="color: #008080;">17</span>                 ", sex='" + sex + '\'' +
+<span style="color: #008080;">18</span>                 ", address='" + address + '\'' +
+<span style="color: #008080;">19</span>                 '}'<span style="color: #000000;">;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">21</span> <span style="color: #008000;">//</span><span style="color: #008000;">省略Get与Set方法</span></code></pre>
+
+<p>&nbsp; &nbsp; &nbsp; &nbsp; 2.映射器XML</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="utf-8"</span><span style="color: #0000ff;">?&gt;</span><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">引入约束</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;">2</span> <span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE mapper
+</span><span style="color: #008080;">3</span> <span style="color: #ff00ff;">        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+</span><span style="color: #008080;">4</span> <span style="color: #ff00ff;">        "http://mybatis.org/dtd/mybatis-3-mapper.dtd"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">5</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mapper </span><span style="color: #ff0000;">namespace</span><span style="color: #0000ff;">="com.jxjdemo.dao.UserDao"</span><span style="color: #0000ff;">&gt;</span><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">mapper：映射器配置/namespace：映射器的全限定类名</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">select </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="queryAll"</span><span style="color: #ff0000;"> resultType</span><span style="color: #0000ff;">="com.jxjdemo.domain.User"</span><span style="color: #0000ff;">&gt;</span><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">查询所有</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;">8</span> <span style="color: #000000;">                select * from user
+</span><span style="color: #008080;">9</span>         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">select</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; 3.映射器配置文件</p>
+<src class="cnblogs_code">
+<pre><code>&lt;?xml version="1.0" encoding="utf-8"?&gt;&lt;!--引入约束--&gt;
+&lt;!<span style="color: #000000;">DOCTYPE mapper
+        PUBLIC </span>"-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd"&gt;
+        &lt;mapper namespace="com.jxjdemo.dao.UserDao"&gt;&lt;!--mapper：映射器配置/namespace：映射器的全限定类名--&gt;
+
+        &lt;select id="queryAll" resultType="com.jxjdemo.domain.User"&gt;<span style="color: #000000;">
+                select </span>*<span style="color: #000000;"> from user
+        </span>&lt;/select&gt;
+        &lt;/mapper&gt;</code></pre>
+
+<p>&nbsp; &nbsp; &nbsp; 4.实现类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.jxjdemo.dao.impl;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.jxjdemo.dao.UserDao;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.jxjdemo.domain.User;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSession;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSessionFactory;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserDaoImpl <span style="color: #0000ff;">implements</span> UserDao {<span style="color: #008000;">//</span><span style="color: #008000;">执行SQL语句用实现类做，不用代理对象。
+</span><span style="color: #008080;"> 9</span>     <span style="color: #008000;">//</span><span style="color: #008000;">从工厂里面获取sqlsession对象</span>
+<span style="color: #008080;">10</span>     <span style="color: #0000ff;">private</span> SqlSessionFactory factory;<span style="color: #008000;">//</span><span style="color: #008000;">以后由sping整合sping创建，现在去测试类里面创建</span>
+<span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> UserDaoImpl(SqlSessionFactory factory) {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">this</span>.factory =<span style="color: #000000;"> factory;
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">17</span>     <span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> queryAll() {
+</span><span style="color: #008080;">18</span>         SqlSession session =<span style="color: #000000;"> factory.openSession();
+</span><span style="color: #008080;">19</span>         List&lt;User&gt; list = session.selectList("com.jxjdemo.dao.UserDao.queryAll");<span style="color: #008000;">//</span><span style="color: #008000;">返回的是Object但实际得到的是(UserDao)</span>
+<span style="color: #008080;">20</span>         session.close();<span style="color: #008000;">//</span><span style="color: #008000;">session关闭流，释放资源</span>
+<span style="color: #008080;">21</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> list;
+</span><span style="color: #008080;">22</span>     }</code></pre>
+
+<p>5.测试类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.jxjtest.test;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.jxjdemo.dao.UserDao;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.jxjdemo.dao.impl.UserDaoImpl;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.jxjdemo.domain.User;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.io.Resources;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSessionFactory;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSessionFactoryBuilder;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.After;
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Before;
+</span><span style="color: #008080;">11</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+</span><span style="color: #008080;">14</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.InputStream;
+</span><span style="color: #008080;">15</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Date;
+</span><span style="color: #008080;">16</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MybatisCurdTest {
+</span><span style="color: #008080;">19</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> SqlSessionFactory factory; 
+</span><span style="color: #008080;">20</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> InputStream is;      
+</span><span style="color: #008080;">21</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> UserDao userDao;  
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span> <span style="color: #000000;">    @Test
+</span><span style="color: #008080;">24</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> testQueryAll(){ <span style="color: #008000;">//</span><span style="color: #008000;">查询全部
+</span><span style="color: #008080;">25</span>         <span style="color: #008000;">//</span><span style="color: #008000;">读取配置文件，获取sqlsession对象工厂，获取映射器提取</span>
+<span style="color: #008080;">26</span>         List&lt;User&gt; userList =<span style="color: #000000;"> userDao.queryAll();
+</span><span style="color: #008080;">27</span>         <span style="color: #0000ff;">for</span><span style="color: #000000;"> (User user : userList){
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">            System.out.println(user);
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">@Before
+</span><span style="color: #008080;">32</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> init() <span style="color: #0000ff;">throws</span> IOException { <span style="color: #008000;">//</span><span style="color: #008000;">重复执行的代码，单独提取出来</span>
+<span style="color: #008080;">33</span>         is = Resources.getResourceAsStream("sqlMapConfig.xml");<span style="color: #008000;">//</span><span style="color: #008000;">提取成员变量后
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> SqlSessionFactory factory = new SqlSessionFactoryBuilder().build(is); </span><span style="color: #008000;">//</span><span style="color: #008000;">获取sqlsession对象,通过工厂构建一个，提取成员变量</span>
+<span style="color: #008080;">36</span>         factory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlSessionFactoryBuilder().build(is);
+</span><span style="color: #008080;">37</span>         userDao = <span style="color: #0000ff;">new</span> UserDaoImpl(factory);<span style="color: #008000;">//</span><span style="color: #008000;">提取成员变量</span>
+<span style="color: #008080;">38</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">    @After
+</span><span style="color: #008080;">40</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> destroy() <span style="color: #0000ff;">throws</span> IOException {  <span style="color: #008000;">//</span><span style="color: #008000;">关流</span>
+<span style="color: #008080;">41</span> <span style="color: #000000;">        is.close();
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">43</span> }</code></pre>
+
+<p>&nbsp;6.数据库核心配置文件XML</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="UTF-8" </span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE configuration
+</span><span style="color: #008080;"> 3</span> <span style="color: #ff00ff;">        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+</span><span style="color: #008080;"> 4</span> <span style="color: #ff00ff;">        "http://mybatis.org/dtd/mybatis-3-config.dtd"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 5</span> <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">mybatis的核心配置文件，主要配置数据库连接信息</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">根标签</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;"> 7</span>     <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">enxironments 可以配置多个数据库环境</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">environments </span><span style="color: #ff0000;">default</span><span style="color: #0000ff;">="mysql"</span><span style="color: #0000ff;">&gt;</span><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">default 默认使用的数据库</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">environment </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="mysql"</span><span style="color: #0000ff;">&gt;</span><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">environment每一个数据库连接(配置)信息</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;">10</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">transactionManager </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="JDBC"</span> <span style="color: #0000ff;">/&gt;</span><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">事物管理方式</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;">11</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dataSource </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="POOLED"</span><span style="color: #0000ff;">&gt;</span><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">数据源。不使用UN连接池POOLED，POOLED使用连接池,JNDI查找数据源配置文件</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;">12</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="driver"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="com.mysql.jdbc.Driver"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">13</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="url"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="jdbc:mysql://localhost:端口号/库名"</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">14</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="username"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="账号"</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">15</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="password"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="密码"</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">16</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dataSource</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">17</span>         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">environment</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">18</span>     <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">environments</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mappers</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">21</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mapper </span><span style="color: #ff0000;">resource</span><span style="color: #0000ff;">="com/jxjdemo/dao/UserDao.xml"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">22</span>     <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">mappers</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">23</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>　　7.省略log4j日志配置文件，目录结构。</p>
+<p><img src="./images/Mybatis 映射器接口实现类的方式 运行过程debug分析0.png" alt="" width="489" height="266" /></p>
+<p>8.在测试类打断点，开始deBug跟踪，从这里开始。</p>
+<p>相册里面有步骤截图，可以配合一起看。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> List&lt;User&gt; userList = userDao.queryAll();</code></pre>
+
+<p>9.到实现类，获取session</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> SqlSession session = factory.openSession();</code></pre>
+
+<p>10.跟踪这行代码做了什么事情，进入这个方法。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> List&lt;User&gt; list = session.selectList("com.jxjdemo.dao.UserDao.queryAll");</code></pre>
+
+<p>11.到了DefaultSqlSession.java类里面，在selectList调了selectList，方法的重载。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">@Override
+</span><span style="color: #008080;">2</span>   <span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt;<span style="color: #000000;"> selectList(String statement) {
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.selectList(statement, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span> <span style="color: #000000;">  @Override
+</span><span style="color: #008080;">7</span>   <span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt;<span style="color: #000000;"> selectList(String statement, Object parameter) {
+</span><span style="color: #008080;">8</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.selectList(statement, parameter, RowBounds.DEFAULT);
+</span><span style="color: #008080;">9</span>   }</code></pre>
+
+<p>12.到了ms，获取数据库，配置文件信息，与SQL类型。关键在于executor.query执行查询。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt;<span style="color: #000000;"> selectList(String statement, Object parameter, RowBounds rowBounds) {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 3</span>       MappedStatement ms =<span style="color: #000000;"> configuration.getMappedStatement(statement);
+</span><span style="color: #008080;"> 4</span>       <span style="color: #0000ff;">return</span><span style="color: #000000;"> executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);
+</span><span style="color: #008080;"> 5</span>     } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;"> 6</span>       <span style="color: #0000ff;">throw</span> ExceptionFactory.wrapException("Error querying database.  Cause: " +<span style="color: #000000;"> e, e);
+</span><span style="color: #008080;"> 7</span>     } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">      ErrorContext.instance().reset();
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span>   }</code></pre>
+
+<p>13.先对wrspCollection(parameter)包装一下。回到12.</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">if</span> (object <span style="color: #0000ff;">instanceof</span> Collection) {这里省略}</code></pre>
+
+<p>14.进入CachingExecutor.java.这个类自己不执行。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;"> @Override
+</span><span style="color: #008080;">2</span>   <span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt; query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+</span><span style="color: #008080;">3</span>     BoundSql boundSql = ms.getBoundSql(parameterObject);</code></pre>
+
+<p>15.这里第一步，从ms.getBoundSql获取到了绑定的SQL语句。</p>
+<src class="cnblogs_code">
+<pre><code>CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);//缓存相关忽略</code></pre>
+
+<p>16.继续调query方法重载。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">return</span> query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);</code></pre>
+
+<p>17.到了query方法。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">@Override
+</span><span style="color: #008080;">2</span>   <span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt;<span style="color: #000000;"> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
+</span><span style="color: #008080;">3</span>       <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+</span><span style="color: #008080;">4</span>     Cache cache = ms.getCache();</code></pre>
+
+<p>18.找缓存。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">if</span> (cache != <span style="color: #0000ff;">null</span>) {</code></pre>
+
+<p>19.缓存里面没有，CachingExecutor.java.这个类自己不执行，就调了delegate委托者。</p>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">return</span> delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);</code></pre>
+
+<p>20.CachingExecutor.java.这个类是从父类继承的，所以到了BaseExecutor.java.</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+  </span><span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt; query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    ErrorContext.instance().resource(ms.getResource()).activity(</span>"executing a query").object(ms.getId());</code></pre>
+
+<p>21.往下走。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">if</span> (closed) {<span style="color: #008000;">//</span><span style="color: #008000;">1.</span>
+<span style="color: #0000ff;">if</span> (queryStack == 0 &amp;&amp; ms.isFlushCacheRequired()) {<span style="color: #008000;">//</span><span style="color: #008000;">2.</span>
+queryStack++;<span style="color: #008000;">//</span><span style="color: #008000;">3.</span>
+list = resultHandler == <span style="color: #0000ff;">null</span> ? (List&lt;E&gt;) localCache.getObject(key) : <span style="color: #0000ff;">null</span>;<span style="color: #008000;">//</span><span style="color: #008000;">4.</span>
+<span style="color: #0000ff;">if</span> (list != <span style="color: #0000ff;">null</span>) {<span style="color: #008000;">//</span><span style="color: #008000;">5.</span></code></pre>
+
+<p>22.到了queryFromDatabase开始到库里面查询。</p>
+<src class="cnblogs_code">
+<pre><code>list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);</code></pre>
+
+<p>23.BaseExecutor.java.执行了doQuery方法</p>
+<src class="cnblogs_code">
+<pre><code>localCache.putObject(key, EXECUTION_PLACEHOLDER);<span style="color: #008000;">//</span><span style="color: #008000;">1</span>
+list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);<span style="color: #008000;">//</span><span style="color: #008000;">2.</span></code></pre>
+
+<p>24.进入doQuery查看，到了SimpleExecutor.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt; doQuery(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+</span><span style="color: #008080;">2</span>     Statement stmt = <span style="color: #0000ff;">null</span>;<span style="color: #008000;">//</span><span style="color: #008000;">1</span>
+<span style="color: #008080;">3</span> Configuration configuration = ms.getConfiguration();<span style="color: #008000;">//</span><span style="color: #008000;">2.configuration所有的配置信息</span>
+<span style="color: #008080;">4</span> StatementHandler handler = configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);<span style="color: #008000;">//</span><span style="color: #008000;">3.</span>
+<span style="color: #008080;">5</span> stmt = prepareStatement(handler, ms.getStatementLog());<span style="color: #008000;">//</span><span style="color: #008000;">4.准备得到一个</span>
+<span style="color: #008080;">6</span> <span style="color: #0000ff;">return</span> handler.query(stmt, resultHandler);<span style="color: #008000;">//</span><span style="color: #008000;">5.handler.query开始真正执行了</span><span style="color: #008080;"><br /></span></code></pre>
+
+<p>25.进入query到了RoutingStatementHandler.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">return</span> delegate.query(statement, resultHandler);<span style="color: #008000;">//</span><span style="color: #008000;">调了delegate</span></code></pre>
+
+<p>26.调了delegate到了PreparedStatementHandler.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt; query(Statement statement, ResultHandler resultHandler) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+</span><span style="color: #008080;">2</span>     PreparedStatement ps =<span style="color: #000000;"> (PreparedStatement) statement;PreparedStatement预编译对象
+</span><span style="color: #008080;">3</span>     ps.execute();<span style="color: #008000;">//</span><span style="color: #008000;">2.获取预编译对象，执行任意语句</span>
+<span style="color: #008080;">4</span>     <span style="color: #0000ff;">return</span> resultSetHandler.handleResultSets(ps);<span style="color: #008000;">//
+</span><span style="color: #008080;">5</span>   }</code></pre>
+
+<p>到了这里就是最终的结果，剩余处理结果集，封装的事情了。</p>
+<p>结果：Mybatis封装的再深底层还是JDBC。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<pre><code></code></pre>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

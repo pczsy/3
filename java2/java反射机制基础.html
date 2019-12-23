@@ -1,0 +1,87 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修java反射机制基础' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>java反射机制基础</center></div><div class='banquan'>原文出处:本文由博客园博主0vs1提供。<br/>
+原文连接:https://www.cnblogs.com/hpqbh/p/11762185.html</div><br>
+    <p>1、首先创建一个抽象父类：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">package classes;<br />
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> BasePrint {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> print();
+}</span></code></pre>
+
+<p>2、创建两个打印类继承抽象父类：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">package classes;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> print1 extends BasePrint{
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> print() {
+        System.</span><span style="color: #0000ff;">out</span>.println(<span style="color: #800000;">"</span><span style="color: #800000;">print1方法执行了</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    }
+    
+}</span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">package classes;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> print2 extends BasePrint {
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> print() {
+        System.</span><span style="color: #0000ff;">out</span>.println(<span style="color: #800000;">"</span><span style="color: #800000;">print2方法执行了</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>3、在创建一个properties配置文件，文件名为pro.properties</p>
+<src class="cnblogs_code">
+<pre><code>test1=<span style="color: #000000;">classes.print1
+test2</span>=classes.print2</code></pre>
+
+<p>4、利用反射和多态调用打印类中的方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">package classes;
+
+import java.io.FileInputStream;
+import java.util.Properties;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestPrint {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) throws Exception {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">加载properties配置文件</span>
+        Properties pro = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Properties();
+        pro.load(</span><span style="color: #0000ff;">new</span> FileInputStream(<span style="color: #800000;">"</span><span style="color: #800000;">src/pro.properties</span><span style="color: #800000;">"</span><span style="color: #000000;">));
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">根据传入的test1键值得到类对象，用多态方式父类指向子类，调用子类方法</span>
+        String className = pro.getProperty(<span style="color: #800000;">"</span><span style="color: #800000;">test1</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+        Class cls </span>=<span style="color: #000000;"> Class.forName(className);
+        BasePrint print </span>=<span style="color: #000000;"> (BasePrint) cls.newInstance();
+        print.print();
+    }
+}</span></code></pre>
+
+<p>测试得到结果</p>
+<src class="cnblogs_code">
+<pre><code>print1方法执行了</code></pre>
+
+<p>结论：　</p>
+<p>　　利用好java反射和多态机制，可以在不改变代码的情况下，根据键值创建对应的类对象，通过多态方式执行不同类中具有相同功能的代码，当有新的需求时，只需在配置文件中添加对应的全类名即可。</p>
+<p>　　例如：服务器得到HTTP协议请求，更具不同的请求，执行不同的方法响应给浏览器。</p>
+<p>　　自己学习总结，希望也能帮到大家，有错误的地方，欢迎指出，一起进步。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

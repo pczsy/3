@@ -1,0 +1,128 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修elasticsearch Discovery 发现模块学习' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>elasticsearch Discovery 发现模块学习</center></div><div class='banquan'>原文出处:本文由博客园博主独行侠梦提供。<br/>
+原文连接:https://www.cnblogs.com/hyq0823/p/11569606.html</div><br>
+    <h5 id="发现模块和集群的形成">发现模块和集群的形成</h5>
+<h5 id="目标">目标</h5>
+<ul>
+<li>发现节点</li>
+<li>Master选举</li>
+<li>组成集群，在Master信息发生变化时及时更新。</li>
+<li>故障检测</li>
+</ul>
+<h5 id="细分为几个子模块">细分为几个子模块</h5>
+<h6 id="discovery发现模块">Discovery发现模块</h6>
+<p>Discover是在集群Master节点未知时，互相发现对方的过程，例如新节点的加入或是先前的主节点宕机，如果一个节点不满足Master资格，则它将继续发现，直到发现了选定的主节点为止，其中，重试配置的属性为：discovery.find_peers_interval，默认值1s。</p>
+<p>官网上master-eligible的含义：设置了node-master：true的节点，表示有资格成为Master的节点。</p>
+<p>一、基于单播的方式发现</p>
+<p>可以在 elasticsearch.yml 配置文件中使用discovery.zen.ping.unicast.hosts静态设置设置主机列表。<br />
+discovery.zen.ping.unicast.hosts: [&quot;host1&quot;, &quot;host2&quot;]<br />
+具体的值是一个主机数组或逗号分隔的字符串。每个值应采用host：port或host的形式（其中port默认为设置transport.profiles.default.port</p>
+<table>
+<thead>
+<tr class="header">
+<th>过时配置</th>
+<th>配置（新）</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>discovery.zen.ping.unicast.hosts</td>
+<td>discovery.seed_hosts</td>
+</tr>
+<tr class="even">
+<td>discovery.zen.hosts_provider</td>
+<td>discovery.seed_providers</td>
+</tr>
+<tr class="odd">
+<td>discovery.zen.no_master_block</td>
+<td>cluster.no_master_block</td>
+</tr>
+</tbody>
+</table>
+<p>二、基于配置文件的方式发现</p>
+<p>elasticsearch可以在文件中配置种子主机列表，来进行节点发现，这种方式在容器化环境可以很好的支持动态扩展，可以随时更改文件内容，不用重启节点。<br />
+文件配置方式为主机ip，主机ip:端口，也可以使用主机名配置，这会触发DNS查找，每次在DNS查找中的等待时间属性：discovery.zen.ping.unicast.resolve_timeout，默认为5S，如不指定端口，默认按顺序搜索transport.profiles.default.port、transport.port。<br />
+注意: 如果还配置了discovery.seed_hosts，则会把两个配置合并起来。</p>
+<h6 id="选举">选举</h6>
+<p>一、选举Master<br />
+选举Master需要所有的Master候选节点共同工作，即使某些节点发生了故障，这个工作也必须能够正常进行，es需要通过仲裁的方式选取出还能正常工作的节点，再组成集群，避免形成“脑裂”，这里“脑裂”是指，可能出现不止一个Master节点，比如节点间的通信断开后，各个Master候选节点都有可能认为其他节点都宕机，提升自己为Master，造成集群状态不一致的情况。由此衍生出参与选主时，需要配置能通信的候选节点数量。discovery.zen.minimum_master_nodes，缺省配置是1.一个基本的原则是这里需要设置成 N/2+1, N是集群中节点的数量。</p>
+<p>由上面的分析我们可以知道，是否发生选举，在于节点彼此间的通信感知，由此可知节点间的网络通信同样重要，就像是API接口调用，有调用就会有超时，所以在网络环境差的情况下，超时配置显得尤为重要。discovery.zen.ping.timeout用来指定两个节点间的通信超时时间，默认是3S。根据网络情况，调整这个参数，尽量避免由于网络延迟，带来的不必要的选举。</p>
+<p>二、改变集群状态</p>
+<h6 id="投票配置">投票配置</h6>
+<p>在elasticsearch7的版本中，当有一半的候选主节点宕机后，集群将不会自动恢复，在剩下的，这种极端情况下，最容易的解决办法就是让这些节点重新上线，<br />
+在三个节点的集群中，通常能容忍一个节点的宕机。节点加入或离开集群后，Elasticsearch会通过自动对投票配置进行相应的更改来做出反应，以确保集群尽可能具有弹性。相关配置如下：</p>
+<pre><code><code># 将节点加入投票配置排除列表中
+# 默认超时时间30s，可以指定超时时间
+POST /_cluster/voting_config_exclusions/node_name?timeout=1m
+</code></code></pre>
+<h5 id="集群启动项">集群启动项</h5>
+<p>一、集群自举<br />
+首次启动Elasticsearch集群需要在集群中的一个或多个Master候选节点上显式定义初始一组主资格节点 . 这个行为称为集群自举。<br />
+符合主机要求的初始节点集是在cluster.initial_master_nodes设置中，要求如下：</p>
+<pre><code><code>节点的节点名称。
+该节点的主机名，如果node.name没有设置，因为node.name默认为节点的主机名. 根据系统配置，必须使用标准主机名或裸机主机名.
+节点的发布地址的IP地址（如果无法使用该节点的node.name 。这是network.host解析到的IP地址，但是可以覆盖此IP地址。
+节点发布地址的IP地址和端口，格式为IP:PORT ，如果不可能使用节点的node.name ，并且有多个节点共享一个IP地址</code></code></pre>
+<p>注意：启动Master候选节点时，可以在命令行上或elasticsearch.yml文件中提供此设置. 群集形成后，不再需要此设置，并且会忽略它，也就是说，这个属性就只是在集群首次启动时有用。并且可以不需要在非Master候选节点上设置。<br />
+特别要小心的是，对于Master候选节点的配置最好采用持久化的方式来替代使用CMD命令行的方式启动，因为如果一旦重启Master候选节点时，指定错误，则有可能形成两套不相同的集群。这有可能带来数据丢失的。</p>
+<p><img src="./images/elasticsearch Discovery 发现模块学习0.png" alt="file" /></p>
+<p>通过cluster.name设置，可以创建彼此分离的多个群集. 节点在首次相互连接时会验证它们是否同意其集群名称，并且Elasticsearch将仅由具有相同集群名称的节点组成集群. 集群名称的默认值是elasticsearch ，但是建议更改此值以反映集群的逻辑名称。</p>
+<h5 id="添加or删除节点">添加OR删除节点</h5>
+<p>由于elasticsearch集群节点时可以动态上线下线的，那在这个过程中，我们能够理解或需要够操作什么呢。在主服务器选举期间或加入现有的已形成集群时，节点会向主服务器发送加入请求，以便将其正式添加到集群中. 可以使用cluster.join.timeout设置来配置节点在发送加入集群的请求后等待多长时间. 其默认值为30s。</p>
+<p>删除符合主机资格的节点时，重要的是不要同时删除太多节点。 例如，如果当前有七个Master候选的节点，希望将其减少到三个，则不可能简单地一次停止四个节点：这样做将只剩下三个节点，这少于一半投票配置，这意味着群集无法采取任何进一步的措施.只要集群中至少有三个符合主控条件的节点，通常，最好一次删除一个节点，从而为集群留出足够的时间来自动调整表决配置并适应故障新节点集的容差级别。<br />
+这里，我们需要注意，节点上线下线，我们都需要关注防止“脑裂”的配置，通过调用Elasticsearch APi的方式，将配置持久化下来，而不用重启节点。</p>
+<pre><code><code>curl  -uelastic:passwd -XGET &quot;EsIP:9200/_cluster/settings&quot; -H &quot;Content-Type:application/json&quot; -d &#39;
+{
+    &quot;persistent&quot; : {
+        &quot;discovery.zen.minimum_master_nodes&quot; : 2
+    }
+}
+&#39;
+</code></code></pre>
+<h5 id="发布集群的状态">发布集群的状态</h5>
+<p>只有Master节点可以更改集群状态。更改后会将更新的状态发布到集群中所有的节点上，每个节点都会接受这个消息，并进行Ack确认。但是不会应用这个更新。主节点需要在<br />
+discovery.zen.commit_timeout配置的时间内获取discovery.zen.minimum_master_nodes个Ack响应，才算是状态成功的发布，否则这次发布就是失败的，不会被应用。<br />
+对于那些未收到确认的节点被称为滞后，因为它们的群集状态已落后于主服务器的最新状态. 主机等待滞后的节点再追赶一段时间，通过cluster.follower_lag.timeout ，默认为90s . 如果节点在此时间内仍未成功应用集群状态更新，则认为该节点已失败并从集群中删除。</p>
+<p>Master确认Ack数量满足后，才会继续发送确认消息给所有节点，此时节点才会真正的应用这个集群的状态信息，这第二个过程是通过discovery.zen.publish_timeout配置的，默认是30s，这个超时等待时长是从第二次发布时开始计算的。</p>
+<p>由上述可以，在发布集群状态时，获取Master候选节点的Ack是很重要的，节点数量由discovery.zen.minimum_master_nodes配置。而没有主节点时，也有相关配置需要了解，它就是：discovery.zen.no_master_block。<br />
+discovery.zen.no_master_block设置了没有主节点时，集群的限制操作。<br />
+all。代表所有操作均不可用，包括读写等所有api的调用。<br />
+write。这是默认值，只有写操作会被拒绝，同时需要注意，这个属性对Node level相关的api是无效的。</p>
+<h5 id="集群故障检查">集群故障检查</h5>
+<p>当选的主节点会定期检查群集中的每个节点，以确保它们仍处于连接状态并且运行状况良好. 群集中的每个节点还定期检查当选的主机的运行状况. 这些检查分别称为 follower checks 和 leader checks。<br />
+相关配置cluster.fault开头，更改默认设置可能会导致群集变得不稳定，不建议修改。</p>
+<h5 id="发现和形成集群的配置">发现和形成集群的配置</h5>
+<p>这里列举几个必要重要的配置，发现模块的其他配置，已经整理成思维导图，【侠梦的开发笔记】公众号回复，【发现】获取完整图片。</p>
+<ul>
+<li><p>discovery.seed_hosts<br />
+提供集群中符合主机要求的节点的列表. 每个值的格式为host:port或host ，其中port默认为设置transport.profiles.default.port。</p></li>
+<li><p>discovery.seed_providers<br />
+以文件的方式提供主机列表，可以动态修改，而不用重启节点（容器化环境适用）</p></li>
+<li><p>cluster.initial_master_nodes<br />
+设置全新群集中符合主机要求的节点的初始集合. 默认情况下，该列表为空，这意味着该节点希望加入已经被引导的集群</p></li>
+<li><p>discovery.find_peers_interval<br />
+选定主节点发现时间间隔,默认1S</p></li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,164 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Linux 下的 redis安装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Linux 下的 redis安装</center></div><div class='banquan'>原文出处:本文由博客园博主我的风格我做主提供。<br/>
+原文连接:https://www.cnblogs.com/xushengyong/p/11830642.html</div><br>
+    <p>&nbsp;<strong>官网下载链接：</strong><a title="redis官网" href="https://redis.io/download" target="_parent"><strong>https://redis.io/download</strong></a></p>
+<p><strong>redis安装流程，记录自己的实践，分享给需要的人。</strong></p>
+<h3><strong>1、选择Stable(5.0)下的Download 5.0.0&nbsp;链接进行下载 （stable是稳定版本，默认下载的是linux版本）</strong></h3>
+<p><strong><img src="./images/Linux 下的 redis安装0.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<strong>2、下载完成之后，打开WinSCP，把我们下载好的Redis压缩包，上传到Linux的&nbsp;/mnt/&nbsp;文件目录下</strong></p>
+<p>&nbsp;<img src="./images/Linux 下的 redis安装1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3><strong>3、使用putty/xshell&nbsp;连接到我们的Linux服务器，进入到/mnt/&nbsp;文件目录中，解压&nbsp;redis-5.0.0.tar.gz，并把redis-5.0.0移动到/usr/local/&nbsp;目录下,命令如下</strong></h3>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code>[root@localhost ~]# cd /mnt/       //进入mnt文件目录
+<span> 
+[root@localhost mnt]# tar xzf redis-5.0.0.tar.gz    //解压redis
+<span> 
+[root@localhost mnt]# ls           //查看mnt目录
+redis-5.0.0  redis-5.0.0.tar<span>.gz
+ 
+[root@localhost mnt]# mv redis-5.0.0 /usr/local/   //把redis-5.0.0移动到/usr/local/ 目录下</span></span></span></code></pre>
+
+<p>&nbsp;</p>
+<h3><strong>4、安装gcc环境</strong></h3>
+<p>&nbsp; 由于redis是由C语言编写的，它的运行需要C环境，因此我们需要先安装gcc。安装命令如下：</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">[root@localhost mnt]# yum install gcc-c++</code></pre>
+
+<p>由于很多线上环境是内网的 ，没有办法联网，所以下面是手动下载安装 gcc</p>
+<p>离线安装C环境</p>
+<p>　　将gcc离线文件夹上传到服务器/mnt目录下，进入gcc文件目录，执行命令 rpm -Uvh *.rpm --nodeps --force 即可安装。</p>
+<p><strong>5、进入到&nbsp; /usr/local/redis-5.0.0/&nbsp;目录下，进行编译与安装</strong></p>
+<p>&nbsp;</p>
+<p>//进入到<strong>&nbsp;/usr/local/redis-5.0.0/</strong>&nbsp;&nbsp;文件目录下</p>
+<p>&nbsp;（1）对解压后的文件进行编译</p>
+<p>&nbsp;（2）安装redis &nbsp;</p>
+<src class="cnblogs_code">
+<pre><code>[root@localhost mnt]# cd /usr/local/redis-5.0.0/<span>   
+
+ 
+
+[root@localhost redis-5.0.0]# make      //对解压后的文件进行编译
+<span>
+ 
+
+[root@localhost redis-5.0.0]# cd ./src   //进入到 redis-5.0.0/src 文件目录下
+<span>
+ 
+
+[root@localhost src]# make install    //进行redis安装</span></span></span></code></pre>
+
+<p>、</p>
+<h3><strong>6、为了方便管理，将Redis文件中的conf配置文件和常用命令移动到统一文件中</strong></h3>
+<p>&nbsp;(1)在redis 目录下&nbsp;<strong>&nbsp;</strong><strong>/usr/local/redis-5.0.0/</strong>&nbsp;&nbsp;创建bin和etc文件夹 ，命令如下：</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">[root@localhost redis-5.0.0]# mkdir bin      //创建bin文件夹
+
+ 
+
+[root@localhost redis-5.0.0]# mkdir etc   //创建etc文件夹</code></pre>
+
+<p>　　</p>
+<p>&nbsp;(2)&nbsp; 将redis-5.0.0目录（&nbsp;<strong>/usr/local/redis-5.0.0/</strong>）&nbsp;下 的&nbsp;redis.conf&nbsp;移动到&nbsp;redis-5.0.0目录下的etc文件夹下，命令如下：</p>
+<src class="cnblogs_Highlighter">
+<src class="cnblogs_code">
+<pre><code>[root@localhost redis-5.0.0]# mv redis.conf ./etc/<span>  
+[root@localhost src]# cd /usr/local/redis-5.0.0/etc/<span>  
+[root@localhost etc]# ls   //查看etc目录
+<span> redis.conf</span></span></span></code></pre>
+
+
+<pre class="brush:bash;gutter:true;">（3） 进入src目录</code></pre>
+<src class="cnblogs_Highlighter">
+<pre class="brush:go;gutter:true;">[root@localhost redis-5.0.0]# cd ./src/      //进入redis-5.0.0目录下的src文件夹下
+</code></pre>
+
+<p>（4） //将 mkreleasehdr.sh、redis-benchmark、redis-check-aof、redis-cli、redis-server 移动到&nbsp; &nbsp;/usr/local/redis-5.0.0/bin/&nbsp;目录下</p>
+<src class="cnblogs_code">
+<pre><code>[root@localhost src]# mv mkreleasehdr.sh redis-benchmark redis-check-aof redis-cli redis-server /usr/local/redis-5.0.0/bin/</code></pre>
+
+<p>&nbsp;</p>
+<h3><strong>7、编辑&nbsp;redis.conf配置文件，设置后台启动redis服务</strong></h3>
+<src class="cnblogs_Highlighter">
+<pre class="brush:go;gutter:true;">[root@localhost etc]# vi redis.conf<br /><br /> 把文件中的daemonize属性改为yes（表明需要在后台运行）
+</code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;8<strong>、编辑&nbsp;redis.conf配置文件，开启redis远程访问服务</strong></p>
+<p>&nbsp; &nbsp;&nbsp;（1）把&nbsp;redis.conf配置文件中的&nbsp;bind 127.0.0.1&nbsp;这一行给注释掉，这里的bind指的是只有指定的网段才能远程访问这个redis，注释掉后，就没有这个限制了。</p>
+<p>&nbsp; &nbsp;（2）把&nbsp;redis.conf配置文件中的&nbsp;protected-mode&nbsp;设置成no（默认是设置成yes的， 防止了远程访问，在redis3.2.3版本后）</p>
+<h3>&nbsp;9<strong>、编辑&nbsp;redis.conf配置文件，修改Redis默认密码&nbsp;(默认密码为空)</strong></h3>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;（1）在配置文件中找到这一行&nbsp;#&nbsp;requirepass&nbsp;foobared</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;（2）删除前面的注释符号#，并把foobared修改成自己的密码&nbsp; 或者&nbsp; 另起一行&nbsp;requirepass 自己的密码</p>
+<p>&nbsp;<strong>10、设置Redis开机启动 &nbsp;</strong></p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:go;gutter:true;">     [root@localhost etc]# vi /etc/rc.d/rc.local
+
+     添加如下代码到 /etc/rc.d/rc.local 中，开机启动：
+
+    /usr/local/redis-5.0.0/bin/redis-server /usr/local/redis-5.0.0/etc/redis.conf
+</code></pre>
+
+<p>&nbsp;<strong>11、切换到&nbsp;/usr/local/redis-5.0.0/bin/&nbsp;目录下执行&nbsp;redis-server&nbsp;命令，使用&nbsp;/usr/local/redis-5.0.0/etc/redis.conf配置文件来启动redis服务</strong></p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:go;gutter:true;">//进入到/usr/local/redis-5.0.0/bin/ 目录下
+
+[root@localhost etc]# cd /usr/local/redis-5.0.0/bin/  
+
+ 
+
+[root@localhost bin]# ls        //查看bin目录
+
+mkreleasehdr.sh  redis-benchmark  redis-check-aof  redis-cli  redis-server
+
+ 
+
+[root@localhost bin]# ./redis-server /usr/local/redis-5.0.0/etc/redis.conf   //启动Redis服务
+</code></pre>
+
+<p>&nbsp;</p>
+<p><strong>12、打开RedisDesktopManager，测试服务是否开启 以及 是否可以远程访问Redis，或者使用java程序去访问都是可以的。</strong></p>
+<p>&nbsp;<strong>启动客户端&nbsp;连接，注意如果你没有执行启动客户端连接，可能输入命令是会报没有这个命令，就是这个问题。</strong></p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:go;gutter:true;">./redis-cli 启动客户端  可以执行命令
+
+auth password
+</code></pre>
+
+<p>&nbsp;</p>
+<p>Redis的整个安装过程到此结束。</p>
+<p>感谢CSDN博主，本文借鉴博主内容，经过自己实践，总结此文。如有任何问题，可以找我讨论。</p>
+<p>&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</p>
+<p>版权声明：本文为CSDN博主「零碎de記憶」的原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接及本声明。</p>
+<p>原文链接：https://blog.csdn.net/qq_39135287/article/details/83474865</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

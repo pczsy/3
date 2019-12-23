@@ -1,0 +1,167 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot起飞系列-配置嵌入式Servlet容器（八）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot起飞系列-配置嵌入式Servlet容器（八）</center></div><div class='banquan'>原文出处:本文由博客园博主Lookings提供。<br/>
+原文连接:https://www.cnblogs.com/lookings/p/11719568.html</div><br>
+    <h1>一、前言</h1>
+<p>springboot中默认使用的是tomcat容器，也叫做嵌入式的servlet容器。因为它和我们平常使用的tomcat容器不一样，这个tomcat直接嵌入到的springboot，平常我们使用tomcat容器是一个独立的应用，配置的时候需要在tomcat中的xml中配置，而使用springboot就不一样了，本文我们来学习怎么配置和替换servlet容器、以及注册传统的servlet组件。</p>
+<h1>二、自定义Servlet容器的相关配置</h1>
+<h2>2.1 修改配置文件的值</h2>
+<p>我们可以在application.properties中按照传统的配置方式设置，如下：</p>
+<src class="cnblogs_code">
+<pre><code>server.port=8081<span style="color: #000000;">
+server.context</span>-path=/<span style="color: #000000;">crud
+
+server.tomcat.uri</span>-encoding=UTF-8
+
+<span style="color: #008000;">//</span><span style="color: #008000;">通用的Servlet容器设置</span>
+<span style="color: #000000;">server.xxx
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Tomcat的设置</span>
+server.tomcat.xxx</code></pre>
+
+<p>其中server开头的是web容器统一的配置，因为我们以后可以使用其他的web容器，带tomcat的是特定为tomcat容器的配置。</p>
+<h2>2.2 编码方式配置</h2>
+<p><span class="md-plain md-expand">编写一个<span><strong><span class="md-plain">EmbeddedServletContainerCustomizer</span></strong><span class="md-plain">：嵌入式的Servlet容器的定制器，来修改Servlet容器的配置。我们可以添加一个MyServerConfig类，用注解的方式来配置我们的Server配置。</span></span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.config;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.web.server.ConfigurableWebServerFactory;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.web.server.WebServerFactoryCustomizer;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Bean;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Configuration;
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">@Configuration
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyServerConfig {
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span> <span style="color: #000000;">    @Bean
+</span><span style="color: #008080;">13</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> WebServerFactoryCustomizer embeddedServletContainerCustomizer(){
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> WebServerFactoryCustomizer&lt;ConfigurableWebServerFactory&gt;<span style="color: #000000;">() {
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">            @Override
+</span><span style="color: #008080;">16</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> customize(ConfigurableWebServerFactory factory) {
+</span><span style="color: #008080;">17</span>                 factory.setPort(8085<span style="color: #000000;">);
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">21</span> }</code></pre>
+
+<p>启动之后我们就把端口设置到了8085。</p>
+<h1>三、<span class="md-plain md-expand">注册Servlet三大组件（Servlet、Filter、Listener）</span></h1>
+<p><span class="md-plain md-expand">由于springboot默认是以jar包的方式启动嵌入式的web服务器来启动springboot应用，没有web.xml文件。传统情况下我们配置三大组件都是在web.xml中添加配置，现在就不能这么做了。</span></p>
+<h2><span class="md-plain md-expand">3.1 注册Servlet</span></h2>
+<p><span class="md-plain md-expand">我们使用ServletRegistrationBean类来往容器中添加Servlet组件，在MyServerConfig中添加一个方法：</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">    @Bean
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> ServletRegistrationBean myServlet(){
+</span><span style="color: #008080;">3</span>         ServletRegistrationBean registrationBean = <span style="color: #0000ff;">new</span> ServletRegistrationBean(<span style="color: #0000ff;">new</span> MyServlet(),"/myServlet"<span style="color: #000000;">);
+</span><span style="color: #008080;">4</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> registrationBean;
+</span><span style="color: #008080;">5</span>     }</code></pre>
+
+<p><span class="md-plain md-expand">添加一个MyServlet类来处理/myServlet的请求：</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> MyServlet <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HttpServlet {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> doPost(HttpServletRequest request, HttpServletResponse response) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+</span><span style="color: #008080;">3</span>         response.getWriter().write("hello,my servlet"<span style="color: #000000;">);
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span>     <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> doGet(HttpServletRequest request, HttpServletResponse response) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+</span><span style="color: #008080;">7</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">.doPost(request, response);
+</span><span style="color: #008080;">8</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">9</span> }</code></pre>
+
+<p>启动后浏览器访问<a href="http://localhost:8085/myServlet">http://localhost:8085/myServlet</a>，被我们的MyServlet接管处理，因为配置的时候我们要处理的urlPatterns是/myServlet。</p>
+<h2>3.2 注册Filter</h2>
+<p>一样的原理，我们使用FilterRegistrationBean类来往容器中添加Filter组件：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">    @Bean
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> FilterRegistrationBean myFilter(){
+</span><span style="color: #008080;">3</span>         FilterRegistrationBean registrationBean = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FilterRegistrationBean();
+</span><span style="color: #008080;">4</span>         registrationBean.setFilter(<span style="color: #0000ff;">new</span><span style="color: #000000;"> MyFilter());
+</span><span style="color: #008080;">5</span>         registrationBean.setUrlPatterns(Arrays.asList("/hello","/myServlet"<span style="color: #000000;">));
+</span><span style="color: #008080;">6</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> registrationBean;
+</span><span style="color: #008080;">7</span>     }</code></pre>
+
+<p>添加一个MyFilter的类来处理映射的url：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> @WebFilter(filterName = "MyFilter"<span style="color: #000000;">)
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> MyFilter <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Filter {
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> destroy() {
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+</span><span style="color: #008080;"> 7</span>         resp.getWriter().write("hello,my filter"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        chain.doFilter(req, resp);
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> init(FilterConfig config) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException {
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span> }</code></pre>
+
+<h2>3.3 注册Listener</h2>
+<p>使用ServletListenerRegistrationBean类来往容器中添加Listener组件：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">    @Bean
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> ServletListenerRegistrationBean myListener(){
+</span><span style="color: #008080;">3</span>         ServletListenerRegistrationBean&lt;MyListener&gt; registrationBean = <span style="color: #0000ff;">new</span> ServletListenerRegistrationBean&lt;&gt;(<span style="color: #0000ff;">new</span><span style="color: #000000;"> MyListener());
+</span><span style="color: #008080;">4</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> registrationBean;
+</span><span style="color: #008080;">5</span>     }</code></pre>
+
+<p>添加一个MyListenner的类来处理逻辑：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> MyListener <span style="color: #0000ff;">implements</span><span style="color: #000000;"> ServletContextListener {
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> contextInitialized(ServletContextEvent sce) {
+</span><span style="color: #008080;"> 4</span>         System.out.println("contextInitialized...web应用启动"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> contextDestroyed(ServletContextEvent sce) {
+</span><span style="color: #008080;"> 9</span>         System.out.println("contextDestroyed...当前web项目销毁"<span style="color: #000000;">);
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span> }</code></pre>
+
+<p>这就是我们注册传统三大组件的方法。</p>
+<p>有了以上的基础，我们就可以看一下，其实springboot为我们启动springmvc的时候也是通过这种方式注册了DispatcherServlet，这就是我们springmvc中核心的servlet。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> @Bean(name =<span style="color: #000000;"> DEFAULT_DISPATCHER_SERVLET_REGISTRATION_BEAN_NAME)
+</span><span style="color: #008080;"> 2</span> @ConditionalOnBean(value = DispatcherServlet.<span style="color: #0000ff;">class</span>, name =<span style="color: #000000;"> DEFAULT_DISPATCHER_SERVLET_BEAN_NAME)
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> ServletRegistrationBean dispatcherServletRegistration(
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">      DispatcherServlet dispatcherServlet) {
+</span><span style="color: #008080;"> 5</span>    ServletRegistrationBean registration = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ServletRegistrationBean(
+</span><span style="color: #008080;"> 6</span>          dispatcherServlet, <span style="color: #0000ff;">this</span><span style="color: #000000;">.serverProperties.getServletMapping());
+</span><span style="color: #008080;"> 7</span>     <span style="color: #008000;">//</span><span style="color: #008000;">默认拦截： /  所有请求；包静态资源，但是不拦截jsp请求；   /*会拦截jsp
+</span><span style="color: #008080;"> 8</span>     <span style="color: #008000;">//</span><span style="color: #008000;">可以通过server.servletPath来修改SpringMVC前端控制器默认拦截的请求路径</span>
+<span style="color: #008080;"> 9</span>     
+<span style="color: #008080;">10</span> <span style="color: #000000;">   registration.setName(DEFAULT_DISPATCHER_SERVLET_BEAN_NAME);
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">   registration.setLoadOnStartup(
+</span><span style="color: #008080;">12</span>          <span style="color: #0000ff;">this</span><span style="color: #000000;">.webMvcProperties.getServlet().getLoadOnStartup());
+</span><span style="color: #008080;">13</span>    <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.multipartConfig != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">14</span>       registration.setMultipartConfig(<span style="color: #0000ff;">this</span><span style="color: #000000;">.multipartConfig);
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">   }
+</span><span style="color: #008080;">16</span>    <span style="color: #0000ff;">return</span><span style="color: #000000;"> registration;
+</span><span style="color: #008080;">17</span> }</code></pre>
+
+<h1>四、总结</h1>
+<p>这次我们学些了怎样注册传统的三大组件，虽然用到的机会可能不会那么多了，但是springboot的设计理念还是很好的。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

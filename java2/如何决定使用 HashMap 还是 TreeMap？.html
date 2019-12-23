@@ -1,0 +1,120 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何决定使用 HashMap 还是 TreeMap？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何决定使用 HashMap 还是 TreeMap？</center></div><div class='banquan'>原文出处:本文由博客园博主Java知音*提供。<br/>
+原文连接:https://www.cnblogs.com/javazhiyin/p/11652526.html</div><br>
+    <p><strong>问：</strong><strong>如何决定使用 HashMap 还是 TreeMap？</strong></p>
+<h3>介绍</h3>
+<p><code>TreeMap&lt;K,V&gt;</code>的Key值是要求实现<code>java.lang.Comparable</code>，所以迭代的时候TreeMap默认是按照Key值升序排序的；TreeMap的实现是基于红黑树结构。适用于按自然顺序或自定义顺序遍历键（key）。</p>
+<p><code>HashMap&lt;K,V&gt;</code>的Key值实现散列<code>hashCode()</code>，分布是散列的、均匀的，不支持排序；数据结构主要是桶(数组)，链表或红黑树。适用于在Map中插入、删除和定位元素。</p>
+<h3>结论</h3>
+<p>如果你需要得到一个有序的结果时就应该使用TreeMap（因为HashMap中元素的排列顺序是不固定的）。除此之外，由于HashMap有更好的性能，所以大多不需要排序的时候我们会使用HashMap。</p>
+<h3>拓展</h3>
+<p><strong>1、HashMap 和 TreeMap 的实现</strong></p>
+<p><strong>HashMap：</strong>基于哈希表实现。使用HashMap要求添加的键类明确定义了<code>hashCode()</code>和<code>equals()</code>[可以重写<code>hashCode()</code>和<code>equals()</code>]，为了优化HashMap空间的使用，您可以调优初始容量和负载因子。</p>
+<ul class="list-paddingleft-2">
+<li>HashMap(): 构建一个空的哈希映像</li>
+<li>HashMap(Map m): 构建一个哈希映像，并且添加映像m的所有映射</li>
+<li>HashMap(int initialCapacity): 构建一个拥有特定容量的空的哈希映像</li>
+<li>HashMap(int initialCapacity, float loadFactor): 构建一个拥有特定容量和加载因子的空的哈希映像</li>
+</ul>
+<p><strong>TreeMap：</strong>基于红黑树实现。TreeMap没有调优选项，因为该树总处于平衡状态。</p>
+<ul class="list-paddingleft-2">
+<li>TreeMap()：构建一个空的映像树</li>
+<li>TreeMap(Map m): 构建一个映像树，并且添加映像m中所有元素</li>
+<li>TreeMap(Comparator c): 构建一个映像树，并且使用特定的比较器对关键字进行排序</li>
+<li>TreeMap(SortedMap s): 构建一个映像树，添加映像树s中所有映射，并且使用与有序映像s相同的比较器排序</li>
+</ul>
+<p><strong>2、HashMap 和 TreeMap 都是非线程安全</strong></p>
+<p>HashMap继承AbstractMap抽象类，TreeMap继承自SortedMap接口。</p>
+<p><strong>AbstractMap抽象类：</strong>覆盖了equals()和hashCode()方法以确保两个相等映射返回相同的哈希码。如果两个映射大小相等、包含同样的键且每个键在这两个映射中对应的值都相同，则这两个映射相等。映射的哈希码是映射元素哈希码的总和，其中每个元素是Map.Entry接口的一个实现。因此，不论映射内部顺序如何，两个相等映射会报告相同的哈希码。</p>
+<p><strong>SortedMap接口：</strong>它用来保持键的有序顺序。SortedMap接口为映像的视图(子集)，包括两个端点提供了访问方法。除了排序是作用于映射的键以外，处理SortedMap和处理SortedSet一样。添加到SortedMap实现类的元素必须实现Comparable接口，否则您必须给它的构造函数提供一个Comparator接口的实现。TreeMap类是它的唯一一个实现。</p>
+<p><strong>3、TreeMap中默认是按照升序进行排序的，如何让他降序</strong></p>
+<p>通过自定义的比较器来实现</p>
+<p>定义一个比较器类，实现Comparator接口，重写compare方法，有两个参数，这两个参数通过调用compareTo进行比较，而compareTo默认规则是：</p>
+<blockquote>
+<ul class="list-paddingleft-2">
+<li>如果参数字符串等于此字符串，则返回 0 值；</li>
+<li>如果此字符串小于字符串参数，则返回一个小于 0 的值；</li>
+<li>如果此字符串大于字符串参数，则返回一个大于 0 的值。</li>
+</ul>
+</blockquote>
+<p>自定义比较器时，在返回时多添加了个负号，就将比较的结果以相反的形式返回，代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> MyComparator <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Comparator{
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> compare(Object o1, Object o2) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated method stub</span>
+        String param1 =<span style="color: #000000;"> (String)o1;
+        String param2 </span>=<span style="color: #000000;"> (String)o2;
+        </span><span style="color: #0000ff;">return</span> -<span style="color: #000000;">param1.compareTo(param2);
+    }   
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>之后，通过MyComparator类初始化一个比较器实例，将其作为参数传进TreeMap的构造方法中：</p>
+<src class="cnblogs_code">
+<pre><code>MyComparator comparator = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyComparator();
+
+Map</span>&lt;String,String&gt; map = <span style="color: #0000ff;">new</span> TreeMap&lt;String,String&gt;(comparator);</code></pre>
+
+<p>&nbsp;</p>
+<p>这样，我们就可以使用自定义的比较器实现降序了</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MapTest {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">初始化自定义比较器</span>
+        MyComparator comparator = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyComparator();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">初始化一个map集合</span>
+        Map&lt;String,String&gt; map = <span style="color: #0000ff;">new</span> TreeMap&lt;String,String&gt;<span style="color: #000000;">(comparator);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">存入数据</span>
+        map.put("a", "a"<span style="color: #000000;">);
+        map.put(</span>"b", "b"<span style="color: #000000;">);
+        map.put(</span>"f", "f"<span style="color: #000000;">);
+        map.put(</span>"d", "d"<span style="color: #000000;">);
+        map.put(</span>"c", "c"<span style="color: #000000;">);
+        map.put(</span>"g", "g"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历输出</span>
+        Iterator iterator =<span style="color: #000000;"> map.keySet().iterator();
+        </span><span style="color: #0000ff;">while</span><span style="color: #000000;">(iterator.hasNext()){
+            String key </span>=<span style="color: #000000;"> (String)iterator.next();
+            System.out.println(map.get(key));
+        }
+    }
+
+    </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> MyComparator <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Comparator{
+
+        @Override
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> compare(Object o1, Object o2) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated method stub</span>
+            String param1 =<span style="color: #000000;"> (String)o1;
+            String param2 </span>=<span style="color: #000000;"> (String)o2;
+            </span><span style="color: #0000ff;">return</span> -<span style="color: #000000;">param1.compareTo(param2);
+        }
+
+    }
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

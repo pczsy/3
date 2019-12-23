@@ -1,0 +1,250 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于java配置log4j日志详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于java配置log4j日志详解</center></div><div class='banquan'>原文出处:本文由博客园博主_ZXP提供。<br/>
+原文连接:https://www.cnblogs.com/z-x-p/p/11527248.html</div><br>
+    <h1>1.Log4j</h1>
+<h2>1.1了解Log4j</h2>
+<p>Log4j是Apache的一个开源项目，通过使用log4j，我们可以控制日志信息输送的目的地可以是控制台、文件、GUI组件，我们也可以控制每一条日志的输出格式，通过定义每一条日志信息的级别，我们能够更加细致的控制日志的生成过程。</p>
+<h2>1.2配置Log4j步骤(java项目)</h2>
+<p>在java程序中配置Log4j日志共分为4步：</p>
+<p><strong>1.第一步</strong></p>
+<p>加入log4j-1.2.8.jar(可以选择log4j的更高版本)到lib下。</p>
+<p>如果使用maven项目，也可以选择在pom.xml中新增依赖:</p>
+<p>&lt;!-- 加入log4j支持 --&gt;</p>
+<p>&lt;dependency&gt;</p>
+<p>&lt;groupId&gt;log4j&lt;/groupId&gt;</p>
+<p>&lt;artifactId&gt;log4j&lt;/artifactId&gt;</p>
+<p>&lt;version&gt;1.2.17&lt;/version&gt;</p>
+<p>&lt;/dependency&gt;</p>
+<p><strong>2.第二步</strong></p>
+<p>在CLASSPATH下建立log4j.prope相应的修改其中属性，修改之前就必须知道这些都是干<span>log4j.rootLogger</span>=<span>INFO,stdout,R</span></p>
+<src class="cnblogs_code">
+<p>#setting<br />#Logger<br />log4j.rootLogger=debug,stdout<br />#appender<br />log4j.appender.stdout=org.apache.log4j.ConsoleAppender<br />log4j.appender.stdout.Append = true</p>
+<p>#过滤（不记录）INFO级别以下的消息<br />log4j.appender.stdout.Threshold = INFO<br />#layout<br />log4j.appender.stdout.layout=org.apache.log4j.PatternLayout<br />#conversion<br />log4j.appender.stdout.layout.ConversionPattern=[%p] %d{yyyy-MM-dd HH\:mm\:ss,SSS} method\:%l%n%m%n</p>
+
+
+<p>&nbsp;消息级别：<span style="color: #ff0000;">ALL&lt;DEBUG&lt;INFO&lt;WARN&lt;ERROR&lt;FATAL&lt;OFF</span>。</p>
+<p><strong>4.第四步</strong></p>
+<p>在要输出日志的类中加入相关语句:</p>
+<p>定义属性:static Logger logger = Logger.getLogger(LogDemo.class); //LogDemo为相关的类</p>
+<p>在相应的方法中:</p>
+<p>if (logger.isDebugEnabled()){</p>
+<p>logger.debug("System &hellip;..");</p>
+<p>}</p>
+<h2>1.3配置说明</h2>
+<p>以下是配置文件log4j.properties的配置说明。</p>
+<p><span style="color: #ff0000;">1、log4j.rootCategory=INFO, stdout , R</span></p>
+<p>此句为将等级为INFO的日志信息输出到stdout和R这两个目的地，stdout和R的定义在下面的代码，可以任意起名。等级可分为OFF、FATAL、ERROR、WARN、INFO、<a href="https://baike.so.com/doc/4987621-5211150.html" target="_blank">DEBUG</a>、ALL，如果配置OFF则不打出任何信息，如果配置为<a href="https://baike.so.com/doc/121433-128228.html" target="_blank">INFO</a>这样只显示INFO、WARN、ERROR的log信息，而DEBUG信息不会被显示，具体讲解可参照第三部分定义配置文件中的logger。</p>
+<p><span style="color: #ff0000;">2、log4j.appender.stdout=org.apache.log4j.ConsoleAppender</span></p>
+<p>此句为定义名为<a href="https://baike.so.com/doc/7185741-7409866.html" target="_blank">stdout</a>的输出端是哪种类型，可以是</p>
+<p>org.apache.log4j.ConsoleAppender(控制台)，</p>
+<p>org.apache.log4j.FileAppender(文件)，</p>
+<p>org.apache.log4j.DailyRollingFileAppender(每天产生一个日志文件)，</p>
+<p>org.apache.log4j.RollingFileAppender(文件大小到达指定尺寸的时候产生一个新的文件)</p>
+<p>org.apache.log4j.WriterAppender(将日志信息以流格式发送到任意指定的地方)</p>
+<p>具体讲解可参照第三部分定义配置文件中的Appender。</p>
+<p><span style="color: #ff0000;">3、log4j.appender.stdout.layout=org.apache.log4j.PatternLayout</span></p>
+<p>此句为定义名为stdout的输出端的layout是哪种类型，可以是</p>
+<p>org.apache.log4j.HTMLLayout(以<a href="https://baike.so.com/doc/5869876-6082735.html" target="_blank">HTML</a>表格形式布局)，</p>
+<p>org.apache.log4j.PatternLayout(可以灵活地指定布局模式)，</p>
+<p>org.apache.log4j.SimpleLayout(包含日志信息的级别和信息<a href="https://baike.so.com/doc/630752-667548.html" target="_blank">字符串</a>)，</p>
+<p>org.apache.log4j.TTCCLayout(包含日志产生的时间、<a href="https://baike.so.com/doc/115404-121766.html" target="_blank">线程</a>、类别等等信息)</p>
+<p>具体讲解可参照第三部分定义配置文件中的Layout。</p>
+<p><span style="color: #ff0000;">4、log4j.appender.stdout.layout.ConversionPattern= [QC] %p [%t] %C.%M(%L) | %m%n</span></p>
+<p>如果使用pattern布局就要指定的打印信息的具体格式ConversionPattern，打印参数如下:</p>
+<p>%m 输出代码中指定的消息;</p>
+<p>%M 输出打印该条日志的方法名;</p>
+<p>%p 输出优先级，即DEBUG，<a href="https://baike.so.com/doc/121433-128228.html" target="_blank">INFO</a>，WARN，ERROR，FATAL;</p>
+<p>%r 输出自应用启动到输出该log信息耗费的毫秒数;</p>
+<p>%c 输出所属的类目，通常就是所在类的全名;</p>
+<p>%t 输出产生该日志事件的线程名;</p>
+<p>%n 输出一个回车换行符，Windows平台为"rn"，Unix平台为"n";</p>
+<p>%d 输出日志时间点的日期或时间，默认格式为ISO8601，也可以在其后指定格式，比如:%d{yyyy-MM-dd HH:mm:ss,SSS}，输出类似:2002-10-18 22:10:28,921;</p>
+<p>%l 输出日志事件的发生位置，及在代码中的行数;</p>
+<p>[QC]是log信息的开头，可以为任意字符，一般为项目简称。</p>
+<p>输出的信息</p>
+<p>[TS] DEBUG [main] AbstractBeanFactory.getBean(189) | Returning cached instance of singleton bean 'MyAutoProxy'</p>
+<p>具体讲解可参照第三部分定义配置文件中的格式化日志信息。</p>
+<p><span style="color: #ff0000;">5、log4j.appender.R=org.apache.log4j.DailyRollingFileAppender</span></p>
+<p>此句与第3行一样。定义名为R的输出端的类型为每天产生一个日志文件。</p>
+<p><span style="color: #ff0000;">6、log4j.appender.R.File=D:\\Tomcat 5.5\\logs\\qc.log</span></p>
+<p>此句为定义名为R的输出端的文件名为D:\\Tomcat 5.5\\logs\\qc.log可以自行修改。</p>
+<p><span style="color: #ff0000;">7、log4j.appender.R.layout=org.apache.log4j.PatternLayout</span></p>
+<p>与第4行相同。</p>
+<p><span style="color: #ff0000;">8、log4j.appender.R.layout.ConversionPattern=%d-[TS] %p %t %c - %m%n</span></p>
+<p>与第5行相同。</p>
+<p><span style="color: #ff0000;">9、log4j.logger.com. neusoft =DEBUG</span></p>
+<p>指定com.neusoft包下的所有类的等级为DEBUG。</p>
+<p>可以把com.neusoft改为自己项目所用的包名。</p>
+<p><span style="color: #ff0000;">10、log4j.logger.com.opensymphony.oscache=ERROR</span></p>
+<p><span style="color: #ff0000;">11、log4j.logger.net.sf.navigator=ERROR</span></p>
+<p>这两句是把这两个包下出现的错误的等级设为ERROR，如果项目中没有配置EHCache，则不需要这两句。</p>
+<p><span style="color: #ff0000;">12、log4j.logger.org.apache.commons=ERROR</span></p>
+<p><span style="color: #ff0000;">13、log4j.logger.org.apache.struts=WARN</span></p>
+<p>这两句是struts的包。</p>
+<p><span style="color: #ff0000;">14、log4j.logger.org.displaytag=ERROR</span></p>
+<p>这句是displaytag的包。(QC问题列表页面所用)</p>
+<p>15、log4j.logger.org.springframework=DEBUG</p>
+<p>此句为Spring的包。</p>
+<p>16、log4j.logger.org.hibernate.ps.PreparedStatementCache=WARN</p>
+<p>17、log4j.logger.org.hibernate=DEBUG</p>
+<p>此两句是hibernate的包。</p>
+<p>以上这些包的设置可根据项目的实际情况而自行定制。</p>
+<h2>1.4配置文件详解</h2>
+<p>Log4j<span style="color: #ff0000;">支持两种配置文件格式，一种是XML(标准通用标记语言下的一个应用)格式的文件，一种是Java特性文件log4j.properties(键=值)</span>。下面将介绍使用log4j.properties文件作为配置文件的方法:</p>
+<p>①、配置根Logger</p>
+<p>Logger 负责处理日志记录的大部分操作。</p>
+<p>其语法为:</p>
+<p>log4j.rootLogger = [ level ] , appenderName, appenderName, &hellip;</p>
+<p>其中，level 是日志记录的优先级，分为OFF、FATAL、ERROR、WARN、INFO、DEBUG、ALL或者自定义的级别。Log4j建议只使用四个级别，优先级从高到低分别是ERROR、WARN、INFO、DEBUG。<span style="color: #ff0000;">通过在这里定义的级别，您可以控制到应用程序中相应级别的日志信息的开关。</span>比如在这里定义了INFO级别，只有等于及高于这个级别的才进行处理，则应用程序中所有DEBUG级别的日志信息将不被打印出来。ALL:打印所有的日志，OFF:关闭所有的日志输出。 appenderName就是指定日志信息输出到哪个地方。可同时指定多个输出目的地。</p>
+<p>②、配置日志信息输出目的地 Appender</p>
+<p>Appender 负责控制日志记录操作的输出。</p>
+<p>其语法为:</p>
+<p>log4j.appender.appenderName = fully.qualified.name.of.appender.class</p>
+<p>log4j.appender.appenderName.option1 = value1</p>
+<p>&hellip;</p>
+<p>log4j.appender.appenderName.optionN = valueN</p>
+<p>这里的appenderName为在①里定义的，可任意起名。</p>
+<p>其中，Log4j提供的appender有以下几种:</p>
+<p>org.apache.log4j.ConsoleAppender(控制台)，</p>
+<p>org.apache.log4j.FileAppender(文件)，</p>
+<p>org.apache.log4j.DailyRollingFileAppender(每天产生一个日志文件)，</p>
+<p>org.apache.log4j.RollingFileAppender(文件大小到达指定尺寸的时候产生一个新的文件)，可通过log4j.appender.R.MaxFileSize=100KB设置文件大小，还可通过log4j.appender.R.MaxBackupIndex=1设置为保存一个<a href="https://baike.so.com/doc/6777566-6993454.html" target="_blank">备份文件</a>。</p>
+<p>org.apache.log4j.WriterAppender(将日志信息以流格式发送到任意指定的地方)</p>
+<p>例如:log4j.appender.stdout=org.apache.log4j.ConsoleAppender</p>
+<p>定义一个名为stdout的输出目的地，ConsoleAppender为控制台。</p>
+<p>③、配置日志信息的格式(布局)Layout</p>
+<p><span style="color: #ff0000;">Layout 负责格式化Appender的输出</span>。</p>
+<p>其语法为:</p>
+<p>log4j.appender.appenderName.layout = fully.qualified.name.of.layout.class</p>
+<p>log4j.appender.appenderName.layout.option1 = value1</p>
+<p>&hellip;</p>
+<p>log4j.appender.appenderName.layout.optionN = valueN</p>
+<p>其中，Log4j提供的layout有以下几种:</p>
+<p>org.apache.log4j.HTMLLayout(以HTML表格形式布局)，</p>
+<p>org.apache.log4j.PatternLayout(可以灵活地指定布局模式)，</p>
+<p>org.apache.log4j.SimpleLayout(包含日志信息的级别和信息字符串)，</p>
+<p>org.apache.log4j.TTCCLayout(包含日志产生的时间、线程、类别等等信息)</p>
+<h2>1.5格式化日志</h2>
+<p>当log4j.applender.appendlerName=org.apache.log4j.PatternLayout时，那么表示想要自定义输出格式，因此需要设置<span style="color: #ff0000;">log4j.appender.stdout.layout.ConversionPattern。</span></p>
+<p>Log4J采用类似C语言中的printf函数的打印格式格式化日志信息，打印参数如下:</p>
+<p>%m 输出代码中指定的消息;</p>
+<p>%M 输出打印该条日志的方法名;</p>
+<p>%p 输出优先级，即DEBUG，INFO，WARN，ERROR，FATAL;</p>
+<p>%r 输出自应用启动到输出该log信息耗费的毫秒数;</p>
+<p>%c 输出所属的类目，通常就是所在类的全名;</p>
+<p>%t 输出产生该日志事件的线程名;</p>
+<p>%n 输出一个回车换行符，Windows平台为"rn"，Unix平台为"n";</p>
+<p>%d 输出日志时间点的日期或时间，默认格式为ISO8601，也可以在其后指定格式，比如:%d{yyyy-MM-dd HH:mm:ss,SSS}，输出类似:2002-10-18 22:10:28,921;</p>
+<p>%l 输出日志事件的发生位置，及在代码中的行数。</p>
+<h2>1.6定义及获取不同层次的记录器</h2>
+<p>任何一个记录器的使用都有两个步骤:</p>
+<p><strong>1) 在配置文件中定义相应的记录器。</strong></p>
+<p>在配置文件中定义记录器的格式有两种</p>
+<p># 定义根记录器的格式为</p>
+<p>log4j.rootLogger = [ level ], appendName1, appendName2, &hellip;appendNameN</p>
+<p># 定义一个非根记录器的格式为</p>
+<p>log4j.logger.loggerName1 = [ level ], appendName1,&hellip;appendNameN</p>
+<p>&hellip;&hellip;</p>
+<p>log4j.logger.loggerNameM = [ level ], appendName1, &hellip;appendNameN</p>
+<p>我们可以定义任意个非根记录器。</p>
+<p><strong>2) 在代码中调用Logger类的取得记录器方法取得相应的记录器对象</strong>。</p>
+<p>要取得根记录器对象可通过Logger.getRootLogger()函数，要取得非根记录器可通过Logger.getLogger()函数。</p>
+<h2>1.7基于java web项目配置log4j</h2>
+<p>到目前为止，这篇文章讲的都是如何在application中应用log4j，而Java现在的应用主流是J2EE和J2ME。现在，我们来看一下要如何在 J2EE开发中应用log4j。其实在Web application中应用log4j也很简单，与在application中应用log4j不同之处就是要在所有应用log4j的代码之前对log4j进行初始化。所以，我们在web application中就要把log4j的初始化工作独立出来，把它放在Servlet中。下面，我们看一个例子。</p>
+<src class="cnblogs_code">
+<pre><code>例5-<span style="color: #000000;">a:
+
+进行初始化的Servlet:
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.log4j.PropertyConfigurator;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServlet;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+
+* log4j.jar的初始化类，参考web.xml
+
+</span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Log4jInit <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HttpServlet
+
+{
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> init()
+
+{
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">通过web.xml来动态取得配置文件</span>
+<span style="color: #000000;">
+String prefix </span>= getServletContext().getRealPath("/"<span style="color: #000000;">);
+
+String file </span>= getInitParameter("log4j-init-file"<span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果没有给出相应的配置文件，则不进行初始化</span>
+
+<span style="color: #0000ff;">if</span>(file != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+
+{
+
+PropertyConfigurator.configure(prefix</span>+file); <span style="color: #008000;">//</span><span style="color: #008000;">(1)</span>
+<span style="color: #000000;">
+}
+
+}
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> doGet(HttpServletRequest req, HttpServletResponse res)
+
+{}
+
+}</span></code></pre>
+
+<p>下面来看一下这个Servlet在web.xml中的定义。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">例5-b:
+
+</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>log4j-init<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-name</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>TestLog4j.Log4jInit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet-class</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">init-param</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">param-name</span><span style="color: #0000ff;">&gt;</span>log4j-init-file<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">param-name</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">param-value</span><span style="color: #0000ff;">&gt;</span>sort.properties<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">param-value</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">init-param</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">load-on-startup</span><span style="color: #0000ff;">&gt;</span>1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">load-on-startup</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">servlet</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>因为log4j的初始化要在所有的log4j调用之前完成，所以在web.xml文件中，我们一定要把对应的Servlet定义的load-on-startup应设为1，以便在Web容器启动时即装入该Servlet。</p>
+<p>完成了这两个步骤这后，我们就可以象在application开发中一样在web application任何地方应用log4j了。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

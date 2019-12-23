@@ -1,0 +1,67 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SSM整合学习 三' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SSM整合学习 三</center></div><div class='banquan'>原文出处:本文由博客园博主Lo随风的风v提供。<br/>
+原文连接:https://www.cnblogs.com/lovetq520/p/11721374.html</div><br>
+    <h1>三：整合Mybatis</h1>
+<p>完整的项目如下</p>
+<p><img src="./images/SSM整合学习 三0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>一：下载所需的jar包</h2>
+<pre><code><br />&lt;!--日志--&gt;<br />&lt;dependency&gt;<br />  &lt;groupId&gt;log4j&lt;/groupId&gt;<br />  &lt;artifactId&gt;log4j&lt;/artifactId&gt;<br />  &lt;version&gt;1.2.17&lt;/version&gt;<br />&lt;/dependency&gt;<br /><br />&lt;!--数据源--&gt;<br />&lt;!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 --&gt;<br />&lt;dependency&gt;<br />  &lt;groupId&gt;org.apache.commons&lt;/groupId&gt;<br />  &lt;artifactId&gt;commons-dbcp2&lt;/artifactId&gt;<br />  &lt;version&gt;2.1.1&lt;/version&gt;<br />&lt;/dependency&gt;<br /><br />&lt;!-- https://mvnrepository.com/artifact/org.mybatis/mybatis-spring --&gt;<br />&lt;dependency&gt;<br />  &lt;groupId&gt;org.mybatis&lt;/groupId&gt;<br />  &lt;artifactId&gt;mybatis-spring&lt;/artifactId&gt;<br />  &lt;version&gt;1.3.2&lt;/version&gt;<br />&lt;/dependency&gt;<br /><br />&lt;!-- https://mvnrepository.com/artifact/org.mybatis/mybatis --&gt;<br />&lt;dependency&gt;<br />  &lt;groupId&gt;org.mybatis&lt;/groupId&gt;<br />  &lt;artifactId&gt;mybatis&lt;/artifactId&gt;<br />  &lt;version&gt;3.4.6&lt;/version&gt;<br />&lt;/dependency&gt;<br />&lt;dependency&gt;<br />  &lt;groupId&gt;org.aspectj&lt;/groupId&gt;<br />  &lt;artifactId&gt;aspectjweaver&lt;/artifactId&gt;<br />  &lt;version&gt;1.8.4&lt;/version&gt;<br />&lt;/dependency&gt;</code></pre>
+<h2>二：编写配置信息</h2>
+<p>在dispatcher-servlet.xml中填写MVC配置信息</p>
+<p><img src="./images/SSM整合学习 三1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;<br />&lt;beans xmlns="http://www.springframework.org/schema/beans"<br />       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"<br />       xmlns:mvc="http://www.springframework.org/schema/mvc"<br />       xmlns:context="http://www.springframework.org/schema/context"<br />       xsi:schemaLocation="http://www.springframework.org/schema/beans<br />       http://www.springframework.org/schema/beans/spring-beans.xsd<br />       http://www.springframework.org/schema/context<br />       http://www.springframework.org/schema/context/spring-context-3.0.xsd<br />       http://www.springframework.org/schema/mvc<br />       http://www.springframework.org/schema/mvc/spring-mvc-3.0.xsd"&gt;<br />    &lt;mvc:annotation-driven/&gt;<br />    &lt;mvc:default-servlet-handler/&gt;<br /><br />    &lt;!--开启扫描--&gt;<br />    &lt;context:component-scan base-package="com.founderit.controller"/&gt;<br /><br />&lt;/beans&gt;</code></pre>
+<p>在applicationContext.xml中填写Spring配置信息</p>
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;<br />&lt;beans xmlns="http://www.springframework.org/schema/beans"<br />       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"<br />       xmlns:context="http://www.springframework.org/schema/context"<br />       xmlns:tx="http://www.springframework.org/schema/tx"<br />       xmlns:aop="http://www.springframework.org/schema/aop"<br />       xsi:schemaLocation="http://www.springframework.org/schema/beans<br />       http://www.springframework.org/schema/beans/spring-beans.xsd<br />        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd<br />       http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd<br />       http://www.springframework.org/schema/context<br />       http://www.springframework.org/schema/context/spring-context-3.0.xsd"&gt;<br /><br /><br /><br />    &lt;!--加载上下文注解配置--&gt;<br />    &lt;context:annotation-config/&gt;<br />    &lt;context:property-placeholder location="classpath:Resources/db.properties"/&gt;<br />    &lt;context:component-scan base-package="com.founderit"&gt;<br />        &lt;context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/&gt;<br />    &lt;/context:component-scan&gt;<br />    &lt;aop:aspectj-autoproxy/&gt;<br /><br />    &lt;!--DBCP数据库连接池--&gt;<br />    &lt;bean id="dataSource"<br />          class="org.apache.commons.dbcp2.BasicDataSource"<br />          destroy-method="close" &gt;<br />        &lt;property name="driverClassName" value="${DRIVERCLASS}"/&gt;<br />        &lt;property name="url" value="${URL}"/&gt;<br />        &lt;property name="username" value="${USERNAME}"/&gt;<br />        &lt;property name="password" value="${PASSWORD}"/&gt;<br />        &lt;!--maxActive: 最大连接数量--&gt;<br />        &lt;property name="maxTotal" value="150"/&gt;<br />        &lt;!--minIdle: 最小空闲连接--&gt;<br />        &lt;property name="minIdle" value="5"/&gt;<br />        &lt;!--maxIdle: 最大空闲连接--&gt;<br />        &lt;property name="maxIdle" value="20"/&gt;<br />        &lt;!--initialSize: 初始化连接--&gt;<br />        &lt;property name="initialSize" value="30"/&gt;<br />        &lt;!--removeAbandonedTimeout: 超时时间(以秒数为单位)--&gt;<br />        &lt;property name="removeAbandonedTimeout" value="10"/&gt;<br />    &lt;/bean&gt;<br /><br />    &lt;!-- spring和MyBatis完美整合 --&gt;<br />    &lt;bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean"&gt;<br />        &lt;property name="dataSource" ref="dataSource"/&gt;<br />        &lt;!-- 自动扫描mapping.xml文件 --&gt;<br />        &lt;property name="mapperLocations" value="classpath:com/founderit/mapper/*.xml"&gt;&lt;/property&gt;<br />    &lt;/bean&gt;<br /><br />    &lt;!-- DAO接口所在包名，Spring会自动查找其下的类 --&gt;<br />    &lt;bean class="org.mybatis.spring.mapper.MapperScannerConfigurer"&gt;<br />        &lt;property name="basePackage" value="com.founderit.dao"/&gt;<br />        &lt;property name="sqlSessionFactoryBeanName" value="sqlSessionFactory"&gt;&lt;/property&gt;<br />    &lt;/bean&gt;<br /><br />　　 &lt;!--事务管理部分--&gt;<br />    &lt;bean id="transactionManager"<br />          class="org.springframework.jdbc.datasource.DataSourceTransactionManager"&gt;<br />        &lt;property name="dataSource" ref="dataSource" /&gt;<br />    &lt;/bean&gt;<br />    &lt;tx:annotation-driven transaction-manager="transactionManager" proxy-target-class="true" /&gt;<br /><br /><br />    &lt;tx:advice id="txAdvice" transaction-manager="transactionManager"&gt;<br />        &lt;tx:attributes&gt;<br />            &lt;tx:method name="save*" propagation="REQUIRED" /&gt;<br />            &lt;tx:method name="insert*" propagation="REQUIRED" /&gt;<br />            &lt;tx:method name="add*" propagation="REQUIRED" /&gt;<br />            &lt;tx:method name="create*" propagation="REQUIRED" /&gt;<br />            &lt;tx:method name="delete*" propagation="REQUIRED" /&gt;<br />            &lt;tx:method name="update*" propagation="REQUIRED" /&gt;<br />            &lt;tx:method name="find*" propagation="SUPPORTS" read-only="true" /&gt;<br />            &lt;tx:method name="select*" propagation="SUPPORTS" read-only="true" /&gt;<br />            &lt;tx:method name="get*" propagation="SUPPORTS" read-only="true" /&gt;<br />        &lt;/tx:attributes&gt;<br />    &lt;/tx:advice&gt;<br /><br />    &lt;aop:config&gt;<br />        &lt;aop:pointcut id="iccardTerm" expression="execution(* com.founderit.service.*.*(..))" /&gt;<br />        &lt;aop:advisor pointcut-ref="iccardTerm" advice-ref="txAdvice" /&gt;<br />    &lt;/aop:config&gt;<br /><br />&lt;/beans&gt;</code></pre>
+<p>&nbsp;按项目图，编写对应的bean,controller,service,dao部分</p>
+<p><img src="./images/SSM整合学习 三2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/SSM整合学习 三3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/SSM整合学习 三4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/SSM整合学习 三5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/SSM整合学习 三6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/SSM整合学习 三7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/SSM整合学习 三8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/SSM整合学习 三9.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/SSM整合学习 三10.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>三：测试</h2>
+<p>运行tomcat,发起hello请求，向数据库插入四条数据</p>
+<p><img src="./images/SSM整合学习 三11.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/SSM整合学习 三12.png" alt="" /></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

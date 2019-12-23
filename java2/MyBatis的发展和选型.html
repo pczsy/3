@@ -1,0 +1,162 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修MyBatis的发展和选型' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>MyBatis的发展和选型</center></div><div class='banquan'>原文出处:本文由博客园博主xlecho提供。<br/>
+原文连接:https://www.cnblogs.com/xlecho/p/11521653.html</div><br>
+    <p>xlecho编辑整理，欢迎转载，转载请声明文章来源。欢迎添加echo微信(微信号：t2421499075)交流学习。 百战不败，依不自称常胜，百败不颓，依能奋力前行。——这才是真正的堪称强大！！</p>
+<hr />
+<p>参考文章列表：</p>
+<ul>
+<li><a href="https://blog.csdn.net/zhang137107/article/details/79497771">ORM框架的简单介绍</a></li>
+</ul>
+<h3 id="数据层框架的发展史">数据层框架的发展史</h3>
+<blockquote>
+<p>JDBC编码的几大问题和MyBatis等框架的发展支持原因？<br />
+在最初编写JDBC连接数据库的时候，各种代码操作较为复杂，而且有很多缺陷。缺陷总结如下：</p>
+</blockquote>
+<ul>
+<li>方法的封装问题</li>
+<li>数据源的支持</li>
+<li>映射结果集的接收和处理</li>
+<li>SQL语句硬编码</li>
+<li>程序参数只能按照顺序传入(占位符)</li>
+<li>没有实现实体类到数据库记录的映射</li>
+<li>没有提供缓存等功能</li>
+</ul>
+<h3 id="工具类封装的出现解决了一部分问题">工具类封装的出现解决了一部分问题</h3>
+<p>相应的工具类如：springjdbc、jdbcutils、Apache DbUtils等。这样的工具类主要解决了一下几个问题：</p>
+<ul>
+<li>方法的封装</li>
+<li>数据源的支持</li>
+<li>映射结果集</li>
+</ul>
+<blockquote>
+<p>工具类的响应实现解决了部分JDBC的缺陷，但是并不完美。每一次的改进和工具类的出现的就是我们框架的前身出现，框架也是工具。在越来越完善的解决方案的出现之后，ORM框架基本就成型了。同时解决了以上JDBC列出来的各种问题。</p>
+</blockquote>
+<h3 id="orm框架全称object-relational-mapping对象关系的映">ORM框架，全称Object Relational Mapping，对象关系的映</h3>
+<p>面向对象的开发方法是当今企业级应用开发环境中的主流开发方法，关系数据库是企业级应用环境中永久存放数据的主流数据存储系统。对象和关系数据是业务实体的两种表现形式，业务实体在内存中表现为对象，在数据库中表现为关系数据。内存中的对象之间存在关联和继承关系，而在数据库中，关系数据无法直接表达多对多关联和继承关系。因此，对象-关系映射(ORM)系统一般以中间件的形式存在，主要实现程序对象到关系数据库数据的映射。</p>
+<h3 id="orm框架的基本准则">ORM框架的基本准则</h3>
+<ul>
+<li>A. 简单：ORM以最基本的形式建模数据。比如ORM会将MySQL的一张表映射成一个Java类（模型），表的字段就是这个类的成员变量</li>
+<li>B. 精确：ORM使所有的MySQL数据表都按照统一的标准精确地映射成java类，使系统在代码层面保持准确统一</li>
+<li>C.易懂：ORM使数据库结构文档化。比如MySQL数据库就被ORM转换为了java程序员可以读懂的java类，java程序员可以只把注意力放在他擅长的java层面（当然能够熟练掌握MySQL更好）</li>
+<li>D.易用：ORM包含对持久类对象进行CRUD操作的API，例如create(), update(), save(), load(), find(), find_all(), where()等，也就是讲sql查询全部封装成了编程语言中的函数，通过函数的链式组合生成最终的SQL语句。通过这种封装避免了不规范、冗余、风格不统一的SQL语句，可以避免很多人为Bug，方便编码风格的统一和后期维护。</li>
+</ul>
+<h3 id="最早的orm框架hibernate">最早的ORM框架hibernate</h3>
+<p>Hibernate是一种ORM框架，全称为 Object_Relative DateBase-Mapping，在Java对象与关系数据库之间建立某种映射，以实现直接存取Java对象！</p>
+<ul>
+<li>Hibernate 优势</li>
+<li><ul>
+<li>类别到数据库表格中，并且不用编写任何代码。</li>
+</ul></li>
+<li><ul>
+<li>为在数据库中直接储存和检索 Java 对象提供简单的 APIs。</li>
+</ul></li>
+<li><ul>
+<li>如果在数据库中或任何其它表格中出现变化，那么仅需要改变 XML 文件属性。</li>
+</ul></li>
+<li><ul>
+<li>抽象不熟悉的 SQL 类型，并为我们提供工作中所熟悉的 Java 对象。</li>
+</ul></li>
+<li><ul>
+<li>Hibernate 不需要应用程序服务器来操作。</li>
+</ul></li>
+<li><ul>
+<li>操控你数据库中对象复杂的关联。</li>
+</ul></li>
+<li><ul>
+<li>最小化与访问数据库的智能提取策略。</li>
+</ul></li>
+<li><ul>
+<li>提供简单的数据询问。</li>
+</ul></li>
+<li>Hibernate 响应的一些问题</li>
+<li><ul>
+<li>无法自定义SQL，优化相对困难</li>
+</ul></li>
+<li><ul>
+<li>不制动动态的SQL</li>
+</ul></li>
+<li><ul>
+<li>复杂的表关系会导致Hibernate开发难度</li>
+</ul></li>
+<li><ul>
+<li>加载问题</li>
+</ul></li>
+</ul>
+<h3 id="什么是-mybatis">什么是 MyBatis？</h3>
+<p>是一款面向对象和返回集关系的数据层封装，有效的减少jdbc的代码。</p>
+<ul>
+<li>缺点：</li>
+<li><ul>
+<li>不方便移植，数据库更换需要字段比较麻烦，需要改写sql</li>
+</ul></li>
+<li><ul>
+<li>对开发人员所写的SQL依赖很强。</li>
+</ul></li>
+<li>优点：</li>
+<li><ul>
+<li>使用连接池对连接进行管理</li>
+</ul></li>
+<li><ul>
+<li>SQL和代码分离，集中管理</li>
+</ul></li>
+<li><ul>
+<li>参数映射和动态SQL</li>
+</ul></li>
+<li><ul>
+<li>结果集映射</li>
+</ul></li>
+<li><ul>
+<li>缓存管理</li>
+</ul></li>
+<li><ul>
+<li>重复SQL的提取</li>
+</ul></li>
+<li><ul>
+<li>插件机制</li>
+</ul></li>
+<li><ul>
+<li>手写sql，能够有效的精准把控查询的速度，便于优化查询速度</li>
+</ul></li>
+<li><ul>
+<li>mybatis不会对应用程序或者数据库的现有设计强加任何影响</li>
+</ul></li>
+<li><ul>
+<li>通过提供DAO层，将业务逻辑和数据访问逻辑分离，使系统的设计更清晰，更易维护，更易单元测试。</li>
+</ul></li>
+<li><ul>
+<li>保证名称相同，配置好映射关系即可自动映射或者，不配置映射关系，通过配置列名=字段名也可完成自动映射。</li>
+</ul></li>
+</ul>
+<h3 id="什么是-spring-data-jpa本文jpa只写spring-data-jpa">什么是 Spring Data JPA(本文JPA只写Spring Data JPA)</h3>
+<p>Spring Data JPA是更大的Spring Data系列的一部分，可以轻松实现基于JPA的存储库。此模块处理对基于JPA的数据访问层的增强支持。它使构建使用数据访问技术的Spring驱动应用程序变得更加容易。</p>
+<h3 id="选择什么样的orm框架参考">选择什么样的ORM框架参考：</h3>
+<ul>
+<li>业务相对简单项目可以使用Hibernate</li>
+<li>需要灵活SQL的选择可以使用MyBatis（SQL过长和SQL很复杂的情况）</li>
+<li>对性能要求比较高可以使用JDBC（如：我们写的项目很小，或者说就是需要几个接口，这个时候我们选择框架就会过于臃肿和复杂）</li>
+<li><h2 id="sping-jdbc可以和-orm框架混合使用这种情况很少但是如果某些业务可能单独需要数据源对接某一个接口这个时候可能要适配器兼容jdbc接入">Sping JDBC可以和 ORM框架混合使用（这种情况很少，但是如果某些业务可能单独需要数据源对接某一个接口，这个时候可能要适配器兼容JDBC接入）</h2>
+做一个有底线的博客主</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

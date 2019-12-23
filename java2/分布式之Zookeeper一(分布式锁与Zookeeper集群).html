@@ -1,0 +1,98 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修分布式之Zookeeper一(分布式锁与Zookeeper集群)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>分布式之Zookeeper一(分布式锁与Zookeeper集群)</center></div><div class='banquan'>原文出处:本文由博客园博主白雪公主与七个小码农提供。<br/>
+原文连接:https://www.cnblogs.com/zhanvo/p/11589235.html</div><br>
+    <p>　　<span style="font-family: 'Microsoft YaHei'; font-size: 16px;">说到分布式开发，不得不说的就是zookeeper了；zookeeper官网说到<span style="color: #000080;">Apache ZooKeeper致力于开发和维护可实现高度可靠的<span style="color: #ff0000;">分布式协调的开源服务器</span>。</span><span style="color: #000000;">那么zk作为一个协调者的存在，是分布式比不可少的一部分。废话不多说，直接上干货</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><span style="color: #000000;">　　Zookeeper(<a href="https://zookeeper.apache.org/">https://zookeeper.apache.org/</a>)的安装包可以直接在官网上获取，<a href="https://zookeeper.apache.org/doc/current/zookeeperStarted.html">https://zookeeper.apache.org/doc/current/zookeeperStarted.html</a>这里有Zookeeper的一些常用的简单命令，我们可以尝试着去试试它。</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><span style="color: #000000;">　　下面来说分布式锁，它用到的场景；比如：我们常说的惊群效应、Zookeeper集群争先读取缓存等。这里可能有人提到用redis实现的分布式锁，其实对比redis和Zookeeper的官网叙述，我们就能清晰的发现：Zookeeper比Redis更适合去做分布式锁。Zookeeper的担保第一条就是它的顺序性和一致性，其次是它的原子性。大家也可以详细的去了解一下。再分清楚这些之后，我们可以试着思考下Zookeeper它是怎么去实现的分布式锁？根据什么去实现的？</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><span style="color: #000000;">　　可以想到如何获取到Zookeeper的每个节点以及子节点变化，Zookeeper的Watch机制充分的实现了这一点。通过Watch机制可以清晰的监听到Zookeeper的每个节点的变化。自然而然的这里也要用到Zookeeper的第三方客户端。Zookeeper的第三方客户端有两个；一个是zkclient、一个是curator。在curator中它自己已经实现了分布式锁，感兴趣的可以去看看它的实现源码。</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><span style="color: #000000;">　　在第三方客户端连接到Zookeeper之后，就可以开始实现分布式锁了。锁的排他性、堵塞性、可重入性。排他性zk默认就实现了，zk的节点必须是唯一的。分布式锁采用Zookeeper的临时顺序节点来实现，首先获取锁，创建一个Zookeeper的临时顺序节点；然后需要一个栅栏(CountDownLatch)，确保所有人都拿到自己的编号，即在同一起跑线上。然后开始抢锁，</span></span><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">给一个发令枪(CountDown)。然后抢到锁的就去执行自己的业务，watch再次监听节点数据变化，然后请求线程去进行阻塞等待，接下来再删除节点，释放锁。</span></p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> tryLock() {
+</span><span style="color: #008080;"> 2</span>         
+<span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">if</span>(currentPath.get() == <span style="color: #0000ff;">null</span> || !<span style="color: #000000;">client.exists(currentPath.get())) {
+</span><span style="color: #008080;"> 4</span>             String node = client.createEphemeralSequential(LockPath+"/", "locked"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            currentPath.set(node);
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 7</span>         
+<span style="color: #008080;"> 8</span>         
+<span style="color: #008080;"> 9</span>         List&lt;String&gt; children =<span style="color: #000000;">client.getChildren(LockPath);
+</span><span style="color: #008080;">10</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 排序list</span>
+<span style="color: #008080;">11</span> <span style="color: #000000;">        Collections.sort(children);
+</span><span style="color: #008080;">12</span>         
+<span style="color: #008080;">13</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 判断当前节点是否是最小的</span>
+<span style="color: #008080;">14</span>         <span style="color: #0000ff;">if</span>(currentPath.get().equals(LockPath+"/"+children.get(0<span style="color: #000000;">))) {
+</span><span style="color: #008080;">15</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">16</span>         }<span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">17</span>             
+<span style="color: #008080;">18</span>             <span style="color: #0000ff;">int</span> curIndex = children.indexOf(currentPath.get().substring(LockPath.length() + 1<span style="color: #000000;">));
+</span><span style="color: #008080;">19</span>             String bnode = LockPath+"/"+children.get(curIndex -1<span style="color: #000000;">);
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">            beforePath.set(bnode);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">22</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">24</span> 
+<span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> lock() {
+</span><span style="color: #008080;">27</span>         <span style="color: #0000ff;">if</span>(!<span style="color: #000000;"> tryLock()) {
+</span><span style="color: #008080;">28</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 阻塞等待锁的释放</span>
+<span style="color: #008080;">29</span> <span style="color: #000000;">            waitForLock();
+</span><span style="color: #008080;">30</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 重新抢锁</span>
+<span style="color: #008080;">31</span> <span style="color: #000000;">            lock();
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">34</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> waitForLock() {
+</span><span style="color: #008080;">35</span>         
+<span style="color: #008080;">36</span>         CountDownLatch cdl = <span style="color: #0000ff;">new</span> CountDownLatch(1<span style="color: #000000;">);
+</span><span style="color: #008080;">37</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 用zkwatcher事件来通知</span>
+<span style="color: #008080;">38</span>             IZkDataListener listener = <span style="color: #0000ff;">new</span><span style="color: #000000;"> IZkDataListener() {
+</span><span style="color: #008080;">39</span> 
+<span style="color: #008080;">40</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> handleDataDeleted(String dataPath) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">41</span>                 System.out.println("================zk节点被删除================"<span style="color: #000000;">);
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">                cdl.countDown();
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">44</span> 
+<span style="color: #008080;">45</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> handleDataChange(String dataPath, Object data) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">48</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> watcher /zk 数据变化</span>
+<span style="color: #008080;">49</span> <span style="color: #000000;">        client.subscribeDataChanges(beforePath.get(), listener);
+</span><span style="color: #008080;">50</span>         
+<span style="color: #008080;">51</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 请求线程去进行阻塞等待</span>
+<span style="color: #008080;">52</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;">(client.exists(beforePath.get())) {
+</span><span style="color: #008080;">53</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">                cdl.await();
+</span><span style="color: #008080;">55</span>             } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">                e.printStackTrace();
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">59</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 取消注册事件</span>
+<span style="color: #008080;">60</span> <span style="color: #000000;">        client.unsubscribeDataChanges(beforePath.get(), listener);
+</span><span style="color: #008080;">61</span>     }<br /><br />至此一个分布式锁就实现了。<br /><br />　　<span style="color: #000000; font-size: 16px;">接下来说Zookeeper的伪集群。搭建的时候需要注意的情况：<br />1、DataDir的位置。<br />2、Zookeeper的端口号<br />3、<br /><br /><img src="./images/分布式之Zookeeper一(分布式锁与Zookeeper集群)0.png" alt="" /><br />4、myid文件，myid文件是创建在DataDir目录下的，myid文件就是给一个id数，id数需与server.1 ... 后边的编号一致。<br />然后分别启动三台服务器，注意看服务器输出的日志消息。不出意外的话Zookeeper的集群就可以搭建成功了！</span></code></pre>
+<p>&nbsp;</p>
+<pre><code><span style="color: #000000; font-size: 16px;"></span></code></pre>
+<p>&nbsp;</p>
+<pre><code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

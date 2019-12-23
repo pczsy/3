@@ -1,0 +1,72 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Redis 相关功能和实用命令(五)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Redis 相关功能和实用命令(五)</center></div><div class='banquan'>原文出处:本文由博客园博主sanri1993提供。<br/>
+原文连接:https://www.cnblogs.com/sanri1993/p/11610426.html</div><br>
+    <h2 id="慢查询原因分析">慢查询原因分析</h2>
+<p>由于 Redis 是单线程的，它内部维护了一个命令队列，所以当有耗时的命令出现时，比如 <code>keys *</code>，后面的命令会被阻塞，通查查出慢查询可以对服务进一步优化。</p>
+<ol>
+<li><p>设置慢查询阀值：默认10 毫秒，以微秒为单位</p>
+<p>6379&gt;config set slowlog-log-slower-than 10000</p>
+<p>可直接修改 redis.conf 加上 slowlog-log-slower-than 10000</p>
+<p>slow-max-len 用来设置慢查询条数</p></li>
+<li><p>执行 slowlog get 获取慢查询，格式如下</p>
+<p><img src="./images/Redis 相关功能和实用命令(五)0.png" alt="img" /></p></li>
+</ol>
+<p>一般会定期将慢查询进行导出到 mysql 或其它存储，用于业务人员查看哪里出现了慢查询</p>
+<h2 id="管道-pipeline">管道 pipeline</h2>
+<p><a href="https://blog.csdn.net/sanri1993/article/details/101600775">上篇文章</a>展示了在控制台中如何使用管道来导入 mysql 数据 ，但管道一般在应用程序中使用</p>
+<pre><code><code> Object execute = redisTemplate.execute(new RedisCallback&lt;Object&gt;() {
+     @Override
+     public Object doInRedis(RedisConnection connection) throws DataAccessException {
+         connection.openPipeline();
+         for (int i = 0; i &lt; 1000000; i++) {
+             String key = &quot;123&quot; + i;
+             connection.set(key.getBytes(), key.getBytes());
+         }
+         List&lt;Object&gt; result = connection.closePipeline();
+         return result;
+     }
+ });</code></code></pre>
+<h2 id="发布订阅-publishsubscribe">发布订阅 (publish/subscribe)</h2>
+<p>Redis 的发布订阅比较简单，不适合于专业的场景，会有消息丢失，无法回溯等问题，这个发布订阅一般是用在 Redis 内部使用，比如哨兵的监控</p>
+<p>专业的发布订阅建议还是使用 kafka 或者 rabbitmq</p>
+<p>rabbitmq 可参考我的另一篇文章 <a href="https://blog.csdn.net/sanri1993/article/details/100127684">Rabbitmq</a></p>
+<h2 id="一些实用命令">一些实用命令</h2>
+<ul>
+<li><p>查询连接的占用情况，哪台主机占用多少连接，用于排查连接耗光问题</p>
+<pre class="shell"><code>redis-cli -a &lt;密码&gt; client list  | awk &#39;{print $1}&#39; | cut -d &quot;=&quot; -f2 | cut -d: -f 1 | sort  -n | uniq -c </code></code></pre></li>
+<li><p>查询当前内存使用情况</p>
+<p>6379&gt; info Memory</p></li>
+<li><p>在所有 key 里面返回随机一个 key ，可以用于抽奖</p>
+<pre class="shell"><code>randomkey</code></code></pre>
+<h2 id="一点小推广">一点小推广</h2>
+<p>创作不易，希望可以支持下我的开源软件，及我的小工具，欢迎来 gitee 点星，fork ，提 bug 。</p></li>
+</ul>
+<p>Excel 通用导入导出，支持 Excel 公式<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/100601578" class="uri">https://blog.csdn.net/sanri1993/article/details/100601578</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-excel-poi" class="uri">https://gitee.com/sanri/sanri-excel-poi</a></p>
+<p>使用模板代码 ，从数据库生成代码 ，及一些项目中经常可以用到的小工具<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/98664034" class="uri">https://blog.csdn.net/sanri1993/article/details/98664034</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-tools-maven" class="uri">https://gitee.com/sanri/sanri-tools-maven</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

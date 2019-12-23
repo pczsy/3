@@ -1,0 +1,61 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Socket简单Demo' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Socket简单Demo</center></div><div class='banquan'>原文出处:本文由博客园博主Lo随风的风v提供。<br/>
+原文连接:https://www.cnblogs.com/lovetq520/p/11671187.html</div><br>
+    <p>Socket协议网上介绍的有很多了，就不在画蛇添足了，本文主要编写一个小Demo,介绍下它具体实现</p>
+<p>一：Socket服务器端</p>
+<p><img src="./images/Socket简单Demo0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<pre><code>package com.founderit;<br /><br />import java.io.*;<br />import java.net.ServerSocket;<br />import java.net.Socket;<br /><br />public class HelloServer {<br /><br />    public static void main(String[] args) {<br />        InputStream in = null;<br />        OutputStream out = null;<br />        try {<br />            ServerSocket serverSocket= new ServerSocket(1234);<br />            while (true){<br />               Socket socket= serverSocket.accept();<br />                in=socket.getInputStream();<br />               InputStreamReader reader= new InputStreamReader(in);<br />                StringBuilder builder=new StringBuilder();<br />                for (int c = reader.read(); c != -1; c = reader.read()) {<br />                    builder.append((char)c);<br />                }<br />                System.out.println("收到的客户端请求为：-------"+builder.toString());<br />                out=socket.getOutputStream();<br />                out.write("请求已接收，over".getBytes());<br />                out.flush();<br />                socket.shutdownOutput();<br />            }<br />        } catch (IOException e) {<br />            e.printStackTrace();<br />        }finally {<br />            try {<br />                in.close();<br />                out.close();<br />            }catch (Exception e){<br />                e.printStackTrace();<br />            }<br />        }<br />    }<br />}<br /><br />二：Socket客户端</code></pre>
+<p><img src="./images/Socket简单Demo1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><img style="font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px;" src="./images/Socket简单Demo2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<pre><code>package com.founderit.controller;<br /><br />import java.io.*;<br />import java.net.Socket;<br /><br />public class SocketClient {<br />    public static void main(String[] args) {<br />        OutputStream out=null;<br />        InputStream in=null;<br />        Socket socket=null;<br />        try {<br />            socket=new Socket("localhost",1234);<br />            out=socket.getOutputStream();<br />            out.write("呼叫服务器，收到请回答".getBytes());<br />            socket.shutdownOutput();<br />            //获取输入流，并读取服务器端的响应信息<br />            in=socket.getInputStream();<br />            BufferedReader br=new BufferedReader(new InputStreamReader(in));<br />            StringBuilder sb=new StringBuilder();<br />            String info=null;<br />            while ((info=br.readLine())!=null){<br />                sb.append(info);<br />            }<br />            System.out.println("收到服务端回复："+sb.toString());<br />            br.close();<br />        } catch (IOException e) {<br />            e.printStackTrace();<br />        }finally {<br />            try {<br />                out.flush();<br />                out.close();<br />                in.close();<br />                socket.close();<br />            }catch (Exception e){<br />                e.printStackTrace();<br />            }<br />        }<br />    }<br /><br />}<br /><br />首先执行Socket服务端，它会一直运行等待接收请求，创建socketServer需要绑定端口，这个端口需需要与客户端一致<br />然后执行Socket客户端，它会发送Socket请求给服务端并接收服务器端反馈，运行效果如下</code></pre>
+<p><img src="./images/Socket简单Demo3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><img src="./images/Socket简单Demo4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><img src="./images/Socket简单Demo5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;需要注意的是无论是客户端与服务端，执行write()方法后最好执行socket.shutdownOutput()方法关闭输出流，不然有几率写入不成功（原因未知）</p>
+<p>&nbsp;</p>
+<p>----------------------------------------------------------------------------------------------------------------------我是分割线---------------------------------------------------------------------------------------------------------------------------------------------上面的Demo只是个单机版，在实际工作中不会只有一个客户端请求，下面我们将改造Socket服务器端，使其支持多线程</p>
+<p>Socket服务器端</p>
+<p>首先抽调具体实现，新建个具体实现类</p>
+<p><img src="./images/Socket简单Demo6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<pre><code>package com.founderit;<br /><br />import java.io.InputStream;<br />import java.io.InputStreamReader;<br />import java.io.OutputStream;<br />import java.net.Socket;<br />import java.util.Date;<br /><br />public class HelloRunable implements Runnable{<br />    Socket socket;<br />    InputStream in = null;<br />    OutputStream out = null;<br />        public HelloRunable(Socket clientSocket){<br />            this.socket=clientSocket;<br />        }<br />    @Override<br />    public void run() {<br />            try {<br />                in=socket.getInputStream();<br />                InputStreamReader reader= new InputStreamReader(in);<br />                StringBuilder builder=new StringBuilder();<br />                for (int c = reader.read(); c != -1; c = reader.read()) {<br />                    builder.append((char)c);<br />                }<br />                System.out.println("收到的客户端请求为：-------"+ new Date().toString()+ builder.toString());<br />                out=socket.getOutputStream();<br />                out.write("请求已接收，over".getBytes());<br />                out.flush();<br />                socket.shutdownOutput();<br />            }catch (Exception e){<br />                e.printStackTrace();<br />            }finally {<br />                try {<br />                    in.close();<br />                    out.flush();<br />                    out.close();<br />                }catch (Exception e){<br />                    e.printStackTrace();<br />                }<br />            }<br />    }<br />}</code></pre>
+<pre><code>接收类</code></pre>
+<p><img src="./images/Socket简单Demo7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<pre><code>package com.founderit;<br /><br />import java.io.*;<br />import java.net.ServerSocket;<br />import java.net.Socket;<br /><br />public class HelloServer {<br /><br />    public static void main(String[] args) {<br /><br />        try {<br />            ServerSocket serverSocket= new ServerSocket(1234);<br />            while (true){<br />                Socket socket=serverSocket.accept();<br />                new Thread(new HelloRunable(socket)).start();<br />            }<br />        } catch (IOException e) {<br />            e.printStackTrace();<br />        }<br />    }<br />}<br />改造后，Socket服务端接收到请求后，会直接开启一个新线程执行任务</code></pre>
+<pre><code><br /><br /><br /></code></pre>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

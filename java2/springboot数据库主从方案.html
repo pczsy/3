@@ -1,0 +1,337 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修springboot数据库主从方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>springboot数据库主从方案</center></div><div class='banquan'>原文出处:本文由博客园博主神牛003提供。<br/>
+原文连接:https://www.cnblogs.com/wangrudong003/p/11535540.html</div><br>
+    <p>本篇分享数据库主从方案，案例采用springboot+mysql+mybatis演示；要想在代码中做主从选择，通常需要明白什么时候切换数据源，怎么切换数据源，下面以代码示例来做阐述；</p>
+<ul>
+<li>搭建测试环境(1个master库2个slave库)</li>
+<li>DataSource多数据源配置</li>
+<li>设置mybatis数据源</li>
+<li>拦截器+注解设置master和slave库选择</li>
+<li>选出当前请求要使用的slave从库</li>
+<li data-spm-anchor-id="a2c4e.11153940.0.i2.20955ab2etSE8h">测试用例</li>
+</ul>
+<h1 id="1" data-spm-anchor-id="a2c4e.11153940.0.i3.20955ab2etSE8h">搭建测试环境(1个master库2个slave库)</h1>
+<p>由于测试资源优先在本地模拟创建3个数据库，分别是1个master库2个slave库，里面分别都有一个tblArticle表，内容也大致相同(为了演示主从效果，我把从库中表的title列值增加了slave字样)：</p>
+<p><img src="./images/springboot数据库主从方案0.png" alt="" /></p>
+<p>再来创建一个db.properties，分别配置3个数据源，格式如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> spring.datasource0.jdbc-url=jdbc:mysql:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:3306/db0?useUnicode=true&amp;characterEncoding=utf-8&amp;useSSL=false</span>
+<span style="color: #008080;"> 2</span> spring.datasource0.username=<span style="color: #000000;">root
+</span><span style="color: #008080;"> 3</span> spring.datasource0.password=<span style="color: #800080;">123456</span>
+<span style="color: #008080;"> 4</span> spring.datasource0.driver-<span style="color: #0000ff;">class</span>-name=<span style="color: #000000;">com.mysql.jdbc.Driver
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> spring.datasource1.jdbc-url=jdbc:mysql:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:3306/db1?useUnicode=true&amp;characterEncoding=utf-8&amp;useSSL=false</span>
+<span style="color: #008080;"> 7</span> spring.datasource1.username=<span style="color: #000000;">root
+</span><span style="color: #008080;"> 8</span> spring.datasource1.password=<span style="color: #800080;">123456</span>
+<span style="color: #008080;"> 9</span> spring.datasource1.driver-<span style="color: #0000ff;">class</span>-name=<span style="color: #000000;">com.mysql.jdbc.Driver
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> spring.datasource2.jdbc-url=jdbc:mysql:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:3306/db2?useUnicode=true&amp;characterEncoding=utf-8&amp;useSSL=false</span>
+<span style="color: #008080;">12</span> spring.datasource2.username=<span style="color: #000000;">root
+</span><span style="color: #008080;">13</span> spring.datasource2.password=<span style="color: #800080;">123456</span>
+<span style="color: #008080;">14</span> spring.datasource2.driver-<span style="color: #0000ff;">class</span>-name=com.mysql.jdbc.Driver</code></pre>
+
+<p>同时我们创建具有对应关系的DbType枚举，帮助我们使代码更已读：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DbEmHelper {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">enum</span><span style="color: #000000;"> DbTypeEm {
+</span><span style="color: #008080;"> 3</span>         db0(<span style="color: #800080;">0</span>, <span style="color: #800000;">"</span><span style="color: #800000;">db0(默认master)</span><span style="color: #800000;">"</span>, -<span style="color: #800080;">1</span><span style="color: #000000;">),
+</span><span style="color: #008080;"> 4</span>         db1(<span style="color: #800080;">1</span>, <span style="color: #800000;">"</span><span style="color: #800000;">db1</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0</span><span style="color: #000000;">),
+</span><span style="color: #008080;"> 5</span>         db2(<span style="color: #800080;">2</span>, <span style="color: #800000;">"</span><span style="color: #800000;">db2</span><span style="color: #800000;">"</span>, <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>         <span style="color: #008000;">/*</span><span style="color: #008000;">*
+</span><span style="color: #008080;"> 8</span> <span style="color: #008000;">         * 用于筛选从库
+</span><span style="color: #008080;"> 9</span> <span style="color: #008000;">         *
+</span><span style="color: #008080;">10</span> <span style="color: #008000;">         * @param slaveNum 从库顺序编号 0开始
+</span><span style="color: #008080;">11</span> <span style="color: #008000;">         * @return
+</span><span style="color: #008080;">12</span>          <span style="color: #008000;">*/</span>
+<span style="color: #008080;">13</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Optional&lt;DbTypeEm&gt; getDbTypeBySlaveNum(<span style="color: #0000ff;">int</span><span style="color: #000000;"> slaveNum) {
+</span><span style="color: #008080;">14</span>             <span style="color: #0000ff;">return</span> Arrays.stream(DbTypeEm.values()).filter(b -&gt; b.getSlaveNum() ==<span style="color: #000000;"> slaveNum).findFirst();
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>         DbTypeEm(<span style="color: #0000ff;">int</span> code, String des, <span style="color: #0000ff;">int</span><span style="color: #000000;"> slaveNum) {
+</span><span style="color: #008080;">18</span>             <span style="color: #0000ff;">this</span>.code =<span style="color: #000000;"> code;
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">this</span>.des =<span style="color: #000000;"> des;
+</span><span style="color: #008080;">20</span>             <span style="color: #0000ff;">this</span>.slaveNum =<span style="color: #000000;"> slaveNum;
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> code;
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">private</span><span style="color: #000000;"> String des;
+</span><span style="color: #008080;">25</span>         <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> slaveNum;
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>         <span style="color: #008000;">//</span><span style="color: #008000;">get,set省略</span>
+<span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span> }</code></pre>
+
+<h1 id="2" data-spm-anchor-id="a2c4e.11153940.0.i9.20955ab2etSE8h">DataSource多数据源配置</h1>
+<p>使用上面3个库连接串信息，配置3个不同的DataSource实例，达到多个DataSource目的；由于在代码中库的实例需要动态选择，因此我们利用AbstractRoutingDataSource来聚合多个数据源；下面是生成多个DataSource代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">@Configuration
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DbConfig {
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span>     @Bean(name = <span style="color: #800000;">"</span><span style="color: #800000;">dbRouting</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> DataSource dbRouting() throws IOException {
+</span><span style="color: #008080;"> 6</span>         <span style="color: #008000;">//</span><span style="color: #008000;">加载db配置文件</span>
+<span style="color: #008080;"> 7</span>         InputStream <span style="color: #0000ff;">in</span> = <span style="color: #0000ff;">this</span>.getClass().getClassLoader().getResourceAsStream(<span style="color: #800000;">"</span><span style="color: #800000;">db.properties</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 8</span>         Properties pp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Properties();
+</span><span style="color: #008080;"> 9</span>         pp.load(<span style="color: #0000ff;">in</span><span style="color: #000000;">);
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建每个库的datasource</span>
+<span style="color: #008080;">12</span>         Map&lt;Object, Object&gt; targetDataSources = <span style="color: #0000ff;">new</span> HashMap&lt;&gt;<span style="color: #000000;">(DbEmHelper.DbTypeEm.values().length);
+</span><span style="color: #008080;">13</span>         Arrays.stream(DbEmHelper.DbTypeEm.values()).forEach(dbTypeEm -&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">            targetDataSources.put(dbTypeEm, getDataSource(pp, dbTypeEm));
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>         <span style="color: #008000;">//</span><span style="color: #008000;">设置多数据源</span>
+<span style="color: #008080;">18</span>         DbRouting dbRouting = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DbRouting();
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        dbRouting.setTargetDataSources(targetDataSources);
+</span><span style="color: #008080;">20</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> dbRouting;
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>     <span style="color: #008000;">/*</span><span style="color: #008000;">*
+</span><span style="color: #008080;">24</span> <span style="color: #008000;">     * 创建库的datasource
+</span><span style="color: #008080;">25</span> <span style="color: #008000;">     *
+</span><span style="color: #008080;">26</span> <span style="color: #008000;">     * @param pp
+</span><span style="color: #008080;">27</span> <span style="color: #008000;">     * @param dbTypeEm
+</span><span style="color: #008080;">28</span> <span style="color: #008000;">     * @return
+</span><span style="color: #008080;">29</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">30</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> DataSource getDataSource(Properties pp, DbEmHelper.DbTypeEm dbTypeEm) {
+</span><span style="color: #008080;">31</span>         DataSourceBuilder&lt;?&gt; builder =<span style="color: #000000;"> DataSourceBuilder.create();
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span>         builder.driverClassName(pp.getProperty(JsonUtil.formatMsg(<span style="color: #800000;">"</span><span style="color: #800000;">spring.datasource{}.driver-class-name</span><span style="color: #800000;">"</span><span style="color: #000000;">, dbTypeEm.getCode())));
+</span><span style="color: #008080;">34</span>         builder.url(pp.getProperty(JsonUtil.formatMsg(<span style="color: #800000;">"</span><span style="color: #800000;">spring.datasource{}.jdbc-url</span><span style="color: #800000;">"</span><span style="color: #000000;">, dbTypeEm.getCode())));
+</span><span style="color: #008080;">35</span>         builder.username(pp.getProperty(JsonUtil.formatMsg(<span style="color: #800000;">"</span><span style="color: #800000;">spring.datasource{}.username</span><span style="color: #800000;">"</span><span style="color: #000000;">, dbTypeEm.getCode())));
+</span><span style="color: #008080;">36</span>         builder.password(pp.getProperty(JsonUtil.formatMsg(<span style="color: #800000;">"</span><span style="color: #800000;">spring.datasource{}.password</span><span style="color: #800000;">"</span><span style="color: #000000;">, dbTypeEm.getCode())));
+</span><span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> builder.build();
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">40</span> }</code></pre>
+
+<p>能够看到一个DbRouting实例，其是继承了AbstractRoutingDataSource，她里面有个Map变量来存储多个数据源信息：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DbRouting extends AbstractRoutingDataSource {
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">4</span>     <span style="color: #0000ff;">protected</span><span style="color: #000000;"> Object determineCurrentLookupKey() {
+</span><span style="color: #008080;">5</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> DbContextHolder.getDb().orElse(DbEmHelper.DbTypeEm.db0);
+</span><span style="color: #008080;">6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">7</span> }</code></pre>
+
+<p>DbRouting里面主要重写了determineCurrentLookupKey(),通过设置和存储DataSource集合的Map相同的key，以此达到选择不同DataSource的目的，这里使用ThreadLocal获取同一线程存储的key；主要看AbstractRoutingDataSource类中下面代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">protected</span><span style="color: #000000;"> DataSource determineTargetDataSource() {
+</span><span style="color: #008080;"> 2</span>         Assert.notNull(<span style="color: #0000ff;">this</span>.resolvedDataSources, <span style="color: #800000;">"</span><span style="color: #800000;">DataSource router not initialized</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span>         Object lookupKey = <span style="color: #0000ff;">this</span><span style="color: #000000;">.determineCurrentLookupKey();
+</span><span style="color: #008080;"> 4</span>         DataSource dataSource = (DataSource)<span style="color: #0000ff;">this</span>.resolvedDataSources.<span style="color: #0000ff;">get</span><span style="color: #000000;">(lookupKey);
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">if</span>(dataSource == <span style="color: #0000ff;">null</span> &amp;&amp; (<span style="color: #0000ff;">this</span>.lenientFallback || lookupKey == <span style="color: #0000ff;">null</span><span style="color: #000000;">)) {
+</span><span style="color: #008080;"> 6</span>             dataSource = <span style="color: #0000ff;">this</span><span style="color: #000000;">.resolvedDefaultDataSource;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">if</span>(dataSource == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> IllegalStateException(<span style="color: #800000;">"</span><span style="color: #800000;">Cannot determine target DataSource for lookup key [</span><span style="color: #800000;">"</span> + lookupKey + <span style="color: #800000;">"</span><span style="color: #800000;">]</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">10</span>         } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> dataSource;
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">13</span>     }</code></pre>
+
+<h1 id="3" data-spm-anchor-id="a2c4e.11153940.0.i16.20955ab2etSE8h">设置mybatis数据源</h1>
+<p>本次演示为了便利，这里使用mybatis的注解方式来查询数据库，我们需要给mybatis设置数据源，我们可以从上面的声明DataSource的bean方法获取：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">@EnableTransactionManagement
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">@Configuration
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MybaitisConfig {
+</span><span style="color: #008080;"> 4</span>     @Resource(name = <span style="color: #800000;">"</span><span style="color: #800000;">dbRouting</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">    DataSource dataSource;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">    @Bean
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> SqlSessionFactory sqlSessionFactory() throws Exception {
+</span><span style="color: #008080;"> 9</span>         SqlSessionFactoryBean factoryBean = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlSessionFactoryBean();
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">        factoryBean.setDataSource(dataSource);
+</span><span style="color: #008080;">11</span>        <span style="color: #008000;">//</span><span style="color: #008000;"> factoryBean.setMapperLocations(new PathMatchingResourcePatternResolver().getResources("classpath:*"));</span>
+<span style="color: #008080;">12</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> factoryBean.getObject();
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span> }</code></pre>
+
+<p>我们使用的mybatis注解方式来查询数据库，所以不需要加载mapper的xml文件，下面注解方式查询sql：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">@Mapper
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> ArticleMapper {
+</span><span style="color: #008080;">3</span>     @Select(<span style="color: #800000;">"</span><span style="color: #800000;">select * from tblArticle where id = #{id}</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">4</span>     Article selectById(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id);
+</span><span style="color: #008080;">5</span> }</code></pre>
+
+<h1 id="4" data-spm-anchor-id="a2c4e.11153940.0.i21.20955ab2etSE8h">拦截器+注解来选择master和slave库</h1>
+<p>通常操作数据的业务逻辑都放在service层，我们希望service中不同方法使用不同的库；比如：添加、修改、删除、部分查询方法等，使用master主库来操作，而大部分查询操作可以使用slave库来查询；这里通过拦截器+灵活的自定义注解来实现我们的需求：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">@Documented
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">@Target({ElementType.METHOD})
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">@Retention(RetentionPolicy.RUNTIME)
+</span><span style="color: #008080;">4</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> @interface DbType {
+</span><span style="color: #008080;">5</span>     boolean isMaster() <span style="color: #0000ff;">default</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">6</span> }</code></pre>
+
+<p>注解参数默认选择master库来操作业务(看具体需求吧)</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">@Aspect
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">@Component
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DbInterceptor {
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     <span style="color: #008000;">//</span><span style="color: #008000;">全部service层请求都走这里，ThreadLocal才能有DbType值</span>
+<span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">private</span> final String pointcut = <span style="color: #800000;">"</span><span style="color: #800000;">execution(* com.sm.service..*.*(..))</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span>     @Pointcut(value =<span style="color: #000000;"> pointcut)
+</span><span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> dbType() {
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>     @Before(<span style="color: #800000;">"</span><span style="color: #800000;">dbType()</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">13</span>     <span style="color: #0000ff;">void</span><span style="color: #000000;"> before(JoinPoint joinPoint) {
+</span><span style="color: #008080;">14</span>         System.<span style="color: #0000ff;">out</span>.println(<span style="color: #800000;">"</span><span style="color: #800000;">before...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>         MethodSignature methodSignature =<span style="color: #000000;"> (MethodSignature) joinPoint.getSignature();
+</span><span style="color: #008080;">17</span>         Method method =<span style="color: #000000;"> methodSignature.getMethod();
+</span><span style="color: #008080;">18</span>         DbType dbType = method.getAnnotation(DbType.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+</span><span style="color: #008080;">19</span>         <span style="color: #008000;">//</span><span style="color: #008000;">设置Db</span>
+<span style="color: #008080;">20</span>         DbContextHolder.setDb(dbType == <span style="color: #0000ff;">null</span> ? <span style="color: #0000ff;">false</span><span style="color: #000000;"> : dbType.isMaster());
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>     @After(<span style="color: #800000;">"</span><span style="color: #800000;">dbType()</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+</span><span style="color: #008080;">24</span>     <span style="color: #0000ff;">void</span><span style="color: #000000;"> after() {
+</span><span style="color: #008080;">25</span>         System.<span style="color: #0000ff;">out</span>.println(<span style="color: #800000;">"</span><span style="color: #800000;">after...</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span> <span style="color: #000000;">        DbContextHolder.remove();
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span> }</code></pre>
+
+<p>拦截器拦截service层的所有方法，然后获取带有自定义注解DbType的方法的isMaster值，DbContextHolder.setDb()方法判断走master还是slave库，并赋值给ThreadLocal：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DbContextHolder {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> final ThreadLocal&lt;Optional&lt;DbEmHelper.DbTypeEm&gt;&gt; dbTypeEmThreadLocal = <span style="color: #0000ff;">new</span> ThreadLocal&lt;&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> final AtomicInteger atoCounter = <span style="color: #0000ff;">new</span> AtomicInteger(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setDb(DbEmHelper.DbTypeEm dbTypeEm) {
+</span><span style="color: #008080;"> 6</span>         dbTypeEmThreadLocal.<span style="color: #0000ff;">set</span><span style="color: #000000;">(Optional.ofNullable(dbTypeEm));
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Optional&lt;DbEmHelper.DbTypeEm&gt;<span style="color: #000000;"> getDb() {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">return</span> dbTypeEmThreadLocal.<span style="color: #0000ff;">get</span><span style="color: #000000;">();
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> remove() {
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        dbTypeEmThreadLocal.remove();
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>     <span style="color: #008000;">/*</span><span style="color: #008000;">*
+</span><span style="color: #008080;">18</span> <span style="color: #008000;">     * 设置主从库
+</span><span style="color: #008080;">19</span> <span style="color: #008000;">     *
+</span><span style="color: #008080;">20</span> <span style="color: #008000;">     * @param isMaster
+</span><span style="color: #008080;">21</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">22</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setDb(boolean isMaster) {
+</span><span style="color: #008080;">23</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isMaster) {
+</span><span style="color: #008080;">24</span>             <span style="color: #008000;">//</span><span style="color: #008000;">主库</span>
+<span style="color: #008080;">25</span> <span style="color: #000000;">            setDb(DbEmHelper.DbTypeEm.db0);
+</span><span style="color: #008080;">26</span>         } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">27</span>             <span style="color: #008000;">//</span><span style="color: #008000;">从库</span>
+<span style="color: #008080;">28</span> <span style="color: #000000;">            setSlave();
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setSlave() {
+</span><span style="color: #008080;">33</span>         <span style="color: #008000;">//</span><span style="color: #008000;">累加值达到最大时，重置</span>
+<span style="color: #008080;">34</span>         <span style="color: #0000ff;">if</span> (atoCounter.<span style="color: #0000ff;">get</span>() &gt;= <span style="color: #800080;">100000</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">35</span>             atoCounter.<span style="color: #0000ff;">set</span>(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span>         <span style="color: #008000;">//</span><span style="color: #008000;">排除master，选出当前线程请求要使用的db从库 - 从库算法</span>
+<span style="color: #008080;">39</span>         <span style="color: #0000ff;">int</span> slaveNum = atoCounter.getAndIncrement() % (DbEmHelper.DbTypeEm.values().length - <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;">40</span>         Optional&lt;DbEmHelper.DbTypeEm&gt; dbTypeEm =<span style="color: #000000;"> DbEmHelper.DbTypeEm.getDbTypeBySlaveNum(slaveNum);
+</span><span style="color: #008080;">41</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (dbTypeEm.isPresent()) {
+</span><span style="color: #008080;">42</span>             setDb(dbTypeEm.<span style="color: #0000ff;">get</span><span style="color: #000000;">());
+</span><span style="color: #008080;">43</span>         } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">44</span>             <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> IllegalArgumentException(<span style="color: #800000;">"</span><span style="color: #800000;">从库未匹配</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">47</span> }</code></pre>
+
+<p>这一步骤很重要，通过拦截器来到达选择master和slave目的，当然也有其他方式的；</p>
+<h1 id="5" data-spm-anchor-id="a2c4e.11153940.0.i29.20955ab2etSE8h">选出当前请求要使用的slave从库</h1>
+<p>上面能选择出master和slave走向了，但是往往slave至少有两个库存在；我们需要知道怎么来选择多个slave库，目前最常用的方式通过计数器取余的方式来选择：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setSlave() {
+</span><span style="color: #008080;"> 2</span>         <span style="color: #008000;">//</span><span style="color: #008000;">累加值达到最大时，重置</span>
+<span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">if</span> (atoCounter.<span style="color: #0000ff;">get</span>() &gt;= <span style="color: #800080;">100000</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 4</span>             atoCounter.<span style="color: #0000ff;">set</span>(<span style="color: #800080;">0</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>         <span style="color: #008000;">//</span><span style="color: #008000;">排除master，选出当前线程请求要使用的db从库 - 从库算法</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">int</span> slaveNum = atoCounter.getAndIncrement() % (DbEmHelper.DbTypeEm.values().length - <span style="color: #800080;">1</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 9</span>         Optional&lt;DbEmHelper.DbTypeEm&gt; dbTypeEm =<span style="color: #000000;"> DbEmHelper.DbTypeEm.getDbTypeBySlaveNum(slaveNum);
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (dbTypeEm.isPresent()) {
+</span><span style="color: #008080;">11</span>             setDb(dbTypeEm.<span style="color: #0000ff;">get</span><span style="color: #000000;">());
+</span><span style="color: #008080;">12</span>         } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">13</span>             <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> IllegalArgumentException(<span style="color: #800000;">"</span><span style="color: #800000;">从库未匹配</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">15</span>     }</code></pre>
+
+<p>这里根据余数来匹配对应DbType枚举，选出DataSource的Map需要的key，并且赋值到当前线程ThreadLocal中；</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>         <span style="color: #008000;">/*</span><span style="color: #008000;">*
+</span><span style="color: #008080;">2</span> <span style="color: #008000;">         * 用于筛选从库</span><span style="color: #008080;">4</span> <span style="color: #008000;">         * @param slaveNum 从库顺序编号 0开始
+</span><span style="color: #008080;">5</span> <span style="color: #008000;">         * @return
+</span><span style="color: #008080;">6</span>          <span style="color: #008000;">*/</span>
+<span style="color: #008080;">7</span>         <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> Optional&lt;DbTypeEm&gt; getDbTypeBySlaveNum(<span style="color: #0000ff;">int</span><span style="color: #000000;"> slaveNum) {
+</span><span style="color: #008080;">8</span>             <span style="color: #0000ff;">return</span> Arrays.stream(DbTypeEm.values()).filter(b -&gt; b.getSlaveNum() ==<span style="color: #000000;"> slaveNum).findFirst();
+</span><span style="color: #008080;">9</span>         }</code></pre>
+
+<h1 id="6" data-spm-anchor-id="a2c4e.11153940.0.i34.20955ab2etSE8h">测试用例</h1>
+<p>完成上面操作后，我们搭建个测试例子，ArticleService中分别如下3个方法，不同点在于@DbType注解的标记：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">@Service
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ArticleService {
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> <span style="color: #000000;">    @Autowired
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">    ArticleMapper articleMapper;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">    @DbType
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">public</span> Article selectById01(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id) {
+</span><span style="color: #008080;"> 9</span>         Article article =<span style="color: #000000;"> articleMapper.selectById(id);
+</span><span style="color: #008080;">10</span>         System.<span style="color: #0000ff;">out</span>.println(JsonUtil.formatMsg(<span style="color: #800000;">"</span><span style="color: #800000;">selectById01：{} --- title：{}</span><span style="color: #800000;">"</span>, DbContextHolder.getDb().<span style="color: #0000ff;">get</span><span style="color: #000000;">(), article.getTitle()));
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> article;
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">13</span> 
+<span style="color: #008080;">14</span>     @DbType(isMaster = <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;">15</span>     <span style="color: #0000ff;">public</span> Article selectById02(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id) {
+</span><span style="color: #008080;">16</span>         Article article =<span style="color: #000000;"> articleMapper.selectById(id);
+</span><span style="color: #008080;">17</span>         System.<span style="color: #0000ff;">out</span>.println(JsonUtil.formatMsg(<span style="color: #800000;">"</span><span style="color: #800000;">selectById02：{} --- title：{}</span><span style="color: #800000;">"</span>, DbContextHolder.getDb().<span style="color: #0000ff;">get</span><span style="color: #000000;">(), article.getTitle()));
+</span><span style="color: #008080;">18</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> article;
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>     <span style="color: #0000ff;">public</span> Article selectById(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id) {
+</span><span style="color: #008080;">22</span>         Article article =<span style="color: #000000;"> articleMapper.selectById(id);
+</span><span style="color: #008080;">23</span>         System.<span style="color: #0000ff;">out</span>.println(JsonUtil.formatMsg(<span style="color: #800000;">"</span><span style="color: #800000;">selectById：{} --- title：{}</span><span style="color: #800000;">"</span>, DbContextHolder.getDb().<span style="color: #0000ff;">get</span><span style="color: #000000;">(), article.getTitle()));
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> article;
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">26</span> }</code></pre>
+
+<p>在同一个Controller层接口方法中去调用这3个service层方法，按照正常逻辑来讲，不出意外得到的结果是这样：</p>
+<p><img src="./images/springboot数据库主从方案1.png" alt="" /></p>
+<p>请求了两次接口，得到结果是：<br />selectById01方法：标记了@DbType，但默认走isMaster=true，实际走了db0(master)库<br />selectById02方法：标记了@DbType(isMaster = false)，实际走了db1(slave1)库<br />selectById方法：没有标记了@DbType，实际走了db2(slave2)库，因为拦截器中没有找到DbType注解，让其走了slave方法；因为selectById02执行过一次slave方法，计数器+1了，因此余数也变了所以定位到了slave2库(如果是基数调用，selectById02和selectById方法来回切换走不同slave库)；</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

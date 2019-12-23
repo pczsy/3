@@ -1,0 +1,194 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修redis持久化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>redis持久化</center></div><div class='banquan'>原文出处:本文由博客园博主东东w提供。<br/>
+原文连接:https://www.cnblogs.com/renxixao/p/11450820.html</div><br>
+    <h2>## # Redis持久化介绍</h2>
+<p>所有的数据都存在内存中，从内存当中同步到硬盘上，这个过程叫做持久化过程。持久化操作，两种方式：rdb方式、aof方式，可以单独使用或者结合使用。</p>
+<p>rdb持久化方法：在指定的时间间隔写入硬盘&nbsp; aof方式：将以日志，记录每一个操作，服务器启动后就构建数据库。</p>
+<p style="white-space: normal;">RDB方式 Redis是默认支持的&nbsp; &nbsp;优势：只有一个文件，时间间隔的数据，可以归档为一个文件，方便压缩转移（就一个文件）</p>
+<h2>## # <strong>Redis的持久化之RDB方式</strong></h2>
+<p style="white-space: normal;">劣势：如果宕机，数据损失比较大，因为它是每一个时间段进行持久化操作的。也就是积攒的数据比较多，一旦懵逼，就彻底懵逼了</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01 redis]# vi redis.conf</code></pre>
+
+<p>往下拉：</p>
+<p><img src="./images/redis持久化0.png" alt="" /></p>
+<p style="white-space: normal;">这里save 900 1 表示 每900秒内至少有1个kery发生变化 就持久化</p>
+<p style="white-space: normal;">save 300 10表示 每300秒内至少有10个key发生变化 就持久化</p>
+<p style="white-space: normal;">save 60 10000表示 每60秒内至少有10000个key发生变化 就持久化</p>
+<p style="white-space: normal;">再往下拉</p>
+<p style="white-space: normal;"><img src="./images/redis持久化1.png" alt="" /></p>
+<p>这里有个dbfilename配置 是保存的持久化的文件名 默认是dump.rdb</p>
+<p>dir ./ 表示文件存储路径是当前路径</p>
+<p>退出</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01<span style="color: #000000;"> redis]# ll
+总用量 </span>64<span style="color: #000000;">
+drwxr</span>-xr-x. 2 root root   134 9月   1 16:30<span style="color: #000000;"> bin
+</span>-rw-r--r--. 1 root root   109 9月   1 17:30<strong><span style="color: #000000;"> dump.rdb
+</span></strong>-rw-r--r--. 1 root root 58767 9月   3 07:04 redis.conf</code></pre>
+
+<p>当前路径里确实是有这个文件的</p>
+<p>&nbsp;</p>
+<h2>## # RDB备份和恢复数据&nbsp;</h2>
+<p style="white-space: normal;">假如遇到断电或者宕机或者自然灾害 需要恢复数据 我们模拟下 先重置下数据</p>
+<p style="white-space: normal;">shutdown关闭下redis</p>
+<p style="white-space: normal;">127.0.0.1:6379&gt; shutdown</p>
+<p style="white-space: normal;">not connected&gt; exit</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01redis]# ll</code></pre>
+
+<p style="white-space: normal;">&nbsp;总用量 52</p>
+<src class="cnblogs_code">
+<pre><code>drwxr-xr-x. 2<span style="color: #000000;"> root root   bin
+</span>-rw-r--r--. 1<span style="color: #000000;"> root root  dump.rdb
+</span>-rw-r--r--. 1 root root  redis.conf</code></pre>
+
+<p>&nbsp;</p>
+<p style="white-space: normal;">删掉rdb文件 再启动redis&nbsp; 这时候启动 是没数据的</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01]# rm -<span style="color: #000000;">rf dump.rdb 
+[root@hdp</span>-01redis]# ./bin/redis-server ./<span style="color: #000000;">redis.conf 
+[root@hdp</span>-01redis]# ./bin/redis-<span style="color: #000000;">cli
+</span>127.0.0.1:6379&gt; keys *<span style="color: #000000;">
+(empty list or set)</span></code></pre>
+
+<p style="white-space: normal;">&nbsp;搞几个key 然后shutdown save 保存退出</p>
+<src class="cnblogs_code">
+<pre><code>127.0.0.1:6379&gt; set n1 1<span style="color: #000000;">
+OK
+</span>127.0.0.1:6379&gt; set n2 2<span style="color: #000000;">
+OK
+</span>127.0.0.1:6379&gt; set n3 3<span style="color: #000000;">
+OK
+</span>127.0.0.1:6379&gt;<span style="color: #000000;"> shutdown save
+not connected</span>&gt; exit</code></pre>
+
+<p style="white-space: normal;">假如这时候 我们再重启redis 这时候启动过程会进程rdb check验证 然后加载redis目录下rdb文件 加载数据</p>
+<p style="white-space: normal;">验证下：我们再次启动</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01 redis]# ./bin/redis-server ./<span style="color: #000000;">redis.conf 
+[root@hdp</span>-01 redis]# ./bin/redis-<span style="color: #000000;">cli
+</span>127.0.0.1:6379&gt; keys *
+1) "n1"
+2) "n3"
+3) "n2"</code></pre>
+
+<p style="white-space: normal;">&nbsp;说明是数据加载进来了</p>
+<p style="white-space: normal;">这里我们把redis下的rdb文件剪切到其他地方去 然后再启动试下</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01 redis]# mv dump.rdb /root/</code></pre>
+
+<p style="white-space: normal;">&nbsp;剪切到root下</p>
+<p style="white-space: normal;">这时候再启动下</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01 redis]# ./bin/redis-server ./<span style="color: #000000;">redis.conf 
+[root@hdp</span>-01 redis]# ./bin/redis-<span style="color: #000000;">cli
+</span>127.0.0.1:6379&gt; keys *<span style="color: #000000;">
+(empty list or set)</span></code></pre>
+
+<p style="white-space: normal;">发现所有数据都没了 恢复数据的话 我们只需要把备份文件搞到redis下即可</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01 redis]# cp /root/dump.rdb /usr/local/redis/<span style="color: #000000;">
+cp：是否覆盖</span>"/usr/local/redis/dump.rdb"<span style="color: #000000;">？ y
+[root@hdp</span>-01 redis]# ./bin/redis-server ./<span style="color: #000000;">redis.conf 
+[root@hdp</span>-01 redis]# ./bin/redis-<span style="color: #000000;">cli
+</span>127.0.0.1:6379&gt; keys *
+1) "n2"
+2) "n1"
+3) "n3"</code></pre>
+
+<p>&nbsp;</p>
+<h2 style="white-space: normal;">## # <strong>Redis的持久化之AOF方式</strong></h2>
+<p style="white-space: normal;">AOF方式：将以日志，记录每一个操作</p>
+<p style="white-space: normal;">优势：安全性相对RDB方式高很多</p>
+<p style="white-space: normal;">劣势：效率相对RDB方式低很多</p>
+<p style="white-space: normal;">&nbsp;</p>
+<h2>## # AOF备份和恢复数据</h2>
+<p style="white-space: normal;">AOF方式：将以日志，记录每一个操作</p>
+<p style="white-space: normal;">优势：安全性相对RDB方式高很多；劣势：效率相对RDB方式低很多；</p>
+<p style="white-space: normal;">配置：</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01 redis]# vi redis.conf </code></pre>
+
+<p style="white-space: normal;">编辑redis.conf</p>
+<p style="white-space: normal;">appendonly no默认关闭aof方式 我们修改成yes 就开启</p>
+<p style="white-space: normal;">下面那个是默认的aof文件名</p>
+<p style="white-space: normal;">&nbsp;<img src="./images/redis持久化2.png" alt="" /></p>
+<p style="white-space: normal;">再往下拉：</p>
+<p style="white-space: normal;"><img src="./images/redis持久化3.png" alt="" /></p>
+<p style="white-space: normal;">这里是三种同步策略：</p>
+<p style="white-space: normal;">always 是 只要发生修改 立即同步 （推荐实用 安全性最高）</p>
+<p style="white-space: normal;">everysec 是 每秒同步一次</p>
+<p style="white-space: normal;">no是不同步&nbsp;</p>
+<p style="white-space: normal;">&nbsp;</p>
+<p style="white-space: normal;">修改成always</p>
+<p style="white-space: normal;"><img src="./images/redis持久化4.png" alt="" /></p>
+<p style="white-space: normal;">&nbsp;</p>
+<p>重新启动redis 随便加几个key</p>
+<p style="white-space: normal;">这里就有一个appendonly.aof文件</p>
+<p>重置数据</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01 redis]# rm -rf dump.rdb </code></pre>
+
+<p>启动redis</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01 redis]# ./bin/redis-server ./<span style="color: #000000;">redis.conf 
+[root@hdp</span>-01 redis]# ./bin/redis-<span style="color: #000000;">cli
+</span>127.0.0.1:6379&gt; keys *<span style="color: #000000;">
+(empty list or set)</span></code></pre>
+
+<p>目前数据库是空 添加数据</p>
+<src class="cnblogs_code">
+<pre><code>127.0.0.1:6379&gt; set n1 1<span style="color: #000000;">
+OK
+</span>127.0.0.1:6379&gt; set n2 2<span style="color: #000000;">
+OK
+</span>127.0.0.1:6379&gt; set n3 3<span style="color: #000000;">
+OK
+</span>127.0.0.1:6379&gt;<span style="color: #000000;"> shutdown nosave
+not connected</span>&gt; exit</code></pre>
+
+<p>&nbsp;</p>
+<p>把aof文件剪切到其他地方 启动</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdo-01 redis]# mv appendonly.aof /root/<span style="color: #000000;">
+[root@hdo</span>-01 redis]# ./bin/redis-server ./<span style="color: #000000;">redis.conf 
+[root@hdp</span>-01 redis]# ./bin/redis-<span style="color: #000000;">cli
+</span>127.0.0.1:6379&gt; keys *<span style="color: #000000;">
+(empty list or set)</span></code></pre>
+
+<p>我们再把aof文件复制回来</p>
+<src class="cnblogs_code">
+<pre><code>[root@hdp-01 redis]# cp /root/appendonly.aof /usr/local/redis/<span style="color: #000000;">
+cp：是否覆盖</span>"/usr/local/redis/appendonly.aof"<span style="color: #000000;">？ y
+[root@hdp</span>-01 redis]# ./bin/redis-server ./<span style="color: #000000;">redis.conf 
+[root@hdp</span>-01 redis]# ./bin/redis-<span style="color: #000000;">cli
+</span>127.0.0.1:6379&gt; keys *
+1) "n1"
+2) "n3"
+3) "n2"</code></pre>
+
+<p>&nbsp;</p>
+<p>平时定期把rdb文件备份到指定地方 需要恢复的时候直接把rdb搞到redis下；aof文件定期备份 需要的时候拷贝到redis下 重启即可</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

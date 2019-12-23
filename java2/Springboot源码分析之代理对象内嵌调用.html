@@ -1,0 +1,178 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Springboot源码分析之代理对象内嵌调用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Springboot源码分析之代理对象内嵌调用</center></div><div class='banquan'>原文出处:本文由博客园博主TheGir1提供。<br/>
+原文连接:https://www.cnblogs.com/qinzj/p/11503175.html</div><br>
+    <h4 id="摘要">摘要：</h4>
+<p>关于这个话题可能最多的是<code>@Async</code>和<code>@Transactional</code>一起混用，我先解释一下什么是代理对象内嵌调用，指的是一个代理方法调用了同类的另一个代理方法。首先在这儿我要声明事务直接的嵌套调用除外，至于为什么，是它已经将信息保存在线程级别了，是不是又点儿抽象，感觉吃力，可以看看我前面关于事务的介绍。</p>
+<h4 id="async和transactional共存">@Async和@Transactional共存</h4>
+<pre><code><code>    @Component
+    public class AsyncWithTransactional {
+        
+        @Async
+        @Transactional
+        public void test() {
+            
+        }
+    }</code></code></pre>
+<p>这样一段代码会发生什么？熟悉的人都会感觉疑惑，都有效果么？谁先被代理增强？</p>
+<p>自动代理创建器<code>AbstractAutoProxyCreator</code>它实际也是个<code>BeanPostProcessor</code>，所以它们的执行顺序很重要~~~</p>
+<ul>
+<li><p>两者都继承自<code>ProxyProcessorSupport</code>所以都能创建代理，且实现了<code>Ordered</code>接口- - -- - ---<code>AsyncAnnotationBeanPostProcessor</code>默认的<code>order</code>值为<code>Ordered.LOWEST_PRECEDENCE</code>。但可以通过<code>@EnableAsync</code>指定<code>order</code>属性来改变此值。</p></li>
+<li><code>AsyncAnnotationBeanPostProcessor</code>在创建代理时有这样一个逻辑：若已经是<code>Advised</code>对象了，那就只需要把<code>@Async</code>的增强器添加进去即可。若不是代理对象才会自己去创建</li>
+</ul>
+<pre><code><code>    public abstract class AbstractAdvisingBeanPostProcessor extends ProxyProcessorSupport implements BeanPostProcessor {
+        @Override
+        public Object postProcessAfterInitialization(Object bean, String beanName) {
+            if (bean instanceof Advised) {
+                advised.addAdvisor(this.advisor);
+                return bean;
+            }
+            // 上面没有return，这里会继续判断自己去创建代理~
+        }
+    }</code></code></pre>
+<ul>
+<li><code>AbstractAutoProxyCreator</code>默认值也同上。但是在把自动代理创建器添加进容器的时候有这么一句代码：<code>beanDefinition.getPropertyValues().add(&quot;order&quot;, Ordered.HIGHEST_PRECEDENCE);</code>自动代理创建器这个处理器是最高优先级</li>
+<li>由上可知因为标注有<code>@Transactional</code>，所以自动代理会生效，因此它会先交给<code>AbstractAutoProxyCreator</code>把代理对象生成好了，再交给后面的处理器执行<br />
+由于<code>AbstractAutoProxyCreator</code>先执行，所以<code>AsyncAnnotationBeanPostProcessor</code>执行的时候此时<code>Bean</code>已经是代理对象了，此时它会沿用这个代理，只需要把切面添加进去即可~</li>
+</ul>
+<h4 id="方法调用顺序影响">方法调用顺序影响</h4>
+<p>想必大家都知道一点就是同类的方法调用只有入口方法被代理才会被增强，这是由于源码级别只处理入口方法调用，是你的话你也这样设计，不然方法栈那么深，你管得了那么多吗？既然知道了这个原因，那么我们接下来在看一下后面的列子。</p>
+<h4 id="沿用代理对象">沿用代理对象</h4>
+<pre><code><code>     java.lang.IllegalStateException: Cannot find current proxy: Set &#39;exposeProxy&#39; property on Advised to &#39;true&#39; to make it available.
+        at org.springframework.aop.framework.AopContext.currentProxy(AopContext.java:69)
+        at com.fsx.dependency.B.funTemp(B.java:14)
+        at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+        at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+        at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+        at java.lang.reflect.Method.invoke(Method.java:498)
+        at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:343)
+        at org.springframework.aop.framework.JdkDynamicAopProxy.invoke(JdkDynamicAopProxy.java:206)
+        at com.sun.proxy.$Proxy44.funTemp(Unknown Source)
+        ...</code></code></pre>
+<p>这个异常在上述情况最容易出现，然而解决的方法都是<code>@EnableAspectJAutoProxy(exposeProxy = true)</code></p>
+<p>咦，是不是我们可以从容器中获取代理对象呢？没有错，从容器获取代理对象也是一种沿用代理对象来调用方法链的手段，但是你会用么？依赖于代理的具体实现而书写代码，这样移植性会非常差的。</p>
+<h4 id="揭秘enableaspectjautoproxyexposeproxy-true">揭秘@EnableAspectJAutoProxy(exposeProxy = true)</h4>
+<p><code>Spring</code>内建的类且都是代理类的处理类：<code>CglibAopProxy</code>和<code>JdkDynamicAopProxy</code>两者很类似，在处理这个逻辑上。所以此处只以<code>JdkDynamicAopProxy</code>作为代表进行说明即可。</p>
+<p>我们知道在执行代理对象的目标方法的时候，都会交给<code>InvocationHandler</code>处理，因此做事情的在<code>invoke()</code>方法里：</p>
+<pre><code><code>    final class JdkDynamicAopProxy implements AopProxy, InvocationHandler, Serializable {
+        ...
+        @Override
+        @Nullable
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            ...
+                if (this.advised.exposeProxy) {
+                    // Make invocation available if necessary.
+                    oldProxy = AopContext.setCurrentProxy(proxy);
+                    setProxyContext = true;
+                }
+            ...
+            finally {
+                if (setProxyContext) {
+                    // Restore old proxy.
+                    AopContext.setCurrentProxy(oldProxy);
+                }
+            }
+        }
+    }</code></code></pre>
+<p>最终决定是否会调用<code>set</code>方法是由<code>this.advised.exposeProxy</code>这个值决定的，因此下面我们只需要关心<code>ProxyConfig.exposeProxy</code>这个属性值什么时候被赋值为<code>true</code>的就可以了。</p>
+<p><code>ProxyConfig.exposeProxy</code>这个属性的默认值是<code>false</code>。其实最终调用设置值的是同名方法<code>Advised.setExposeProxy()</code>方法，而且是通过反射调用的,再次强调 看清楚后置处理器，<code>@EnableAspectJAutoProxy(exposeProxy = true)</code>作用的范围在<code>AbstractAutoProxyCreator</code>创建器，异步注解和缓存注解等就不行了，怎么解决后面在分析。</p>
+<pre><code><code>    class AspectJAutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
+        AspectJAutoProxyRegistrar() {
+        }
+    
+        public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+            AopConfigUtils.registerAspectJAnnotationAutoProxyCreatorIfNecessary(registry);
+            AnnotationAttributes enableAspectJAutoProxy = AnnotationConfigUtils.attributesFor(importingClassMetadata, EnableAspectJAutoProxy.class);
+            if (enableAspectJAutoProxy != null) {
+                if (enableAspectJAutoProxy.getBoolean(&quot;proxyTargetClass&quot;)) {
+                    AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
+                }
+              //处理是否设置了该属性
+                if (enableAspectJAutoProxy.getBoolean(&quot;exposeProxy&quot;)) {
+                    AopConfigUtils.forceAutoProxyCreatorToExposeProxy(registry);
+                }
+            }
+    
+        }
+    }</code></code></pre>
+<p>看一下是如何设置属性值的，我们后面可以采用这样的方式来设置</p>
+<pre><code><code>    public static void forceAutoProxyCreatorToExposeProxy(BeanDefinitionRegistry registry) {
+            if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
+                BeanDefinition definition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
+                definition.getPropertyValues().add(&quot;exposeProxy&quot;, Boolean.TRUE);
+            }
+        }</code></code></pre>
+<p>什么时候使用的呢？<br />
+<img src="./images/Springboot源码分析之代理对象内嵌调用0.png" alt="file" /></p>
+<p><code>AopContext.setCurrentProxy(@Nullable Object proxy)</code>在<code>CglibAopProxy</code>和<code>JdkDynamicAopProxy</code>代理都有使用。</p>
+<h4 id="案例分析">案例分析</h4>
+<pre><code><code>    @Component
+    public class AsyncWithTransactional {
+      //入口方法
+        @Transactional
+        public void transactional() {
+          //不使用代理对象调用的话，后续方法不会被增强
+            AsyncWithTransactional asyncWithTransactional = AsyncWithTransactional.class.cast(AopContext.currentProxy());
+            asyncWithTransactional.async();
+            
+        }
+        @Async
+        public void async() {
+    
+        }
+    }</code></code></pre>
+<p>这样都完全ok的，但是如果换一下呢就会跑出异常。</p>
+<h4 id="子线程引起的问题">子线程引起的问题</h4>
+<pre><code><code>        @Transactional//@Transactional有此注解和没有毫无关系
+        @Async
+        public void transactional() {
+            AsyncWithTransactional asyncWithTransactional = AsyncWithTransactional.class.cast(AopContext.currentProxy());
+            asyncWithTransactional.async();
+        }
+    public void async() {
+    
+        }</code></code></pre>
+<p>根本原因就是关键节点的执行时机问题。在执行代理对象<code>transactional</code>方法的时候，先执行绑定动作<code>AopContext.setCurrentProxy(proxy);</code>然后目标方法执行（包括增强器的执行）<code>invocation.proceed()</code>。其实在执行绑定的还是在主线程里而并非是新的异步线程，所以在你在方法体内（已经属于异步线程了）执行<code>AopContext.currentProxy()</code>那可不就报错了嘛~</p>
+<p>所以入口方法用了类似<code>@Async</code>的效果注解都会导致代理对象绑定不对，继而导致调用错误。</p>
+<h4 id="如何解决类似子线程引起的问题呢">如何解决类似子线程引起的问题呢？</h4>
+<pre><code><code>    @Component
+    public class MyBeanFactoryPostProcessor implements BeanFactoryPostProcessor {
+        @Override
+        public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+            BeanDefinition beanDefinition = beanFactory.getBeanDefinition(TaskManagementConfigUtils.ASYNC_ANNOTATION_PROCESSOR_BEAN_NAME);
+            beanDefinition.getPropertyValues().add(&quot;exposeProxy&quot;, true);
+        }
+    }</code></code></pre>
+<p>这样解决了<code>@Async</code>的绑定问题，<code>@EnableCaching</code>也可以基于这样的思想来解决，以上就是我的简单例子，但是配合我的文字说明，相信大家可以举一反三，随意玩弄它们之间的调用关系。<br />
+其实如果Spring做出源码改变会更好的解决这个问题</p>
+<ul>
+<li><code>@Async</code>的代理也交给自动代理创建器来完成(Spring做出源码改变)</li>
+<li><code>@EnableAsync</code>增加<code>exposeProxy</code>属性，默认值给<code>false</code>即可(Spring做出源码改变)</li>
+</ul>
+<h4 id="总结">总结：</h4>
+<ul>
+<li><p>不要在异步线程里使用<code>AopContext.currentProxy()</code></p></li>
+<li><p><code>AopContext.currentProxy()</code>不能使用在非代理对象所在方法体内</p></li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

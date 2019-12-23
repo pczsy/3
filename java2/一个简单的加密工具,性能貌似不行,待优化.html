@@ -1,0 +1,260 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一个简单的加密工具,性能貌似不行,待优化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一个简单的加密工具,性能貌似不行,待优化</center></div><div class='banquan'>原文出处:本文由博客园博主kxvz提供。<br/>
+原文连接:https://www.cnblogs.com/kxvz/p/11698004.html</div><br>
+    <h2 id="一个简单的加密工具性能貌似不行待优化">一个简单的加密工具,性能貌似不行,待优化</h2>
+<pre><code><code>package com.kxvz.common.crypt;
+
+import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+import java.io.ByteArrayOutputStream;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.zip.Deflater;
+import java.util.zip.Inflater;
+
+public class Xe {
+    private static final String HEX_NORMAL = &quot;0123456789abcdef&quot;;
+    private static final String HEX_TMP = &quot;0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ&quot;;
+    private static final int hexLen = 100;
+    private static final List&lt;String&gt; hexs = new ArrayList&lt;&gt;(hexLen);
+    static {
+        gen();
+    }
+    /**
+     * 加密 bin-&gt;en-&gt;hex-&gt;zip
+     *
+     * @param bytes
+     * @return
+     */
+    public static byte[] en(byte[] bytes, byte[] pass) throws Exception {
+        long t1 = System.currentTimeMillis();
+        byte[] en = encrypt(bytes, pass);
+        long t2 = System.currentTimeMillis();
+        String hex = toHex(en);
+        long t3 = System.currentTimeMillis();
+        byte[] res = compress(hex.getBytes());
+        long t4 = System.currentTimeMillis();
+        System.out.println(&quot;En Time : encrypt: &quot; + (t2 - t1) + &quot; : toHex : &quot; + (t3 - t2) + &quot; : compress: &quot; + (t4 - t3));
+        return res;
+    }
+    /**
+     * 解密 zip-&gt;hex-&gt;de-&gt;bin
+     *
+     * @param bytes
+     * @return
+     */
+    public static byte[] de(byte[] bytes, byte[] pass) throws Exception {
+        byte[] unzip = uncompress(bytes);
+        byte[] hex = hexTo(new String(unzip));
+        return decrypt(hex, pass);
+    }
+
+    public static String enAndHex(byte[] bytes, byte[] pass) throws Exception {
+        byte[] res = en(bytes, pass);
+        return toHex(res);
+    }
+
+    public static byte[] deWithHex(String content, byte[] pass) throws Exception {
+        byte[] hex = hexTo(content);
+        return de(hex, pass);
+    }
+
+    private static String getHexSource(int index) {
+        return hexs.get(index);
+    }
+
+    private static int toInt(byte[] bytes) {
+        if (bytes == null || bytes.length != 2) {
+            throw new RuntimeException(&quot;Length bytes length error&quot;);
+        }
+        int c1 = (int) bytes[0];
+        int c2 = (int) bytes[1];
+        return Integer.valueOf(c1 + &quot;&quot; + (c2 &lt; 10 ? &quot;0&quot; + c2 : c2));
+    }
+
+    private static byte[] toBytes(int num) {
+        if (num &gt; 10000 || num &lt; 0) {
+            throw new RuntimeException(&quot;Number mast in 0~9999&quot;);
+        }
+
+        if (num &lt; 100) {
+            return new byte[]{0x00, (byte) num};
+        } else {
+            String tmp = String.valueOf(num);
+            int a1 = Integer.valueOf(tmp.substring(0, tmp.length() - 2));
+            int a2 = Integer.valueOf(tmp.substring(tmp.length() - 2));
+            return new byte[]{(byte) a1, (byte) a2};
+        }
+    }
+
+    private static String toHex(byte[] bytes) {
+        int index = new Random().nextInt(hexLen);
+        String hexTmp = getHexSource(index);
+        String result = &quot;&quot;;
+
+        byte[] lenBytes = toBytes(index);
+        String hex = String.valueOf(HEX_NORMAL.charAt((lenBytes[0] &amp; 0xF0) &gt;&gt; 4));
+        hex += String.valueOf(HEX_NORMAL.charAt(lenBytes[0] &amp; 0x0F));
+        result += hex;
+
+        hex = String.valueOf(HEX_NORMAL.charAt((lenBytes[1] &amp; 0xF0) &gt;&gt; 4));
+        hex += String.valueOf(HEX_NORMAL.charAt(lenBytes[1] &amp; 0x0F));
+        result += hex;
+
+        for (int i = 0; i &lt; bytes.length; i++) {
+            hex = String.valueOf(hexTmp.charAt((bytes[i] &amp; 0xF0) &gt;&gt; 4));
+            hex += String.valueOf(hexTmp.charAt(bytes[i] &amp; 0x0F));
+            result += hex;
+        }
+        return result;
+    }
+
+    private static byte[] hexTo(String hex) {
+        byte indexFirstHigh = (byte) ((HEX_NORMAL.indexOf(hex.charAt(0))) &lt;&lt; 4);
+        byte indexFirstLow = (byte) HEX_NORMAL.indexOf(hex.charAt(1));
+        byte indexFirst = (byte) (indexFirstHigh | indexFirstLow);
+
+        byte indexLastHigh = (byte) ((HEX_NORMAL.indexOf(hex.charAt(2))) &lt;&lt; 4);
+        byte indexLastLow = (byte) HEX_NORMAL.indexOf(hex.charAt(3));
+        byte indexLast = (byte) (indexLastHigh | indexLastLow);
+
+        byte[] lenBytes = new byte[]{indexFirst, indexLast};
+        int index = toInt(lenBytes);
+        String hexTmp = getHexSource(index);
+        String content = hex.substring(4);
+        int len = content.length() &gt;&gt; 1;
+        byte[] result = new byte[len];
+        byte high = 0;
+        byte low = 0;
+        for (int i = 0; i &lt; len; i++) {
+            high = (byte) ((hexTmp.indexOf(content.charAt(2 * i))) &lt;&lt; 4);
+            low = (byte) hexTmp.indexOf(content.charAt(2 * i + 1));
+            result[i] = (byte) (high | low);
+        }
+        return result;
+    }
+
+    private static byte[] encrypt(byte[] bytes, byte[] pass) throws Exception {
+        SecureRandom secureRandom = SecureRandom.getInstance(&quot;SHA1PRNG&quot;);
+        secureRandom.setSeed(pass);
+        KeyGenerator generator = KeyGenerator.getInstance(&quot;AES&quot;);
+        generator.init(secureRandom);
+        SecretKey secretKey = generator.generateKey();
+        Cipher cipher = Cipher.getInstance(&quot;AES&quot;);
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
+        return cipher.doFinal(bytes);
+    }
+
+    private static byte[] decrypt(byte[] bytes, byte[] pass) throws Exception {
+        SecureRandom secureRandom = SecureRandom.getInstance(&quot;SHA1PRNG&quot;);
+        secureRandom.setSeed(pass);
+        KeyGenerator generator = KeyGenerator.getInstance(&quot;AES&quot;);
+        generator.init(secureRandom);
+        SecretKey secretKey = generator.generateKey();
+        Cipher cipher = Cipher.getInstance(&quot;AES&quot;);
+        cipher.init(Cipher.DECRYPT_MODE, secretKey);
+        return cipher.doFinal(bytes);
+    }
+
+    private static byte[] compress(byte[] inputByte) throws Exception {
+        int len = 0;
+        Deflater defl = new Deflater();
+        defl.setInput(inputByte);
+        defl.finish();
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] outputByte = new byte[1024];
+        try {
+            while (!defl.finished()) {
+                len = defl.deflate(outputByte);
+                bos.write(outputByte, 0, len);
+            }
+            defl.end();
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            bos.close();
+        }
+        return bos.toByteArray();
+    }
+
+    private static byte[] uncompress(byte[] inputByte) throws Exception {
+        int len = 0;
+        Inflater infl = new Inflater();
+        infl.setInput(inputByte);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        byte[] outByte = new byte[1024];
+        try {
+            while (!infl.finished()) {
+                len = infl.inflate(outByte);
+                if (len == 0) {
+                    break;
+                }
+                bos.write(outByte, 0, len);
+            }
+            infl.end();
+        } catch (Exception e) {
+            throw e;
+        } finally {
+            bos.close();
+        }
+        return bos.toByteArray();
+    }
+
+    private static void gen() {
+        while (hexs.size() &lt; hexLen) {
+            String hex = genHexTmp();
+            if (!hexs.contains(hex)) {
+                hexs.add(hex);
+            }
+        }
+    }
+
+    private static String genHexTmp() {
+        Random rnd = new Random();
+        int len = HEX_TMP.length();
+        List&lt;Character&gt; tmp = new ArrayList&lt;&gt;(17);
+        String hex = &quot;&quot;;
+        while (tmp.size() &lt; 16) {
+            int index = rnd.nextInt(len);
+            char c = HEX_TMP.charAt(index);
+            if (!tmp.contains(c)) {
+                tmp.add(c);
+                hex += String.valueOf(c);
+            }
+        }
+        tmp.clear();
+        return hex;
+    }
+}</code></code></pre>
+<h5 id="log-footer-start">==LOG-Footer Start==================================</h5>
+<h4 id="作者公众号loyomer">作者公众号:Loyomer</h4>
+<p>简洁：Kxvz的生活记账本。技术，生活，随笔，文摘...</p>
+<p><img src="./images/一个简单的加密工具,性能貌似不行,待优化0.png" alt="洛悠猫 - Love You，Me!" /></p>
+<p>欢迎大家关注...</p>
+<h5 id="log-footer-end">==LOG-Footer End==================================</h5>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

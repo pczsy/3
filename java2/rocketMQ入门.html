@@ -1,0 +1,114 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修rocketMQ入门' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>rocketMQ入门</center></div><div class='banquan'>原文出处:本文由博客园博主Himalayas提供。<br/>
+原文连接:https://www.cnblogs.com/CUI-S/p/11604276.html</div><br>
+    <p>一：什么是MQ</p>
+<p>MQ 就是 消息中间件。</p>
+<p>&nbsp;</p>
+<p>二：为什么使用MQ</p>
+<p>场景：电商双十一 零点的秒杀。在那一瞬间，来自用户的请求将会激增，如果不做任何措施，那服务很可能会被压垮。但是我们又不能直接把这些请求丢弃，而为了这个很小的时间段去扩容机器又显得大题小做。于是我们自然而言的想到，能不能把这些请求先放到一个消息队列里面，然后系统从消息队列里面拿出来请求做逻辑的处理和响应。通过拉长时间维度来保证服务的稳定性。这就是MQ。</p>
+<p>使用MQ只要解决的就是 在生产者消费者模式中，生产者生产的数据可能会突然激增，消费者来不及消费的问题。</p>
+<p>&nbsp;</p>
+<p>三：rocketMQ</p>
+<p>rocketMQ是一个MQ的实现。我们在开发中一直在强调，不要重复造轮子。既然我们需要一个MQ，那就找个别人实现过的MQ来用就行了。rocketMQ就是其中的一种。当然，还有其他的MQ组件，比如的 ActiveMQ、RabbitMQ，Kafka。</p>
+<p>&nbsp;</p>
+<p>四：rocketMQ下载</p>
+<p><a href="http://rocketmq.apache.org/release_notes">http://rocketmq.apache.org/release_notes</a></p>
+<p>下载bin的包，比如&nbsp;rocketmq-all-4.3.2-bin-release.zip&nbsp;</p>
+<p>&nbsp;</p>
+<p>五：安装</p>
+<p>将下载的文件解压到对应目录。比如我解压到&nbsp;C:\rocketmq-all-4.3.2</p>
+<p>&nbsp;</p>
+<p>六：启动NAMESERVER</p>
+<p>去 C:\rocketmq-all-4.3.2\bin目录下找到 mqnamesrv.cmd，双击运营即可。</p>
+<p>&nbsp;</p>
+<p>七：启动<span lang="EN-US">BROKER</span></p>
+<p>start mqbroker.cmd -n 127.0.0.1:9876 autoCreateTopicEnable=true</p>
+<p>（&nbsp;假如弹出提示框提示&lsquo;错误: 找不到或无法加载主类 xxxxxx&rsquo;。打开runbroker.cmd，然后将&lsquo;%CLASSPATH%&rsquo;加上英文双引号。保存并重新执行start语句。）</p>
+<p>&nbsp;</p>
+<p>至此为止，rocketMQ就安装启动完成了。下面我们写的demo来使用rocket做一个helloWord</p>
+<p>&nbsp;</p>
+<p>八：写一个生产者，发消息</p>
+<src class="cnblogs_Highlighter">
+<pre><code>public class Producer {
+    public static void main(String[] args) throws MQClientException {
+        DefaultMQProducer producer = new DefaultMQProducer("rmq-group");
+        producer.setNamesrvAddr("127.0.0.1:9876");
+        producer.setInstanceName("producer");
+        producer.start();
+        try {
+            for (int i = 0; i &lt; 10; i++) {
+                Thread.sleep(2000);  //每2秒发送一次消息
+                Message msg = new Message("TopicA-test",// topic
+                        "TagA",// tag
+                        (new Date() + "Hello RocketMQ ,QuickStart" + i)
+                                .getBytes()// body
+                );
+                SendResult sendResult = producer.send(msg);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        
+        producer.shutdown();
+    }
+}
+</code></pre>
+
+<p>　　</p>
+<p>&nbsp;</p>
+<p>九：写一个消费者，用来监听消息</p>
+<src class="cnblogs_Highlighter">
+<pre><code>public class Consumer {
+    public static void main(String[] args) throws MQClientException {
+        DefaultMQPushConsumer consumer = new DefaultMQPushConsumer(
+                "rmq-group");
+
+        consumer.setNamesrvAddr("127.0.0.1:9876");//设置rocketMQ服务的部署地址
+        consumer.setInstanceName("consumer");
+        /**
+         * 被订阅消息的topic 和 subExpression。
+         * 注意：一定要与消息发布者的topic 和 subExpression 一致
+         */
+        consumer.subscribe("TopicA-test", "TagA");
+
+        consumer.registerMessageListener(new MessageListenerConcurrently() {//监听器实现
+            @Override
+            public ConsumeConcurrentlyStatus consumeMessage(
+                    List&lt;MessageExt&gt; msgs, ConsumeConcurrentlyContext context) {
+                for (MessageExt msg : msgs) {
+                    System.out.println(new String(msg.getBody()));//每次拿到消息我就打印出来
+                }
+                return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+            }
+        });
+        consumer.start();
+        System.out.println("Consumer Started.");
+    }
+}
+</code></pre>
+
+<p>　</p>
+<p>一个简单的demo就OK了</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,470 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修手写MQ框架（二）-服务端实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>手写MQ框架（二）-服务端实现</center></div><div class='banquan'>原文出处:本文由博客园博主水木桶提供。<br/>
+原文连接:https://www.cnblogs.com/shuimutong/p/11923296.html</div><br>
+    <h1>一、起航</h1>
+<p>书接上文-&gt;<a class="entry" href="https://www.cnblogs.com/shuimutong/p/11707187.html" target="_blank">手写MQ框架（一）-准备启程</a></p>
+<p>本着从无到有，从有到优的原则，所以计划先通过web实现功能，然后再优化改写为socket的形式。</p>
+<h2>1、关于技术选型</h2>
+<p>web框架使用了之前写的gmvc框架（<a class="entry" href="https://www.cnblogs.com/shuimutong/p/11456831.html" target="_blank">手写MVC框架（一）-再出发</a>），消息存储采用存在数据库的方式，使用的框架也是前段时间写的gdao（<a class="entry" href="https://www.cnblogs.com/shuimutong/p/10962182.html" target="_blank">手写DAO框架（一）-从&ldquo;1&rdquo;开始</a>&nbsp;）。</p>
+<h2>2、项目搭建</h2>
+<p>项目本来是单项目的形式，但是考虑到将服务端、客户端分开不是很友好，所以采用了maven父子模块的形式。</p>
+<p>其中，父pom配置如下：</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('2360f0e0-e0a2-41be-b09f-0e2f0ee862c0')"><img id="code_img_closed_2360f0e0-e0a2-41be-b09f-0e2f0ee862c0" class="code_img_closed" src="./images/手写MQ框架（二）-服务端实现0.png" alt="" /><img id="code_img_opened_2360f0e0-e0a2-41be-b09f-0e2f0ee862c0" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('2360f0e0-e0a2-41be-b09f-0e2f0ee862c0',event)" src="./images/手写MQ框架（二）-服务端实现1.png" alt="" />
+<src id="cnblogs_code_open_2360f0e0-e0a2-41be-b09f-0e2f0ee862c0" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="UTF-8"</span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project </span><span style="color: #ff0000;">xmlns</span><span style="color: #0000ff;">="http://maven.apache.org/POM/4.0.0"</span><span style="color: #ff0000;">
+    xmlns:xsi</span><span style="color: #0000ff;">="http://www.w3.org/2001/XMLSchema-instance"</span><span style="color: #ff0000;">
+    xsi:schemaLocation</span><span style="color: #0000ff;">="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">modelVersion</span><span style="color: #0000ff;">&gt;</span>4.0.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">modelVersion</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.shuimutong<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>gmq<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${global.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">packaging</span><span style="color: #0000ff;">&gt;</span>pom<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">packaging</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">url</span><span style="color: #0000ff;">&gt;</span>http://maven.apache.org<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">url</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">modules</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">module</span><span style="color: #0000ff;">&gt;</span>gmq-server<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">module</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">module</span><span style="color: #0000ff;">&gt;</span>gmq-client<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">module</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">modules</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>UTF-8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">global.version</span><span style="color: #0000ff;">&gt;</span>0.0.1-SNAPSHOT<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">global.version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">fastjson.version</span><span style="color: #0000ff;">&gt;</span>1.2.60<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">fastjson.version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">gdao.version</span><span style="color: #0000ff;">&gt;</span>2.0.0-SNAPSHOT<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">gdao.version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">gmvc.version</span><span style="color: #0000ff;">&gt;</span>1.0.1-SNAPSHOT<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">gmvc.version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">gutil.version</span><span style="color: #0000ff;">&gt;</span>0.0.2-SNAPSHOT<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">gutil.version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependencyManagement</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>me.lovegao<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>gdao<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${gdao.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.shuimutong<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>gmvc<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${gmvc.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.shuimutong<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>gutil<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${gutil.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.alibaba<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>fastjson<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${fastjson.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.apache.commons<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>commons-lang3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>3.4<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>log4j<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>log4j<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.2.16<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.slf4j<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>slf4j-api<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.6.1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.slf4j<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>slf4j-log4j12<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.6.2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependencyManagement</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.apache.maven.plugins<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>maven-compiler-plugin<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>3.7.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">target</span><span style="color: #0000ff;">&gt;</span>1.8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">target</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">source</span><span style="color: #0000ff;">&gt;</span>1.8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">source</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p>这次要说的mq服务端pom配置如下：</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('ca0d57e2-cc6e-45de-aa3d-9d0e4f241944')"><img id="code_img_closed_ca0d57e2-cc6e-45de-aa3d-9d0e4f241944" class="code_img_closed" src="./images/手写MQ框架（二）-服务端实现0.png" alt="" /><img id="code_img_opened_ca0d57e2-cc6e-45de-aa3d-9d0e4f241944" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ca0d57e2-cc6e-45de-aa3d-9d0e4f241944',event)" src="./images/手写MQ框架（二）-服务端实现1.png" alt="" />
+<src id="cnblogs_code_open_ca0d57e2-cc6e-45de-aa3d-9d0e4f241944" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0"</span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project </span><span style="color: #ff0000;">xmlns</span><span style="color: #0000ff;">="http://maven.apache.org/POM/4.0.0"</span><span style="color: #ff0000;">
+    xmlns:xsi</span><span style="color: #0000ff;">="http://www.w3.org/2001/XMLSchema-instance"</span><span style="color: #ff0000;">
+    xsi:schemaLocation</span><span style="color: #0000ff;">="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">modelVersion</span><span style="color: #0000ff;">&gt;</span>4.0.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">modelVersion</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">parent</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.shuimutong<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>gmq<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${global.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">parent</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.shuimutong<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>gmq-server<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">packaging</span><span style="color: #0000ff;">&gt;</span>war<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">packaging</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${global.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">name</span><span style="color: #0000ff;">&gt;</span>gmq-server<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">name</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">url</span><span style="color: #0000ff;">&gt;</span>http://maven.apache.org<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">url</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>UTF-8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>junit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>junit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>4.11<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>javax.servlet<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>javax.servlet-api<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>3.1.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>me.lovegao<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>gdao<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.shuimutong<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>gmvc<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">exclusions</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">exclusion</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>javax.servlet<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>javax.servlet-api<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">exclusion</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">exclusions</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.alibaba<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>fastjson<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.apache.commons<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>commons-lang3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>log4j<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>log4j<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.slf4j<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>slf4j-api<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.slf4j<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>slf4j-log4j12<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">finalName</span><span style="color: #0000ff;">&gt;</span>com.shuimutong.gmq_server<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">finalName</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.apache.maven.plugins<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>maven-compiler-plugin<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>3.7.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">target</span><span style="color: #0000ff;">&gt;</span>1.8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">target</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">source</span><span style="color: #0000ff;">&gt;</span>1.8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">source</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<span class="cnblogs_code_collapse">View Code</span>
+<p>&nbsp;</p>
+<p>&nbsp;项目依赖的gdao（https://gitee.com/simpleha/gdao.git）、gmvc（https://gitee.com/simpleha/gmvc.git）、gutil（https://gitee.com/simpleha/gutil.git）需要先clone到本地并编译到maven仓库。</p>
+<h1>二、接口梳理</h1>
+<h2>1、SyncController</h2>
+<p>在发布消息或者订阅消息前，我们需要先新增topic。我这里把新增topic和后面的发布订阅消息分开了，主要是考虑到两个类被访问频率有差别，分开后有利于以后的针对优化。</p>
+<p>具体实现如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.gmq.server.controller;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.commons.lang3.StringUtils;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.Logger;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.LoggerFactory;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.alibaba.fastjson.JSONObject;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.bean.enums.RequestParamEnum;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.bean.enums.ResponseCodeEnum;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.bean.vo.ResponseDataVo;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.bean.vo.UriDescVo;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.exception.ServiceException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.service.SyncService;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.service.TopicService;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmvc.annotation.XAutowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmvc.annotation.XController;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmvc.annotation.XRequestMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmvc.util.RequestResolveUtil;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 非消息信息同步controller
+ * @ClassName:  MessageController   
+ * @Description:(这里用一句话描述这个类的作用)   
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;">: 水木桶
+ * @date:   2019年10月20日 下午9:45:47     
+ * @Copyright: 2019 [水木桶]  All rights reserved.
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@XController
+@XRequestMapping(</span>"/sync"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SyncController {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">static</span> Logger log = LoggerFactory.getLogger(SyncController.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+    @XAutowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> TopicService topicService;
+    @XAutowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> SyncService syncService;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 获取uri说明
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> request
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> reponse
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @XRequestMapping(</span>"/getPath"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> getPath(HttpServletRequest request, HttpServletResponse reponse) {
+        List</span>&lt;UriDescVo&gt; uriList =<span style="color: #000000;"> syncService.listUriDesc();
+        ResponseDataVo responseData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResponseDataVo(ResponseCodeEnum.OK, uriList);
+        RequestResolveUtil.returnJson(request, reponse, JSONObject.toJSONString(responseData));
+    }
+    
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 新增topic
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> request
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> reponse
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @XRequestMapping(</span>"/addTopic"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> addTopic(HttpServletRequest request, HttpServletResponse reponse) {
+        ResponseDataVo responseData </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        String topic </span>=<span style="color: #000000;"> request.getParameter(RequestParamEnum.TOPIC.getParamName());
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(StringUtils.isBlank(topic)) {
+            responseData </span>= <span style="color: #0000ff;">new</span> ResponseDataVo(ResponseCodeEnum.PARAM_ERROR, "主题为空"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">boolean</span> addState =<span style="color: #000000;"> topicService.addTopic(topic);
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(addState) {
+                    responseData </span>= <span style="color: #0000ff;">new</span> ResponseDataVo(ResponseCodeEnum.OK, "添加成功"<span style="color: #000000;">);
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    responseData </span>= <span style="color: #0000ff;">new</span> ResponseDataVo(ResponseCodeEnum.PARAM_ERROR, "主题已存在"<span style="color: #000000;">);
+                }
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (ServiceException e) {
+                log.error(</span>"addTopicException," +<span style="color: #000000;"> topic, e);
+                responseData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResponseDataVo(ResponseCodeEnum.SERVER_ERROR);
+            }
+        }
+        RequestResolveUtil.returnJson(request, reponse, JSONObject.toJSONString(responseData));
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>其中getPath()暂时没有用到，以后用到再讨论吧。</p>
+<h2>2、MessageController</h2>
+<p>消息的topic创建之后，就是消息的发布和订阅了。</p>
+<p>具体实现如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.gmq.server.controller;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.commons.lang3.StringUtils;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.Logger;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.LoggerFactory;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.alibaba.fastjson.JSONObject;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.bean.SystemConstant;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.bean.dos.TopicDo;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.bean.enums.RequestParamEnum;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.bean.enums.ResponseCodeEnum;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.bean.vo.ResponseDataVo;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.exception.ServiceException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.service.MessageService;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.server.service.TopicService;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmvc.annotation.XAutowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmvc.annotation.XController;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmvc.annotation.XRequestMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmvc.util.RequestResolveUtil;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.guti.bean.TwoTuple;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 发消息、收消息controller
+ * @ClassName:  MessageController   
+ * @Description:(这里用一句话描述这个类的作用)   
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;">: 水木桶
+ * @date:   2019年10月20日 下午9:45:47     
+ * @Copyright: 2019 [水木桶]  All rights reserved.
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@XController
+@XRequestMapping(SystemConstant.STR_URL_MESSAGE)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MessageController {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">static</span> Logger log = LoggerFactory.getLogger(MessageController.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+    @XAutowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> MessageService messageService;
+    @XAutowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> TopicService topicService;
+    
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 获取消息
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> request
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> reponse
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @XRequestMapping(SystemConstant.STR_URL_GET_MESSAGE)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> getMessage(HttpServletRequest request, HttpServletResponse reponse) {
+        ResponseDataVo responseData </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        String topic </span>=<span style="color: #000000;"> request.getParameter(RequestParamEnum.TOPIC.getParamName());
+        String offsetStr </span>=<span style="color: #000000;"> request.getParameter(RequestParamEnum.OFFSET.getParamName());
+        String sizeStr </span>=<span style="color: #000000;"> request.getParameter(RequestParamEnum.SIZE.getParamName());
+        
+        </span><span style="color: #0000ff;">if</span>(StringUtils.isBlank(topic) || !StringUtils.isNumeric(offsetStr) || !<span style="color: #000000;">StringUtils.isNumeric(sizeStr)) {
+            responseData </span>= <span style="color: #0000ff;">new</span> ResponseDataVo(ResponseCodeEnum.PARAM_ERROR, "主题为空或者数字非法"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">int</span> offset =<span style="color: #000000;"> Integer.parseInt(offsetStr);
+            </span><span style="color: #0000ff;">int</span> size =<span style="color: #000000;"> Integer.parseInt(sizeStr);
+            </span><span style="color: #0000ff;">if</span>(offset &lt; 0 || size &lt; 1<span style="color: #000000;">) {
+                responseData </span>= <span style="color: #0000ff;">new</span> ResponseDataVo(ResponseCodeEnum.PARAM_ERROR, "数字异常"<span style="color: #000000;">);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    TopicDo topicDo </span>=<span style="color: #000000;"> topicService.findByTopic(topic);
+                    </span><span style="color: #0000ff;">if</span>(topicDo == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                        responseData </span>= <span style="color: #0000ff;">new</span> ResponseDataVo(ResponseCodeEnum.PARAM_ERROR, "主题不存在"<span style="color: #000000;">);
+                    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                        List</span>&lt;TwoTuple&lt;Long, String&gt;&gt; list =<span style="color: #000000;"> messageService.listMessage(topic, offset, size);
+                        responseData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResponseDataVo(ResponseCodeEnum.OK, list);
+                    }
+                } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (ServiceException e) {
+                    log.error(</span>"getMessageException"<span style="color: #000000;">, e);
+                    responseData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResponseDataVo(ResponseCodeEnum.SERVER_ERROR);
+                }
+            }
+        }
+        RequestResolveUtil.returnJson(request, reponse, JSONObject.toJSONString(responseData));
+    }
+    
+    
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 生产方发送消息到服务端
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> request
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> reponse
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @XRequestMapping(SystemConstant.STR_URL_SEND_MESSAGE)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> sendMessage(HttpServletRequest request, HttpServletResponse reponse) {
+        ResponseDataVo responseData </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        String topic </span>=<span style="color: #000000;"> request.getParameter(RequestParamEnum.TOPIC.getParamName());
+        String message </span>=<span style="color: #000000;"> request.getParameter(RequestParamEnum.MESSAGE.getParamName());
+        </span><span style="color: #0000ff;">if</span>(StringUtils.isBlank(topic) ||<span style="color: #000000;"> StringUtils.isBlank(message)) {
+            responseData </span>= <span style="color: #0000ff;">new</span> ResponseDataVo(ResponseCodeEnum.PARAM_ERROR, "主题或者消息为空"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                TopicDo topicDo </span>=<span style="color: #000000;"> topicService.findByTopic(topic);
+                </span><span style="color: #0000ff;">if</span>(topicDo == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                    responseData </span>= <span style="color: #0000ff;">new</span> ResponseDataVo(ResponseCodeEnum.PARAM_ERROR, "主题不存在"<span style="color: #000000;">);
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    messageService.saveMessage(topic, message);
+                    responseData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResponseDataVo(ResponseCodeEnum.OK);
+                }
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (ServiceException e) {
+                log.error(</span>"sendMessageException"<span style="color: #000000;">, e);
+                responseData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ResponseDataVo(ResponseCodeEnum.SERVER_ERROR);
+            }
+        }
+        RequestResolveUtil.returnJson(request, reponse, JSONObject.toJSONString(responseData));
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<h2>3、CacheController</h2>
+<p>设计的mq的消费形式是拉的形式。采用拉的形式，就需要客户端自己去计数，消费到哪了。</p>
+<p>所以这里增加了这个缓存接口，提供kv存储的功能。数据存储在数据库里。</p>
+<p>代码请移步到下文的gitee连接查看。</p>
+<p>&nbsp;</p>
+<p>有了上面这几个接口，就可以实现简单的发布消息、订阅消息的功能了，当然是手动的方式获取。</p>
+<h1>三、相关表</h1>
+<p>既然为了分享，资料就得提供全。所以这里就列一下关联的数据库表结构。</p>
+<h2>1、主题表</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">CREATE</span> <span style="color: #0000ff;">TABLE</span><span style="color: #000000;"> `gmq_topic` (
+  `id` </span><span style="color: #0000ff;">bigint</span>(<span style="color: #800000; font-weight: bold;">20</span>) unsigned <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> AUTO_INCREMENT COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">主键</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  `topic` </span><span style="color: #0000ff;">varchar</span>(<span style="color: #800000; font-weight: bold;">255</span>) <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> <span style="color: #0000ff;">DEFAULT</span> <span style="color: #ff0000;">''</span> COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">主题</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  `create_time` </span><span style="color: #0000ff;">timestamp</span> <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> <span style="color: #0000ff;">DEFAULT</span> <span style="color: #ff00ff;">current_timestamp</span>() <span style="color: #0000ff;">ON</span> <span style="color: #0000ff;">UPDATE</span> <span style="color: #ff00ff;">current_timestamp</span>() COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">创建时间</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  </span><span style="color: #0000ff;">PRIMARY</span> <span style="color: #0000ff;">KEY</span><span style="color: #000000;"> (`id`),
+  </span><span style="color: #0000ff;">UNIQUE</span> <span style="color: #0000ff;">KEY</span><span style="color: #000000;"> `uniq_idx_topic` (`topic`) USING BTREE
+) ENGINE</span><span style="color: #808080;">=</span>InnoDB AUTO_INCREMENT<span style="color: #808080;">=</span><span style="color: #800000; font-weight: bold;">1</span> <span style="color: #0000ff;">DEFAULT</span> CHARSET<span style="color: #808080;">=</span>utf8 COMMENT<span style="color: #808080;">=</span><span style="color: #ff0000;">'</span><span style="color: #ff0000;">gmq-主题表</span><span style="color: #ff0000;">'</span>;</code></pre>
+
+<p>&nbsp;</p>
+<h2>2、消息表</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">CREATE</span> <span style="color: #0000ff;">TABLE</span><span style="color: #000000;"> `gmq_message` (
+  `id` </span><span style="color: #0000ff;">bigint</span>(<span style="color: #800000; font-weight: bold;">20</span>) unsigned <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> AUTO_INCREMENT COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">主键</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  `topic` </span><span style="color: #0000ff;">varchar</span>(<span style="color: #800000; font-weight: bold;">255</span>) <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> <span style="color: #0000ff;">DEFAULT</span> <span style="color: #ff0000;">''</span> COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">主题</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  `message_body` </span><span style="color: #0000ff;">text</span> <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">消息内容</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  `create_time` </span><span style="color: #0000ff;">timestamp</span> <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> <span style="color: #0000ff;">DEFAULT</span> <span style="color: #ff00ff;">current_timestamp</span>() <span style="color: #0000ff;">ON</span> <span style="color: #0000ff;">UPDATE</span> <span style="color: #ff00ff;">current_timestamp</span>() COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">创建时间</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  </span><span style="color: #0000ff;">PRIMARY</span> <span style="color: #0000ff;">KEY</span><span style="color: #000000;"> (`id`),
+  </span><span style="color: #0000ff;">KEY</span><span style="color: #000000;"> `idx_id_topic` (`id`,`topic`) USING BTREE
+) ENGINE</span><span style="color: #808080;">=</span>InnoDB AUTO_INCREMENT<span style="color: #808080;">=</span><span style="color: #800000; font-weight: bold;">1</span> <span style="color: #0000ff;">DEFAULT</span> CHARSET<span style="color: #808080;">=</span>utf8 COMMENT<span style="color: #808080;">=</span><span style="color: #ff0000;">'</span><span style="color: #ff0000;">存储的消息</span><span style="color: #ff0000;">'</span>;</code></pre>
+
+<p>&nbsp;</p>
+<h2>3、kv表</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">CREATE</span> <span style="color: #0000ff;">TABLE</span><span style="color: #000000;"> `gmq_message` (
+  `id` </span><span style="color: #0000ff;">bigint</span>(<span style="color: #800000; font-weight: bold;">20</span>) unsigned <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> AUTO_INCREMENT COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">主键</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  `topic` </span><span style="color: #0000ff;">varchar</span>(<span style="color: #800000; font-weight: bold;">255</span>) <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> <span style="color: #0000ff;">DEFAULT</span> <span style="color: #ff0000;">''</span> COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">主题</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  `message_body` </span><span style="color: #0000ff;">text</span> <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">消息内容</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  `create_time` </span><span style="color: #0000ff;">timestamp</span> <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span> <span style="color: #0000ff;">DEFAULT</span> <span style="color: #ff00ff;">current_timestamp</span>() <span style="color: #0000ff;">ON</span> <span style="color: #0000ff;">UPDATE</span> <span style="color: #ff00ff;">current_timestamp</span>() COMMENT <span style="color: #ff0000;">'</span><span style="color: #ff0000;">创建时间</span><span style="color: #ff0000;">'</span><span style="color: #000000;">,
+  </span><span style="color: #0000ff;">PRIMARY</span> <span style="color: #0000ff;">KEY</span><span style="color: #000000;"> (`id`),
+  </span><span style="color: #0000ff;">KEY</span><span style="color: #000000;"> `idx_id_topic` (`id`,`topic`) USING BTREE
+) ENGINE</span><span style="color: #808080;">=</span>InnoDB AUTO_INCREMENT<span style="color: #808080;">=</span><span style="color: #800000; font-weight: bold;">1</span> <span style="color: #0000ff;">DEFAULT</span> CHARSET<span style="color: #808080;">=</span>utf8 COMMENT<span style="color: #808080;">=</span><span style="color: #ff0000;">'</span><span style="color: #ff0000;">存储的消息</span><span style="color: #ff0000;">'</span>;</code></pre>
+
+<p>&nbsp;</p>
+<h1>四、总结</h1>
+<p>主要功能就是上面些。回头看来也不算很多，但是具体实现过程中真是曲折重重，这其中一部分是框架的原因。</p>
+<p>所以上篇博客到这篇博客中间，我不仅写完了这个项目，其实还顺便修复了框架使用中遇到的一些问题。比如bigint类型的数据查出来真的是BigDecimal，而不是long。</p>
+<p>gmq项目主要包括两块，上面介绍的是服务端，接下来会介绍客户端。</p>
+<p>&nbsp;</p>
+<p>最后，附上代码地址：<a href="https://gitee.com/simpleha/gmq.git" target="_blank">https://gitee.com/simpleha/gmq.git</a></p>
+<p>&nbsp;</p>
+<p>下一篇，客户端的实现-&gt;<a class="entry" href="https://www.cnblogs.com/shuimutong/p/11923420.html" target="_blank">手写MQ框架（三）-客户端实现&nbsp;</a></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

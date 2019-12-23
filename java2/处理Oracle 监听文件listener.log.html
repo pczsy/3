@@ -1,0 +1,77 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修处理Oracle 监听文件listener.log' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>处理Oracle 监听文件listener.log</center></div><div class='banquan'>原文出处:本文由博客园博主pillarzhang提供。<br/>
+原文连接:https://www.cnblogs.com/zhang-dongliang/p/11977227.html</div><br>
+    <p>   如果连接时候变得较慢 查看Oracle日志记录，可能是因为此文件太大，超过2G，<br />
+需要定期清理，（如果多用户，记得用root，可能没权限）</p>
+<h3 id="查看listener.log">查看listener.log？</h3>
+<p>find / -name listener.log<br />
+<img src="./images/处理Oracle 监听文件listener.log0.png" /><br />
+<img src="./images/处理Oracle 监听文件listener.log1.png" /></p>
+<p>经查看，竟然高达2G得日志数据，由于一些老旧的OS不支持2GB以上的文件，故当listener.log文件<br />
+超过2GB时，会出现无法处理新的连接，新的操作系统虽然不会出现这个问题，但我们依然需要对其<br />
+进行定期处理清理。</p>
+<h3 id="listener-log日志文件处理">Listener log日志文件处理</h3>
+<pre><code><code>[oracle@localhost home]$ lsnrctl
+LSNRCTL&gt; set log_status off
+Connecting to (DESCRIPTION=(ADDRESS=(PROTOCOL=IPC)(KEY=EXTPROC1521)))
+LISTENER parameter &quot;log_status&quot; set to OFF
+The command completed successfully
+LSNRCTL&gt; show log_status
+Connecting to (DESCRIPTION=(ADDRESS=(PROTOCOL=IPC)(KEY=EXTPROC1521)))
+LISTENER parameter &quot;log_status&quot; set to OFF
+The command completed successfully
+LSNRCTL&gt; exit
+[oracle@localhost home]$ find -name listener.log
+home/oracle/app/oracle/diag/tnslsnr/localhost/listener/trace/listener.log
+[oracle@localhost ~]$ cd /home/oracle/app/oracle/diag/tnslsnr/localhost/listener/trace/
+[oracle@localhost trace]$ mv listener.log listener.log.20191127
+[oracle@localhost trace]$ ls
+listener.log.20191127  ora_2617_140154513196800.trc
+[oracle@localhost trace]$ lsnrctl
+LSNRCTL&gt; set log_status on
+Connecting to (DESCRIPTION=(ADDRESS=(PROTOCOL=IPC)(KEY=EXTPROC1521)))
+LISTENER parameter &quot;log_status&quot; set to ON
+The command completed successfully
+LSNRCTL&gt; show log_status 
+Connecting to (DESCRIPTION=(ADDRESS=(PROTOCOL=IPC)(KEY=EXTPROC1521)))
+LISTENER parameter &quot;log_status&quot; set to ON
+The command completed successfully
+LSNRCTL&gt; reload
+Connecting to (DESCRIPTION=(ADDRESS=(PROTOCOL=IPC)(KEY=EXTPROC1521)))
+The command completed successfully
+LSNRCTL&gt; exit
+[oracle@localhost trace]$
+</code></code></pre>
+<p><strong>[oracle@localhost home]$ lsnrctl<br />
+LSNRCTL&gt; set log_status off<br />
+LSNRCTL&gt; show log_status<br />
+LSNRCTL&gt; exit<br />
+[oracle@localhost home]$ find -name listener.log<br />
+[oracle@localhost trace]$ mv listener.log listener.log.20191127<br />
+LSNRCTL&gt; set log_status on<br />
+LSNRCTL&gt; reload</strong></p>
+<p>我们通过重命名日志文件之后，会自动生成一个新的listener.log文件。当然也可以进行清空处理，可以先<br />
+copy一下备份，然后进行清空处理。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

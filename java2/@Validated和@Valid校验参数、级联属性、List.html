@@ -1,0 +1,179 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修@Validated和@Valid校验参数、级联属性、List' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>@Validated和@Valid校验参数、级联属性、List</center></div><div class='banquan'>原文出处:本文由博客园博主陈晨辰提供。<br/>
+原文连接:https://www.cnblogs.com/chen-chen-chen/p/11709536.html</div><br>
+    <h1 id="validated和valid的区别">@Validated和@Valid的区别</h1>
+<p>在Controller中校验方法参数时，使用@Valid和@Validated并无特殊差异（若不需要分组校验的话）:<br />
+@Valid：标准JSR-303规范的标记型注解，用来标记验证属性和方法返回值，进行级联和递归校验<br />
+@Validated：Spring的注解，是标准JSR-303的一个变种（补充），提供了一个分组功能，可以在入参验证时，根据不同的分组采用不同的验证机制</p>
+<p>方法级别：<br />
+@Validated注解可以用于类级别，用于支持Spring进行方法级别的参数校验。@Valid可以用在属性级别约束，用来表示级联校验。<br />
+@Validated只能用在类、方法和参数上，而@Valid可用于方法、字段、构造器和参数上</p>
+<h1 id="校验参数级联属性">校验参数、级联属性</h1>
+<p>1、校验参数<br />
+当入参为实体对象时，需要在方法上加@Valid或@Validated或者在参数前加@Valid或@Validated，或者在类上加@Validated</p>
+<p>@Valid<br />
+@GetMapping(&quot;/exam-info&quot;)<br />
+public Boolean getInfo(User user){......}</p>
+<p>@GetMapping(&quot;/exam-info&quot;)<br />
+public Boolean getInfo(@Valid User user){......}</p>
+<p>@Validated<br />
+@GetMapping(&quot;/exam-info&quot;)<br />
+public Boolean getInfo(User user){......}</p>
+<p>@GetMapping(&quot;/exam-info&quot;)<br />
+public Boolean getInfo(@Validated User user){......}</p>
+<p>public Class User{<br />
+@NotNull（&quot;id不能为空&quot;）<br />
+private Integer id;<br />
+}</p>
+<p>2、嵌套验证<br />
+     @valid作用于属性上有嵌套验证作用，@validated不能作用于属性上,如下代码在User类的属性car上添加@valid注解，当传参id为空时会报错。</p>
+<p>@GetMapping(&quot;/exam-info&quot;)<br />
+public Boolean getInfo(@Valid User user){.....}</p>
+<p>public class User{<br />
+@Valid<br />
+@NotNull(&quot;car不能为空&quot;)<br />
+private Car car;<br />
+}<br />
+public class Car{<br />
+@NotNull(&quot;id不能为空&quot;)<br />
+private Integer id;<br />
+}</p>
+<h1 id="校验list">校验List</h1>
+<p>@Valid只能校验JavaBean，而List<E>不是JavaBean所以校验会失败，介绍三种解决办法</p>
+<h2 id="方法1对list进行wrapper">方法1：对List进行Wrapper</h2>
+<p>既然List不是JavaBean，那我们就把它封装成JavaBean，我们定义一个ListWrapper类如下：</p>
+<p>import lombok.Getter;<br />
+import lombok.Setter;<br />
+import javax.validation.Valid;<br />
+import java.util.ArrayList;<br />
+import java.util.List;</p>
+<p>@Setter<br />
+@Getter<br />
+public class ListWrapper<E> {<br />
+@Valid<br />
+private List<E> list;</p>
+<pre><code><code>public ListWrapper() {
+    list = new ArrayList&lt;&gt;();
+}
+
+public  ListWrapper(List&lt;E&gt; list) {
+    this.list = list;
+}</code></code></pre>
+<p>}<br />
+同时修改一下controller对应的方法：</p>
+<pre><code><code>// 使用包装类对list进行验证
+@PostMapping(&quot;/insert/all&quot;)
+public ServerResponse&lt;String&gt; insertList(@Valid @RequestBody ListWrapper&lt;UserEntity&gt; listWrapper, BindingResult bindingResult) {
+    if(bindingResult.hasErrors()) {
+        log.error(bindingResult.getFieldError().toString());
+        return ServerResponse.createByErrorMessage(bindingResult.getFieldError().getDefaultMessage());
+    }
+
+    userService.insertList(listWrapper.getList());
+    return ServerResponse.createBySuccess();
+}</code></code></pre>
+<p>这样就可以对list进行校验了</p>
+<p>注意：</p>
+<p>由于对list进行了包装，如果我们传参的时候</p>
+<p>[{},{}..]要改为{“list”: [{},{}..]}</p>
+<h2 id="方法2使用validatedvalid">方法2：使用@Validated+@Valid</h2>
+<p>在controller类上面增加@Validated注解，并且删除方法参数中的BindingResult bindingResult（因为这个参数已经没有用了，异常统一有controller返回了）<br />
+<img src="./images/@Validated和@Valid校验参数、级联属性、List0.png" alt="file" /><br />
+<img src="./images/@Validated和@Valid校验参数、级联属性、List1.png" alt="file" /></p>
+<p>然后我们运行一下测试一下<br />
+<img src="./images/@Validated和@Valid校验参数、级联属性、List2.png" alt="file" /></p>
+<p>可以看到可以对参数进行校验了，但还还有一个问题，那就是这个不是我们想要的返回格式，它controller自己返回的格式，所以我们需要做一个统一异常处理，代码如下：</p>
+<p>import com.wyq.firstdemo.common.ServerResponse;<br />
+import lombok.extern.slf4j.Slf4j;<br />
+import org.springframework.web.bind.annotation.ExceptionHandler;<br />
+import org.springframework.web.bind.annotation.ResponseBody;<br />
+import org.springframework.web.bind.annotation.RestControllerAdvice;</p>
+<p>import javax.validation.ConstraintViolation;<br />
+import javax.validation.ConstraintViolationException;<br />
+import java.util.Set;</p>
+<p>@Slf4j<br />
+@RestControllerAdvice<br />
+public class ControllerExceptionHandler {</p>
+<pre><code><code>@ExceptionHandler
+@ResponseBody
+public ServerResponse&lt;String&gt; handle(ConstraintViolationException exception) {
+    log.error(String.valueOf(exception));
+    Set&lt;ConstraintViolation&lt;?&gt;&gt; violations = exception.getConstraintViolations();
+    StringBuilder builder = new StringBuilder();
+    for (ConstraintViolation violation : violations) {
+        builder.append(violation.getMessage());
+        break;
+    }
+    return ServerResponse.createByErrorMessage(builder.toString());
+}</code></code></pre>
+<p>}<br />
+经过统一异常处理，我们这边的返回结果就是我们想要的格式了<br />
+<img src="./images/@Validated和@Valid校验参数、级联属性、List3.png" alt="file" /></p>
+<h2 id="方法3自定义一个list">方法3：自定义一个List</h2>
+<p>先上代码后说明，先定义一个ValidList</p>
+<p>import javax.validation.Valid;<br />
+import java.util.*;</p>
+<p>public class ValidList<E> implements List<E> {</p>
+<pre><code><code>@Valid
+private List&lt;E&gt; list;
+
+public ValidList() {
+    this.list = new ArrayList&lt;&gt;();
+}
+
+public ValidList(List&lt;E&gt; list) {
+    this.list = list;
+}
+
+public List&lt;E&gt; getList() {
+    return list;
+}
+
+public void setList(List&lt;E&gt; list) {
+    this.list = list;
+}
+
+@Override
+public int size() {
+    return list.size();
+}
+
+@Override
+public boolean isEmpty() {
+    return list.isEmpty();
+}
+
+...</code></code></pre>
+<p>}<br />
+对比方法3和方法1，有没有觉得代码有点相似，新建一个类，并且让他实现List接口，使这个类即具有了JavaBean的特性，又具有了List的特性，比方法1简单优雅很多。</p>
+<p>只需要把List换成ValidList就可以了，还不需要多统一异常处理。<br />
+<img src="./images/@Validated和@Valid校验参数、级联属性、List4.png" alt="file" /></p>
+<p>参考：https://my.oschina.net/fangshixiang/blog/3081366<br />
+https://stackoverflow.com/questions/28150405/validation-of-a-list-of-objects-in-spring/36313615#36313615<br />
+https://my.oschina.net/fangshixiang/blog/3081366</p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn?from=article_bottom">OpenWrite</a> 发布！</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

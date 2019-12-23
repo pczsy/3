@@ -1,0 +1,124 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ThreadLocal的原理与使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ThreadLocal的原理与使用</center></div><div class='banquan'>原文出处:本文由博客园博主小栗俊提供。<br/>
+原文连接:https://www.cnblogs.com/prc0109/p/11855805.html</div><br>
+    <p style="text-align: left;"><strong>前言</strong></p>
+<p style="text-align: left;"><strong>　　</strong>在java web项目中，经常会使用到单例对象，从服务器启动那一时刻就实例化全局对象。然后会对某些全局对象的属性进行修改之类的操作，但是我们知道项目一般都是部署到tomcat、Jboss之类的服务器上。浏览器的每个请求就是一个新的线程，这样如果　 对全局对象的属性进行修改并使用，很可能就会造成数据不一致的错误问题。那怎么保证各自线程能正确使用自己修改过的共享变量呢？这时让我们想到ThreadLocal,那ThreadLocal是什么，为何能有如此神奇的行为呢？带着这个问题我们直接进入主题。</p>
+<p style="text-align: left;"><strong>什么是ThreadLocal？</strong></p>
+<p style="text-align: left;">　　ThreadLocal是java.lang包下面的一个类。见名知意，局部的线程。它能避免发生多线程对共享变量修改造成的数据错误问题！</p>
+<p style="text-align: left;"><strong>ThreadLocal的底层原理</strong></p>
+<p style="text-align: left;">　　ThreadLocal能使变量值和线程对象关联起来，保证线程封闭。下面是ThreadLocal类主要的方法：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> T get();
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> set(T value);
+</span><span style="color: #008080;">3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> remove();
+</span><span style="color: #008080;">4</span> <span style="color: #0000ff;">private</span> T setInitialValue();</code></pre>
+
+<p style="text-align: left;">　　get方法是获取保存在ThreadLocal中当前线程设置的共享变量副本值；</p>
+<p style="text-align: left;">　　set方法是用来设置当前线程的共享变量副本；</p>
+<p><strong><em>　　set方法</em></strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> set(T value) {
+</span><span style="color: #008080;">2</span>         Thread t =<span style="color: #000000;"> Thread.currentThread();
+</span><span style="color: #008080;">3</span>         ThreadLocalMap map =<span style="color: #000000;"> getMap(t);
+</span><span style="color: #008080;">4</span>         <span style="color: #0000ff;">if</span> (map != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;">5</span>             map.set(<span style="color: #0000ff;">this</span><span style="color: #000000;">, value);
+</span><span style="color: #008080;">6</span>         <span style="color: #0000ff;">else</span>
+<span style="color: #008080;">7</span> <span style="color: #000000;">            createMap(t, value);
+</span><span style="color: #008080;">8</span>     }</code></pre>
+
+<p>　　set方法会获取当前线程（线程中有一个属性threadLocals，该属性属于ThreadLocal.ThreadLocalMap类）。如果当前线程的ThreadLocalMap对象不为空，直接把修改的值存放到ThreadLocalMap中；如果为空，则先实例化ThreadLocalMap对象，再存值。</p>
+<p>ThreadLocalMap和HashMap相似，也是通过哈希表的数据结构来保存数据（数组加链表）。从set方法可以知道，一个线程有且只会创建一个ThreadLocalMap对象，线程会把修改后的变量值（变量副本）保存到ThreadLocalMap中。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span><span style="color: #000000;"> createMap(Thread t, T firstValue) {
+      t.threadLocals </span>= <span style="color: #0000ff;">new</span> ThreadLocalMap(<span style="color: #0000ff;">this</span><span style="color: #000000;">, firstValue);
+}
+        
+
+ThreadLocalMap(ThreadLocal</span>&lt;?&gt;<span style="color: #000000;"> firstKey, Object firstValue) {
+       table </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Entry[INITIAL_CAPACITY];
+       </span><span style="color: #0000ff;">int</span> i = firstKey.threadLocalHashCode &amp; (INITIAL_CAPACITY -1<span style="color: #000000;">);
+       table[i] </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Entry(firstKey, firstValue);
+       size </span>= 1<span style="color: #000000;">;
+       setThreshold(INITIAL_CAPACITY);
+}</span></code></pre>
+
+<p style="text-align: left;">　　<strong><em>get方法</em></strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> T get() {
+</span><span style="color: #008080;"> 2</span>         Thread t =<span style="color: #000000;"> Thread.currentThread();
+</span><span style="color: #008080;"> 3</span>         ThreadLocalMap map =<span style="color: #000000;"> getMap(t);
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">if</span> (map != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 5</span>             ThreadLocalMap.Entry e = map.getEntry(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 6</span>             <span style="color: #0000ff;">if</span> (e != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> (T)e.value;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> setInitialValue();
+</span><span style="color: #008080;">10</span> }</code></pre>
+
+<p>　　get方法会获取到当前线程ThreadLocalMap对象中保存的副本值。</p>
+<p><span style="color: #ff0000;">注意：同一个ThreadLocal对象下，保存在ThreadLocalMap中的Entry对象下标相同。因为下标计算=threadLocalHashCode &amp; (len-1);&nbsp;threadLocalHashCode 和len都是相同的。</span></p>
+<p><span style="color: #003300;">　　<strong><em>remove方法</em></strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> remove() {
+         ThreadLocalMap m </span>=<span style="color: #000000;"> getMap(Thread.currentThread());
+         </span><span style="color: #0000ff;">if</span> (m != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+             m.remove(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">);
+ }</span></code></pre>
+
+<p>　　获取当前线程的ThreadLocalMap对象，对象不为空，则调用remove(this)；看看这个方法做了什么。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> remove(ThreadLocal key) {
+            Entry[] tab </span>=<span style="color: #000000;"> table;
+            </span><span style="color: #0000ff;">int</span> len =<span style="color: #000000;"> tab.length;
+            </span><span style="color: #0000ff;">int</span> i = key.threadLocalHashCode &amp; (len-1<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">for</span> (Entry e =<span style="color: #000000;"> tab[i];
+         e </span>!= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+         e </span>= tab[i =<span style="color: #000000;"> nextIndex(i, len)]) {
+                </span><span style="color: #0000ff;">if</span> (e.get() ==<span style="color: #000000;"> key) {
+                    e.clear(); 
+                    expungeStaleEntry(i); // 清空Entry[] 数组对应下标的对象
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+                }
+            }
+        }</span></code></pre>
+
+<p>　　remove的目的是帮助GC清除多余对象，避免造成内存溢出。</p>
+<p><strong>实际项目中的运用</strong></p>
+<p><strong>　　</strong>项目中有一个全局对象HttpJsonResource，服务启动的时候初始化。初始化后会维护一个HttpJsonService对象到属性中，通过get方法能获取到HttpJsonService对象。看代码分析：</p>
+<src class="cnblogs_code">
+<pre><code>HttpJsonService service =<span style="color: #000000;"> getHttpJsonService(context, JYLS_URL);
+String originUrl </span>=<span style="color: #000000;"> service.getHttpURL();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> HttpJsonService 中的httpURL是个全局变量，originUrl是公用的套接字</span> <br /><br /><span style="color: #008000;"><span style="color: #333300;">String newUrl = </span></span>originUrl + this.urlSuffix; // urlSuffix是不同的服务编码<br />.....<br />使用HttpURLConnection调用其它服务；<br />HttpURLConnection conn;<br />URL url = new URL(originUrl + threadLocalURL.get());
+conn = (HttpURLConnection) url.openConnection();
+conn.setRequestMethod(super.getReqMethod().toUpperCase());
+conn.setRequestProperty("Connection", "close");
+conn.setDoInput(true);
+conn.setDoOutput(true);
+conn.setRequestProperty("Content-Type", "application/json;charset=utf-8");//设置参数类型是json格式	<br />// 启动了一个线程		
+HttpCommProcessThread task = new HttpCommProcessThread(this, conn, reqData, super.getReqMethod());
+task.startUp();<br />// 阻塞主线程
+task.waitForData(timeOut);<br />.<br />.<br />// 最后把HttpURL设置为原始的公用值<br />service.setHttpURL(originUrl);</code></pre>
+
+<p>　　代码逻辑主要是获取到一个公用的http请求地址<span style="color: #008000; font-family: 'Courier New'; font-size: 12px;">httpURL</span>，然后拼接上服务编码，组成一个新的http请求去调用外部服务，调用完之后又把<span style="color: #008000; font-family: 'Courier New'; font-size: 12px;">httpURL修改为原始值。看上去是OK的！<span style="color: #333300;">但是有一个问题，调用接口比如超时了，在这一段时间内，A请求线程还被阻塞，又有一个请求B来调用，这时上A请求没来得及把</span></span><span style="color: #008000; font-family: 'Courier New'; font-size: 12px;">httpURL修改为原始值，B请求又在A请求修改为新的url基础上进行拼接，导致utl错误。</span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

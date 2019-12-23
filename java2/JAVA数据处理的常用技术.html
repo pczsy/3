@@ -1,0 +1,42 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JAVA数据处理的常用技术' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JAVA数据处理的常用技术</center></div><div class='banquan'>原文出处:本文由博客园博主编程一生提供。<br/>
+原文连接:https://www.cnblogs.com/xiexj/p/11580117.html</div><br>
+    <p><strong>背景</strong></p>
+<p>在实际开发中，数据的处理有五种：获取、传输、存储、分析、转换。每种各对应一些常用的技术。<br /><br /><strong>序列化和反序列化</strong></p>
+<p>序列化是将对象的信息转换为可传输或可存储形式的过程。反序列化就是反过来让这些可传输的、可存储的信息变回对象。</p>
+<p>传输的序列化除了安全性的考虑，因为涉及到和第三方通信，所以还有重要的一点是可读性和不变性。而存储的链路短，可控，所以更讲究效率。</p>
+<p>传输最常用的序列化手段是JSON这样人眼可读的。而存储会使用protostuff这种将key值映射成编码来传输的。因为1，2，3比one、two、four更省空间更高效。但是传输中都用编码，解析时就很难判断它的意义。双方还要进行额外的约定。本来3代表four，中间加了一个three，3代表three的话，对方没有及时被通知，那么解析传输过来的消息就是错的。</p>
+<p>
+<br /><strong>反射</strong><br />Java反射是在运行时，对于任何一个类，都可以知道这个类有哪些方法和属性。对于任何一个对象，都能对它的方法和属性进行调用。<br />常用数据转换工具，比如Spring的RequestParam、RequestBody、ResponseBody内部就用了反射机制。还有Jackson等工具类。甚至在业务代码中直接使用反射也是很常见的。比如设计一个AI助手问答机。想实现：</p>
+<pre><code><code><span class="code-snippet_outer">小A：我要搜索美女<span class="code-snippet__string">"冰冰"</span></span></code><code><span class="code-snippet_outer">AI助手：OK，搜索<span class="code-snippet__string">"冰冰"</span></span></code><code><span class="code-snippet_outer">小A：想知道她的<span class="code-snippet__string">"年龄"</span></span></code><code><span class="code-snippet_outer">AI助手：<span class="code-snippet__number">21岁</span></span></code></code></pre>
+<p>上面这个JAVA实现是这样的：</p>
+<pre class="code-snippet__js" data-lang="swift"><code><span class="code-snippet_outer"><span class="code-snippet__type">Field&nbsp;field&nbsp;=&nbsp;美女.<span class="code-snippet__keyword">class.getDeclaredField(年龄);</span></span></span></code><code><span class="code-snippet_outer">field.setAccessible(<span class="code-snippet__literal">true);</span></span></code><code><span class="code-snippet_outer"><span class="code-snippet__keyword">return field.<span class="code-snippet__keyword">get(冰冰).<span class="code-snippet__built_in">toString();</span></span></span></span></code></code></pre>
+<p>&nbsp;</p>
+<p><strong>动态代理</strong></p>
+<p> 代理模式是为了提供增强的或不同的操作，而插入来替代实际对象的对象。这些操作涉及到与实际对象的通信，所以称为代理。<br />Spring主要的两大思想IoC和AOP。对于IoC，利用的是反射机制。而AOP使用了动态代理，当然底层也是反射。<br />JDK动态代理只能给有接口的类代理。本质是通过反射获取要执行的方法，并在执行前或者后加入一些代理处理操作。cglib本质上用继承的方法实现的，是通过动态生成一个子类去覆盖所要代理的类。用final修饰的不能被覆盖的就不代理了。spring动态代理是优先使用JDK动态代理，如果目标没有实现任何接口，则创建一个cglib代理。如果几个类实现了都实现了一个通用接口，比如Runnable，并且加了Component请spring来负责其生命周期。这时候会抛出一个Proxy代理异常。说期望加载一个Bean，实际上实现却不只一个。这时候可以在这个类上加下面标签强制使用cglib代理来解决。</p>
+<pre class="code-snippet__js" data-lang="css"><code><span class="code-snippet_outer">@<span class="code-snippet__keyword">EnableAspectJAutoProxy(<span class="code-snippet__keyword">proxyTargetClass&nbsp;=&nbsp;true)</span></span></span></code></code></pre>
+<p>&nbsp;</p>
+<p><strong>总结</strong></p>
+<p>我工作十几年来，查找和排序算法一直被奉为经典。而这两项就是搜索技术的核心。大数据是建立在搜索技术基础上的。AI又是建立在大数据基础上的。可见查找和排序的核心地位。看似高深的技术也是从最底层开始。苦练基本功。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

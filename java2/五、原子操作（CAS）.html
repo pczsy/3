@@ -1,0 +1,153 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修五、原子操作（CAS）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>五、原子操作（CAS）</center></div><div class='banquan'>原文出处:本文由博客园博主ねぇ提供。<br/>
+原文连接:https://www.cnblogs.com/lee0527/p/11688125.html</div><br>
+    <h2 id="原子操作cas">原子操作（CAS）</h2>
+<h4 id="一cascompare-and-set">一、CAS（Compare And Set）</h4>
+<p>​ Compare And Set（或Compare And Swap），CAS是解决多线程并行情况下使用锁造成性能损耗的一种机制，CAS操作包含三个操作数——<strong>内存位置</strong>（V）、<strong>预期原值</strong>（A）、<strong>新值</strong>(B)。如果内存位置的值与预期原值相匹配，那么处理器会自动将该位置值更新为新值。否则，处理器不做任何操作。无论哪种情况，它都会在CAS指令之前返回该位置的值。CAS有效地说明了“我认为位置V应该包含值A；如果包含该值，则将B放到这个位置；否则，不要更改该位置，只告诉我这个位置现在的值即可。</p>
+<p>​ 在java中可以通过锁和循环CAS的方式来实现原子操作。Java中 java.util.concurrent.atomic包相关类就是 CAS的实现，atomic包里包括以下类：</p>
+<table>
+<tbody>
+<tr class="odd">
+<td><strong>AtomicBoolean</strong></td>
+<td>可以用原子方式更新的 <code>boolean</code> 值。</td>
+</tr>
+<tr class="even">
+<td><strong>AtomicInteger</strong></td>
+<td>可以用原子方式更新的 <code>int</code> 值。</td>
+</tr>
+<tr class="odd">
+<td><strong>AtomicIntegerArray</strong></td>
+<td>可以用原子方式更新其元素的 <code>int</code> 数组。</td>
+</tr>
+<tr class="even">
+<td><strong>AtomicIntegerFieldUpdater<T></strong></td>
+<td>基于反射的实用工具，可以对指定类的指定 <code>volatile int</code> 字段进行原子更新。</td>
+</tr>
+<tr class="odd">
+<td><strong>AtomicLong</strong></td>
+<td>可以用原子方式更新的 <code>long</code> 值。</td>
+</tr>
+<tr class="even">
+<td><strong>AtomicLongArray</strong></td>
+<td>可以用原子方式更新其元素的 <code>long</code> 数组。</td>
+</tr>
+<tr class="odd">
+<td><strong>AtomicLongFieldUpdater<T></strong></td>
+<td>基于反射的实用工具，可以对指定类的指定 <code>volatile long</code> 字段进行原子更新。</td>
+</tr>
+<tr class="even">
+<td><strong>AtomicMarkableReference<V></strong></td>
+<td><code>AtomicMarkableReference</code> 维护带有标记位的对象引用，可以原子方式对其进行更新。</td>
+</tr>
+<tr class="odd">
+<td><strong>AtomicReference<V></strong></td>
+<td>可以用原子方式更新的对象引用。</td>
+</tr>
+<tr class="even">
+<td><strong>AtomicReferenceArray<E></strong></td>
+<td>可以用原子方式更新其元素的对象引用数组。</td>
+</tr>
+<tr class="odd">
+<td><strong>AtomicReferenceFieldUpdater&lt;T,V&gt;</strong></td>
+<td>基于反射的实用工具，可以对指定类的指定 <code>volatile</code> 字段进行原子更新。</td>
+</tr>
+<tr class="even">
+<td><strong>AtomicStampedReference<V></strong></td>
+<td><code>AtomicStampedReference</code> 维护带有整数“标志”的对象引用，可以用原子方式对其进行更新。</td>
+</tr>
+</tbody>
+</table>
+<h4 id="二atomicinteger">二、AtomicInteger</h4>
+<p>​ AtomicInteger可以用原子方式更新的 int 值。AtomicInteger 可用在应用程序中（如以原子方式增加的计数器），并且不能用于替换 Integer。但是，此类确实扩展了 Number，允许那些处理基于数字类的工具和实用工具进行统一访问。 我们拿 AtomicInteger为例来学习下 CAS操作是如何实现的。</p>
+<p>​ 通常情况下，在 Java中，i++等类似操作并不是线程安全的，因为 i++可分为三个独立的操作：获取变量当前值，为该值+1，然后写回新的值。在没有额外资源可以利用的情况下，只能使用加锁才能保证读-改-写这三个操作时“原子性”的。但是利用加锁的方式来实现该功能的话，代码将非常复杂及难以维护，如：</p>
+<pre><code><code>synchronized (lock) {  
+    i++;  
+}  </code></code></pre>
+<pre><code><code>    相关类中还需要增加 Object lock等额外标志，这样就带来了很多麻烦，增加了很多业务无关代码，给开发与维护带来了不便。</code></code></pre>
+<p>​ 然而利用 atomic包中相关类型就可以很简单实现此操作，以下是一个计数程序实例：</p>
+<pre><code><code>public class Counter {
+    private AtomicInteger ai = new AtomicInteger();
+    private int i = 0;
+  
+    public static void main(String[] args) {  
+        final Counter cas = new Counter();  
+        List&lt;Thread&gt; threads = new ArrayList&lt;Thread&gt;();
+        // 添加100个线程  
+        for (int j = 0; j &lt; 100; j++) {  
+            threads.add(new Thread(new Runnable() {
+                public void run() {  
+                    // 执行100次计算，预期结果应该是10000  
+                    for (int i = 0; i &lt; 100; i++) {  
+                        cas.count();  
+                        cas.safeCount();  
+                    }  
+                }  
+            }));  
+        }  
+        //开始执行  
+        for (Thread t : threads) {
+            t.start();  
+        }  
+        // 等待所有线程执行完成  
+        for (Thread t : threads) {
+            try {  
+                t.join();  
+            } catch (InterruptedException e) {  
+                e.printStackTrace();  
+            }  
+        }  
+        System.out.println(&quot;非线程安全计数结果：&quot;+cas.i);  
+        System.out.println(&quot;线程安全计数结果：&quot;+cas.ai.get());  
+    }  
+  
+    /** 使用CAS实现线程安全计数器 */  
+    private void safeCount() {  
+        for (;;) {  
+            int i = ai.get();  
+            // 如果当前值 == 预期值，则以原子方式将该值设置为给定的更新值  
+            boolean suc = ai.compareAndSet(i, ++i);  
+            if (suc) {  
+                break;  
+            }  
+        }  
+    }  
+  
+    /** 非线程安全计数器 */  
+    private void count() {  
+        i++;  
+    }  
+}  
+
+/**
+非线程安全计数结果：9942
+线程安全计数结果：10000
+*/</code></code></pre>
+<p>其中非线程安全计数器所计算的结果每次都不相同且不正确，而线程安全计数器计算的结果每次都是正确的。</p>
+<h4 id="三存在的问题">三、存在的问题</h4>
+<p>CAS虽然很高效的解决原子操作，但是CAS仍然存在三大问题：<strong>ABA问题、循环时间长开销大、只能保证一个共享变量的原子操作</strong>。</p>
+<p><strong>ABA问题</strong>：因为CAS需要在操作值的时候检查下值有没有发生变化，如果没有发生变化则更新，但是如果一个值原来是A，变成了B，又变成了A，那么使用CAS进行检查时会发现它的值没有发生变化，但是实际上却变化了。ABA问题的解决思路就是使用版本号。在变量前面追加上版本号，每次变量更新的时候把版本号加一，那么A－B－A 就会变成1A-2B－3A。 从Java1.5开始JDK的 atomic包里提供了一个类AtomicStampedReference 来解决ABA问题。这个类的 compareAndSet方法作用是首先检查当前引用是否等于预期引用，并且当前标志是否等于预期标志，如果全部相等，则以原子方式将该引用和该标志的值设置为给定的更新值。</p>
+<p><strong>循环时间长开销大</strong>：自旋CAS如果长时间不成功，会给CPU带来非常大的执行开销。如果JVM能支持处理器提供的pause指令那么效率会有一定的提升，pause指令有两个作用，第一它可以延迟流水线执行指令（de-pipeline）,使CPU不会消耗过多的执行资源，延迟的时间取决于具体实现的版本，在一些处理器上延迟时间是零。第二它可以避免在退出循环的时候因内存顺序冲突（memory order violation）而引起CPU流水线被清空（CPU pipeline flush），从而提高CPU的执行效率。　</p>
+<p><strong>只能保证一个共享变量的原子操作</strong>：当对一个共享变量执行操作时，我们可以使用循环CAS的方式来保证原子操作，但是对多个共享变量操作时，循环CAS就无法保证操作的原子性，这个时候就可以用锁，或者有一个取巧的办法，就是把多个共享变量合并成一个共享变量来操作。比如有两个共享变量i＝2,j=a，合并一下ij=2a，然后用CAS来操作ij。从Java1.5开始JDK提供了AtomicReference类来保证引用对象之间的原子性，你可以把多个变量放在一个对象里来进行CAS操作。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

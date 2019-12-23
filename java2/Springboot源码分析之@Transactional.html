@@ -1,0 +1,379 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Springboot源码分析之@Transactional' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Springboot源码分析之@Transactional</center></div><div class='banquan'>原文出处:本文由博客园博主TheGir1提供。<br/>
+原文连接:https://www.cnblogs.com/qinzj/p/11420840.html</div><br>
+    <h4 id="摘要">摘要：</h4>
+<p>对<code>SpringBoot</code>有多了解，其实就是看你对<code>Spring Framework</code>有多熟悉~ 比如<code>SpringBoot</code>大量的模块装配的设计模式，其实它属于Spring Framework提供的能力。SpringBoot大行其道的今天，基于<code>XML</code>配置的Spring Framework的使用方式注定已成为过去式。注解驱动应用，面向元数据编程已然成受到越来越多开发者的偏好了，毕竟它的便捷程度、优势都是XML方式不可比拟的。</p>
+<pre><code><code>    @Configuration
+    @ConditionalOnClass({PlatformTransactionManager.class})
+    @AutoConfigureAfter({JtaAutoConfiguration.class, HibernateJpaAutoConfiguration.class, DataSourceTransactionManagerAutoConfiguration.class, Neo4jDataAutoConfiguration.class})
+    @EnableConfigurationProperties({TransactionProperties.class})
+    public class TransactionAutoConfiguration {
+        public TransactionAutoConfiguration() {
+        }
+    
+        @Bean
+        @ConditionalOnMissingBean
+        public TransactionManagerCustomizers platformTransactionManagerCustomizers(ObjectProvider&lt;PlatformTransactionManagerCustomizer&lt;?&gt;&gt; customizers) {
+            return new TransactionManagerCustomizers((Collection)customizers.orderedStream().collect(Collectors.toList()));
+        }
+    
+        @Configuration
+        @ConditionalOnBean({PlatformTransactionManager.class})
+        @ConditionalOnMissingBean({AbstractTransactionManagementConfiguration.class})
+        public static class EnableTransactionManagementConfiguration {
+            public EnableTransactionManagementConfiguration() {
+            }
+    
+            @Configuration
+            @EnableTransactionManagement(
+                proxyTargetClass = true
+            )
+            @ConditionalOnProperty(
+                prefix = &quot;spring.aop&quot;,
+                name = {&quot;proxy-target-class&quot;},
+                havingValue = &quot;true&quot;,
+                matchIfMissing = true
+            )
+          //默认采用cglib代理
+            public static class CglibAutoProxyConfiguration {
+                public CglibAutoProxyConfiguration() {
+                }
+            }
+    
+            @Configuration
+            @EnableTransactionManagement(
+                proxyTargetClass = false
+            )
+            @ConditionalOnProperty(
+                prefix = &quot;spring.aop&quot;,
+                name = {&quot;proxy-target-class&quot;},
+                havingValue = &quot;false&quot;,
+                matchIfMissing = false
+            )
+            public static class JdkDynamicAutoProxyConfiguration {
+                public JdkDynamicAutoProxyConfiguration() {
+                }
+            }
+        }
+    
+        @Configuration
+      //当PlatformTransactionManager类型的bean存在并且当存在多个bean时指定为Primary的 PlatformTransactionManager存在时,该配置类才进行解析
+        @ConditionalOnSingleCandidate(PlatformTransactionManager.class)
+        public static class TransactionTemplateConfiguration {
+            private final PlatformTransactionManager transactionManager;
+    
+            public TransactionTemplateConfiguration(PlatformTransactionManager transactionManager) {
+                this.transactionManager = transactionManager;
+            }
+    
+         // 由于TransactionAutoConfiguration是在DataSourceTransactionManagerAutoConfiguration之后才被解析处理的,而在DataSourceTransactionManagerAutoConfiguration中配置了transactionManager,因此, TransactionTemplateConfiguration 会被处理.
+            @Bean
+            @ConditionalOnMissingBean
+            public TransactionTemplate transactionTemplate() {
+                return new TransactionTemplate(this.transactionManager);
+            }
+        }
+    }</code></code></pre>
+<h5 id="platformtransactionmanager后续章节会分析">PlatformTransactionManager后续章节会分析</h5>
+<p><strong>提示：</strong>使用<code>@EnableTransactionManagement</code>注解前，请务必保证你已经配置了至少一个<code>PlatformTransactionManager</code>的Bean，否则会报错。（当然你也可以实现<code>TransactionManagementConfigurer</code>来提供一个专属的，只是我们一般都不这么去做~~~）</p>
+<h4 id="开启注解驱动">开启注解驱动</h4>
+<pre><code><code>    @Target({ElementType.TYPE})
+    @Retention(RetentionPolicy.RUNTIME)
+    @Documented
+    @Import({TransactionManagementConfigurationSelector.class})
+    public @interface EnableTransactionManagement {
+        boolean proxyTargetClass() default false;
+        AdviceMode mode() default AdviceMode.PROXY;
+        int order() default 2147483647;
+    }</code></code></pre>
+<p>简直和<code>@EnableAsync</code>注解的一模一样。不同之处只在于<code>@Import</code>导入器导入的这个类.</p>
+<p><strong>对比一下</strong></p>
+<pre><code><code>    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @Documented
+    @Import(AsyncConfigurationSelector.class)
+    public @interface EnableAsync {
+        // 支持自定义注解类型 去支持异步~~~
+        Class&lt;? extends Annotation&gt; annotation() default Annotation.class;
+        boolean proxyTargetClass() default false;
+        AdviceMode mode() default AdviceMode.PROXY;
+        int order() default Ordered.LOWEST_PRECEDENCE;
+    }</code></code></pre>
+<h4 id="transactionmanagementconfigurationselector">TransactionManagementConfigurationSelector</h4>
+<pre><code><code>    public class TransactionManagementConfigurationSelector extends AdviceModeImportSelector&lt;EnableTransactionManagement&gt; {
+        public TransactionManagementConfigurationSelector() {
+        }
+    
+        protected String[] selectImports(AdviceMode adviceMode) {
+            switch(adviceMode) {
+            case PROXY:
+                return new String[]{AutoProxyRegistrar.class.getName(), ProxyTransactionManagementConfiguration.class.getName()};
+            case ASPECTJ:
+                return new String[]{this.determineTransactionAspectClass()};
+            default:
+                return null;
+            }
+        }
+    
+        private String determineTransactionAspectClass() {
+            return ClassUtils.isPresent(&quot;javax.transaction.Transactional&quot;, this.getClass().getClassLoader()) ? &quot;org.springframework.transaction.aspectj.AspectJJtaTransactionManagementConfiguration&quot; : &quot;org.springframework.transaction.aspectj.AspectJTransactionManagementConfiguration&quot;;
+        }
+    }</code></code></pre>
+<p>依然可以看出和<code>@EnableAsync</code>导入的<code>AsyncConfigurationSelector</code>如出一辙，都继承自<code>AdviceModeImportSelector</code>，毕竟模式一样，触类旁通，一通百通~</p>
+<p><code>AdviceModeImportSelector</code>目前所知的三个子类是：<code>AsyncConfigurationSelector</code>、<code>TransactionManagementConfigurationSelector</code>、<code>CachingConfigurationSelector</code>。由此可见后面还会着重分析的<code>Spring</code>的缓存体系<code>@EnableCaching</code>，模式也是和这个极其类似的~~~</p>
+<h4 id="autoproxyregistrar">AutoProxyRegistrar</h4>
+<p>它是个<code>ImportBeanDefinitionRegistrar</code>，可以实现自己向容器里注册Bean的定义信息</p>
+<pre><code><code>    // @since 3.1
+    public class AutoProxyRegistrar implements ImportBeanDefinitionRegistrar {
+        private final Log logger = LogFactory.getLog(this.getClass());
+    
+        public AutoProxyRegistrar() {
+        }
+    
+        public void registerBeanDefinitions(AnnotationMetadata importingClassMetadata, BeanDefinitionRegistry registry) {
+            boolean candidateFound = false;
+            // 这里面需要特别注意的是：这里是拿到所有的注解类型~~~而不是只拿@EnableAspectJAutoProxy这个类型的
+            // 原因：因为mode、proxyTargetClass等属性会直接影响到代理得方式，而拥有这些属性的注解至少有：
+            // @EnableTransactionManagement、@EnableAsync、@EnableCaching等~~~~
+            // 甚至还有启用AOP的注解：@EnableAspectJAutoProxy它也能设置`proxyTargetClass`这个属性的值，因此也会产生关联影响~
+            Set&lt;String&gt; annTypes = importingClassMetadata.getAnnotationTypes();
+            Iterator var5 = annTypes.iterator();
+    
+            while(var5.hasNext()) {
+                String annType = (String)var5.next();
+                AnnotationAttributes candidate = AnnotationConfigUtils.attributesFor(importingClassMetadata, annType);
+                if (candidate != null) {
+                    Object mode = candidate.get(&quot;mode&quot;);
+                    Object proxyTargetClass = candidate.get(&quot;proxyTargetClass&quot;);
+                  // 如果存在mode且存在proxyTargetClass 属性
+                // 并且两个属性的class类型也是对的，才会进来此处（因此其余注解相当于都挡外面了~）
+                    if (mode != null &amp;&amp; proxyTargetClass != null &amp;&amp; AdviceMode.class == mode.getClass() &amp;&amp; Boolean.class == proxyTargetClass.getClass()) {
+                        candidateFound = true;
+                        if (mode == AdviceMode.PROXY) {
+                          
+                        // 它主要是注册了一个`internalAutoProxyCreator`，但是若出现多次的话，这里不是覆盖的形式，而是以优先级的形式
+                            AopConfigUtils.registerAutoProxyCreatorIfNecessary(registry);
+                          //看要不要强制使用CGLIB的方式(由此可以发现  这个属性若出现多次，是会是覆盖的形式)
+                            if ((Boolean)proxyTargetClass) {
+                                AopConfigUtils.forceAutoProxyCreatorToUseClassProxying(registry);
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+    
+            if (!candidateFound &amp;&amp; this.logger.isInfoEnabled()) {
+                String name = this.getClass().getSimpleName();
+                this.logger.info(String.format(&quot;%s was imported but no annotations were found having both &#39;mode&#39; and &#39;proxyTargetClass&#39; attributes of type AdviceMode and boolean respectively. This means that auto proxy creator registration and configuration may not have occurred as intended, and components may not be proxied as expected. Check to ensure that %s has been @Import&#39;ed on the same class where these annotations are declared; otherwise remove the import of %s altogether.&quot;, name, name, name));
+            }
+        }
+    }</code></code></pre>
+<p>跟踪<code>AopConfigUtils</code>的源码你会发现，事务这块向容器注入的是一个<code>InfrastructureAdvisorAutoProxyCreator</code>，并且看看是采用<code>CGLIB</code>还是<code>JDK</code>代理。它主要是读取<code>Advisor</code>类，并对符合的bean进行二次代理。</p>
+<h4 id="proxytransactionmanagementconfiguration">ProxyTransactionManagementConfiguration</h4>
+<pre><code><code>    @Configuration
+    public class ProxyTransactionManagementConfiguration extends AbstractTransactionManagementConfiguration {
+        public ProxyTransactionManagementConfiguration() {
+        }
+    
+        @Bean(
+            name = {&quot;org.springframework.transaction.config.internalTransactionAdvisor&quot;}
+        )
+        @Role(2)
+        public BeanFactoryTransactionAttributeSourceAdvisor transactionAdvisor() {
+            BeanFactoryTransactionAttributeSourceAdvisor advisor = new BeanFactoryTransactionAttributeSourceAdvisor();
+            advisor.setTransactionAttributeSource(this.transactionAttributeSource());
+            advisor.setAdvice(this.transactionInterceptor());
+            if (this.enableTx != null) {
+              // 顺序由@EnableTransactionManagement注解的Order属性来指定 默认值为：Ordered.LOWEST_PRECEDENCE
+                advisor.setOrder((Integer)this.enableTx.getNumber(&quot;order&quot;));
+            }
+    
+            return advisor;
+        }
+    
+        @Bean
+        @Role(2)
+        // TransactionAttributeSource 这种类特别像 `TargetSource`这种类的设计模式
+        public TransactionAttributeSource transactionAttributeSource() {
+            return new AnnotationTransactionAttributeSource();
+        }
+    
+        @Bean
+        @Role(2)
+      // 事务拦截器，它是个`MethodInterceptor`，它也是Spring处理事务最为核心的部分
+        // 请注意：你可以自己定义一个TransactionInterceptor（同名的），来覆盖此Bean
+        public TransactionInterceptor transactionInterceptor() {
+            TransactionInterceptor interceptor = new TransactionInterceptor();
+            interceptor.setTransactionAttributeSource(this.transactionAttributeSource());
+            if (this.txManager != null) {
+                interceptor.setTransactionManager(this.txManager);
+            }
+            return interceptor;
+        }
+    }</code></code></pre>
+<pre><code><code>    @Configuration
+    public abstract class AbstractTransactionManagementConfiguration implements ImportAware {
+        @Nullable
+        protected AnnotationAttributes enableTx;
+       
+      // 此处：注解的默认的事务处理器（可议通过实现接口TransactionManagementConfigurer来自定义配置）
+        // 因为事务管理器这个东西，一般来说全局一个就行，但是Spring也提供了定制化的能力~~~
+          @Nullable
+        protected PlatformTransactionManager txManager;
+    
+        public AbstractTransactionManagementConfiguration() {
+        }
+    
+        public void setImportMetadata(AnnotationMetadata importMetadata) {
+            this.enableTx = AnnotationAttributes.fromMap(importMetadata.getAnnotationAttributes(EnableTransactionManagement.class.getName(), false));
+          //这个注解@EnableTransactionManagement是必须的~~~~~~~~~~~~~~~~否则报错了
+            if (this.enableTx == null) {
+                throw new IllegalArgumentException(&quot;@EnableTransactionManagement is not present on importing class &quot; + importMetadata.getClassName());
+            }
+        }
+    
+        @Autowired(
+            required = false
+        )
+      // 这里和@Async的处理一样，配置文件可以实现这个接口。然后给注解驱动的给一个默认的事务管理器~~~~
+        void setConfigurers(Collection&lt;TransactionManagementConfigurer&gt; configurers) {
+            if (!CollectionUtils.isEmpty(configurers)) {
+              // 同样的，最多也只允许你去配置一个~~~
+                if (configurers.size() &gt; 1) {
+                    throw new IllegalStateException(&quot;Only one TransactionManagementConfigurer may exist&quot;);
+                } else {
+                    TransactionManagementConfigurer configurer = (TransactionManagementConfigurer)configurers.iterator().next();
+                    this.txManager = configurer.annotationDrivenTransactionManager();
+                }
+            }
+        }
+    
+        @Bean(
+            name = {&quot;org.springframework.transaction.config.internalTransactionalEventListenerFactory&quot;}
+        )
+        @Role(2)
+        public static TransactionalEventListenerFactory transactionalEventListenerFactory() {
+            return new TransactionalEventListenerFactory();
+        }
+    }</code></code></pre>
+<h4 id="beanfactorytransactionattributesourceadvisor">BeanFactoryTransactionAttributeSourceAdvisor</h4>
+<p><img src="./images/Springboot源码分析之@Transactional0.png" alt="file" /></p>
+<h4 id="transactionattributesourcepointcut">TransactionAttributeSourcePointcut</h4>
+<p>这个就是事务的匹配<code>Pointcut</code>切面，决定了哪些类需要生成代理对象从而应用事务。</p>
+<pre><code><code>    // 首先它的访问权限事default 显示是给内部使用的
+    // 首先它继承自StaticMethodMatcherPointcut   所以`ClassFilter classFilter = ClassFilter.TRUE;` 匹配所有的类
+    // 并且isRuntime=false  表示只需要对方法进行静态匹配即可~~~~
+    abstract class TransactionAttributeSourcePointcut extends StaticMethodMatcherPointcut implements Serializable {
+    
+        // 方法的匹配  静态匹配即可（因为事务无需要动态匹配这么细粒度~~~）
+        @Override
+        public boolean matches(Method method, Class&lt;?&gt; targetClass) {
+            // 实现了如下三个接口的子类，就不需要被代理了  直接放行
+            // TransactionalProxy它是SpringProxy的子类。  如果是被TransactionProxyFactoryBean生产出来的Bean，就会自动实现此接口，那么就不会被这里再次代理了
+            // PlatformTransactionManager：spring抽象的事务管理器~~~
+            // PersistenceExceptionTranslator对RuntimeException转换成DataAccessException的转换接口
+            if (TransactionalProxy.class.isAssignableFrom(targetClass) ||
+                    PlatformTransactionManager.class.isAssignableFrom(targetClass) ||
+                    PersistenceExceptionTranslator.class.isAssignableFrom(targetClass)) {
+                return false;
+            }
+            
+            // 重要：拿到事务属性源~~~~~~
+            // 如果tas == null表示没有配置事务属性源，那是全部匹配的  也就是说所有的方法都匹配~~~~（这个处理还是比较让我诧异的~~~）
+            // 或者 标注了@Transaction这样的注解的方法才会给与匹配~~~
+            TransactionAttributeSource tas = getTransactionAttributeSource();
+            return (tas == null || tas.getTransactionAttribute(method, targetClass) != null);
+        }   
+        ...
+        // 由子类提供给我，告诉事务属性源~~~
+        @Nullable
+        protected abstract TransactionAttributeSource getTransactionAttributeSource();
+    }</code></code></pre>
+<h4 id="transactional">@Transactional</h4>
+<p>这个事务注解可以用在类上，也可以用在方法上。</p>
+<ul>
+<li>将事务注解标记到服务组件类级别,相当于为该服务组件的每个服务方法都应用了这个注解</li>
+<li>事务注解应用在方法级别，是更细粒度的一种事务注解方式</li>
+</ul>
+<p>注意 : 如果某个方法和该方法所属类上都有事务注解属性，优先使用方法上的事务注解属性。</p>
+<p>另外，Spring 支持三个不同的事务注解 :</p>
+<ul>
+<li><strong>Spring</strong> 事务注解 <code>org.springframework.transaction.annotation.Transactional</code></li>
+<li><strong>JTA</strong>事务注解 ·javax.transaction.Transactional·</li>
+<li><strong>EJB 3</strong> 事务注解 ·javax.ejb.TransactionAttribute·</li>
+</ul>
+<h4 id="自定义transactionmanagementconfigurer">自定义TransactionManagementConfigurer</h4>
+<pre><code><code>    @Configuration
+    @EnableTransactionManagement
+    public class MyTransactionManagementConfigurer implements TransactionManagementConfigurer {
+        @Bean
+        public PlatformTransactionManager transactionManager(DataSource dataSource) {
+            DataSourceTransactionManager dataSourceTransactionManager = new DataSourceTransactionManager(dataSource);
+            return dataSourceTransactionManager;
+        }
+    
+        @Override
+        public PlatformTransactionManager annotationDrivenTransactionManager() {
+            return null;
+        }
+    }</code></code></pre>
+<h4 id="enableaspectjautoproxy和enabletransactionmanagement优先级">@EnableAspectJAutoProxy和@EnableTransactionManagement优先级？</h4>
+<ul>
+<li><code>@EnableAspectJAutoProxy</code>会像容器注入<code>AnnotationAwareAspectJAutoProxyCreator</code></li>
+<li><code>@EnableTransactionManagement</code>会像容器注入<code>InfrastructureAdvisorAutoProxyCreator</code></li>
+</ul>
+<pre><code><code>    public abstract class AopConfigUtils {
+        ...
+        @Nullable
+        private static BeanDefinition registerOrEscalateApcAsRequired(
+                Class&lt;?&gt; cls, BeanDefinitionRegistry registry, @Nullable Object source) {
+            
+            // 可以发现这里有一个很巧妙的处理：会对自动代理创建器进行升级~~~~
+            // 所以如果你第一次进来的是`InfrastructureAdvisorAutoProxyCreator`，第二次进来的是`AnnotationAwareAspectJAutoProxyCreator`，那就会取第二次进来的这个Class
+            // 反之则不行。这里面是维护的一个优先级顺序的，具体参看本类的static代码块，就是顺序  最后一个`AnnotationAwareAspectJAutoProxyCreator`才是最为强大的
+            if (registry.containsBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME)) {
+                BeanDefinition apcDefinition = registry.getBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME);
+                if (!cls.getName().equals(apcDefinition.getBeanClassName())) {
+                    int currentPriority = findPriorityForClass(apcDefinition.getBeanClassName());
+                    int requiredPriority = findPriorityForClass(cls);
+                    if (currentPriority &lt; requiredPriority) {
+                        apcDefinition.setBeanClassName(cls.getName());
+                    }
+                }
+                return null;
+            }
+    
+            RootBeanDefinition beanDefinition = new RootBeanDefinition(cls);
+            beanDefinition.setSource(source);
+            beanDefinition.getPropertyValues().add(&quot;order&quot;, Ordered.HIGHEST_PRECEDENCE);
+            beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+            registry.registerBeanDefinition(AUTO_PROXY_CREATOR_BEAN_NAME, beanDefinition);
+            return beanDefinition;
+        }
+        ...
+    }</code></code></pre>
+<p>从上面的分析可以知道：无论你的这些注解有多少个，无论他们的先后顺序如何，它内部都有咯优先级提升的机制来保证向下的覆盖兼容。因此一般情况下，我们使用的都是最高级的<code>AnnotationAwareAspectJAutoProxyCreator</code>这个自动代理创建器~~~</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

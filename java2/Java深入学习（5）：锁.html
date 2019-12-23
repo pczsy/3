@@ -1,0 +1,369 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java深入学习（5）：锁' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java深入学习（5）：锁</center></div><div class='banquan'>原文出处:本文由博客园博主一清提供。<br/>
+原文连接:https://www.cnblogs.com/xuyiqing/p/11635786.html</div><br>
+    <p><strong><span style="font-size: 14pt;">可重入锁：</span></strong></p>
+<p>简单来说，支持重复加锁，有可重用性</p>
+<p>特征：锁可以传递，方法递归传递</p>
+<p>目的：避免了死锁现象</p>
+<p>代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> Test <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable {
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+        method1();
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> method1() {
+        System.out.println(</span>"method1"<span style="color: #000000;">);
+        method2();
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> method2() {
+        System.out.println(</span>"method2"<span style="color: #000000;">);
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Test()).start();
+    }
+
+}</span></code></pre>
+
+<p>打印：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">method1
+method2</span></code></pre>
+
+<p>分析：如果锁不能重用，那么这里将会出现死锁问题</p>
+<p>&nbsp;</p>
+<p>使用ReentrantLock锁：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> TestLock <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">重入锁</span>
+    <span style="color: #0000ff;">private</span> Lock reentrantLock = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ReentrantLock();
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+        method1();
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> method1() {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            reentrantLock.lock();
+            System.out.println(</span>"method1"<span style="color: #000000;">);
+            method2();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+            reentrantLock.unlock();
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> method2() {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            reentrantLock.lock();
+            System.out.println(</span>"method2"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+            reentrantLock.unlock();
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> TestLock()).start();
+    }
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 14pt;"><strong>读写锁：</strong></span></p>
+<p>高并发的时候，写操作的同时应当不允许读操作</p>
+<p>（多线程中：读-读共存；读-写、写-写都不可以共存）</p>
+<p>代码：制造读写操作的线程安全问题</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestWriteLock {
+
+    Map</span>&lt;String, String&gt; cache = <span style="color: #0000ff;">new</span> HashMap&lt;&gt;<span style="color: #000000;">();
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">写入元素</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> put(String key, String value) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            System.out.println(</span>"开始写入key : " + key + " value : " +<span style="color: #000000;"> value);
+            Thread.sleep(</span>50<span style="color: #000000;">);
+            cache.put(key, value);
+            System.out.println(</span>"完成写入key : " + key + " value : " +<span style="color: #000000;"> value);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">读取元素</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String get(String key) {
+        System.out.println(</span>"开始读取key : " +<span style="color: #000000;"> key);
+        String value </span>=<span style="color: #000000;"> cache.get(key);
+        System.out.println(</span>"读取成功key : " + key + " value : " +<span style="color: #000000;"> value);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        TestWriteLock test </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> TestWriteLock();
+        Thread readThread </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Runnable() {
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; 10; i++<span style="color: #000000;">) {
+                    test.put(</span>"i", i + ""<span style="color: #000000;">);
+                }
+            }
+        });
+
+        Thread writeThread </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Runnable() {
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; 10; i++<span style="color: #000000;">) {
+                    test.get(</span>"i"<span style="color: #000000;">);
+                }
+            }
+        });
+
+        readThread.start();
+        writeThread.start();
+    }
+}</span></code></pre>
+
+<p>观察打印：发现不合理</p>
+<src class="cnblogs_code">
+<pre><code>开始写入key : i value : 0<span style="color: #000000;">
+开始读取key : i
+读取成功key : i value : </span><span style="color: #0000ff;">null</span><span style="color: #000000;">
+.................................</span></code></pre>
+
+<p>分析：在没有写入完成的时候，就开始了读取，得到的结果为空</p>
+<p>&nbsp;</p>
+<p>解决：</p>
+<p>1.使用synchronized，虽然可以解决，但是效率低下，写操作同时不能读，产生阻塞</p>
+<p>2.使用读写锁</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestWriteLock {
+
+    Map</span>&lt;String, String&gt; cache = <span style="color: #0000ff;">new</span> HashMap&lt;&gt;<span style="color: #000000;">();
+
+    ReentrantReadWriteLock lock </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ReentrantReadWriteLock();
+    ReentrantReadWriteLock.WriteLock writeLock </span>=<span style="color: #000000;"> lock.writeLock();
+    ReentrantReadWriteLock.ReadLock readLock </span>=<span style="color: #000000;"> lock.readLock();
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">写入元素</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> put(String key, String value) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            writeLock.lock();
+            System.out.println(</span>"开始写入key : " + key + " value : " +<span style="color: #000000;"> value);
+            Thread.sleep(</span>50<span style="color: #000000;">);
+            cache.put(key, value);
+            System.out.println(</span>"完成写入key : " + key + " value : " +<span style="color: #000000;"> value);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+            writeLock.unlock();
+        }
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">读取元素</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String get(String key) {
+        String value </span>= ""<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            readLock.lock();
+            System.out.println(</span>"开始读取key : " +<span style="color: #000000;"> key);
+            value </span>=<span style="color: #000000;"> cache.get(key);
+            System.out.println(</span>"读取成功key : " + key + " value : " +<span style="color: #000000;"> value);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+            readLock.unlock();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        TestWriteLock test </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> TestWriteLock();
+        Thread readThread </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Runnable() {
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; 10; i++<span style="color: #000000;">) {
+                    test.put(</span>"i", i + ""<span style="color: #000000;">);
+                }
+            }
+        });
+
+        Thread writeThread </span>= <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Runnable() {
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; 10; i++<span style="color: #000000;">) {
+                    test.get(</span>"i"<span style="color: #000000;">);
+                }
+            }
+        });
+        readThread.start();
+        writeThread.start();
+    }
+}</span></code></pre>
+
+<p>观察打印：完美解决</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 14pt;">乐观锁：</span></strong></p>
+<p>简单来讲，乐观锁就是没有锁，无阻塞无等待</p>
+<p>一条SQL语句做示范：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">UPDATE</span> <span style="color: #0000ff;">TABLE</span> <span style="color: #0000ff;">SET</span> X<span style="color: #808080;">=</span>X<span style="color: #808080;">+</span><span style="color: #800000; font-weight: bold;">1</span>,VERSION<span style="color: #808080;">=</span>VERSION<span style="color: #808080;">+</span><span style="color: #800000; font-weight: bold;">1</span> <span style="color: #0000ff;">WHERE</span> ID<span style="color: #808080;">=</span>#{id} <span style="color: #808080;">AND</span> VERSION<span style="color: #808080;">=</span>#{version}</code></pre>
+
+<p>&nbsp;在高并发地情况下，假设初始version是1，请求1到来，根据id和version能查到，所以允许更新</p>
+<p>&nbsp;请求2同时做操作，但是根据id和version已经查不到了（被请求1修改了），所以不允许更新</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 14pt;">悲观锁：</span></strong></p>
+<p>简单来讲，重量级锁， 会阻塞，会进行等待</p>
+<p>可以理解为上锁之后只允许一个线程来操作，也就是Java中的synchronized</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 14pt;">原子类：</span></strong></p>
+<p>一段模拟线程安全问题的代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ThreadTest <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable {
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> count = 1<span style="color: #000000;">;
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+        </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+            Integer count </span>=<span style="color: #000000;"> getCount();
+            </span><span style="color: #0000ff;">if</span> (count &gt;= 100<span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            }
+            System.out.println(count);
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span><span style="color: #000000;"> Integer getCount() {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            Thread.sleep(</span>100<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span> count++<span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        ThreadTest t </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ThreadTest();
+        </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(t).start();
+        </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(t).start();
+    }
+
+}</span></code></pre>
+
+<p>观察打印后发现果然出现了线程安全问题</p>
+<p>&nbsp;</p>
+<p>一种修改方式：效率较低</p>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> Integer getCount() {</code></pre>
+
+<p>&nbsp;</p>
+<p>使用原子类：乐观锁，底层没有加锁，使用CAS无锁技术</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ThreadTest <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable {
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 线程安全</span>
+    <span style="color: #0000ff;">private</span> AtomicInteger atomicInteger = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AtomicInteger();
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+        </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+            Integer count </span>=<span style="color: #000000;"> getCount();
+            </span><span style="color: #0000ff;">if</span> (count &gt;= 100<span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            }
+            System.out.println(count);
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getCount() {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            Thread.sleep(</span>100<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> atomicInteger.incrementAndGet();
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        ThreadTest t </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ThreadTest(); 
+        </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(t).start();
+        </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(t).start();
+    }
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 14pt;"><span style="color: #ff0000;">CAS无锁技术（Compare And Swap）</span>：</span></strong></p>
+<p>翻译过来为：比较再交换</p>
+<p>本地内存中存放共享内存的副本</p>
+<p>比如主内存中有i=0，复制到两个线程的本地内存中</p>
+<p>两个线程执行了i++，本地内存都变成i=1，然后刷新入主内存</p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong>CAS算法：</strong></span></p>
+<p>它包含三个参数CAS(V,E,N):</p>
+<p>V表示要更新的变量（主内存）</p>
+<p>E表示预期值（本地内存）</p>
+<p>N表示新值（新值）</p>
+<p>仅当V值等于E值时（主内存=本地内存），才会将V的值设为N</p>
+<p>如果V值和E值不同（主内存!=本地内存），则说明已经有其他线程做了更新，则当前线程什么都不做</p>
+<p>最后，CAS返回当前V的真实值。</p>
+<p>&nbsp;</p>
+<p>观察原子类的源码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">    /**</span><span style="color: #008000;"> 
+     * Atomically increments by one the current value. 
+     * 
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the updated value 
+     </span><span style="color: #008000;">*/</span>  
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> incrementAndGet() {  
+        </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (;;) {  
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获取当前值  </span>
+            <span style="color: #0000ff;">int</span> current =<span style="color: #000000;"> get();  
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置期望值  </span>
+            <span style="color: #0000ff;">int</span> next = current + 1<span style="color: #000000;">;  
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">调用Native方法compareAndSet，执行CAS操作  </span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;"> (compareAndSet(current, next))  
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">成功后才会返回期望值，否则无线循环  </span>
+                <span style="color: #0000ff;">return</span><span style="color: #000000;"> next;  
+        }  
+    }  </span></code></pre>
+
+<p>&nbsp;</p>
+<p><strong><span style="color: #ff0000;">CAS无锁机制的缺点：</span></strong></p>
+<p>1.死循环</p>
+<p>2.ABA问题：如果变量V初次读取的时候是A，并且在准备赋值的时候检查到它仍然是A，那能说明它的值没有被其他线程修改过了吗</p>
+<p>（如果在这段期间曾经被改成B，然后又改回A，那CAS操作就会误认为它从来没有被修改过。针对这种情况，java并发包中提供了一个带有标记的原子引用类AtomicStampedReference，它可以通过控制变量值的版本来保证CAS的正确性。）</p>
+<p>&nbsp;</p>
+<p>JVM数据同步：采用分布式锁</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 14pt;"><strong>自旋锁和互斥锁的区别：</strong></span></p>
+<p>悲观和乐观锁的区别，自旋锁是死循环不会阻塞，互斥锁是同一时间只有一个线程访问数据</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

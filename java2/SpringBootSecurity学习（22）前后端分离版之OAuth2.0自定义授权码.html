@@ -1,0 +1,61 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码</center></div><div class='banquan'>原文出处:本文由博客园博主程序员郭艺宾提供。<br/>
+原文连接:https://www.cnblogs.com/guos/p/11673798.html</div><br>
+    <h1 id="使用jdbc维护授权码">使用JDBC维护授权码</h1>
+<p>前面的代码中，测试流程第一步都是获取授权码，然后再携带授权码去申请令牌，授权码示例如下：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码0.png" alt="file" /></p>
+<p>产生的授权码默认是 6 位的，产生以后并没有做任何管理，可以说是一个临时性的授权码，oauth2也提供了将授权码使用jdbc进行管理的功能，首先在数据库中创建表 oauth_code ：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码1.png" alt="file" /></p>
+<ul>
+<li><p>code：存储服务端系统生成的code的值(未加密)</p></li>
+<li><p>authentication：存储将AuthorizationRequestHolder.java对象序列化后的二进制数据.</p></li>
+</ul>
+<p>然后创建bean JdbcAuthorizationCodeServices：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码2.png" alt="file" /></p>
+<p>最后在endpoints 中配置 authorizationCodeServices 方法：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码3.png" alt="file" /></p>
+<p>这样配置就完成了，我们重启项目，多申请几个授权码，可以看到数据库中有授权码的保存记录：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码4.png" alt="file" /></p>
+<h1 id="修改授权码的长度">修改授权码的长度</h1>
+<p>授权码是6位随机的字符串，可以有人会觉得不安全，希望长一些。我们可以自定义 AuthorizationCodeServices ：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码5.png" alt="file" /></p>
+<p>在原来的 JdbcAuthorizationCodeServices 中，授权码的生成是其父类 RandomValueAuthorizationCodeServices 生成的，使用的是 RandomValueStringGenerator 类，这个类默认的构造器使用的就是6位长度：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码6.png" alt="file" /></p>
+<p>不过类中也包含了自定义长度的构造器：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码7.png" alt="file" /></p>
+<p>因此我们可以在自定义的类中自定义长度：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码8.png" alt="file" /></p>
+<p>然后将自定义的bean修改为自定义的类：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码9.png" alt="file" /></p>
+<p>看一下授权码变长后的效果：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码10.png" alt="file" /></p>
+<p>来看一下授权码管理的实现类有哪些：</p>
+<p><img src="./images/SpringBootSecurity学习（22）前后端分离版之OAuth2.0自定义授权码11.png" alt="file" /></p>
+<p>只有内存模式和jdbc模式，如果想实现redis模式，需要自己去实现接口或者继承 RandomValueAuthorizationCodeServices 类，这里不再演示。</p>
+<p>代码地址：<a href="https://gitee.com/blueses/spring-boot-security" class="uri">https://gitee.com/blueses/spring-boot-security</a> 28</p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn?from=article_bottom">OpenWrite</a> 发布！</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

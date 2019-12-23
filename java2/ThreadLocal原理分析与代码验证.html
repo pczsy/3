@@ -1,0 +1,672 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ThreadLocal原理分析与代码验证' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ThreadLocal原理分析与代码验证</center></div><div class='banquan'>原文出处:本文由博客园博主明年我18提供。<br/>
+原文连接:https://www.cnblogs.com/default/p/11918324.html</div><br>
+    <p>ThreadLocal提供了线程安全的数据存储和访问方式，利用不带key的get和set方法，居然能做到线程之间隔离，非常神奇。</p>
+<p>比如</p>
+<pre><code><code>ThreadLocal&lt;String&gt; threadLocal = new ThreadLocal&lt;&gt;();</code></code></pre>
+<p>in thread 1</p>
+<pre><code><code>//in thread1
+treadLocal.set(&quot;value1&quot;);
+.....
+//value的值是value1
+String value = threadLocal.get();</code></code></pre>
+<p>in thread 2</p>
+<pre><code><code>//in thread2
+treadLocal.set(&quot;value2&quot;);
+.....
+//value的值是value2
+String value = threadLocal.get();</code></code></pre>
+<p>不论thread1和thread2是不是同时执行，都不会有线程安全问题，我们来测试一下。</p>
+<h2 id="线程安全测试">线程安全测试</h2>
+<p>开10个线程，每个线程内都对同一个ThreadLocal对象set不同的值，会发现ThreadLocal在每个线程内部get出来的值，只会是自己线程内set进去的值，不会被别的线程影响。</p>
+<pre><code><code>static void testUsage() throws InterruptedException {
+    Utils.println(&quot;-------------testUsage-------------------&quot;);
+    ThreadLocal&lt;Long&gt; threadLocal = new ThreadLocal&lt;&gt;();
+
+    AtomicBoolean threadSafe = new AtomicBoolean(true);
+    int count = 10;
+    CountDownLatch countDownLatch = new CountDownLatch(count);
+    Random random = new Random(736832);
+    for (int i = 0; i &lt; count; i ++){
+        new Thread(() -&gt; {
+            try {
+                //生成一个随机数
+                Long value = System.nanoTime() + random.nextInt();
+                threadLocal.set(value);
+                Thread.sleep(1000);
+
+                Long value2 = threadLocal.get();
+                if (!value.equals(value2)) {
+                    //get和set的value不一致，说明被别的线程修改了，但这是不可能出现的
+                    threadSafe.set(false);
+                    Utils.println(&quot;thread unsafe, this could not be happen!&quot;);
+                }
+            } catch (InterruptedException e) {
+
+            }finally {
+                countDownLatch.countDown();
+            }
+
+        }).start();
+    }
+
+    countDownLatch.await();
+
+    Utils.println(&quot;all thread done, and threadSafe is &quot; + threadSafe.get());
+    Utils.println(&quot;------------------------------------------&quot;);
+}</code></code></pre>
+<p>输出：</p>
+<pre><code><code>-------------testUsage------------------
+all thread done, and threadSafe is true
+-----------------------------------------</code></code></pre>
+<h2 id="原理浅析">原理浅析</h2>
+<p>翻开ThreadLocal的源码，会发现ThreadLocal只是一个空壳子，它并不存储具体的value，而是利用当前线程（Thread.currentThread()）的threadLocalMap来存储value，key就是这个threadLocal对象本身。</p>
+<pre><code><code>public void set(T value) {
+    Thread t = Thread.currentThread();
+    ThreadLocalMap map = getMap(t);
+    if (map != null)
+        map.set(this, value);
+    else
+        createMap(t, value);
+}
+
+ThreadLocalMap getMap(Thread t) {
+    return t.threadLocals;
+}</code></code></pre>
+<p>Thread的threadLocals字段是ThreadLocalMap类型（你可以简单理解为一个key value的Map），key是ThreadLocal对象，value是我们在外层设置的值</p>
+<ul>
+<li>当我们调用threadLocal.set(value)方法的时候，会找到当前线程的threadLocals这个map，然后以this作为key去set key value</li>
+<li>当我们调用threadLocal.get()方法的时候，会找到当前线程的threadLocals这个map，然后以this作为key去get value</li>
+<li>当我们调用threadLocal.remove()方法的时候，会找到当前线程的threadLocals这个map，然后以this作为key去remove</li>
+</ul>
+<p>这就相当于：</p>
+<pre><code><code>Thread.currentThread().threadLocals.set(threadLocal1, &quot;value1&quot;);
+.....
+//value的值是value1
+String value = Thread.currentThread().threadLocals.get(threadLocal1);</code></code></pre>
+<p>因为每个Thread都是不同的对象，所以他们的threadLocals也是不同的map，threadLocal在不同的线程里工作时，实际上是从不同的map里get/set，这也就是线程安全的原因了，了解到这一点就差不多了。</p>
+<h2 id="再深入一些threadlocalmap的结构">再深入一些，ThreadLocalMap的结构</h2>
+<p>如果继续翻ThreadLocalMap的源码，会发现它有个字段table，是Entry类型的数组。</p>
+<p>我们不妨写段代码，把ThreadLocalMap的结构输出出来。</p>
+<p>由于Thread.threadLocals和ThreadLocalMap类不是public的，我们只有通过反射来获取它的值。反射的代码如下（如果嫌长可以不看，直接看输出）：</p>
+<pre class="[java]"><code>static Object getThreadLocalMap(Thread thread) throws NoSuchFieldException, IllegalAccessException {        
+    //get thread.threadLocals
+    Field threadLocals = Thread.class.getDeclaredField(&quot;threadLocals&quot;);
+    threadLocals.setAccessible(true);
+    return threadLocals.get(thread);
+}
+
+static void printThreadLocalMap(Object threadLocalMap) throws NoSuchFieldException, IllegalAccessException {
+    String threadName = Thread.currentThread().getName();
+    
+    if(threadLocalMap == null){
+        Utils.println(&quot;threadMap is null, threadName:&quot; + threadName);
+        return;
+    }
+
+    Utils.println(threadName);
+
+    //get threadLocalMap.table
+    Field tableField = threadLocalMap.getClass().getDeclaredField(&quot;table&quot;);
+    tableField.setAccessible(true);
+    Object[] table = (Object[])tableField.get(threadLocalMap);
+    Utils.println(&quot;----threadLocals (ThreadLocalMap), table.length = &quot; + table.length);
+
+    for (int i = 0; i &lt; table.length; i ++){
+        WeakReference&lt;ThreadLocal&lt;?&gt;&gt; entry = (WeakReference&lt;ThreadLocal&lt;?&gt;&gt;)table[i];
+        printEntry(entry, i);
+    }
+}
+static void printEntry(WeakReference&lt;ThreadLocal&lt;?&gt;&gt; entry, int i) throws NoSuchFieldException, IllegalAccessException {
+    if(entry == null){
+        Utils.println(&quot;--------table[&quot; + i + &quot;] -&gt; null&quot;);
+        return;
+    }
+    ThreadLocal key = entry.get();
+    //get entry.value
+    Field valueField = entry.getClass().getDeclaredField(&quot;value&quot;);
+    valueField.setAccessible(true);
+    Object value = valueField.get(entry);
+
+    Utils.println(&quot;--------table[&quot; + i + &quot;] -&gt; entry key = &quot; + key + &quot;, value = &quot; + value);
+}</code></code></pre>
+<p>测试代码：</p>
+<pre><code><code>static void testStructure() throws InterruptedException {
+    Utils.println(&quot;-------------testStructure----------------&quot;);
+    ThreadLocal&lt;String&gt; threadLocal1 = new ThreadLocal&lt;&gt;();
+    ThreadLocal&lt;String&gt; threadLocal2 = new ThreadLocal&lt;&gt;();
+
+    Thread thread1 = new Thread(() -&gt; {
+        threadLocal1.set(&quot;threadLocal1-value&quot;);
+        threadLocal2.set(&quot;threadLocal2-value&quot;);
+
+        try {
+            Object threadLocalMap = getThreadLocalMap(Thread.currentThread());
+            printThreadLocalMap(threadLocalMap);
+
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+    }, &quot;thread1&quot;);
+
+    thread1.start();
+
+    //wait thread1 done
+    thread1.join();
+
+    Thread thread2 = new Thread(() -&gt; {
+        threadLocal1.set(&quot;threadLocal1-value&quot;);
+        try {
+            Object threadLocalMap = getThreadLocalMap(Thread.currentThread());
+            printThreadLocalMap(threadLocalMap);
+
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+    }, &quot;thread2&quot;);
+
+    thread2.start();
+    thread2.join();
+    Utils.println(&quot;------------------------------------------&quot;);
+}</code></code></pre>
+<p>我们在创建了两个ThreadLocal的对象threadLocal1和threadLocal2，在线程1里为这两个对象设置值，在线程2里只为threadLocal1设置值。然后分别打印出这两个线程的threadLocalMap。</p>
+<p>输出结果为：</p>
+<pre><code><code>-------------testStructure----------------
+thread1
+----threadLocals (ThreadLocalMap), table.length = 16
+--------table[0] -&gt; null
+--------table[1] -&gt; entry key = java.lang.ThreadLocal@33baa315, value = threadLocal2-value
+--------table[2] -&gt; null
+--------table[3] -&gt; null
+--------table[4] -&gt; null
+--------table[5] -&gt; null
+--------table[6] -&gt; null
+--------table[7] -&gt; null
+--------table[8] -&gt; null
+--------table[9] -&gt; null
+--------table[10] -&gt; entry key = java.lang.ThreadLocal@4d42db5c, value = threadLocal1-value
+--------table[11] -&gt; null
+--------table[12] -&gt; null
+--------table[13] -&gt; null
+--------table[14] -&gt; null
+--------table[15] -&gt; null
+thread2
+----threadLocals (ThreadLocalMap), table.length = 16
+--------table[0] -&gt; null
+--------table[1] -&gt; null
+--------table[2] -&gt; null
+--------table[3] -&gt; null
+--------table[4] -&gt; null
+--------table[5] -&gt; null
+--------table[6] -&gt; null
+--------table[7] -&gt; null
+--------table[8] -&gt; null
+--------table[9] -&gt; null
+--------table[10] -&gt; entry key = java.lang.ThreadLocal@4d42db5c, value = threadLocal1-value
+--------table[11] -&gt; null
+--------table[12] -&gt; null
+--------table[13] -&gt; null
+--------table[14] -&gt; null
+--------table[15] -&gt; null
+------------------------------------------</code></code></pre>
+<p>从结果上可以看出：</p>
+<ul>
+<li>线程1和线程2的threadLocalMap对象的table字段,是个数组，长度都是16</li>
+<li>由于线程1里给两个threadLocal对象设置了值，所以线程1的ThreadLocalMap里有两个entry，数组下标分别是1和10，其余的是null（如果你自己写代码验证，下标不一定是1和10，不需要纠结这个问题，只要前后对的上就行）</li>
+<li>由于线程2里只给一个threadLocal对象设置了值，所以线程1的ThreadLocalMap里只有一个entry，数组下标是10，其余的是null</li>
+<li>threadLocal1这个对象在两个线程里都设置了值，所以当它作为key加入二者的threadLocalMap时，key是一样的，都是java.lang.ThreadLocal@4d42db5c；下标也是一样的，都是10。</li>
+</ul>
+<h2 id="为什么是weakreference">为什么是WeakReference</h2>
+<p>查看Entry的源码，会发现Entry继承自WeakReference：</p>
+<pre><code><code>static class Entry extends WeakReference&lt;ThreadLocal&lt;?&gt;&gt; {
+    /** The value associated with this ThreadLocal. */
+    Object value;
+
+    Entry(ThreadLocal&lt;?&gt; k, Object v) {
+        super(k);
+        value = v;
+    }
+}</code></code></pre>
+<p>构造函数里把key传给了super，也就是说，ThreadLocalMap中对key的引用，是WeakReference的。</p>
+<blockquote>
+<p>Weak reference objects, which do not prevent their referents from being<br />
+made finalizable, finalized, and then reclaimed. Weak references are most<br />
+often used to implement canonicalizing mappings.</p>
+</blockquote>
+<p>通俗点解释：</p>
+<blockquote>
+<p>当一个对象仅仅被weak reference（弱引用）, 而没有任何其他strong reference（强引用）的时候, 不论当前的内存空间是否足够，当GC运行的时候， 这个对象就会被回收。</p>
+</blockquote>
+<p>看不明白没关系，还是写代码测试一下什么是WeakReference吧...</p>
+<pre><code><code>static void testWeakReference(){
+    Object obj1 = new Object();
+    Object obj2 = new Object();
+    WeakReference&lt;Object&gt; obj1WeakRef = new WeakReference&lt;&gt;(obj1);
+    WeakReference&lt;Object&gt; obj2WeakRf = new WeakReference&lt;&gt;(obj2);
+    //obj32StrongRef是强引用
+    Object obj2StrongRef = obj2;
+    Utils.println(&quot;before gc: obj1WeakRef = &quot; + obj1WeakRef.get() + &quot;, obj2WeakRef = &quot; + obj2WeakRf.get() + &quot;, obj2StrongRef = &quot; + obj2StrongRef);
+
+    //把obj1和obj2设为null
+    obj1 = null;
+    obj2 = null;
+    //强制gc
+    forceGC();
+
+    Utils.println(&quot;after gc: obj1WeakRef = &quot; + obj1WeakRef.get() + &quot;, obj2WeakRef = &quot; + obj2WeakRf.get() + &quot;, obj2StrongRef = &quot; + obj2StrongRef);
+}</code></code></pre>
+<p>结果输出：</p>
+<pre><code><code>before gc: obj1WeakRef = java.lang.Object@4554617c, obj2WeakRef = java.lang.Object@74a14482, obj2StrongRef = java.lang.Object@74a14482
+after gc: obj1WeakRef = null, obj2WeakRef = java.lang.Object@74a14482, obj2StrongRef = java.lang.Object@74a14482</code></code></pre>
+<p>从结果上可以看出：</p>
+<ul>
+<li>我们先new了两个对象（为避免混淆，称他们为Object1和Object2），分别用变量obj1和obj2指向它们，同时定义了一个obj2StrongRef，也指向Object2，最后把obj1和obj2均指向null</li>
+<li>由于Object1没有变量强引用它了，所以在gc后，Object1被回收了，obj1WeakRef.get()返回了null</li>
+<li>由于Object2还有obj2StrongRef在引用它，所以gc后，Object2依然存在，没有被回收。</li>
+</ul>
+<p>那么，ThreadLocalMap中对key的引用，为什么是WeakReference的呢？</p>
+<h3 id="因为大部分情况下线程不死">因为大部分情况下，线程不死</h3>
+<p>大部分情况下，线程不会频繁的创建和销毁，一般都会用线程池。所以线程对象一般不会被清除，线程的threadLocalMap就一直存在。<br />
+如果key对ThreadLocal是强引用，那么key永远不会被回收，即使我们程序里再也不用它了。</p>
+<p>但是key是弱引用的话，情况就会得到改善：只要没有指向threadLocal的强引用了，这个ThreadLocal对象就会被清理。</p>
+<p>我们还是写代码测试一下吧。</p>
+<pre><code><code>/**
+ * 测试ThreadLocal对象什么时候被回收
+ * @throws InterruptedException
+ */
+static void testGC() throws InterruptedException {
+    Utils.println(&quot;-----------------testGC-------------------&quot;);
+    Thread thread1 = new Thread(() -&gt; {
+        ThreadLocal&lt;String&gt; threadLocal1 = new ThreadLocal&lt;&gt;();
+        ThreadLocal&lt;String&gt; threadLocal2 = new ThreadLocal&lt;&gt;();
+
+        threadLocal1.set(&quot;threadLocal1-value&quot;);
+        threadLocal2.set(&quot;threadLocal2-value&quot;);
+
+        try {
+            Object threadLocalMap = getThreadLocalMap(Thread.currentThread());
+            Utils.println(&quot;print threadLocalMap before gc&quot;);
+            printThreadLocalMap(threadLocalMap);
+
+            //set threadLocal1 unreachable
+            threadLocal1 = null;
+
+            forceGC();
+
+            Utils.println(&quot;print threadLocalMap after gc&quot;);
+            printThreadLocalMap(threadLocalMap);
+
+
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+    }, &quot;thread1&quot;);
+
+    thread1.start();
+    thread1.join();
+    Utils.println(&quot;------------------------------------------&quot;);
+}
+</code></code></pre>
+<p>我们在一个线程里为两个ThreadLocal对象赋值，最后把其中一个对象的强引用移除，gc后打印当前线程的threadLocalMap。<br />
+输出结果如下：</p>
+<pre><code><code>-----------------testGC-------------------
+print threadLocalMap before gc
+thread1
+----threadLocals (ThreadLocalMap), table.length = 16
+--------table[0] -&gt; null
+--------table[1] -&gt; entry key = java.lang.ThreadLocal@7bf9cebf, value = threadLocal2-value
+--------table[2] -&gt; null
+--------table[3] -&gt; null
+--------table[4] -&gt; null
+--------table[5] -&gt; null
+--------table[6] -&gt; null
+--------table[7] -&gt; null
+--------table[8] -&gt; null
+--------table[9] -&gt; null
+--------table[10] -&gt; entry key = java.lang.ThreadLocal@56342d38, value = threadLocal1-value
+--------table[11] -&gt; null
+--------table[12] -&gt; null
+--------table[13] -&gt; null
+--------table[14] -&gt; null
+--------table[15] -&gt; null
+print threadLocalMap after gc
+thread1
+----threadLocals (ThreadLocalMap), table.length = 16
+--------table[0] -&gt; null
+--------table[1] -&gt; entry key = java.lang.ThreadLocal@7bf9cebf, value = threadLocal2-value
+--------table[2] -&gt; null
+--------table[3] -&gt; null
+--------table[4] -&gt; null
+--------table[5] -&gt; null
+--------table[6] -&gt; null
+--------table[7] -&gt; null
+--------table[8] -&gt; null
+--------table[9] -&gt; null
+--------table[10] -&gt; entry key = null, value = threadLocal1-value
+--------table[11] -&gt; null
+--------table[12] -&gt; null
+--------table[13] -&gt; null
+--------table[14] -&gt; null
+--------table[15] -&gt; null
+------------------------------------------</code></code></pre>
+<p>从输出结果可以看到，当我们把threadLocal1的强引用移除并gc之后，table[10]的key变成了null，说明threadLocal1这个对象被回收了；threadLocal2的强引用还在，所以table[1]的key不是null，没有被回收。</p>
+<p>但是你发现没有，table[10]的key虽然是null了，但value还活着！ table[10]这个entry对象，也活着！</p>
+<p>是的，因为只有key是WeakReference....</p>
+<h3 id="无用的entry什么时候被回收">无用的entry什么时候被回收？</h3>
+<p>通过查看ThreadLocal的源码，发现在ThreadLocal对象的get/set/remove方法执行时，都有机会清除掉map中已经无用的entry。</p>
+<p>最容易验证清除无用entry的场景分别是：</p>
+<ul>
+<li>remove：这个不用说了，这哥们本来就是做这个的</li>
+<li>get：当一个新的threadLocal对象（没有set过value）发生get调用时，也会作为新的entry加入map，在加入的过程中，有机会清除掉无用的entry，逻辑和下面的set相同。</li>
+<li>set: 当一个新的threadLocal对象（没有set过value）发生set调用时，会在map中加入新的entry，此时有机会清除掉无用的entry，清除的逻辑是：
+<ul>
+<li>清除掉table数组中的那些无用entry中的一部分，记住是一部分，这个一部分可能全部，也可能是0，具体算法请看ThreadLocalMap.cleanSomeSlots，这里不解释了。</li>
+<li>如果上一步的&quot;一部分&quot;是0（即清除了0个），并且map的size（是真实size，不是table.length）大于等于threshold（table.length的2/3），会执行一次rehash，在rehash的过程中，清理掉所有无用的entry，并减小size，清理后的size如果还大于等于threshold - threshold/4，则把table扩容为原来的两倍大小。</li>
+</ul></li>
+</ul>
+<p>还有其他场景，但不好验证，这里就不提了。</p>
+<p>ThreadLocal源码就不贴了，贴了也讲不明白，相关逻辑在setInitialValue、cleanSomeSlots、expungeStaleEntries、rehash、resize等方法里。</p>
+<p>在我们写代码验证entry回收逻辑之前，还需要简单的提一下ThreadLocalMap的hash算法。</p>
+<h4 id="entry数组的下标如何确定">entry数组的下标如何确定？</h4>
+<p>每个ThreadLocal对象，都有一个threadLocalHashCode变量，在加入ThreadLocalMap的时候，根据这个threadLocalHashCode的值，对entry数组的长度取余(hash &amp; (len - 1))，余数作为下标。</p>
+<p>那么threadLocalHashCode是怎么计算的呢？看源码：</p>
+<pre><code><code>public class ThreadLocal&lt;T&gt;{
+    private final int threadLocalHashCode = nextHashCode();
+    private static AtomicInteger nextHashCode = new AtomicInteger();
+
+    private static final int HASH_INCREMENT = 0x61c88647;
+
+    private static int nextHashCode() {
+        return nextHashCode.getAndAdd(HASH_INCREMENT);
+    }
+    ...
+}</code></code></pre>
+<p>ThreadLocal类维护了一个全局静态字段nextHashCode，每new一个ThreadLocal对象，nextHashCode都会递增0x61c88647，作为下一个ThreadLocal对象的threadLocalHashCode。</p>
+<p>这个0x61c88647，是个神奇的数字，只要以它为递增值，那么和2的N次方取余时，在有限的次数内不会发生重复。<br />
+比如和16取余，那么在16次递增内，不会发生重复。还是写代码验证一下吧。</p>
+<pre><code><code>int hashCode = 0;
+int HASH_INCREMENT = 0x61c88647;
+int length = 16;
+
+for(int i = 0; i &lt; length ; i ++){
+    int h = hashCode &amp; (length - 1);
+    hashCode += HASH_INCREMENT;
+    System.out.println(&quot;h = &quot; + h + &quot;, i = &quot; + i);
+}</code></code></pre>
+<p>输出结果为：</p>
+<pre><code><code>h = 0, i = 0
+h = 7, i = 1
+h = 14, i = 2
+h = 5, i = 3
+h = 12, i = 4
+h = 3, i = 5
+h = 10, i = 6
+h = 1, i = 7
+h = 8, i = 8
+h = 15, i = 9
+h = 6, i = 10
+h = 13, i = 11
+h = 4, i = 12
+h = 11, i = 13
+h = 2, i = 14
+h = 9, i = 15
+</code></code></pre>
+<p>你看，h的值在16次递增内，没有发生重复。 但是要记住，2的N次方作为长度才会有这个效果，这也解释了为什么ThreadLocalMap的entry数组初始长度是16，每次都是2倍的扩容。</p>
+<h4 id="验证新threadlocal的get和set时回收部分无效的entry">验证新threadLocal的get和set时回收部分无效的entry</h4>
+<p>为了验证出结果，我们需要先给ThreadLocal的nextHashCode重置一个初始值，这样在测试的时候，每个threadLocal的数组下标才会按照我们设计的思路走。</p>
+<pre><code><code>static void resetNextHashCode() throws NoSuchFieldException, IllegalAccessException {
+    Field nextHashCodeField = ThreadLocal.class.getDeclaredField(&quot;nextHashCode&quot;);
+    nextHashCodeField.setAccessible(true);
+    nextHashCodeField.set(null, new AtomicInteger(1253254570));
+}</code></code></pre>
+<p>然后在测试代码里，我们先调用resetNextHashCode方法，然后加两个ThreadLocal对象并set值，gc前把强引用去除，gc后再new两个新的theadLocal对象，分别调用他们的get和set方法。<br />
+在每个关键点打印出threadLocalMap做比较。</p>
+<pre><code><code>static void testExpungeSomeEntriesWhenGetOrSet() throws InterruptedException {
+    Utils.println(&quot;----------testExpungeStaleEntries----------&quot;);
+    Thread thread1 = new Thread(() -&gt; {
+        try {
+            resetNextHashCode();
+
+            //注意，这里必须有两个ThreadLocal，才能验证出threadLocal1被清理
+            ThreadLocal&lt;String&gt; threadLocal1 = new ThreadLocal&lt;&gt;();
+            ThreadLocal&lt;String&gt; threadLocal2 = new ThreadLocal&lt;&gt;();
+
+            threadLocal1.set(&quot;threadLocal1-value&quot;);
+            threadLocal2.set(&quot;threadLocal2-value&quot;);
+
+
+            Object threadLocalMap = getThreadLocalMap(Thread.currentThread());
+            //set threadLocal1 unreachable
+            threadLocal1 = null;
+            threadLocal2 = null;
+            forceGC();
+
+            Utils.println(&quot;print threadLocalMap after gc&quot;);
+            printThreadLocalMap(threadLocalMap);
+
+            ThreadLocal&lt;String&gt; newThreadLocal1 = new ThreadLocal&lt;&gt;();
+            newThreadLocal1.get();
+            Utils.println(&quot;print threadLocalMap after call a new newThreadLocal1.get&quot;);
+            printThreadLocalMap(threadLocalMap);
+
+            ThreadLocal&lt;String&gt; newThreadLocal2 = new ThreadLocal&lt;&gt;();
+            newThreadLocal2.set(&quot;newThreadLocal2-value&quot;);
+            Utils.println(&quot;print threadLocalMap after call a new newThreadLocal2.set&quot;);
+            printThreadLocalMap(threadLocalMap);
+
+
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            e.printStackTrace();
+        }
+
+    }, &quot;thread1&quot;);
+
+    thread1.start();
+    thread1.join();
+    Utils.println(&quot;------------------------------------------&quot;);
+}</code></code></pre>
+<p>程序输出结果为：</p>
+<pre><code><code>----------testExpungeStaleEntries----------
+print threadLocalMap after gc
+thread1
+----threadLocals (ThreadLocalMap), table.length = 16
+--------table[0] -&gt; null
+--------table[1] -&gt; entry key = null, value = threadLocal2-value
+--------table[2] -&gt; null
+--------table[3] -&gt; null
+--------table[4] -&gt; null
+--------table[5] -&gt; null
+--------table[6] -&gt; null
+--------table[7] -&gt; null
+--------table[8] -&gt; null
+--------table[9] -&gt; null
+--------table[10] -&gt; entry key = null, value = threadLocal1-value
+--------table[11] -&gt; null
+--------table[12] -&gt; null
+--------table[13] -&gt; null
+--------table[14] -&gt; null
+--------table[15] -&gt; null
+print threadLocalMap after call a new newThreadLocal1.get
+thread1
+----threadLocals (ThreadLocalMap), table.length = 16
+--------table[0] -&gt; null
+--------table[1] -&gt; entry key = null, value = threadLocal2-value
+--------table[2] -&gt; null
+--------table[3] -&gt; null
+--------table[4] -&gt; null
+--------table[5] -&gt; null
+--------table[6] -&gt; null
+--------table[7] -&gt; null
+--------table[8] -&gt; entry key = java.lang.ThreadLocal@2b63dc81, value = null
+--------table[9] -&gt; null
+--------table[10] -&gt; null
+--------table[11] -&gt; null
+--------table[12] -&gt; null
+--------table[13] -&gt; null
+--------table[14] -&gt; null
+--------table[15] -&gt; null
+print threadLocalMap after call a new newThreadLocal2.set
+thread1
+----threadLocals (ThreadLocalMap), table.length = 16
+--------table[0] -&gt; null
+--------table[1] -&gt; null
+--------table[2] -&gt; null
+--------table[3] -&gt; null
+--------table[4] -&gt; null
+--------table[5] -&gt; null
+--------table[6] -&gt; null
+--------table[7] -&gt; null
+--------table[8] -&gt; entry key = java.lang.ThreadLocal@2b63dc81, value = null
+--------table[9] -&gt; null
+--------table[10] -&gt; null
+--------table[11] -&gt; null
+--------table[12] -&gt; null
+--------table[13] -&gt; null
+--------table[14] -&gt; null
+--------table[15] -&gt; entry key = java.lang.ThreadLocal@2e93c547, value = newThreadLocal2-value
+------------------------------------------</code></code></pre>
+<p>从结果上来看，</p>
+<ul>
+<li>gc后table[1]和table[10]的key变成了null</li>
+<li>new newThreadLocal1.get后，新增了table[8]，table[10]被清理了，但table[1]还在（这就是cleanSomeSlots中some的意思）</li>
+<li>new newThreadLocal2.set后，新增了table[15]，table[1]被清理了。</li>
+</ul>
+<h4 id="验证map的size大于等于table.length的23时回收所有无效的entry">验证map的size大于等于table.length的2/3时回收所有无效的entry</h4>
+<pre><code><code>    static void testExpungeAllEntries() throws InterruptedException {
+        Utils.println(&quot;----------testExpungeStaleEntries----------&quot;);
+        Thread thread1 = new Thread(() -&gt; {
+            try {
+                resetNextHashCode();
+
+                int threshold = 16 * 2 / 3;
+                ThreadLocal[] threadLocals = new ThreadLocal[threshold - 1];
+                for(int i = 0; i &lt; threshold - 1; i ++){
+                    threadLocals[i] = new ThreadLocal&lt;String&gt;();
+                    threadLocals[i].set(&quot;threadLocal&quot; + i + &quot;-value&quot;);
+                }
+
+                Object threadLocalMap = getThreadLocalMap(Thread.currentThread());
+
+                threadLocals[1] = null;
+                threadLocals[8] = null;
+                //threadLocals[6] = null;
+                //threadLocals[4] = null;
+                //threadLocals[2] = null;
+                forceGC();
+
+                Utils.println(&quot;print threadLocalMap after gc&quot;);
+                printThreadLocalMap(threadLocalMap);
+
+                ThreadLocal&lt;String&gt; newThreadLocal1 = new ThreadLocal&lt;&gt;();
+                newThreadLocal1.set(&quot;newThreadLocal1-value&quot;);
+                Utils.println(&quot;print threadLocalMap after call a new newThreadLocal1.get&quot;);
+                printThreadLocalMap(threadLocalMap);
+
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                e.printStackTrace();
+            }
+
+        }, &quot;thread1&quot;);
+
+        thread1.start();
+        thread1.join();
+        Utils.println(&quot;------------------------------------------&quot;);
+    }
+</code></code></pre>
+<p>我们先创建了9个threadLocal对象并设置了值，然后去掉了其中2个的强引用（注意这2个可不是随意挑选的）。<br />
+gc后再添加一个新的threadLocal，最后打印出最新的map。输出为：</p>
+<pre><code><code>----------testExpungeStaleEntries----------
+print threadLocalMap after gc
+thread1
+----threadLocals (ThreadLocalMap), table.length = 16
+--------table[0] -&gt; null
+--------table[1] -&gt; entry key = null, value = threadLocal1-value
+--------table[2] -&gt; entry key = null, value = threadLocal8-value
+--------table[3] -&gt; null
+--------table[4] -&gt; entry key = java.lang.ThreadLocal@60523912, value = threadLocal6-value
+--------table[5] -&gt; null
+--------table[6] -&gt; entry key = java.lang.ThreadLocal@48fccd7a, value = threadLocal4-value
+--------table[7] -&gt; null
+--------table[8] -&gt; entry key = java.lang.ThreadLocal@188bbe72, value = threadLocal2-value
+--------table[9] -&gt; null
+--------table[10] -&gt; entry key = java.lang.ThreadLocal@19e0ebe8, value = threadLocal0-value
+--------table[11] -&gt; entry key = java.lang.ThreadLocal@688bcb6f, value = threadLocal7-value
+--------table[12] -&gt; null
+--------table[13] -&gt; entry key = java.lang.ThreadLocal@46324c19, value = threadLocal5-value
+--------table[14] -&gt; null
+--------table[15] -&gt; entry key = java.lang.ThreadLocal@38f1283, value = threadLocal3-value
+print threadLocalMap after call a new newThreadLocal1.get
+thread1
+----threadLocals (ThreadLocalMap), table.length = 32
+--------table[0] -&gt; null
+--------table[1] -&gt; null
+--------table[2] -&gt; null
+--------table[3] -&gt; null
+--------table[4] -&gt; null
+--------table[5] -&gt; null
+--------table[6] -&gt; entry key = java.lang.ThreadLocal@48fccd7a, value = threadLocal4-value
+--------table[7] -&gt; null
+--------table[8] -&gt; null
+--------table[9] -&gt; entry key = java.lang.ThreadLocal@1dae16b1, value = newThreadLocal1-value
+--------table[10] -&gt; entry key = java.lang.ThreadLocal@19e0ebe8, value = threadLocal0-value
+--------table[11] -&gt; null
+--------table[12] -&gt; null
+--------table[13] -&gt; entry key = java.lang.ThreadLocal@46324c19, value = threadLocal5-value
+--------table[14] -&gt; null
+--------table[15] -&gt; null
+--------table[16] -&gt; null
+--------table[17] -&gt; null
+--------table[18] -&gt; null
+--------table[19] -&gt; null
+--------table[20] -&gt; entry key = java.lang.ThreadLocal@60523912, value = threadLocal6-value
+--------table[21] -&gt; null
+--------table[22] -&gt; null
+--------table[23] -&gt; null
+--------table[24] -&gt; entry key = java.lang.ThreadLocal@188bbe72, value = threadLocal2-value
+--------table[25] -&gt; null
+--------table[26] -&gt; null
+--------table[27] -&gt; entry key = java.lang.ThreadLocal@688bcb6f, value = threadLocal7-value
+--------table[28] -&gt; null
+--------table[29] -&gt; null
+--------table[30] -&gt; null
+--------table[31] -&gt; entry key = java.lang.ThreadLocal@38f1283, value = threadLocal3-value
+------------------------------------------</code></code></pre>
+<p>从结果上看：</p>
+<ul>
+<li>gc后table[1]和table[2]（即threadLocal1和threadLocal8）的key变成了null</li>
+<li>加入新的threadLocal后，table的长度从16变成了32（因为此时的size是8，正好等于10 - 10/4，所以扩容），并且threadLocal1和threadLocal8这两个entry不见了。</li>
+</ul>
+<p>如果在gc前，我们把threadLocals[1、8、6、4、2]都去掉强引用，加入新threadLocal后会发现1、8、6、4、2被清除了，但没有扩容，因为此时size是5，小于10-10/4。这个逻辑就不贴测试结果了，你可以取消注释上面代码中相关的逻辑试试。</p>
+<h3 id="大部分场景下threadlocal对象的生命周期是和app一致的弱引用形同虚设">大部分场景下，ThreadLocal对象的生命周期是和app一致的，弱引用形同虚设</h3>
+<p>回到现实中。</p>
+<p>我们用ThreadLocal的目的，无非是在跨方法调用时更方便的线程安全地存储和使用变量。这就意味着ThreadLocal的生命周期很长，甚至和app是一起存活的，强引用一直在。</p>
+<p>既然强引用一直存在，那么弱引用就形同虚设了。</p>
+<p>所以在确定不再需要ThreadLocal中的值的情况下，<b>还是老老实实的调用remove方法吧！</b></p>
+<h2 id="代码地址">代码地址</h2>
+<p><a href="https://github.com/kongxiangxin/pine/tree/master/threadlocal" class="uri">https://github.com/kongxiangxin/pine/tree/master/threadlocal</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

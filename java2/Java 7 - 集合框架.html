@@ -1,0 +1,329 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java 7 - 集合框架' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java 7 - 集合框架</center></div><div class='banquan'>原文出处:本文由博客园博主CoderJerry提供。<br/>
+原文连接:https://www.cnblogs.com/yangyuanhu/p/11936272.html</div><br>
+    <p>集合从概念上来看就是一堆元素放在一起,我们其实可以使用数组来处理这样的情况(操作一堆数据),但是数组存在各种各样的限制,使用起来并不方便,因此才推出更强大的集合处理方式,即集合框架</p>
+<p>数组的问题:</p>
+<p><img src="./images/Java 7 - 集合框架0.png" alt="image-20191126160655434" /></p>
+<p>容器最基本的功能就是存储数据,取出数据,但是因为实际需求不同,比如是否有序,是否可重复,不同的数据结构,不同的存取效率等等原因,系统提供了一众不同特性的容器类,共同构成了集合框架</p>
+<p>框架体系结构:</p>
+<p><img src="./images/Java 7 - 集合框架1.png" alt="image-20191125161828534" /></p>
+<p>其中Collection接口支持(单个形式)数据的存储,而Map接口支持对键值对形式的数据的存储</p>
+<h1 id="list接口">List接口</h1>
+<h2 id="特点">特点:</h2>
+<ul>
+<li><h5 id="有序存储">有序存储</h5></li>
+<li><h5 id="可重复存储">可重复存储</h5></li>
+<li><h5 id="可存储null">可存储null</h5></li>
+<li><h5 id="提供按照索引的操作方法">提供按照索引的操作方法</h5></li>
+<li><h5 id="动态增长chang">动态增长(chang)</h5></li>
+</ul>
+<h2 id="主要实现类">主要实现类:</h2>
+<ul>
+<li><h5 id="arraylist">ArrayList</h5>
+<ul>
+<li><h5 id="对于列表尾部的插入删除效率更高">对于列表尾部的插入删除效率更高</h5></li>
+<li><h5 id="随机读取快查找快随机插入删除慢">随机读取快,查找快,随机插入删除慢</h5></li>
+<li><h5 id="底层使用数组实现连续的内存">底层使用数组实现(连续的内存)</h5>
+<p>ps: 由于其内部使用数组,而数组容量是固定的,这就导致了,添加删除时都会引发数组的重建,以及数据的拷贝,</p>
+<p>举个例子:火焰山终于下雨了,刚开始以为只下一点点,所以找了一个杯子装,后来发现装不下了,要换一个盆(创建更大的数组),那么需要先把杯子里的水倒进盆里(数据拷贝)</p>
+<p>适用于:读取,查询操作更频繁的场景</p>
+<ul>
+<li><a href="http://www.matools.com/file/manual/jdk_api_1.8_google/java/util/ArrayList.html">使用方法</a></li>
+</ul></li>
+</ul></li>
+<li><h5 id="linkedlist">LinkedList</h5>
+<ul>
+<li><h5 id="内部使用双链表结构非连续的内存">内部使用双链表结构(非连续的内存)</h5></li>
+<li><h5 id="随机添加删除和顺序添加删除都很快">随机添加删除和顺序添加删除都很快</h5></li>
+<li><h5 id="查找慢随机读取慢">查找慢,随机读取慢</h5>
+<p>ps:由于使用的链表结构,所以添加删除时仅需要在任意内存保存数据然后将指针添加到上一个数据的结尾即可,所以这添加删除数据时比使用数组的ArrayList快很多 ,但是当需要查找数据时,就需要频繁的移动指针(地址不是连续的),造成了查询速度慢,</p>
+<p>举个例子: 你是要找王老板做生意,但是你自己不认识他,于是你就找了刘老板,刘老板也不认识他,于是刘老板找了李老板,还好最后李老板认识王老板,找到了你要找的人,期间不能跨越中间的必须一个一个找下去</p>
+<p>适用于:添加,删除操作更频繁的创建</p>
+<ul>
+<li><a href="http://www.matools.com/file/manual/jdk_api_1.8_google/java/util/LinkedList.html">使用方法</a></li>
+</ul></li>
+</ul></li>
+</ul>
+<h2 id="列表的排序">列表的排序:</h2>
+<p>LinkedList,与ArrayList 都能保证存取顺序一致,我们还可以对元素按照从小到大或是从大到小的方式来排序;</p>
+<p>排序方式1:</p>
+<pre><code><code>//调用LinkedList与ArrayList对象的sort的方法,并提供比较器
+ArrayList&lt;Person&gt; slist = new ArrayList&lt;Person&gt;();
+        slist.add(new Person(&quot;a&quot;,&quot;c&quot;));
+        slist.add(new Person(&quot;a&quot;,&quot;b&quot;));
+        slist.add(new Person(&quot;a&quot;,&quot;a&quot;));
+
+slist.sort(new Comparator&lt;Person&gt;() {
+  @Override
+  //该方法返回整型 整数代表大于,负数代表小于  0代表相等
+  public int compare(Person o1, Person o2) {
+    int a;
+    return (a =  o1.getName().compareTo(o2.getName())) != 0 ? a :   o1.getGender().compareTo(o2.getGender());
+  }
+});</code></code></pre>
+<p>排序方式二:</p>
+<pre><code><code>//1.让需要排序的独享实现Comparable接口
+//2.调用Collections提供的sort方法
+class Person implements Comparable{
+    private String name,gender;
+
+    public Person(String name, String gender) {
+        this.name = name;
+        this.gender = gender;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }    
+    @Override//参数为另一个参与比较的对象
+    public int compareTo(Object o) {
+        Person p1 = this;
+        Person p2 = (Person) o;
+        return p1.getName().compareTo(p2.getName());
+    }
+}
+
+//测试
+package com.yh.lesson.collection;
+import java.util.*;
+public class SortDemo{
+
+    public static void main(String[] args) {
+        ArrayList&lt;Person&gt; slist = new ArrayList&lt;Person&gt;();
+        slist.add(new Person(&quot;a&quot;,&quot;c&quot;));
+        slist.add(new Person(&quot;a&quot;,&quot;b&quot;));
+        slist.add(new Person(&quot;a&quot;,&quot;a&quot;));
+        Collections.sort(slist);//排序
+    }
+}</code></code></pre>
+<p>当需要降序时只需要将两个比较独享交换位置即可:(两种排序都适用)</p>
+<pre><code><code>@Override
+public int compareTo(Object o) {
+  Person p1 = this;
+  Person p2 = (Person) o;
+  return p1.getName().compareTo(p2.getName());//升序
+  return p2.getName().compareTo(p1.getName());//降序
+}</code></code></pre>
+<h1 id="set接口">Set接口</h1>
+<h2 id="主要实现类-1">主要实现类:</h2>
+<ul>
+<li><h5 id="hashset">HashSet</h5>
+<ul>
+<li>不保证迭代顺序</li>
+<li>不可存储重复元素</li>
+<li>可以存储null元素</li>
+<li>内部使用HashMap(具体参考下面HashMap内容),将所有键值对的值设置为同一个Object对象</li>
+</ul></li>
+</ul>
+<p>可以说HashSet就是对HashMap进行了简单的包装:</p>
+<p>​ 真正存储数据的容器:</p>
+<p><img src="./images/Java 7 - 集合框架2.png" alt="image-20191126141916782" /></p>
+<p>​ 包装后的添加数据的方法:</p>
+<p><img src="./images/Java 7 - 集合框架3.png" alt="image-20191126141859533" /></p>
+<h2 id="iterable接口">iterable接口</h2>
+<p>iterable叫做可迭代对象</p>
+<p>我们知道集合框架提供了很多不同的容器实现类,但是每种容器的内部实现不同,导致我们需要记忆不同的取值方法,这对于使用者来说无疑增加学习成本,所以Java统一了各种容器的取值方式,即通过iterable接口</p>
+<h5 id="好处">好处:</h5>
+<ul>
+<li><h5 id="实现了iterable的类都可以被foreach循环直接使用">实现了iterable的类都可以被foreach循环直接使用</h5></li>
+</ul>
+<h5 id="接口方法">接口方法:</h5>
+<pre><code><code>public Iterator iterator();//用于返回一个迭代器接口对象</code></code></pre>
+<h3 id="iterator接口">Iterator接口</h3>
+<p>Iterator叫做迭代器</p>
+<p>迭代器用于获取容器中的值</p>
+<h5 id="接口方法-1">接口方法:</h5>
+<pre><code><code>public boolean hasNext(); //判断是否还有下一个
+public Integer next();//获取下一个的值</code></code></pre>
+<p>使用案例:</p>
+<pre><code><code>//写一个支持foreach语法的类
+import java.util.Iterator;
+public class MyTest implements Iterable&lt;Integer&gt; {
+    private int num = 0;
+  
+    @Override
+    public Iterator&lt;Integer&gt; iterator() {
+        return new Iterator&lt;Integer&gt;() {
+            @Override
+            public boolean hasNext() {
+                return num &lt; 11;
+            }
+          
+            @Override
+            public Integer next() {
+                return num++;
+            }
+        };
+    }
+
+    //测试:
+    public static void main(String[] args) {
+        for (Integer i:new MyTest()) {
+            System.out.println(i);
+        }
+    }
+}
+//该类可以迭代得到0-10这11个数字</code></code></pre>
+<p>ps:collection接口继承了iterable,所以所有collection的子类可以被foreach遍历</p>
+<h1 id="集合的遍历">集合的遍历:</h1>
+<p>我们可以使用foreach来遍历collection的任何子类对象:</p>
+<p>案例:</p>
+<pre><code><code>HashSet&lt;String&gt; set = new HashSet&lt;String&gt;();
+set.add(&quot;1&quot;);
+set.add(&quot;2&quot;);
+set.add(&quot;3&quot;);
+
+ArrayList&lt;String&gt; list = new ArrayList&lt;String&gt;();
+list.add(&quot;1&quot;);
+list.add(&quot;2&quot;);
+list.add(&quot;3&quot;);
+
+for (String s: list) {
+    System.out.println(s);
+}
+
+for (String s: set) {
+    System.out.println(s);
+}</code></code></pre>
+<p>需要特别强调的是不允许在迭代期间删除或添加元素,将会引发:<code>java.util.ConcurrentModificationException</code>异常,意思是不允许并发修改</p>
+<p>那么我们如何删除元素呢?</p>
+<h2 id="迭代期间添加删除元素">迭代期间添加删除元素</h2>
+<pre><code><code>//删除或添加单个元素:
+ArrayList&lt;String&gt; list = new ArrayList&lt;String&gt;();
+        list.add(&quot;1&quot;);
+        list.add(&quot;2&quot;);
+        list.add(&quot;3&quot;);
+for (String s: list) {
+  list.add(&quot;11111&quot;);
+  break;//操作完成后直接break;
+}
+//删除或添加多个元素方法1
+//先保存需要删除的元素,迭代完成在一并删除
+ArrayList&lt;Integer&gt; list = new ArrayList&lt;Integer&gt;();
+        list.add(1);
+        list.add(2);
+        list.add(3);
+
+ArrayList deletes = new ArrayList();
+for (Integer i:
+     list) {
+  if (i &gt; 1){
+    deletes.add(i);
+  }
+}
+list.removeAll(deletes);
+
+
+//删除或添加多个元素方法2
+//使用lambda表达式  jdk1.8之后可用
+list.removeIf(i -&gt; i &gt; 1);
+
+//删除或添加多个元素方法3
+//迭代copy的集合,从原始集合删除
+for (Integer i:
+     (ArrayList&lt;Integer&gt;)list.clone()) {
+  if(i &gt; 1){
+    list.remove(i);
+  }
+}
+
+//删除或添加多个元素方法4
+//使用迭代器
+Iterator&lt;Integer&gt; iterator = list.iterator();
+while (iterator.hasNext()){
+  if (iterator.next() &gt; 1){
+    iterator.remove();
+  }
+}</code></code></pre>
+<h1 id="map接口">Map接口</h1>
+<h2 id="特点-1">特点:</h2>
+<ul>
+<li><h5 id="数据已键值对的形式存储">数据已键值对的形式存储</h5></li>
+<li><h5 id="键值对用entry类对象表示">键值对用Entry类对象表示</h5></li>
+<li><h5 id="不能包含重复的key">不能包含重复的key</h5></li>
+<li><h5 id="键值对一一对应">键值对一一对应</h5></li>
+</ul>
+<h2 id="注意">注意:</h2>
+<ul>
+<li>避免使用可变对象作为key,如果对象的值改变时会引起equals方法的变化,将会导致不可预知的问题,,简单的说,map之所以不存储重复的key是因为,map使用hashCode+equals方法判断是否重复,如果你使用的是可变对象,那么当对象的属性变化时,可能导致判断重复的机制发生错误,例如:本来插入了Person对象,名字为张三和李四,后来你把张三的名字改成李四,那么这时候就误判断这两个对象key是否相同</li>
+<li>如何判断对象是否相等
+<ul>
+<li>第一步调用对象的hashCode获得一个整数进行比较,如果相同再调用equals方法进行判断,如果equals也返回true的话则表示两个对象完全相同,这样的对象是不会被存储的</li>
+</ul></li>
+<li>综上所述,我们在自定义类中如果进行去重,则应当重写这两个方法(hashCode,equals)</li>
+</ul>
+<h2 id="主要实现类-2">主要实现类:</h2>
+<ul>
+<li><h5 id="hashmap">HashMap</h5>
+<ul>
+<li><h5 id="基于hash表实现">基于Hash表实现</h5></li>
+<li><h5 id="允许使用null作为key或value">允许使用null作为key或value</h5></li>
+<li><h5 id="map中的entry键值对是无序的">Map中的Entry(键值对)是无序的</h5></li>
+</ul>
+<a href="http://www.matools.com/file/manual/jdk_api_1.8_google/java/util/HashMap.html">使用方法</a></li>
+</ul>
+<h2 id="遍历方法">遍历方法:</h2>
+<pre><code><code>//HashMap,不是Collection的子类所以不能直接foreach
+//可用使用下面几种方式:
+//方法1
+for ( String key: map.keySet()) {
+  System.out.println(key+&quot; &quot;+map.get(key));
+}
+//方法2  
+for (Map.Entry entry:map.entrySet()){
+  System.out.println(entry.getKey() +&quot; &quot;+entry.getValue());
+}</code></code></pre>
+<h2 id="hashmap-数据结构解析">HashMap 数据结构解析:</h2>
+<ul>
+<li><p>HashMap内部使用hash表(本质是一个数组见图一)</p></li>
+<li><p>HashMap使用hash算法计算得到存放的索引位置,一次来加快查询速度,(比ArrayList还要快)</p></li>
+<li>同样的既然本质是数组则少不了扩容和复制数据的问题了,这与ArrayList的缺点是一样的</li>
+<li><p>hash值相同不能表示key完全相同,需要调用equals再次确认</p></li>
+<li><p>如果说key的hash值相同但是equals判断不相同,那么使用树结构或者链表来存储这些hash相同的元素,(具体使用哪种根据当前map中元素的数量,超过64个元素则使用树结构)</p></li>
+</ul>
+<p><img src="./images/Java 7 - 集合框架4.png" alt="image-20191126123312490" /></p>
+<h5 id="获取元素方法">获取元素方法:</h5>
+<p><img src="./images/Java 7 - 集合框架5.png" alt="image-20191126123117994" /></p>
+<h5 id="存储元素方法">存储元素方法:</h5>
+<p><img src="./images/Java 7 - 集合框架6.png" alt="image-20191126134535014" /></p>
+<h5 id="存储元素方法补充">存储元素方法补充:</h5>
+<p>代码在putVal方法的最后,当添加元素后的大小超过阈值时则直接扩容hash表</p>
+<p><img src="./images/Java 7 - 集合框架7.png" alt="image-20191126135920717" /></p>
+<h5 id="扩容转换方法">扩容/转换方法:</h5>
+<p><img src="./images/Java 7 - 集合框架8.png" alt="image-20191126130936107" /></p>
+<p>总结:</p>
+<ul>
+<li><p>HashMap是使用Hash表(本质是数组)来存储数据,</p></li>
+<li><p>当keyHash值相同但是equals判断不同时使用链表(添加快,查询慢)</p></li>
+<li><p>当元素数量超过64时则将链表转为数结构(添加慢,查询快)</p></li>
+</ul>
+<p>最后再来一张框架图,帮助理解:</p>
+<p><img src="./images/Java 7 - 集合框架9.png" alt="image-20191126160453485" /></p>
+<p>图中的Listiterator 可以实现倒叙迭代,需要的话咨询查询API</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

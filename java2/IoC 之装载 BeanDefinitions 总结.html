@@ -1,0 +1,356 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修IoC 之装载 BeanDefinitions 总结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>IoC 之装载 BeanDefinitions 总结</center></div><div class='banquan'>原文出处:本文由博客园博主未来有熊提供。<br/>
+原文连接:https://www.cnblogs.com/zcg1051980588/p/11667673.html</div><br>
+    <p>最近时间重新对spring源码进行了解析，以便后续自己能够更好的阅读spring源码，想要一起深入探讨请加我QQ:1051980588</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> ClassPathResource resource = <span style="color: #0000ff;">new</span> ClassPathResource("bean.xml"<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> DefaultListableBeanFactory factory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DefaultListableBeanFactory();
+</span><span style="color: #008080;">3</span> XmlBeanDefinitionReader reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> XmlBeanDefinitionReader(factory);
+</span><span style="color: #008080;">4</span> reader.loadBeanDefinitions(resource);</code></pre>
+
+<p>对spring源码解析上面是最基本的几行代码，接下来我会对这基本代码深入探索，当然有些代码解释是基于其他博客借鉴过来的，如有相同希望见谅</p>
+<ul>
+<li><code>ClassPathResource resource = new ClassPathResource("bean.xml");</code>&nbsp;： 根据 Xml 配置文件创建 Resource 资源对象。ClassPathResource 是 Resource 接口的子类，<code>bean.xml</code>&nbsp;文件中的内容是我们定义的 Bean 信息。</li>
+<li><code>DefaultListableBeanFactory factory = new DefaultListableBeanFactory();</code>&nbsp;：创建一个 BeanFactory 。DefaultListableBeanFactory 是 BeanFactory 的一个子类，BeanFactory 作为一个接口，其实它本身是不具有独立使用的功能的，而 DefaultListableBeanFactory 则是真正可以独立使用的 IoC 容器，它是整个 Spring IoC 的始祖，在后续会有专门的文章来分析它。</li>
+<li><code>XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(factory);</code>&nbsp;：创建 XmlBeanDefinitionReader 读取器，用于载入 BeanDefinition 。</li>
+<li><code>reader.loadBeanDefinitions(resource);</code>：开始 BeanDefinition 的载入和注册进程，完成后的 BeanDefinition 放置在 IoC 容器中。</li>
+</ul>
+<h1 id="1-Resource-定位">1. Resource 定位</h1>
+<p>Spring 为了解决资源定位的问题，提供了两个接口：Resource、ResourceLoader，其中：</p>
+<ul>
+<li>Resource 接口是 Spring 统一资源的抽象接口</li>
+<li>ResourceLoader 则是 Spring 资源加载的统一抽象。</li>
+</ul>
+<p>Resource 资源的定位需要 Resource 和 ResourceLoader 两个接口互相配合，在上面那段代码中&nbsp;<code>new ClassPathResource("bean.xml")</code>&nbsp;为我们定义了资源，那么 ResourceLoader 则是在什么时候初始化的呢？看 XmlBeanDefinitionReader 构造方法：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> XmlBeanDefinitionReader.java</span>
+<span style="color: #008080;">2</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> XmlBeanDefinitionReader(BeanDefinitionRegistry registry) {
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">super</span><span style="color: #000000;">(registry);
+</span><span style="color: #008080;">4</span> }</code></pre>
+
+<p>我们可以看见 直接调用父类 AbstractBeanDefinitionReader 构造方法，代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> AbstractBeanDefinitionReader.java</span>
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">protected</span><span style="color: #000000;"> AbstractBeanDefinitionReader(BeanDefinitionRegistry registry) {
+</span><span style="color: #008080;"> 4</span>     Assert.notNull(registry, "BeanDefinitionRegistry must not be null"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">this</span>.registry =<span style="color: #000000;"> registry;
+</span><span style="color: #008080;"> 6</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> Determine ResourceLoader to use.</span>
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.registry <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> ResourceLoader) {
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">this</span>.resourceLoader = (ResourceLoader) <span style="color: #0000ff;">this</span><span style="color: #000000;">.registry;
+</span><span style="color: #008080;"> 9</span>     }    <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">this</span>.resourceLoader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> PathMatchingResourcePatternResolver();
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> Inherit Environment if possible</span>
+<span style="color: #008080;">14</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.registry <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> EnvironmentCapable) {
+</span><span style="color: #008080;">15</span>         <span style="color: #0000ff;">this</span>.environment = ((EnvironmentCapable) <span style="color: #0000ff;">this</span><span style="color: #000000;">.registry).getEnvironment();
+</span><span style="color: #008080;">16</span>     } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">this</span>.environment = <span style="color: #0000ff;">new</span><span style="color: #000000;"> StandardEnvironment();
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">19</span> }</code></pre>
+<p>核心在于设置 resourceLoader 这段，如果设置了 ResourceLoader 则用设置的，否则使用 PathMatchingResourcePatternResolver ，该类是一个集大成者的 ResourceLoader。</p>
+<h1 id="2-BeanDefinition-的载入和解析">2. BeanDefinition 的载入和解析</h1>
+<p><code>reader.loadBeanDefinitions(resource);</code>&nbsp;代码段，开启 BeanDefinition 的解析过程。如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> XmlBeanDefinitionReader.java</span>
+<span style="color: #008080;">2</span> <span style="color: #000000;">@Override
+</span><span style="color: #008080;">3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> loadBeanDefinitions(Resource resource) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeanDefinitionStoreException {
+</span><span style="color: #008080;">4</span>     <span style="color: #0000ff;">return</span> loadBeanDefinitions(<span style="color: #0000ff;">new</span><span style="color: #000000;"> EncodedResource(resource));
+</span><span style="color: #008080;">5</span> }</code></pre>
+
+<p>&nbsp;</p>
+<p>在这个方法会将资源 resource 包装成一个 EncodedResource 实例对象，然后调用&nbsp;<code>#loadBeanDefinitions(EncodedResource encodedResource)</code>&nbsp;方法。而将 Resource 封装成 EncodedResource 主要是为了对 Resource 进行编码，保证内容读取的正确性。代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> XmlBeanDefinitionReader.java</span>
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> loadBeanDefinitions(EncodedResource encodedResource) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeanDefinitionStoreException {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> ... 省略一些代码</span>
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 6</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 将资源文件转为 InputStream 的 IO 流</span>
+<span style="color: #008080;"> 7</span>         InputStream inputStream =<span style="color: #000000;"> encodedResource.getResource().getInputStream();
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 9</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 从 InputStream 中得到 XML 的解析源</span>
+<span style="color: #008080;">10</span>             InputSource inputSource = <span style="color: #0000ff;">new</span><span style="color: #000000;"> InputSource(inputStream);
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">if</span> (encodedResource.getEncoding() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">                inputSource.setEncoding(encodedResource.getEncoding());
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">14</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> ... 具体的读取过程</span>
+<span style="color: #008080;">15</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> doLoadBeanDefinitions(inputSource, encodedResource.getResource());
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">            inputStream.close();
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">21</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 省略一些代码</span>
+<span style="color: #008080;">22</span> }</code></pre>
+
+<p>&nbsp;</p>
+<p>从&nbsp;<code>encodedResource</code>&nbsp;源中获取 xml 的解析源，然后调用&nbsp;<code>#doLoadBeanDefinitions(InputSource inputSource, Resource resource)</code>&nbsp;方法，执行具体的解析过程。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> XmlBeanDefinitionReader.java</span>
+
+<span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> doLoadBeanDefinitions(InputSource inputSource, Resource resource)
+            </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeanDefinitionStoreException {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取 XML Document 实例</span>
+        Document doc =<span style="color: #000000;"> doLoadDocument(inputSource, resource);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 根据 Document 实例，注册 Bean 信息</span>
+        <span style="color: #0000ff;">int</span> count =<span style="color: #000000;"> registerBeanDefinitions(doc, resource);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> count;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ... 省略一堆配置</span>
+}</code></pre>
+
+<h2 id="2-1-转换为-Document-对象">2.1 转换为 Document 对象</h2>
+<p>调用在上面方法中&nbsp;<code>#doLoadDocument(InputSource inputSource, Resource resource)</code>&nbsp;方法，会将 Bean 定义的资源转换为 Document 对象。代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> XmlBeanDefinitionReader.java</span>
+
+<span style="color: #0000ff;">protected</span> Document doLoadDocument(InputSource inputSource, Resource resource) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.documentLoader.loadDocument(inputSource, getEntityResolver(), <span style="color: #0000ff;">this</span><span style="color: #000000;">.errorHandler,
+            getValidationModeForResource(resource), isNamespaceAware());
+}</span></code></pre>
+
+<p>该方法接受五个参数：</p>
+<ul>
+<li><code>inputSource</code>&nbsp;：加载 Document 的 Resource 源。</li>
+<li><code>entityResolver</code>&nbsp;：解析文件的解析器。</li>
+<li><code>errorHandler</code>&nbsp;：处理加载 Document 对象的过程的错误。</li>
+<li><code>validationMode</code>&nbsp;：验证模式。</li>
+<li><code>namespaceAware</code>&nbsp;：命名空间支持。如果要提供对 XML 名称空间的支持，则为&nbsp;<code>true</code>&nbsp;</li>
+</ul>
+<hr />
+<p><code>#loadDocument(InputSource inputSource, EntityResolver entityResolver, ErrorHandler errorHandler, int validationMode, boolean namespaceAware)</code>&nbsp;方法，在类 DefaultDocumentLoader 中提供了实现。代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> DefaultDocumentLoader.java</span>
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">@Override
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> Document loadDocument(InputSource inputSource, EntityResolver entityResolver,
+</span><span style="color: #008080;"> 5</span>         ErrorHandler errorHandler, <span style="color: #0000ff;">int</span> validationMode, <span style="color: #0000ff;">boolean</span> namespaceAware) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;"> 6</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 创建 DocumentBuilderFactory</span>
+<span style="color: #008080;"> 7</span>     DocumentBuilderFactory factory =<span style="color: #000000;"> createDocumentBuilderFactory(validationMode, namespaceAware);
+</span><span style="color: #008080;"> 8</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 创建 DocumentBuilder</span>
+<span style="color: #008080;"> 9</span>     DocumentBuilder builder =<span style="color: #000000;"> createDocumentBuilder(factory, entityResolver, errorHandler);
+</span><span style="color: #008080;">10</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 解析 XML InputSource 返回 Document 对象</span>
+<span style="color: #008080;">11</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> builder.parse(inputSource);
+</span><span style="color: #008080;">12</span> }</code></pre>
+
+<h2 id="2-2-注册-BeanDefinition-流程">2.2 注册 BeanDefinition 流程</h2>
+<p>这到这里，就已经将定义的 Bean 资源文件，载入并转换为 Document 对象了。那么，下一步就是如何将其解析为 SpringIoC 管理的 BeanDefinition 对象，并将其注册到容器中。这个过程由方法&nbsp;<code>#registerBeanDefinitions(Document doc, Resource resource)</code>&nbsp;方法来实现。代码如下</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> XmlBeanDefinitionReader.java</span>
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> registerBeanDefinitions(Document doc, Resource resource) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeanDefinitionStoreException {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 创建 BeanDefinitionDocumentReader 对象</span>
+<span style="color: #008080;"> 5</span>     BeanDefinitionDocumentReader documentReader =<span style="color: #000000;"> createBeanDefinitionDocumentReader();
+</span><span style="color: #008080;"> 6</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 获取已注册的 BeanDefinition 数量</span>
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">int</span> countBefore =<span style="color: #000000;"> getRegistry().getBeanDefinitionCount();
+</span><span style="color: #008080;"> 8</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 创建 XmlReaderContext 对象
+</span><span style="color: #008080;"> 9</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 注册 BeanDefinition</span>
+<span style="color: #008080;">10</span> <span style="color: #000000;">    documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
+</span><span style="color: #008080;">11</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 计算新注册的 BeanDefinition 数量</span>
+<span style="color: #008080;">12</span>     <span style="color: #0000ff;">return</span> getRegistry().getBeanDefinitionCount() -<span style="color: #000000;"> countBefore;
+</span><span style="color: #008080;">13</span> }</code></pre>
+
+<p>（1）首先，创建 BeanDefinition 的解析器 BeanDefinitionDocumentReader 。</p>
+<p>（2）然后，调用该 BeanDefinitionDocumentReader 的&nbsp;<code>#registerBeanDefinitions(Document doc, XmlReaderContext readerContext)</code>&nbsp;方法，开启解析过程，这里使用的是委派模式，具体的实现由子类 DefaultBeanDefinitionDocumentReader 完成。代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> DefaultBeanDefinitionDocumentReader.java</span>
+<span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #000000;">@Override
+</span><span style="color: #008080;">4</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> registerBeanDefinitions(Document doc, XmlReaderContext readerContext) {
+</span><span style="color: #008080;">5</span>     <span style="color: #0000ff;">this</span>.readerContext =<span style="color: #000000;"> readerContext;
+</span><span style="color: #008080;">6</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 获得 XML Document Root Element
+</span><span style="color: #008080;">7</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 执行注册 BeanDefinition</span>
+<span style="color: #008080;">8</span> <span style="color: #000000;">    doRegisterBeanDefinitions(doc.getDocumentElement());
+</span><span style="color: #008080;">9</span> }<br /><br /><br /></code></pre>
+
+
+<pre><code>2.2.1 对 Document 对象的解析从 Document 对象中获取根元素 root，然后调用&nbsp;#doRegisterBeanDefinitions(Element root)` 方法，开启真正的解析过程。代码如下：</code></pre>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> DefaultBeanDefinitionDocumentReader.java</span>
+
+<span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> doRegisterBeanDefinitions(Element root) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ... 省略部分代码（非核心）</span>
+    <span style="color: #0000ff;">this</span>.delegate =<span style="color: #000000;"> createDelegate(getReaderContext(), root, parent);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 解析前处理</span>
+<span style="color: #000000;">    preProcessXml(root);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 解析</span>
+    parseBeanDefinitions(root, <span style="color: #0000ff;">this</span><span style="color: #000000;">.delegate);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 解析后处理</span>
+<span style="color: #000000;">    postProcessXml(root);
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><code>#parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate)</code>&nbsp;是对根元素 root 的解析注册过程。代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> DefaultBeanDefinitionDocumentReader.java</span>
+
+<span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> parseBeanDefinitions(Element root, BeanDefinitionParserDelegate delegate) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果根节点使用默认命名空间，执行默认解析</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (delegate.isDefaultNamespace(root)) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 遍历子节点</span>
+        NodeList nl =<span style="color: #000000;"> root.getChildNodes();
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; nl.getLength(); i++<span style="color: #000000;">) {
+            Node node </span>=<span style="color: #000000;"> nl.item(i);
+            </span><span style="color: #0000ff;">if</span> (node <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Element) {
+                Element ele </span>=<span style="color: #000000;"> (Element) node;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果该节点使用默认命名空间，执行默认解析</span>
+                <span style="color: #0000ff;">if</span><span style="color: #000000;"> (delegate.isDefaultNamespace(ele)) {
+                    parseDefaultElement(ele, delegate);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果该节点非默认命名空间，执行自定义解析</span>
+                } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    delegate.parseCustomElement(ele);
+                }
+            }
+        }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果根节点非默认命名空间，执行自定义解析</span>
+    } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        delegate.parseCustomElement(root);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>迭代 root 元素的所有子节点，对其进行判断：</p>
+<ul>
+<li>若节点为默认命名空间，则调用&nbsp;<code>#parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate)</code>&nbsp;方法，开启默认标签的解析注册过程。详细解析</li>
+<li>否则，调用&nbsp;<code>BeanDefinitionParserDelegate#parseCustomElement(Element ele)</code>&nbsp;方法，开启自定义标签的解析注册过程。</li>
+</ul>
+<h4 id="2-2-1-1-默认标签解析">2.2.1.1 默认标签解析</h4>
+<p>若定义的元素节点使用的是 Spring 默认命名空间，则调用&nbsp;<code>#parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate)</code>&nbsp;方法，进行默认标签解析。代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> DefaultBeanDefinitionDocumentReader.java</span>
+
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
+    </span><span style="color: #0000ff;">if</span> (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) { <span style="color: #008000;">//</span><span style="color: #008000;"> import</span>
+<span style="color: #000000;">        importBeanDefinitionResource(ele);
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) { <span style="color: #008000;">//</span><span style="color: #008000;"> alias</span>
+<span style="color: #000000;">        processAliasRegistration(ele);
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) { <span style="color: #008000;">//</span><span style="color: #008000;"> bean</span>
+<span style="color: #000000;">        processBeanDefinition(ele, delegate);
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (delegate.nodeNameEquals(ele, NESTED_BEANS_ELEMENT)) { <span style="color: #008000;">//</span><span style="color: #008000;"> beans
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> recurse</span>
+<span style="color: #000000;">        doRegisterBeanDefinitions(ele);
+    }
+}<br /></span></code></pre>
+
+<p>对四大标签：<code>&lt;import&gt;</code>、<code>&lt;alias&gt;</code>、<code>&lt;bean&gt;</code>、<code>&lt;beans&gt;</code>&nbsp;进行解析。</p>
+<h4 id="2-2-1-2-自定义标签解析">2.2.1.2 自定义标签解析</h4>
+<p>对于默认标签则由&nbsp;<code>parseCustomElement(Element ele)</code>&nbsp;方法，负责解析。代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> BeanDefinitionParserDelegate.java</span>
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">@Nullable
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> BeanDefinition parseCustomElement(Element ele) {
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">return</span> parseCustomElement(ele, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">@Nullable
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> BeanDefinition parseCustomElement(Element ele, @Nullable BeanDefinition containingBd) {
+</span><span style="color: #008080;">10</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 获取 namespaceUri</span>
+<span style="color: #008080;">11</span>     String namespaceUri =<span style="color: #000000;"> getNamespaceURI(ele);
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">if</span> (namespaceUri == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 根据 namespaceUri 获取相应的 Handler</span>
+<span style="color: #008080;">16</span>     NamespaceHandler handler = <span style="color: #0000ff;">this</span><span style="color: #000000;">.readerContext.getNamespaceHandlerResolver().resolve(namespaceUri);
+</span><span style="color: #008080;">17</span>     <span style="color: #0000ff;">if</span> (handler == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">18</span>         error("Unable to locate Spring NamespaceHandler for XML schema namespace [" + namespaceUri + "]"<span style="color: #000000;">, ele);
+</span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">21</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 调用自定义的 Handler 处理</span>
+<span style="color: #008080;">22</span>     <span style="color: #0000ff;">return</span> handler.parse(ele, <span style="color: #0000ff;">new</span> ParserContext(<span style="color: #0000ff;">this</span>.readerContext, <span style="color: #0000ff;">this</span><span style="color: #000000;">, containingBd));
+</span><span style="color: #008080;">23</span> }</code></pre>
+
+<p>&nbsp;</p>
+<p>获取节点的&nbsp;<code>namespaceUri</code>，然后根据该&nbsp;<code>namespaceUri</code>&nbsp;获取相对应的 NamespaceHandler，最后调用 NamespaceHandler 的&nbsp;<code>#parse(Element element, ParserContext parserContext)</code>&nbsp;方法，即完成自定义标签的解析和注入。</p>
+<h3 id="2-2-2-注册-BeanDefinition">2.2.2 注册 BeanDefinition</h3>
+<p>经过上面的解析，则将 Document 对象里面的 Bean 标签解析成了一个个的 BeanDefinition ，下一步则是将这些 BeanDefinition 注册到 IoC 容器中。动作的触发是在解析 Bean 标签完成后，代码如下</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> DefaultBeanDefinitionDocumentReader.java</span>
+
+<span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 进行 bean 元素解析。
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果解析成功，则返回 BeanDefinitionHolder 对象。而 BeanDefinitionHolder 为 name 和 alias 的 BeanDefinition 对象
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果解析失败，则返回 null 。</span>
+    BeanDefinitionHolder bdHolder =<span style="color: #000000;"> delegate.parseBeanDefinitionElement(ele);
+    </span><span style="color: #0000ff;">if</span> (bdHolder != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 进行自定义标签处理</span>
+        bdHolder =<span style="color: #000000;"> delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 进行 BeanDefinition 的注册
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> Register the final decorated instance.</span>
+<span style="color: #000000;">            BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (BeanDefinitionStoreException ex) {
+            getReaderContext().error(</span>"Failed to register bean definition with name '" +<span style="color: #000000;">
+                    bdHolder.getBeanName() </span>+ "'"<span style="color: #000000;">, ele, ex);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 发出响应事件，通知相关的监听器，已完成该 Bean 标签的解析。
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Send registration event.</span>
+        getReaderContext().fireComponentRegistered(<span style="color: #0000ff;">new</span><span style="color: #000000;"> BeanComponentDefinition(bdHolder));
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>调用&nbsp;<code>BeanDefinitionReaderUtils.registerBeanDefinition()</code>&nbsp;方法，来注册。其实，这里面也是调用 BeanDefinitionRegistry 的&nbsp;<code>#registerBeanDefinition(String beanName, BeanDefinition beanDefinition)</code>&nbsp;方法，来注册 BeanDefinition 。不过，最终的实现是在 DefaultListableBeanFactory 中实现，代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> DefaultListableBeanFactory.java</span>
+<span style="color: #008080;"> 2</span> <span style="color: #000000;">@Override
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> registerBeanDefinition(String beanName, BeanDefinition beanDefinition)
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeanDefinitionStoreException {
+</span><span style="color: #008080;"> 5</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> ...省略校验相关的代码
+</span><span style="color: #008080;"> 6</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 从缓存中获取指定 beanName 的 BeanDefinition</span>
+<span style="color: #008080;"> 7</span>     BeanDefinition existingDefinition = <span style="color: #0000ff;">this</span><span style="color: #000000;">.beanDefinitionMap.get(beanName);
+</span><span style="color: #008080;"> 8</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 如果已经存在</span>
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">if</span> (existingDefinition != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">10</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 如果存在但是不允许覆盖，抛出异常</span>
+<span style="color: #008080;">11</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isAllowBeanDefinitionOverriding()) {
+</span><span style="color: #008080;">12</span>              <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> BeanDefinitionOverrideException(beanName, beanDefinition, existingDefinition);
+</span><span style="color: #008080;">13</span>         } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">14</span>            <span style="color: #008000;">//</span><span style="color: #008000;"> ...省略 logger 打印日志相关的代码</span>
+<span style="color: #008080;">15</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">16</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 【重点】允许覆盖，直接覆盖原有的 BeanDefinition 到 beanDefinitionMap 中。</span>
+<span style="color: #008080;">17</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">.beanDefinitionMap.put(beanName, beanDefinition);
+</span><span style="color: #008080;">18</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 如果未存在</span>
+<span style="color: #008080;">19</span>     } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">20</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> ... 省略非核心的代码
+</span><span style="color: #008080;">21</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 【重点】添加到 BeanDefinition 到 beanDefinitionMap 中。</span>
+<span style="color: #008080;">22</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">.beanDefinitionMap.put(beanName, beanDefinition);
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">24</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 重新设置 beanName 对应的缓存</span>
+<span style="color: #008080;">25</span>     <span style="color: #0000ff;">if</span> (existingDefinition != <span style="color: #0000ff;">null</span> ||<span style="color: #000000;"> containsSingleton(beanName)) {
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">        resetBeanDefinition(beanName);
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">28</span> }</code></pre>
+
+<p>&nbsp;</p>
+<p>这段代码最核心的部分是这句&nbsp;<code>this.beanDefinitionMap.put(beanName, beanDefinition)</code>&nbsp;代码段。所以，注册过程也不是那么的高大上，就是利用一个 Map 的集合对象来存放：<code>key</code>&nbsp;是&nbsp;<code>beanName</code>&nbsp;，<code>value</code>&nbsp;是 BeanDefinition 对象</p>
+<h1 id="3-小结">3. 小结</h1>
+<p>至此，整个 IoC 的初始化过程就已经完成了，从 Bean 资源的定位，转换为 Document 对象，接着对其进行解析，最后注册到 IoC 容器中，都已经完美地完成了。现在 IoC 容器中已经建立了整个 Bean 的配置信息，这些 Bean 可以被检索、使用、维护，他们是控制反转的基础，是后面注入 Bean 的依赖。最后用一张流程图来结束这篇总结之文。</p>
+<p><img src="./images/IoC 之装载 BeanDefinitions 总结0.png" alt="" /></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

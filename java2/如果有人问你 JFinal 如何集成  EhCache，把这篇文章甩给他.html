@@ -1,0 +1,69 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如果有人问你 JFinal 如何集成  EhCache，把这篇文章甩给他' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如果有人问你 JFinal 如何集成  EhCache，把这篇文章甩给他</center></div><div class='banquan'>原文出处:本文由博客园博主沉默王二提供。<br/>
+原文连接:https://www.cnblogs.com/qing-gee/p/11634429.html</div><br>
+    <p>废话不多说，就说一句：在 JFinal 中集成 EhCache，可以提高系统的并发访问速度。</p>
+<p>可能有人会问 JFinal 是什么，EhCache 是什么，简单解释一下。</p>
+<p>JFinal 是一个基于Java 语言的极速 Web 开发框架，用起来非常爽，谁用谁知道。EhCache 是一个纯 Java 的进程内缓存框架，具有快速、精干的特点，用起来非常爽，谁用谁知道。</p>
+<p>JFinal 本身已经集成了 EhCache 这个缓存插件，但默认是没有启用的。那怎么启用呢？</p>
+<p>请随我来。</p>
+<h3 id="h01pomxmlehcache">01、在 pom.xml 中加入 EhCache 依赖</h3>
+<pre><code><code class="xml language-xml hljs"><span class="hljs-tag">&lt;<span class="hljs-name">dependency&gt;<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-tag">&lt;<span class="hljs-name">groupId&gt;net.sf.ehcache<span class="hljs-tag">&lt;/<span class="hljs-name">groupId&gt;<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-tag">&lt;<span class="hljs-name">artifactId&gt;ehcache-core<span class="hljs-tag">&lt;/<span class="hljs-name">artifactId&gt;<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-tag">&lt;<span class="hljs-name">version&gt;2.6.11<span class="hljs-tag">&lt;/<span class="hljs-name">version&gt;<br /><span class="hljs-tag">&lt;/<span class="hljs-name">dependency&gt;<br /></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<h3 id="h02jfinalconfigehcacheplugin">02、在 JFinalConfig 中配置 EhCachePlugin</h3>
+<pre><code><code class="java language-java hljs"><span class="hljs-keyword">public&nbsp;<span class="hljs-class"><span class="hljs-keyword">class&nbsp;<span class="hljs-title">DemoConfig&nbsp;<span class="hljs-keyword">extends&nbsp;<span class="hljs-title">JFinalConfig&nbsp;{<br />&nbsp;&nbsp;<span class="hljs-function"><span class="hljs-keyword">public&nbsp;<span class="hljs-keyword">void&nbsp;<span class="hljs-title">configPlugin<span class="hljs-params">(Plugins&nbsp;me)&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;me.add(<span class="hljs-keyword">new&nbsp;EhCachePlugin());<br />&nbsp;&nbsp;}<br />}<br /></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>基于 JFinal 的 Web 项目需要创建一个继承自 JFinalConfig 类的子类，该类用于对整个 Web 项目进行配置。</p>
+<h3 id="h03ehcachexml">03、添加 ehcache.xml</h3>
+<p>在项目的 src 目录 / resources 目录下添加 ehcache.xml 文件，该文件的初始内容如下所示。</p>
+<pre><code><code class="xml language-xml hljs"><span class="hljs-meta">&lt;?xml&nbsp;version="1.0"&nbsp;encoding="UTF-8"?&gt;<br /><span class="hljs-tag">&lt;<span class="hljs-name">ehcache&nbsp;<span class="hljs-attr">xmlns:xsi=<span class="hljs-string">"http://www.w3.org/2001/XMLSchema-instance"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">xsi:noNamespaceSchemaLocation=<span class="hljs-string">"ehcache.xsd"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">updateCheck=<span class="hljs-string">"false"&nbsp;<span class="hljs-attr">monitoring=<span class="hljs-string">"autodetect"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">dynamicConfig=<span class="hljs-string">"true"&gt;<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-tag">&lt;<span class="hljs-name">diskStore&nbsp;<span class="hljs-attr">path=<span class="hljs-string">"java.io.tmpdir"/&gt;<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-tag">&lt;<span class="hljs-name">defaultCache<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">maxEntriesLocalHeap=<span class="hljs-string">"10000"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">eternal=<span class="hljs-string">"false"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">timeToIdleSeconds=<span class="hljs-string">"120"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">timeToLiveSeconds=<span class="hljs-string">"120"<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">diskSpoolBufferSizeMB=<span class="hljs-string">"30"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">maxEntriesLocalDisk=<span class="hljs-string">"10000000"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">diskExpiryThreadIntervalSeconds=<span class="hljs-string">"120"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">memoryStoreEvictionPolicy=<span class="hljs-string">"LRU"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">statistics=<span class="hljs-string">"false"&gt;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-tag">&lt;<span class="hljs-name">persistence&nbsp;<span class="hljs-attr">strategy=<span class="hljs-string">"localTempSwap"/&gt;<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-tag">&lt;/<span class="hljs-name">defaultCache&gt;<br /><br /><span class="hljs-tag">&lt;/<span class="hljs-name">ehcache&gt;<br /></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>简单解释一下常用的配置项，否则大家在配置的时候容易犹豫不决。</p>
+<p>1）maxEntriesLocalHeap：内存中最大缓存对象数</p>
+<p>2）eternal：true 表示对象永不过期，此时会忽略 timeToIdleSeconds 和 timeToLiveSeconds 属性，默认为 false</p>
+<p>3）timeToIdleSeconds：对象最近一次被访问后的闲置时间，如果闲置的时间超过了 timeToIdleSeconds 属性值，这个对象就会过期，EhCache 将把它从缓存中清空；即缓存被创建后，最后一次访问时间到缓存失效的时候之间的间隔，单位为秒（s）</p>
+<p>4）timeToLiveSeconds：对象被存放到缓存中后存活时间，如果存活时间超过了 timeToLiveSeconds 属性值，这个对象就会过期，EhCache 将把它从缓存中清除；即缓存被创建后，能够存活的最长时间，单位为秒（s）</p>
+<p>假如我们现在增加以下配置：</p>
+<pre><code><code class="xml language-xml hljs"><span class="hljs-tag">&lt;<span class="hljs-name">cache&nbsp;<span class="hljs-attr">name=<span class="hljs-string">"keywordsCache"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">maxEntriesLocalHeap=<span class="hljs-string">"500"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">eternal=<span class="hljs-string">"false"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">overflowToDisk=<span class="hljs-string">"true"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">diskPersistent=<span class="hljs-string">"true"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">timeToIdleSeconds=<span class="hljs-string">"300"<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-attr">timeToLiveSeconds=<span class="hljs-string">"600"&gt;<br /><span class="hljs-tag">&lt;/<span class="hljs-name">cache&gt;<br /></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>结合之前的默认缓存配置，再来对比介绍下，大家就完全掌握了。</p>
+<p>1）name 为该缓存的名字，后续使用缓存的时候要用到。</p>
+<p>2）overflowToDisk：true 表示内存中缓存的对象数目达到了 maxEntriesLocalHeap 界限后，会把溢出的对象写到硬盘缓存中。此时的对象必须实现要实现 Serializable 接口（为什么？欢迎查看我以前的文章 <a href="https://qingmiaogu.blog.csdn.net/article/details/93176705">Java Serializable：明明就一个空的接口嘛</a>）。</p>
+<p>3）diskPersistent：是否缓存虚拟机重启时的数据</p>
+<p>再来理解一下 timeToIdleSeconds 和 timeToLiveSeconds 这两个配置项。</p>
+<pre><code><code class="xml language-xml hljs">timeToIdleSeconds="300"<br />timeToLiveSeconds="600"<br /></code></code></pre>
+<p>以上表示，一个数据被添加进缓存后，该数据能够在缓存中存活的最长时间为 600 秒（）timeToLiveSeconds）；在这 600 秒内，假设不止一次去缓存中取该数据，那么相邻 2 次获取数据的时间间隔如果小于 300 秒（timeToIdleSeconds），则能成功获取到数据；但如果最近一次获取到下一次获取的时间间隔超过了 300 秒，那么，将得到 null，因为此时该数据已经被移出缓存了。</p>
+<h3 id="h04cachekit">04、使用 CacheKit 操作缓存</h3>
+<p>CacheKit 类是 JFinal 提供的缓存操作工具类，使用起来非常简便。</p>
+<pre><code><code class="java language-java hljs">Map&lt;String,&nbsp;Keywords&gt;&nbsp;map&nbsp;=&nbsp;CacheKit.get(<span class="hljs-string">"keywordsCache",&nbsp;<span class="hljs-string">"keywordMap");<br /><span class="hljs-keyword">if&nbsp;(map&nbsp;==&nbsp;<span class="hljs-keyword">null)&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;map&nbsp;=&nbsp;<span class="hljs-keyword">new&nbsp;HashMap&lt;&gt;();<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;List&lt;Keywords&gt;&nbsp;keywordList&nbsp;=&nbsp;dao.findAll();<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">for&nbsp;(Keywords&nbsp;item&nbsp;:&nbsp;keywordList)&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map.put(item.getKeyword(),&nbsp;item);<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;CacheKit.put(<span class="hljs-string">"keywordsCache",&nbsp;<span class="hljs-string">"keywordMap",&nbsp;map);<br />}<br /></span></span></span></span></span></span></span></span></code></code></pre>
+<p>CacheKit 中有两个最重要的方法：</p>
+<p>1）<code>get(String cacheName, Object key)</code>，从 cache 中取数据。</p>
+<p>2）<code>put(String cacheName, Object key, Object value)</code> ，将数据放入 cache 中。</p>
+<p>参数 cacheName 与 ehcache.xml 中的 <code>&lt;cache name="keywordsCache" &hellip;&gt;</code> name 属性值对应，这个很好理解。</p>
+<p>参数 key 是指取值用到的 key；参数 value 是被缓存的数据，这个其实也好理解。比如在上面的代码中，我们使用了 <code>keywordsCache</code> 这个配置项，在里面放了一个 HashMap，key 为 <code>keywordMap</code>，value 就是 map 这个对象。</p>
+<p>JFinal 内部提供了很多使用 Ehcache 的工具方法，比如：</p>
+<pre><code><code class="java language-java hljs">List&lt;Keywords&gt;&nbsp;keywordList&nbsp;=&nbsp;dao.findByCache(<span class="hljs-string">"keywordsCache",&nbsp;<span class="hljs-string">"keywordList",&nbsp;<span class="hljs-string">"select&nbsp;*&nbsp;from&nbsp;keywords");<br /></span></span></span></code></code></pre>
+<p>这段代码的作用就是，当我们要从数据库中查询 Keywords 的时候，先从 Ehcache 缓存中取，如果缓存失效的话，再从数据库中取。</p>
+<p>我是怎么知道的呢？当然不是靠猜的，我们来看一下源码。</p>
+<pre><code><code class="java language-java hljs"><span class="hljs-function"><span class="hljs-keyword">public&nbsp;List&lt;M&gt;&nbsp;<span class="hljs-title">findByCache<span class="hljs-params">(String&nbsp;cacheName,&nbsp;Object&nbsp;key,&nbsp;String&nbsp;sql,&nbsp;Object...&nbsp;paras)&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;Config&nbsp;config&nbsp;=&nbsp;_getConfig();<br />&nbsp;&nbsp;&nbsp;&nbsp;ICache&nbsp;cache&nbsp;=&nbsp;config.getCache();<br />&nbsp;&nbsp;&nbsp;&nbsp;List&lt;M&gt;&nbsp;result&nbsp;=&nbsp;cache.get(cacheName,&nbsp;key);<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">if&nbsp;(result&nbsp;==&nbsp;<span class="hljs-keyword">null)&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;result&nbsp;=&nbsp;find(config,&nbsp;sql,&nbsp;paras);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;cache.put(cacheName,&nbsp;key,&nbsp;result);<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">return&nbsp;result;<br />}<br /></span></span></span></span></span></span></span></code></code></pre>
+<h3 id="h05">05、最后</h3>
+<p>当数据的查询频率很高，远大于修改的频率，就要使用缓存了，这可以在很大程度上提高系统的性能。那现在我就提一个问题了，假如现在要修改一下数据，是先更新 DB，还是先更新缓存呢？</p>
+<p>谢谢大家的阅读，原创不易，喜欢就点个赞，这将是我最强的写作动力。如果你觉得文章对你有所帮助，也蛮有趣的，就关注一下我的公众号，谢谢。</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

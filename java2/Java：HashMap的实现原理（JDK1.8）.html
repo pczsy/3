@@ -1,0 +1,269 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java：HashMap的实现原理（JDK1.8）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java：HashMap的实现原理（JDK1.8）</center></div><div class='banquan'>原文出处:本文由博客园博主暗夜守护提供。<br/>
+原文连接:https://www.cnblogs.com/anyeshouhu/p/11527329.html</div><br>
+    <p class="p"><span style="color: #3366ff;">1.&nbsp;&nbsp;&nbsp; HashMap概述：</span></p>
+<p class="p">&nbsp;&nbsp;&nbsp;HashMap是基于哈希表的Map接口的非同步实现。此实现提供所有可选的映射操作，并允许使用null值和null键。此类不保证映射的顺序，特别是它不保证该顺序恒久不变。</p>
+<p class="p">&nbsp;</p>
+<p class="p"><span style="color: #3366ff;">2.&nbsp;&nbsp;&nbsp; HashMap的数据结构：</span></p>
+<p class="p">&nbsp;&nbsp;&nbsp;在java编程语言中，最基本的结构就是两种，一个是数组，另外一个是模拟指针（引用），所有的数据结构都可以用这两个基本结构来构造的，HashMap也不例外。HashMap实际上是一个&ldquo;链表散列&rdquo;的数据结构，即数组和链表的结合体。</p>
+<p class="p">&nbsp;<img src="./images/Java：HashMap的实现原理（JDK1.8）0.png" alt="" /></p>
+<p class="p">&nbsp;&nbsp; 从上图中可以看出，HashMap底层就是一个数组结构，数组中的每一项又是一个链表。当新建一个HashMap的时候，就会初始化一个数组。</p>
+<p class="p">&nbsp;&nbsp; 源码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">/**</span><span style="color: #008000;">&nbsp;
+</span><span style="color: #008080;"> 2</span> <span style="color: #008000;">&nbsp;*&nbsp;The&nbsp;table,&nbsp;resized&nbsp;as&nbsp;necessary.&nbsp;Length&nbsp;MUST&nbsp;Always&nbsp;be&nbsp;a&nbsp;power&nbsp;of&nbsp;two.&nbsp;
+</span><span style="color: #008080;"> 3</span> <span style="color: #008000;">&nbsp;</span><span style="color: #008000;">*/</span><span style="color: #000000;">&nbsp;&nbsp;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">transient</span><span style="color: #000000;">&nbsp;Node&lt;K, V&gt;[]&nbsp;table;&nbsp;&nbsp;
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">&nbsp;&nbsp;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">static</span>&nbsp;<span style="color: #0000ff;">class</span>&nbsp;Node&lt;K,V&gt;&nbsp;<span style="color: #0000ff;">implements</span>&nbsp;Entry&lt;K, V&gt;<span style="color: #000000;">&nbsp;{&nbsp;&nbsp;
+</span><span style="color: #008080;"> 7</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #0000ff;">final</span><span style="color: #000000;">&nbsp;K&nbsp;key;&nbsp;&nbsp;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">&nbsp;&nbsp;&nbsp;&nbsp;V&nbsp;value;&nbsp;&nbsp;
+</span><span style="color: #008080;"> 9</span> &nbsp;&nbsp;&nbsp;&nbsp;Node&lt;K, V&gt;<span style="color: #000000;">&nbsp;next;&nbsp;&nbsp;
+</span><span style="color: #008080;">10</span> &nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #0000ff;">final</span>&nbsp;<span style="color: #0000ff;">int</span><span style="color: #000000;">&nbsp;hash;&nbsp;&nbsp;
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">&nbsp;&nbsp;&nbsp;&nbsp;&hellip;&hellip;&nbsp;&nbsp;
+</span><span style="color: #008080;">12</span> }&nbsp;&nbsp;</code></pre>
+
+<p>&nbsp;</p>
+<p class="p">&nbsp;&nbsp; 可以看出，Node就是数组中的元素，每个Node其实就是一个key-value对，它持有一个指向下一个元素的引用，这就构成了链表。</p>
+<p class="p">&nbsp;</p>
+<p class="p"><span style="color: #3366ff;">3.&nbsp;&nbsp;&nbsp; HashMap的存取实现：</span></p>
+<p class="p">&nbsp;&nbsp; 1) 存储：</p>
+<p class="p">&nbsp; &nbsp; &nbsp; &nbsp; 1、对Key求Hash值，然后再计算下标</p>
+<p class="p">&nbsp; &nbsp; &nbsp; &nbsp; 2、如果没有碰撞，直接放入桶中（碰撞的意思是计算得到的Hash值相同，需要放到同一个bucket中）</p>
+<p class="p">&nbsp; &nbsp; &nbsp; &nbsp; 3、如果碰撞了，以链表的方式链接到后面</p>
+<p class="p">&nbsp; &nbsp; &nbsp; &nbsp; 4、如果链表长度超过阀值( TREEIFY THRESHOLD==8)，就把链表转成红黑树</p>
+<p class="p">&nbsp; &nbsp; &nbsp; &nbsp; 5、如果节点已经存在就替换旧值</p>
+<p class="p">&nbsp; &nbsp; &nbsp; &nbsp; 6、如果桶满了(容量16*加载因子0.75)，就需要 resize（扩容2倍后重排）&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">final</span> V putVal(<span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> n, <span style="color: #0000ff;">final</span> K k, <span style="color: #0000ff;">final</span> V value, <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">boolean</span> b, <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> b2) {
+</span><span style="color: #008080;"> 2</span>     Node&lt;K, V&gt;<span style="color: #000000;">[] array;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">int</span><span style="color: #000000;"> n2;
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">if</span> ((array = <span style="color: #0000ff;">this</span>.table) == <span style="color: #0000ff;">null</span> || (n2 = array.length) == 0<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 5</span>         n2 = (array = <span style="color: #0000ff;">this</span><span style="color: #000000;">.resize()).length;
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> n3;
+</span><span style="color: #008080;"> 8</span>     Node&lt;K, V&gt;<span style="color: #000000;"> node;
+</span><span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">if</span> ((node = array[n3 = (n2 - 1 &amp; n)]) == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">10</span>         array[n3] = <span style="color: #0000ff;">this</span>.newNode(n, k, value, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">13</span>         Node&lt;K, V&gt; node2 = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        Label_0222: {
+</span><span style="color: #008080;">15</span>             <span style="color: #0000ff;">final</span><span style="color: #000000;"> K key;
+</span><span style="color: #008080;">16</span>             <span style="color: #0000ff;">if</span> (node.hash == n &amp;&amp; ((key = node.key) == k || (k != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> k.equals(key)))) {
+</span><span style="color: #008080;">17</span>                 node2 =<span style="color: #000000;"> node;
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (node <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> TreeNode) {
+</span><span style="color: #008080;">20</span>                 node2 = ((TreeNode&lt;K, V&gt;)node).putTreeVal(<span style="color: #0000ff;">this</span><span style="color: #000000;">, array, n, k, value);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">22</span>             <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">23</span>                 <span style="color: #0000ff;">int</span><span style="color: #000000;"> n4;
+</span><span style="color: #008080;">24</span>                 <span style="color: #0000ff;">for</span> (n4 = 0; (node2 = node.next) != <span style="color: #0000ff;">null</span>; node = node2, ++<span style="color: #000000;">n4) {
+</span><span style="color: #008080;">25</span>                     <span style="color: #0000ff;">if</span> (node2.hash ==<span style="color: #000000;"> n) {
+</span><span style="color: #008080;">26</span>                         <span style="color: #0000ff;">final</span><span style="color: #000000;"> K key2;
+</span><span style="color: #008080;">27</span>                         <span style="color: #0000ff;">if</span> ((key2 = node2.key) ==<span style="color: #000000;"> k) {
+</span><span style="color: #008080;">28</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;"> Label_0222;
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">30</span>                         <span style="color: #0000ff;">if</span> (k != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> k.equals(key2)) {
+</span><span style="color: #008080;">31</span>                             <span style="color: #0000ff;">break</span><span style="color: #000000;"> Label_0222;
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">35</span>                 node.next = (Node&lt;K, V&gt;)<span style="color: #0000ff;">this</span>.newNode(n, (K)k, (V)value, (Node&lt;K, V&gt;)<span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">36</span>                 <span style="color: #0000ff;">if</span> (n4 &gt;= 7<span style="color: #000000;">) {
+</span><span style="color: #008080;">37</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.treeifyBin(array, n);
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">41</span>         <span style="color: #0000ff;">if</span> (node2 != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">42</span>             <span style="color: #0000ff;">final</span> V value2 =<span style="color: #000000;"> node2.value;
+</span><span style="color: #008080;">43</span>             <span style="color: #0000ff;">if</span> (!b || value2 == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">44</span>                 node2.value =<span style="color: #000000;"> value;
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">46</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.afterNodeAccess(node2);
+</span><span style="color: #008080;">47</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> value2;
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">50</span>     ++<span style="color: #0000ff;">this</span><span style="color: #000000;">.modCount;
+</span><span style="color: #008080;">51</span>     <span style="color: #0000ff;">if</span> (++<span style="color: #0000ff;">this</span>.size &gt; <span style="color: #0000ff;">this</span><span style="color: #000000;">.threshold) {
+</span><span style="color: #008080;">52</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">.resize();
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">54</span>     <span style="color: #0000ff;">this</span><span style="color: #000000;">.afterNodeInsertion(b2);
+</span><span style="color: #008080;">55</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">56</span> }</code></pre>
+
+<p>&nbsp;&nbsp; &nbsp; 当系统决定存储HashMap中的key-value对时，完全没有考虑Entry中的value，仅仅只是根据key来计算并决定每个Entry的存储位置。我们完全可以把&nbsp;Map&nbsp;集合中的&nbsp;value&nbsp;当成&nbsp;key&nbsp;的附属，当系统决定了&nbsp;key&nbsp;的存储位置之后，value&nbsp;随之保存在那里即可。</p>
+<p class="p">&nbsp; &nbsp; &nbsp;我们可以看到在hashmap中要找到某个元素，需要根据key的hash值来求得对应数组中的位置。如何计算这个位置就是hash算法。前面说过hashmap的数据结构是数组和链表的结合，所以我们当然希望这个hashmap里面的元素位置尽量的分布均匀些，尽量使得每个位置上的元素数量只有一个，那么当我们用hash算法求得这个位置的时候，马上就可以知道对应位置的元素就是我们要的，而不用再去遍历链表。 所以我们首先想到的就是把hashcode对数组长度取模运算，这样一来，元素的分布相对来说是比较均匀的。但是，&ldquo;模&rdquo;运算的消耗还是比较大的，能不能找一种更快速，消耗更小的方式</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> hash(<span style="color: #0000ff;">final</span><span style="color: #000000;"> Object o) {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">int</span><span style="color: #000000;"> n;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">if</span> (o == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 4</span>         n = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> hashCode =<span style="color: #000000;"> o.hashCode();
+</span><span style="color: #008080;"> 8</span>         n = (hashCode ^ hashCode &gt;&gt;&gt; 16<span style="color: #000000;">);
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> n;
+</span><span style="color: #008080;">11</span> }</code></pre>
+
+<p><img src="./images/Java：HashMap的实现原理（JDK1.8）1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp; &nbsp; &nbsp;简单来说就是：高16bt不变，低16bit和高16bit做了一个异或(得到的HASHCODE转化为32位的二进制，前16位和后16位低16bit和高16bit做了一个异或)</p>
+<p class="p">&nbsp; &nbsp; &nbsp;对于任意给定的对象，只要它的&nbsp;hashCode()&nbsp;返回值相同，那么程序调用&nbsp;hash(int h)&nbsp;方法所计算得到的&nbsp;hash&nbsp;码值总是相同的。&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> hashCode() {
+</span><span style="color: #008080;"> 2</span> 　　<span style="color: #0000ff;">int</span> h = <span style="color: #0000ff;">this</span><span style="color: #000000;">.hash;
+</span><span style="color: #008080;"> 3</span> 　　<span style="color: #0000ff;">int</span> len = <span style="color: #0000ff;">this</span><span style="color: #000000;">.value.length;
+</span><span style="color: #008080;"> 4</span> 　　<span style="color: #0000ff;">if</span> (h == 0 &amp;&amp; len &gt; 0<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 5</span> 　　　　<span style="color: #0000ff;">char</span>[] s = <span style="color: #0000ff;">this</span><span style="color: #000000;">.value;
+</span><span style="color: #008080;"> 6</span> 　　　　<span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; len; ++<span style="color: #000000;">i) {
+</span><span style="color: #008080;"> 7</span> 　　　　　　h = 31 * h +<span style="color: #000000;"> s[i];
+</span><span style="color: #008080;"> 8</span> 　　　　<span style="color: #000000;">}
+</span><span style="color: #008080;"> 9</span> 　　　　<span style="color: #008000;">//</span><span style="color: #008000;">s[0]*31^(len-1) + s[1]*31^(len-2) + ... + s[len-1]</span>
+<span style="color: #008080;">10</span> 　　　　<span style="color: #0000ff;">this</span>.hash =<span style="color: #000000;"> h;
+</span><span style="color: #008080;">11</span> 　　<span style="color: #000000;">}
+</span><span style="color: #008080;">12</span> 　　<span style="color: #0000ff;">return</span><span style="color: #000000;"> h;
+</span><span style="color: #008080;">13</span> }</code></pre>
+
+<p>&nbsp; &nbsp; &nbsp;<span style="font-family: Helvetica;">我们首先想到的就是把</span>hash值对数组长度取模运算，这样一来，元素的分布相对来说是比较均匀的。但是，&ldquo;模&rdquo;运算的消耗还是比较大的，在HashMap中是这样做的：</p>
+<src class="cnblogs_code">
+<pre><code>n3 = (n2 - 1 &amp; n)</code></pre>
+
+<p class="p">&nbsp; &nbsp; &nbsp;这个方法非常巧妙，它通过 array.length - 1 &amp; h 来得到该对象的保存位，而HashMap底层数组的长度总是&nbsp;2&nbsp;的&nbsp;n&nbsp;次方，这是HashMap在速度上的优化。在&nbsp;HashMap&nbsp;构造器中有如下代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> tableSizeFor(<span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> n) {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> n2 = n - 1<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> n3 = n2 | n2 &gt;&gt;&gt; 1<span style="color: #000000;">;
+</span><span style="color: #008080;">4</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> n4 = n3 | n3 &gt;&gt;&gt; 2<span style="color: #000000;">;
+</span><span style="color: #008080;">5</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> n5 = n4 | n4 &gt;&gt;&gt; 4<span style="color: #000000;">;
+</span><span style="color: #008080;">6</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> n6 = n5 | n5 &gt;&gt;&gt; 8<span style="color: #000000;">;
+</span><span style="color: #008080;">7</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> n7 = n6 | n6 &gt;&gt;&gt; 16<span style="color: #000000;">;
+</span><span style="color: #008080;">8</span>     <span style="color: #0000ff;">return</span> (n7 &lt; 0) ? 1 : ((n7 &gt;= 1073741824) ? 1073741824 : (n7 + 1<span style="color: #000000;">));
+</span><span style="color: #008080;">9</span> }</code></pre>
+
+<p>&nbsp; &nbsp;<img src="./images/Java：HashMap的实现原理（JDK1.8）2.png" alt="" width="619" height="214" /></p>
+<p>&nbsp;　先把容量减一，然后将容量的二进制数为1的位，后1、2、4、8、16位分别置1。最终n7的二进制数即是n2的二进制数最高为1，其后补1的数。　</p>
+<p>&nbsp; &nbsp; 这段代码保证初始化时HashMap<span style="font-family: Helvetica;">的容量总是</span>2<span style="font-family: Helvetica;">的</span>n<span style="font-family: Helvetica;">次方，即底层数组的长度总是为</span>2<span style="font-family: Helvetica;">的</span>n<span style="font-family: Helvetica;">次方（1~2^30）。</span></p>
+<p class="p"><span style="font-family: Helvetica;">&nbsp; &nbsp; 当</span>length总是&nbsp;2&nbsp;的n次方时，h&amp; (length-1)运算等价于对length取模，也就是h%length，但是&amp;比%具有更高的效率。</p>
+<p class="p">&nbsp; &nbsp; 这看上去很简单，其实比较有玄机的，我们举个例子来说明：</p>
+<p class="p">&nbsp; &nbsp; 假设数组长度分别为15和16，优化后的hash码分别为8和9，那么&amp;运算后的结果如下：</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;h &amp; (table.length-1)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;hash&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;table.length-1</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8 &amp; (15-1)：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1110&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;0100</p>
+<p class="p">&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;9 &amp; (15-1)：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0101&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1110&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;=&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0100</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-----------------------------------------------------------------------------------------------------------------------</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 8 &amp; (16-1)：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0100&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1111&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0100</p>
+<p class="p">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 9 &amp; (16-1)：&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0101&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&amp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1111&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;=&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0101</p>
+<p class="p">&nbsp;&nbsp;&nbsp;<span style="font-family: Helvetica;">从上面的例子中可以看出：当它们和</span>15-1（1110）&ldquo;与&rdquo;的时候，产生了相同的结果，也就是说它们会定位到数组中的同一个位置上去，这就产生了碰撞，8和9会被放到数组中的同一个位置上形成链表，那么查询的时候就需要遍历这个链表，得到8或者9，这样就降低了查询的效率。同时，我们也可以发现，当数组长度为15的时候，hash值会与15-1（1110）进行&ldquo;与&rdquo;，那么&nbsp;最后一位永远是0，而0001，0011，0101，1001，1011，0111，1101这几个位置永远都不能存放元素了，空间浪费相当大，更糟的是这种情况中，数组可以使用的位置比数组长度小了很多，这意味着进一步增加了碰撞的几率，减慢了查询的效率！而当数组长度为16时，即为2的n次方时，2<sup>n</sup>-1得到的二进制数的每个位上的值都为1，这使得在低位上&amp;时，得到的和原hash的低位相同，就使得只有相同的hash值的两个值才会被放到数组中的同一个位置上形成链表。&nbsp; &nbsp;</p>
+<p class="p">&nbsp;&nbsp;&nbsp;所以说，当数组长度为2的n次幂的时候，不同的key算得得index相同的几率较小，那么数据在数组上分布就比较均匀，也就是说碰撞的几率小，相对的，查询的时候就不用遍历某个位置上的链表，这样查询效率也就较高了。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;根据上面&nbsp;put&nbsp;方法的源代码可以看出，当程序试图将一个key-value对放入HashMap中时，程序首先根据该&nbsp;key&nbsp;的&nbsp;hashCode()&nbsp;返回值决定该&nbsp;Node 的存储位置：如果两个 Node&nbsp;的&nbsp;key&nbsp;的&nbsp;hashCode()&nbsp;返回值相同，那它们的存储位置相同。如果这两个 Node&nbsp;的&nbsp;key&nbsp;通过&nbsp;equals&nbsp;比较返回&nbsp;true，新添加 Node&nbsp;的&nbsp;value&nbsp;将覆盖集合中原有 Node&nbsp;的&nbsp;value，但key不会覆盖。如果这两个 Node&nbsp;的&nbsp;key&nbsp;通过&nbsp;equals&nbsp;比较返回&nbsp;false，新添加的 Node&nbsp;将与集合中原有 Node&nbsp;形成 Node&nbsp;链。</p>
+<p class="p">2)&nbsp;&nbsp;读取：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">final</span> Node&lt;K, V&gt; getNode(<span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> n, <span style="color: #0000ff;">final</span><span style="color: #000000;"> Object o) {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">final</span> Node&lt;K, V&gt;<span style="color: #000000;">[] table;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> length;
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">final</span> Node&lt;K, V&gt;<span style="color: #000000;"> node;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">if</span> ((table = <span style="color: #0000ff;">this</span>.table) != <span style="color: #0000ff;">null</span> &amp;&amp; (length = table.length) &gt; 0 &amp;&amp; (node = table[length - 1 &amp; n]) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">final</span><span style="color: #000000;"> K key;
+</span><span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">if</span> (node.hash == n &amp;&amp; ((key = node.key) == o || (o != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> o.equals(key)))) {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> node;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">10</span>         Node&lt;K, V&gt;<span style="color: #000000;"> node2;
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">if</span> ((node2 = node.next) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">if</span> (node <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> TreeNode) {
+</span><span style="color: #008080;">13</span>                 <span style="color: #0000ff;">return</span> ((TreeNode&lt;K, V&gt;<span style="color: #000000;">)node).getTreeNode(n, o);
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">            K key2;
+</span><span style="color: #008080;">16</span>             <span style="color: #0000ff;">while</span> (node2.hash != n || ((key2 = node2.key) != o &amp;&amp; (o == <span style="color: #0000ff;">null</span> || !<span style="color: #000000;">o.equals(key2)))) {
+</span><span style="color: #008080;">17</span>                 <span style="color: #0000ff;">if</span> ((node2 = node2.next) == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">18</span>                     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">21</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> node2;
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">24</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">25</span> }</code></pre>
+
+<p class="p">&nbsp;&nbsp; 有了上面存储时的hash算法作为基础，理解起来这段代码就很容易了。从上面的源代码中可以看出：从HashMap中get元素时，首先计算key的hashCode，找到数组中对应位置的某一元素，然后通过key的equals方法在对应位置的链表中找到需要的元素。&nbsp;&nbsp;</p>
+<p class="p">&nbsp;&nbsp; 3)&nbsp;归纳起来简单地说，HashMap&nbsp;在底层将&nbsp;key-value&nbsp;当成一个整体进行处理，这个整体就是一个 Node&nbsp;对象。HashMap底层采用一个 Node&nbsp;[]&nbsp;数组来保存所有的&nbsp;key-value&nbsp;对，当需要存储一个 Node&nbsp;对象时，会根据hash算法来决定其在数组中的存储位置，在根据equals方法决定其在该数组位置上的链表中的存储位置；当需要取出一个Node&nbsp;时，也会根据hash算法找到其在数组中的存储位置，再根据equals方法从该位置上的链表中取出该Node。&nbsp;</p>
+<p class="p"><span style="color: #3366ff;">4.&nbsp;&nbsp;&nbsp; HashMap的resize（rehash）：</span></p>
+<p class="p">&nbsp; &nbsp; 当HashMap中的元素越来越多的时候，hash冲突的几率也就越来越高，因为数组的长度是固定的。所以为了提高查询的效率，就要对HashMap的数组进行扩容，数组扩容这个操作也会出现在ArrayList中，这是一个常用的操作，而在HashMap数组扩容之后，最消耗性能的点就出现了：原数组中的数据必须重新计算其在新数组中的位置，并放进去，这就是resize。</p>
+<p class="p">&nbsp; &nbsp; 那么HashMap什么时候进行扩容呢？当HashMap中的元素个数超过数组大小*loadFactor时，就会进行数组扩容，loadFactor的默认值为0.75，这是一个折中的取值。也就是说，默认情况下，数组大小为16，那么当HashMap中元素个数超过16*0.75=12的时候，就把数组的大小扩展为&nbsp;2*16=32，即扩大一倍，然后重新计算每个元素在数组中的位置，而这是一个非常消耗性能的操作，所以如果我们已经预知HashMap中元素的个数，那么预设元素的个数能够有效的提高HashMap的性能。<span style="font-family: Helvetica;">比如说，我们有</span>1000个元素new HashMap(1000), 但是理论上来讲new HashMap(1024)更合适，不过上面已经说过，即使是1000，HashMap也自动会将其设置为1024。 但是new HashMap(1024)还不是更合适的，因为0.75*1024&nbsp;&lt; 1000, 也就是说为了让0.75 * size &gt; 1000, 我们必须这样new HashMap(2048)才最合适，既考虑了&amp;的问题，也避免了resize的问题。&nbsp;</p>
+<p class="p"><span style="color: #3366ff;">5.&nbsp;&nbsp;&nbsp; HashMap的性能参数：</span></p>
+<p class="p">&nbsp;&nbsp;&nbsp;HashMap&nbsp;包含如下几个构造器：</p>
+<p class="p">&nbsp;&nbsp;&nbsp;HashMap()：构建一个初始容量为&nbsp;16，负载因子为&nbsp;0.75&nbsp;的&nbsp;HashMap。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;HashMap(int initialCapacity)：构建一个初始容量为&nbsp;initialCapacity，负载因子为&nbsp;0.75&nbsp;的&nbsp;HashMap。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;HashMap(int initialCapacity, float loadFactor)：以指定初始容量、指定的负载因子创建一个&nbsp;HashMap。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;HashMap的基础构造器HashMap(int initialCapacity, float loadFactor)带有两个参数，它们是初始容量initialCapacity和加载因子loadFactor。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;initialCapacity：HashMap的最大容量，即为底层数组的长度。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;loadFactor：负载因子loadFactor定义为：散列表的实际元素数目(n)/&nbsp;散列表的容量(m)。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;负载因子衡量的是一个散列表的空间的使用程度，负载因子越大表示散列表的装填程度越高，反之愈小。对于使用链表法的散列表来说，查找一个元素的平均时间是O(1+a)，因此如果负载因子越大，对空间的利用更充分，然而后果是查找效率的降低；如果负载因子太小，那么散列表的数据将过于稀疏，对空间造成严重浪费。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;HashMap的实现中，通过threshold字段来判断HashMap的最大容量：</p>
+<p><strong>&nbsp;<span class="cnblogs_code"><span style="color: #008080;">1</span> <span style="color: #0000ff;">this</span>.threshold = tableSizeFor(n);</span>&nbsp;</strong></p>
+<p class="p">&nbsp;&nbsp; 结合tableSizeFor函数代码可知，threshold就是在此loadFactor和capacity对应下允许的最大元素数目，超过这个数目就重新resize，以降低实际的负载因子。默认的的负载因子0.75是对空间和时间效率的一个平衡选择。当容量超出此最大容量时，&nbsp;resize后的HashMap容量是容量的两倍：&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">float</span> n = size / <span style="color: #0000ff;">this</span>.loadFactor + 1.0f<span style="color: #000000;">;
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> n2 = (n &lt; 1.07374182E9f) ? ((<span style="color: #0000ff;">int</span>)n) : 1073741824<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span> <span style="color: #0000ff;">if</span> (n2 &gt; <span style="color: #0000ff;">this</span><span style="color: #000000;">.threshold) {
+</span><span style="color: #008080;">4</span>     <span style="color: #0000ff;">this</span>.threshold =<span style="color: #000000;"> tableSizeFor(n2);
+</span><span style="color: #008080;">5</span> }</code></pre>
+
+<p><span style="color: #3366ff;">6.&nbsp;&nbsp;&nbsp; Fail-Fast机制：</span></p>
+<p class="p">&nbsp;&nbsp;&nbsp;我们知道java.util.HashMap不是线程安全的，因此如果在使用迭代器的过程中有其他线程修改了map，那么将抛出ConcurrentModificationException，这就是所谓fail-fast策略。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;这一策略在源码中的实现是通过modCount域，modCount顾名思义就是修改次数，对HashMap内容的修改都将增加这个值，那么在迭代器初始化过程中会将这个值赋给迭代器的expectedModCount。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">HashIterator() {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">this</span>.expectedModCount = HashMap.<span style="color: #0000ff;">this</span><span style="color: #000000;">.modCount;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">final</span> Node&lt;K, V&gt;[] table = HashMap.<span style="color: #0000ff;">this</span><span style="color: #000000;">.table;
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">final</span> Node&lt;K, V&gt; node = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">this</span>.next =<span style="color: #000000;"> node;
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">this</span>.current =<span style="color: #000000;"> node;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">this</span>.index = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">if</span> (table != <span style="color: #0000ff;">null</span> &amp;&amp; HashMap.<span style="color: #0000ff;">this</span>.size &gt; 0<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">this</span>.index &lt; table.length &amp;&amp; (<span style="color: #0000ff;">this</span>.next = table[<span style="color: #0000ff;">this</span>.index++]) == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {}
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span> }</code></pre>
+
+<p>&nbsp; &nbsp;在迭代过程中，判断modCount跟expectedModCount是否相等，如果不相等就表示已经有其他线程修改了Map。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">final</span> Node&lt;K, V&gt;<span style="color: #000000;"> nextNode() {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">final</span> Node&lt;K, V&gt; next = <span style="color: #0000ff;">this</span><span style="color: #000000;">.next;
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">if</span> (HashMap.<span style="color: #0000ff;">this</span>.modCount != <span style="color: #0000ff;">this</span><span style="color: #000000;">.expectedModCount) {
+</span><span style="color: #008080;">4</span>         <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConcurrentModificationException();
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">6</span> <span style="color: #000000;">    ...
+</span><span style="color: #008080;">7</span> }</code></pre>
+
+<p>&nbsp; &nbsp;在HashMap的API中指出：</p>
+<p class="p">&nbsp;&nbsp;&nbsp;由所有HashMap类的&ldquo;collection&nbsp;视图方法&rdquo;所返回的迭代器都是快速失败的：在迭代器创建之后，如果从结构上对映射进行修改，除非通过迭代器本身的&nbsp;remove&nbsp;方法，其他任何时间任何方式的修改，迭代器都将抛出&nbsp;ConcurrentModificationException。因此，面对并发的修改，迭代器很快就会完全失败，而不冒在将来不确定的时间发生任意不确定行为的风险。</p>
+<p class="p">&nbsp;&nbsp;&nbsp;注意，迭代器的快速失败行为不能得到保证，一般来说，存在非同步的并发修改时，不可能作出任何坚决的保证。快速失败迭代器尽最大努力抛&nbsp;ConcurrentModificationException。因此，编写依赖于此异常的程序的做法是错误的，正确做法是：迭代器的快速失败行为应该仅用于检测程序错误。</p>
+<p class="p">&nbsp;</p>
+<p>1.转载注明：<a href="https://www.cnblogs.com/anyeshouhu/p/11527329.html">https://www.cnblogs.com/anyeshouhu/p/11527329.html</a></p>
+<p>2.本文为个人笔记、心得，可能引用其它文章，所以博客只在私自范围内供大家学习参考。</p>
+<p>参考博文：</p>
+<p><a href="https://www.cnblogs.com/yuanblog/p/4441017.html">https://www.cnblogs.com/yuanblog/p/4441017.html</a></p>
+<p><a href="https://baijiahao.baidu.com/s?id=1618550070727689060&amp;wfr=spider&amp;for=pc">https://baijiahao.baidu.com/s?id=1618550070727689060&amp;wfr=spider&amp;for=pc</a></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

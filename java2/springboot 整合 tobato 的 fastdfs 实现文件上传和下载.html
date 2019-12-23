@@ -1,0 +1,313 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修springboot 整合 tobato 的 fastdfs 实现文件上传和下载' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>springboot 整合 tobato 的 fastdfs 实现文件上传和下载</center></div><div class='banquan'>原文出处:本文由博客园博主javaju提供。<br/>
+原文连接:https://www.cnblogs.com/javaju/p/11871950.html</div><br>
+    <ul>
+<li><span style="font-size: 14pt;"><span style="font-size: 14pt;">添加项目所需要的依赖</span></span></li>
+</ul>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-web<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> taobao fastdfs依赖 </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.github.tobato<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>fastdfs-client<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.26.5<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.apache.commons<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>commons-io<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.3.2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Swagger2 核心依赖 </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>io.springfox<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>springfox-swagger2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.6.1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>io.springfox<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>springfox-swagger-ui<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.6.1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 18px;">引入 FastDFS 配置</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.github.tobato.fastdfs.FdfsClientConfig;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Configuration;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.EnableMBeanExport;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Import;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.jmx.support.RegistrationPolicy;
+
+@Configuration
+@Import(FdfsClientConfig.</span><span style="color: #0000ff;">class</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> 导入FastDFS-Client组件</span>
+@EnableMBeanExport(registration = RegistrationPolicy.IGNORE_EXISTING) <span style="color: #008000;">//</span><span style="color: #008000;"> 解决jmx重复注册bean的问题</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FdfsConfiguration {
+}</span></code></pre>
+
+<ul>
+<li><span style="font-size: 18px;">引入 swaggerUI 配置</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Bean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Configuration;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> springfox.documentation.builders.ApiInfoBuilder;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> springfox.documentation.builders.PathSelectors;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> springfox.documentation.builders.RequestHandlerSelectors;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> springfox.documentation.service.ApiInfo;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> springfox.documentation.spi.DocumentationType;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> springfox.documentation.spring.web.plugins.Docket;
+
+@Configuration
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SwaggerConfig {
+    @Bean
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Docket createRestApi() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Docket(DocumentationType.SWAGGER_2)
+                .apiInfo(apiInfo())
+                .select()
+                .apis(RequestHandlerSelectors.basePackage(</span>"com.xuecheng.test.fastdfs"<span style="color: #000000;">))
+                .paths(PathSelectors.any())
+                .build();
+    }
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> ApiInfo apiInfo() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> ApiInfoBuilder()
+                .title(</span>"SpringBoot利用Swagger构建API文档"<span style="color: #000000;">)
+                .description(</span>"使用RestFul风格, 创建人：知了一笑"<span style="color: #000000;">)
+                .termsOfServiceUrl(</span>"https://i-beta.cnblogs.com/javaju"<span style="color: #000000;">)
+                .version(</span>"version 1.0"<span style="color: #000000;">)
+                .build();
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 18px;">application.yml</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: 8011
+
+# 分布式文件系统FDFS配置
+fdfs:
+  soTimeout: 1500 #socket连接超时时长
+  connectTimeout: 600 #连接tracker服务器超时时长
+  reqHost: 192.168.133.131   #nginx访问地址
+  reqPort: 80              #nginx访问端口
+  thumbImage: #缩略图生成参数，可选
+    width: 150
+    height: 150
+  trackerList: #TrackerList参数,支持多个，我这里只有一个，如果有多个在下方加- x.x.x.x:port
+    - 192.168.133.131:22122
+    - 192.168.133.131:22122
+spring:
+  application:
+    name: ware-fast-dfs
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 20MB</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 14pt;"><span style="font-size: 14pt;">FastDFSCilentUtil</span></span></li>
+</ul>
+<p><span style="font-size: 14pt;"><span style="font-size: 14pt;">　　</span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.github.tobato.fastdfs.domain.fdfs.StorePath;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.github.tobato.fastdfs.domain.proto.storage.DownloadByteArray;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.github.tobato.fastdfs.service.FastFileStorageClient;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.commons.lang3.StringUtils;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.Logger;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.LoggerFactory;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Component;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.multipart.MultipartFile;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.annotation.Resource;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.FileNotFoundException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.FileOutputStream;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+
+@Component
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FastDFSClientUtil {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> Logger LOGGER = LoggerFactory.getLogger(FastDFSClientUtil.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+    @Resource
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> FastFileStorageClient storageClient ;
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 上传文件
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> String upload(MultipartFile multipartFile) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        String originalFilename </span>=<span style="color: #000000;"> multipartFile.getOriginalFilename().
+                substring(multipartFile.getOriginalFilename().
+                        lastIndexOf(</span>".") + 1<span style="color: #000000;">);
+        StorePath storePath </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.storageClient.uploadImageAndCrtThumbImage(
+                multipartFile.getInputStream(),
+                multipartFile.getSize(),originalFilename , </span><span style="color: #0000ff;">null</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> storePath.getFullPath() ;
+    }
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 删除文件
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> deleteFile(String fileUrl) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (StringUtils.isEmpty(fileUrl)) {
+            LOGGER.info(</span>"fileUrl == &gt;&gt;文件路径为空..."<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            StorePath storePath </span>=<span style="color: #000000;"> StorePath.parseFromUrl(fileUrl);
+            storageClient.deleteFile(storePath.getGroup(), storePath.getPath());
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            LOGGER.info(e.getMessage());
+        }
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 下载文件
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">byte</span><span style="color: #000000;">[] downloadFile(String fileUrl){
+        String group </span>= fileUrl.substring(0, fileUrl.indexOf("/"<span style="color: #000000;">));
+        String path </span>= fileUrl.substring(fileUrl.indexOf("/") + 1<span style="color: #000000;">);
+        DownloadByteArray downloadByteArray </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DownloadByteArray();
+        </span><span style="color: #0000ff;">byte</span>[] bytes = <span style="color: #0000ff;">this</span><span style="color: #000000;">.storageClient.downloadFile(group, path, downloadByteArray);
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">将文件保存到d盘</span>
+            FileOutputStream fileOutputStream = <span style="color: #0000ff;">new</span> FileOutputStream("d:\\911565.png"<span style="color: #000000;">);
+            fileOutputStream.write(bytes);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (FileNotFoundException e) {
+            e.printStackTrace();
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException e) {
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> bytes;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 14pt;"><span style="font-size: 14pt;">FileController</span></span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.juju.test.fastdfs.FastDFSClientUtil;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> io.swagger.annotations.ApiOperation;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.commons.lang3.StringUtils;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.http.ResponseEntity;
+</span><span style="color: #0000ff;">import</span> org.springframework.web.bind.annotation.*<span style="color: #000000;">;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.multipart.MultipartFile;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.annotation.Resource;
+
+@RestController
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FileController {
+    @Resource
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> FastDFSClientUtil fileDfsUtil ;
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 文件上传
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @ApiOperation(value</span>="上传文件", notes="测试FastDFS文件上传"<span style="color: #000000;">)
+    @RequestMapping(value </span>= "/uploadFile",headers="content-type=multipart/form-data", method =<span style="color: #000000;"> RequestMethod.POST)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;String&gt; uploadFile (@RequestParam("file"<span style="color: #000000;">) MultipartFile file){
+        String result ;
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;">{
+            String path </span>=<span style="color: #000000;"> fileDfsUtil.upload(file) ;
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">StringUtils.isEmpty(path)){
+                result </span>=<span style="color: #000000;"> path ;
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                result </span>= "上传失败"<span style="color: #000000;"> ;
+            }
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e){
+            e.printStackTrace() ;
+            result </span>= "服务异常"<span style="color: #000000;"> ;
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ResponseEntity.ok(result);
+    }
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 文件删除
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @RequestMapping(value </span>= "/deleteByPath", method =<span style="color: #000000;"> RequestMethod.GET)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;String&gt;<span style="color: #000000;"> deleteByPath (){
+        String filePathName </span>= "group1/M00/00/00/wKhIgl0n4AKABxQEABhlMYw_3Lo825.png"<span style="color: #000000;"> ;
+        fileDfsUtil.deleteFile(filePathName);
+        </span><span style="color: #0000ff;">return</span> ResponseEntity.ok("SUCCESS"<span style="color: #000000;">) ;
+    }
+
+    @ApiOperation(value</span>="下载文件", notes="测试FastDFS文件下载"<span style="color: #000000;">)
+    @GetMapping(</span>"/downloadFile"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;String&gt;<span style="color: #000000;"> downloadFile(){
+        String g </span>= "group1/M00/00/00/wKiFg13Plc6AVz_hAB6IzmlNPeY944.png"<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">byte</span>[] bytes =<span style="color: #000000;"> fileDfsUtil.downloadFile(g);
+        System.out.println(bytes);
+        </span><span style="color: #0000ff;">return</span> ResponseEntity.ok("SUCCESS"<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 14pt;"><span style="font-size: 14pt;">springboot启动类</span></span></li>
+</ul>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@SpringBootApplication<br />//Swaggerui注解
+@EnableSwagger2 
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestFastDFSApplication {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        SpringApplication.run(TestFastDFSApplication.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">,args);
+
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 14pt;"><span style="font-size: 14pt;">启动并访问 localhost:8011/swagger-ui.html 进行测试</span></span></li>
+</ul>
+<p><span style="font-size: 14pt;"><span style="font-size: 14pt;"><img src="./images/springboot 整合 tobato 的 fastdfs 实现文件上传和下载0.png" alt="" /></span></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-size: 14pt;"><span style="font-size: 14pt;">点击 Try it out！</span></span></li>
+</ul>
+<p><span style="font-size: 14pt;"><span style="font-size: 14pt;"><img src="./images/springboot 整合 tobato 的 fastdfs 实现文件上传和下载1.png" alt="" /></span></span></p>
+<p>&nbsp;</p>
+<p>返回文件存储在 FastDFS服务器上的 url 地址</p>
+<p>2019-11-16</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

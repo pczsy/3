@@ -1,0 +1,73 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot项目中处理返回json的null值' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot项目中处理返回json的null值</center></div><div class='banquan'>原文出处:本文由博客园博主ryantom提供。<br/>
+原文连接:https://www.cnblogs.com/ryantom/p/11752616.html</div><br>
+    <p>在后端数据接口项目开发中，经常遇到返回的数据中有null值，导致前端需要进行判断处理，否则容易出现undefined的情况，如何便捷的将null值转换为空字符串？</p>
+<p>以SpringBoot项目为例，SSM同理。</p>
+<p>1、新建配置类（JsonConfig.java）</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.fasterxml.jackson.core.JsonGenerator;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.fasterxml.jackson.core.JsonProcessingException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.fasterxml.jackson.databind.JsonSerializer;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.fasterxml.jackson.databind.ObjectMapper;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.fasterxml.jackson.databind.SerializerProvider;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Bean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Configuration;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Primary;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+
+@Configuration
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JsonConfig {
+    @Bean
+    @Primary
+    @ConditionalOnMissingBean(ObjectMapper.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ObjectMapper jacksonObjectMapper(Jackson2ObjectMapperBuilder builder)
+    {
+        ObjectMapper objectMapper </span>= builder.createXmlMapper(<span style="color: #0000ff;">false</span><span style="color: #000000;">).build();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通过该方法对mapper对象进行设置，所有序列化的对象都将按改规则进行系列化
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Include.Include.ALWAYS 默认
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Include.NON_DEFAULT 属性为默认值不序列化
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Include.NON_EMPTY 属性为 空（""） 或者为 NULL 都不序列化，则返回的json是没有这个字段的。这样对移动端会更省流量
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Include.NON_NULL 属性为NULL 不序列化,就是为null的字段不参加序列化
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">objectMapper.setSerializationInclusion(Include.NON_EMPTY);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 字段保留，将null值转为""</span>
+        objectMapper.getSerializerProvider().setNullValueSerializer(<span style="color: #0000ff;">new</span> JsonSerializer&lt;Object&gt;<span style="color: #000000;">()
+        {
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> serialize(Object o, JsonGenerator jsonGenerator,
+                                  SerializerProvider serializerProvider)
+                    </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException, JsonProcessingException
+            {
+                jsonGenerator.writeString(</span>""<span style="color: #000000;">);
+            }
+        });
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> objectMapper;
+    }
+}</span></code></pre>
+
+<p>2、在启动类Application中，记得添加Scan注解，防止无法扫描到配置类。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

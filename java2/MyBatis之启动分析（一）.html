@@ -1,0 +1,291 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修MyBatis之启动分析（一）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>MyBatis之启动分析（一）</center></div><div class='banquan'>原文出处:本文由博客园博主ytao-杨滔提供。<br/>
+原文连接:https://www.cnblogs.com/ytao-blog/p/11756456.html</div><br>
+    <p><img src="./images/MyBatis之启动分析（一）0.png" alt="ytao" /></p>
+<h2 id="前言">前言</h2>
+<p><a href="">MyBatis</a> 作为目前最常用的持久层框架之一，分析其源码，对我们的使用过程中可更好的运用它。本系列基于<code>mybatis-3.4.6</code>进行分析。<br />
+MyBatis 的初始化工作就是解析主配置文件，映射配置文件以及注解信息。然后保存在<code>org.apache.ibatis.session.Configuration</code>，供后期执行数据请求的相关调用。<br />
+<code>Configuration</code> 里有大量配置信息，在后面每涉及到一个相关配置，会进行详细的分析。<br />
+<!-- more --></p>
+<h2 id="启动">启动</h2>
+<pre><code><code>    public static void main(String[] args) throws IOException {
+        // 获取配置文件
+        Reader reader = Resources.getResourceAsReader(&quot;mybatis-config.xml&quot;);
+        // 通过 SqlSessionFactoryBuilder 构建 sqlSession 工厂
+        SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(reader);
+        // 获取 sqlSession 实例
+        SqlSession sqlSession = sqlSessionFactory.openSession();
+
+        reader.close();
+        sqlSession.close();
+    }</code></code></pre>
+<h2 id="分析">分析</h2>
+<h3 id="sqlsessionfactorybuilder-类">SqlSessionFactoryBuilder 类</h3>
+<p>SqlSessionFactoryBuilder 的<code>build()</code>是Mybatis启动的初始化入口，使用builder模式加载配置文件。<br />
+通过查看该类，使用方法重载，有以下9个方法：<br />
+<img src="./images/MyBatis之启动分析（一）1.png" alt="SqlSessionFactoryBuilde类中的方法" /></p>
+<p>方法重载最终实现处理的方法源码如下：</p>
+<pre><code><code>    public SqlSessionFactory build(Reader reader, String environment, Properties properties) {
+        try {
+          // 实例化 XMLConfigBuilder，用于读取配置文件信息
+          XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties);
+          // 解析配置信息，保存到 Configuration
+          return build(parser.parse());
+        } catch (Exception e) {
+          throw ExceptionFactory.wrapException(&quot;Error building SqlSession.&quot;, e);
+        } finally {
+          ErrorContext.instance().reset();
+          try {
+            reader.close();
+          } catch (IOException e) {
+            // Intentionally ignore. Prefer previous error.
+          }
+        }
+      }</code></code></pre>
+<ul>
+<li>environment 是指定加载环境，默认值为 null。</li>
+<li>properties 是属性配置文件，默认值为 null。<br />
+同时读取配置文件既可字符流读取，也支持字节流读取。</li>
+</ul>
+<pre><code><code>    public SqlSessionFactory build(InputStream inputStream, String environment, Properties properties) {
+        try {
+          XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
+          return build(parser.parse());
+        } catch (Exception e) {
+          throw ExceptionFactory.wrapException(&quot;Error building SqlSession.&quot;, e);
+        } finally {
+          ErrorContext.instance().reset();
+          try {
+            inputStream.close();
+          } catch (IOException e) {
+            // Intentionally ignore. Prefer previous error.
+          }
+        }
+      }</code></code></pre>
+<h3 id="实例化-xmlconfigbuilder-类">实例化 XMLConfigBuilder 类</h3>
+<p>通过 SqlSessionFactoryBuilder 中 <code>XMLConfigBuilder parser = new XMLConfigBuilder(reader, environment, properties)</code>, 分析 XMLConfigBuilder实例化过程。<br />
+该类中有四个变量：</p>
+<pre><code><code>    private boolean parsed;
+    private final XPathParser parser;
+    private String environment;
+    private final ReflectorFactory localReflectorFactory = new DefaultReflectorFactory();</code></code></pre>
+<ul>
+<li>parsed 是否解析，一次解析即可。用于标志配置文件只解析一次，<code>true</code>为已解析过。</li>
+<li>parser 解析配置的解析器</li>
+<li>environment 加载环境，即 <code>SqlSessionFactoryBuilder</code> 中的 <code>environment</code></li>
+<li>localReflectorFactory 用于创建和缓存<code>Reflector</code>对象，一个类对应一个<code>Reflector</code>。因为参数处理、结果映射等操作时，会涉及大量的反射操作。<code>DefaultReflectorFactory</code>实现类比较简单，这里不再进行讲解。</li>
+</ul>
+<p><strong>XMLConfigBuilder</strong>构建函数实现：</p>
+<pre><code><code>    public XMLConfigBuilder(Reader reader, String environment, Properties props) {
+        this(new XPathParser(reader, true, props, new XMLMapperEntityResolver()), environment, props);
+    }</code></code></pre>
+<h4 id="实例化-xpathparser-对象">实例化 <code>XPathParser</code> 对象</h4>
+<p>首先实例化 <code>XPathParser</code> 对象，里面定义了5个变量:</p>
+<pre><code><code>    private final Document document;
+    private boolean validation;
+    private EntityResolver entityResolver;
+    private Properties variables;
+    private XPath xpath;</code></code></pre>
+<ul>
+<li>document 保存document对象</li>
+<li>validation xml解析时是否验证文档</li>
+<li>entityResolver 加载dtd文件</li>
+<li>variables 配置文件定义<properties>的值</li>
+<li>xpath Xpath对象，用于对XML文件节点的操作</li>
+</ul>
+<p><code>XPathParser</code> 对象构造函数有：<br />
+<img src="./images/MyBatis之启动分析（一）2.png" alt="XPathParser构造方法" /><br />
+函数里面都处理了两件事：</p>
+<pre><code><code>    public XPathParser(Reader reader, boolean validation, Properties variables, EntityResolver entityResolver) {
+        commonConstructor(validation, variables, entityResolver);
+        this.document = createDocument(new InputSource(reader));
+    }</code></code></pre>
+<ol>
+<li>初始化赋值，和创建<code>XPath</code>对象，用于对XML文件节点的操作。</li>
+</ol>
+<pre><code><code>    private void commonConstructor(boolean validation, Properties variables, EntityResolver entityResolver) {
+        this.validation = validation;
+        this.entityResolver = entityResolver;
+        this.variables = variables;
+        // 创建Xpath对象，用于对XML文件节点的操作
+        XPathFactory factory = XPathFactory.newInstance();
+        this.xpath = factory.newXPath();
+    }</code></code></pre>
+<ol>
+<li>创建<code>Document</code>对象并赋值到<code>document</code>变量, 这里属于Document创建的操作,不再详细讲述，不懂可以点击这里查看<a href="https://docs.oracle.com/javase/8/docs/api/org/w3c/dom/Document.html?is-external=true">API</a></li>
+</ol>
+<pre><code><code>    private Document createDocument(InputSource inputSource) {
+        // important: this must only be called AFTER common constructor
+        try {
+          // 实例化 DocumentBuilderFactory 对象，用于创建 DocumentBuilder 对象
+          DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+          // 是否校验文档
+          factory.setValidating(validation);
+          // 设置 DocumentBuilderFactory 的配置
+          factory.setNamespaceAware(false);
+          factory.setIgnoringComments(true);
+          factory.setIgnoringElementContentWhitespace(false);
+          factory.setCoalescing(false);
+          factory.setExpandEntityReferences(true);
+          // 创建 DocumentBuilder
+          DocumentBuilder builder = factory.newDocumentBuilder();
+          builder.setEntityResolver(entityResolver);
+          builder.setErrorHandler(new ErrorHandler() {
+            @Override
+            public void error(SAXParseException exception) throws SAXException {
+              throw exception;
+            }
+    
+            @Override
+            public void fatalError(SAXParseException exception) throws SAXException {
+              throw exception;
+            }
+    
+            @Override
+            public void warning(SAXParseException exception) throws SAXException {
+            }
+          });
+          // 加载文件
+          return builder.parse(inputSource);
+        } catch (Exception e) {
+          throw new BuilderException(&quot;Error creating document instance.  Cause: &quot; + e, e);
+        }
+    }</code></code></pre>
+<h4 id="xmlconfigbuilder构造函数赋值"><code>XMLConfigBuilder</code>构造函数赋值</h4>
+<pre><code><code>    private XMLConfigBuilder(XPathParser parser, String environment, Properties props) {
+        super(new Configuration());
+        ErrorContext.instance().resource(&quot;SQL Mapper Configuration&quot;);
+        this.configuration.setVariables(props);
+        this.parsed = false;
+        this.environment = environment;
+        this.parser = parser;
+    }</code></code></pre>
+<ol>
+<li>初始化父类<code>BaseBuilder</code>的值。</li>
+<li>将外部值赋值给对象。</li>
+<li>将实例化的<code>XPathParser</code>赋值给<code>parser</code>。</li>
+</ol>
+<p>最后返回<code>XMLConfigBuilder</code>对象。</p>
+<h3 id="解析-xmlconfigbuilder-对象">解析 XMLConfigBuilder 对象</h3>
+<p>通过 <code>XMLConfigBuilder.parse()</code> 解析配置信息，保存至<code>Configuration</code>。解析详解在后面文章中进行分析。</p>
+<pre><code><code>    public Configuration parse() {
+        // 是否解析过配置文件
+        if (parsed) {
+          throw new BuilderException(&quot;Each XMLConfigBuilder can only be used once.&quot;);
+        }
+        // 标志解析过，定义为 true
+        parsed = true;
+        // 解析 configuration 节点中的信息
+        parseConfiguration(parser.evalNode(&quot;/configuration&quot;));
+        return configuration;
+    }</code></code></pre>
+<h3 id="创建-sqlsessionfactory">创建 SqlSessionFactory</h3>
+<p><code>DefaultSqlSessionFactory</code>实现了<code>SqlSessionFactory</code>接口。<br />
+通过上面解析得到的<code>Configuration</code>，调用<code>SqlSessionFactoryBuilder.build(Configuration config)</code>创建一个 <code>DefaultSqlSessionFactory</code>。</p>
+<pre><code><code>    public SqlSessionFactory build(Configuration config) {
+        return new DefaultSqlSessionFactory(config);
+    }</code></code></pre>
+<p>实例化<code>DefaultSqlSessionFactory</code>的过程，就是将<code>Configuration</code>传递给<code>DefaultSqlSessionFactory</code>成员变量<code>configuration</code>。</p>
+<pre><code><code>    public DefaultSqlSessionFactory(Configuration configuration) {
+        this.configuration = configuration;
+    }</code></code></pre>
+<h3 id="创建-sqlsession">创建 SqlSession</h3>
+<p>通过调用<code>SqlSessionFactory.openSession()</code>创建<code>SqlSession</code>。</p>
+<pre><code><code>    public interface SqlSessionFactory {
+      // 默认创建
+      SqlSession openSession();
+    
+      SqlSession openSession(boolean autoCommit);
+      SqlSession openSession(Connection connection);
+      SqlSession openSession(TransactionIsolationLevel level);
+    
+      SqlSession openSession(ExecutorType execType);
+      SqlSession openSession(ExecutorType execType, boolean autoCommit);
+      SqlSession openSession(ExecutorType execType, TransactionIsolationLevel level);
+      SqlSession openSession(ExecutorType execType, Connection connection);
+    
+      Configuration getConfiguration();
+    
+    }</code></code></pre>
+<ul>
+<li>autoCommit 是否自动提交事务，</li>
+<li>level 事务隔离级别（共5个级别）， 可查看相关源码</li>
+<li>connection 连接</li>
+<li>execType 执行器的类型：<code>SIMPLE</code>(不做特殊处理), <code>REUSE</code>（复用预处理语句）, <code>BATCH</code>（会批量执行）</li>
+</ul>
+<p>因为上面<code>DefaultSqlSessionFactory</code>实现了<code>SqlSessionFactory</code>接口，所以进入到<code>DefaultSqlSessionFactory</code>查看<code>openSession()</code>。</p>
+<pre><code><code>    public SqlSession openSession() {
+        return openSessionFromDataSource(configuration.getDefaultExecutorType(), null, false);
+    }</code></code></pre>
+<p><code>openSession()</code>方法最终实现代码如下：</p>
+<pre><code><code>    private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
+        Transaction tx = null;
+        try {
+          // 获取configuration中的加载环境
+          final Environment environment = configuration.getEnvironment();
+          // 获取事务工厂
+          final TransactionFactory transactionFactory = getTransactionFactoryFromEnvironment(environment);
+          // 创建一个事务
+          tx = transactionFactory.newTransaction(environment.getDataSource(), level, autoCommit);
+          // 生成一个处理器，事务保存在处理器 BaseExecutor 中
+          final Executor executor = configuration.newExecutor(tx, execType);
+          // 实例化一个 DefaultSqlSession，DefaultSqlSession实现了SqlSession接口
+          return new DefaultSqlSession(configuration, executor, autoCommit);
+        } catch (Exception e) {
+          // 异常情况下关闭事务
+          closeTransaction(tx); // may have fetched a connection so lets call close()
+          throw ExceptionFactory.wrapException(&quot;Error opening session.  Cause: &quot; + e, e);
+        } finally {
+          // 充值错误实例上下文
+          ErrorContext.instance().reset();
+        }
+    }</code></code></pre>
+<p>生成处理器<code>Configuration.newExecutor(Transaction transaction, ExecutorType executorType)</code>：</p>
+<pre><code><code>    public Executor newExecutor(Transaction transaction, ExecutorType executorType) {
+        // 默认为 ExecutorType.SIMPLE
+        executorType = executorType == null ? defaultExecutorType : executorType;
+        executorType = executorType == null ? ExecutorType.SIMPLE : executorType;
+        Executor executor;
+        if (ExecutorType.BATCH == executorType) {
+          executor = new BatchExecutor(this, transaction);
+        } else if (ExecutorType.REUSE == executorType) {
+          executor = new ReuseExecutor(this, transaction);
+        } else {
+          executor = new SimpleExecutor(this, transaction);
+        }
+        if (cacheEnabled) {
+          executor = new CachingExecutor(executor);
+        }
+        executor = (Executor) interceptorChain.pluginAll(executor);
+        return executor;
+    }</code></code></pre>
+<p>以<code>ExecutorType.SIMPLE</code>为例, <code>BatchExecutor</code>, <code>ReuseExecutor</code>同理：<br />
+<img src="./images/MyBatis之启动分析（一）3.png" alt="SimpleExecutor父类图" /><br />
+至此，mybatis的启动流程大致简单的介绍到这里，对mybatis的启动初始化有个大致了解。接下将会针对单独模块进行详细分析。</p>
+<p><br><br><br />
+个人博客： <a href="https://ytao.top" class="uri">https://ytao.top</a><br />
+我的公众号 ytao<br />
+<img src="./images/MyBatis之启动分析（一）4.png" alt="我的公众号" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

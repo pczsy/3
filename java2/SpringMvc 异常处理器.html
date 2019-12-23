@@ -1,0 +1,175 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringMvc 异常处理器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringMvc 异常处理器</center></div><div class='banquan'>原文出处:本文由博客园博主陈彦斌提供。<br/>
+原文连接:https://www.cnblogs.com/chenyanbin/p/12022180.html</div><br>
+    <h1 style="text-align: center;">简介</h1>
+<p>　　SpringMvc 在处理请求过程中出现异常信息由异常处理器进行处理，自定义异常处理器可以实现一个系统的异常处理逻辑。</p>
+<h1 style="text-align: center;">异常理解</h1>
+<p>　　异常包含<span style="color: #ff0000;"><strong>编译时异常</strong></span>和<span style="color: #ff0000;"><strong>运行时异常</strong></span>，其中编译时异常也叫<span style="color: #ff0000;"><strong>预期异常</strong></span>。运行时异常只有在项目运行的情况下才会发现，编译的时候不需要关心。</p>
+<p>　　运行时异常，比如：<span style="color: #ff0000;"><strong>空指针异常、数组越界异常</strong></span>，对于这样的异常，只能通过程序员丰富的经验来解决和测试人员不断的严格测试来解决。</p>
+<p>　　<span style="color: #ff0000;"><strong>编译时异常</strong></span>，比如：<span style="color: #ff0000;"><strong>数据库异常、文件读取异常、自定义异常</strong></span>等。对于这样的异常，必须使用 <span style="color: #ff0000;"><strong>try catch</strong></span>代码块或者<span style="color: #ff0000;"><strong>throws</strong></span>关键字来处理异常。</p>
+<h1 style="text-align: center;">异常处理思路</h1>
+<p>　　系统中异常包括两类：<span style="color: #ff0000;"><strong>预期异常(编译时异常)和运行时异常RuntimeException</strong></span>，前者通过捕获异常从而获取异常信息，后者主要通过规范代码开发、测试等手段减少运行时异常的发生。</p>
+<p>　　系统的dao、service、controller出现都通过throws Exception向上抛出，最后由SpringMvc前端控制器交给异常处理器进行异常处理，如下图：</p>
+<p><img src="./images/SpringMvc 异常处理器0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<span style="color: #ff0000;"><strong>全局范围只有一个异常处理器。</strong></span></p>
+<h1 style="text-align: center;">自定义异常类</h1>
+<h2>第一步：CustomException.java</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.cyb.ssm.exception;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 自定义编译时异常
+ * 
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> apple
+ *
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> CustomException <span style="color: #0000ff;">extends</span><span style="color: #000000;"> Exception {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String msg;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getMsg() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> msg;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setMsg(String msg) {
+        </span><span style="color: #0000ff;">this</span>.msg =<span style="color: #000000;"> msg;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> CustomException(String msg) {
+        </span><span style="color: #0000ff;">super</span><span style="color: #000000;">();
+        </span><span style="color: #0000ff;">this</span>.msg =<span style="color: #000000;"> msg;
+    }
+}</span></code></pre>
+
+<h2>第二步：CustomExceptionResolver.java(<span style="color: #ff0000;">重点</span>)</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.cyb.ssm.resolver;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.servlet.HandlerExceptionResolver;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.servlet.ModelAndView;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.cyb.ssm.exception.CustomException;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> CustomExceptionResolver <span style="color: #0000ff;">implements</span><span style="color: #000000;"> HandlerExceptionResolver {
+
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler,
+            Exception ex) {
+        String message</span>=""<span style="color: #000000;">;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 异常处理逻辑</span>
+        <span style="color: #0000ff;">if</span> (ex <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> CustomException) {
+            message </span>=<span style="color: #000000;"> ((CustomException) ex).getMsg();
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            message</span>="未知错误"<span style="color: #000000;">;
+        }
+        ModelAndView mv</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> ModelAndView();
+        mv.setViewName(</span>"error"<span style="color: #000000;">);
+        mv.addObject(</span>"message"<span style="color: #000000;">, message);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mv;
+    }
+}</span></code></pre>
+
+<h2>第三步：在springmvc.xml中加入bean</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="UTF-8"</span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">beans </span><span style="color: #ff0000;">xmlns</span><span style="color: #0000ff;">="http://www.springframework.org/schema/beans"</span><span style="color: #ff0000;">
+    xmlns:xsi</span><span style="color: #0000ff;">="http://www.w3.org/2001/XMLSchema-instance"</span><span style="color: #ff0000;">
+    xmlns:aop</span><span style="color: #0000ff;">="http://www.springframework.org/schema/aop"</span><span style="color: #ff0000;">
+    xmlns:mvc</span><span style="color: #0000ff;">="http://www.springframework.org/schema/mvc"</span><span style="color: #ff0000;">
+    xmlns:tx</span><span style="color: #0000ff;">="http://www.springframework.org/schema/tx"</span><span style="color: #ff0000;">
+    xmlns:context</span><span style="color: #0000ff;">="http://www.springframework.org/schema/context"</span><span style="color: #ff0000;">
+    xsi:schemaLocation</span><span style="color: #0000ff;">="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/mvc
+        http://www.springframework.org/schema/mvc/spring-mvc.xsd
+        http://www.springframework.org/schema/aop
+        http://www.springframework.org/schema/aop/spring-aop.xsd"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 处理器类的扫描 </span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">context:component-scan
+        </span><span style="color: #ff0000;">base-package</span><span style="color: #0000ff;">="com.cyb.ssm.controller"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">context:component-scan</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">mvc:annotation-driven </span><span style="color: #ff0000;">conversion-service</span><span style="color: #0000ff;">="conversionService"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 显示配置视图解析器 </span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean
+        </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="org.springframework.web.servlet.view.InternalResourceViewResolver"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="prefix"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="/WEB-INF/jsp/"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">property</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="suffix"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">=".jsp"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">property</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 配置自定义的转换服务 </span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="conversionService"</span><span style="color: #ff0000;">
+        class</span><span style="color: #0000ff;">="org.springframework.format.support.FormattingConversionServiceFactoryBean"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="converters"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">set</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 自定义日期类型转换器 </span><span style="color: #008000;">--&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="com.cyb.ssm.controller.converter.DateConverter"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">set</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">property</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 配置异常处理器 </span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="com.cyb.ssm.resolver.CustomExceptionResolver"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">beans</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<h2>第四步：jsp错误页面</h2>
+<src class="cnblogs_code">
+<pre><code><span style="background-color: #ffff00; color: #000000;">&lt;%</span><span style="background-color: #f5f5f5; color: #000000;">@ page language</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">java</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #000000;"> contentType</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">text/html; charset=UTF-8</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #000000;">
+    pageEncoding</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">UTF-8</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #ffff00; color: #000000;">%&gt;</span>
+<span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">http-equiv</span><span style="color: #0000ff;">="Content-Type"</span><span style="color: #ff0000;"> content</span><span style="color: #0000ff;">="text/html; charset=UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>错误页面<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+    ${message }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<h2>第五步：测试类</h2>
+<src class="cnblogs_code">
+<pre><code>    @RequestMapping("queryItem"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> ModelAndView queryItem() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> CustomException {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">查询数据库，用静态数据模拟</span>
+        List&lt;Item&gt; itemList =<span style="color: #000000;"> Service.queryItemList();
+        ModelAndView mvAndView </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ModelAndView();
+        mvAndView.addObject(</span>"itemList"<span style="color: #000000;">, itemList);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">设置视图(逻辑路径)</span>
+        mvAndView.setViewName("item/item-list"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> CustomException("我是自定义异常类"<span style="color: #000000;">);
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mvAndView;
+    }</span></code></pre>
+
+<h2>实现</h2>
+<p><img src="./images/SpringMvc 异常处理器1.png" alt="" /></p>
+<p>&nbsp;</p>
+<h2>源码&nbsp;</h2>
+<p>完整代码：<a href="https://files-cdn.cnblogs.com/files/chenyanbin/custom-error.rar" target="_blank">直接下载</a></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

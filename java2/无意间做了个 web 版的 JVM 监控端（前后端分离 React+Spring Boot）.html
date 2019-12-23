@@ -1,0 +1,81 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修无意间做了个 web 版的 JVM 监控端（前后端分离 React+Spring Boot）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>无意间做了个 web 版的 JVM 监控端（前后端分离 React+Spring Boot）</center></div><div class='banquan'>原文出处:本文由博客园博主风的姿态提供。<br/>
+原文连接:https://www.cnblogs.com/fengzheng/p/11675347.html</div><br>
+    <p>之前写了<a href="https://mp.weixin.qq.com/s/41v2pyYx9kLthJGjyR9-iw">JConsole、VisualVM 依赖的 JMX 技术</a>，然后放出了一个用纯 JMX 实现的 web 版本的 JConsole 的截图，今天源码来了。</p>
+<p>本来就是为了更多的了解 JMX，第一步就想把所有的 MBean 和属性都展示出来，开始在控制台输出，但是效果不好，内容太多太长，不够直观，然后就加了个 web 端的树形结构。然后做着做着突然发现，再稍微改改就能当个 web 版的简易监控端用了。</p>
+<p>此工具只在 hotspot JVM 8 环境下测试过。可支持查看本地 JVM 和 远程 JVM 实时监控。</p>
+<p>前端采用 React 16 + Antd + Yarn ，后端 Spring Boot + Java 1.8。具体使用方式可以到 github 仓库 README 页面查看。并且提供了一个在线预览版本，<em>文末有源码地址和在线版本的使用方式</em>。<br />
+<img src="./images/无意间做了个 web 版的 JVM 监控端（前后端分离 React+Spring Boot）0.png" /><br />
+支持本地 JVM 和远程 JVM 链接。</p>
+<p><img src="./images/无意间做了个 web 版的 JVM 监控端（前后端分离 React+Spring Boot）1.png" /><br />
+所有 MBean 的树形展示以及属性、操作的展示。</p>
+<p><img src="./images/无意间做了个 web 版的 JVM 监控端（前后端分离 React+Spring Boot）2.png" /><br />
+JVM 运行情况实时展示</p>
+<p>实现的功能有如下几个方面：</p>
+<p><em>1.</em>所有 MBean 的展示；</p>
+<p><em>2.</em>系统信息的展示，包括内存使用、CPU 使用率等等；</p>
+<p><em>3.</em>JVM 参数，包括命令行参数和 systemProperties；</p>
+<p><em>4.</em>CPU 、Heap、Metaspace、类加载、线程的实时折线图；</p>
+<p><em>5.</em>垃圾收集器的种类和回收次数；</p>
+<p>下面结合这几部分，说一下 JMX 的使用方式。</p>
+<h3 id="mbean-的获取">MBean 的获取</h3>
+<p>正如各种工具里的 MBean 的树形展示方式一样， MBean 本身就是以这种层级关系存在的。</p>
+<p>MBean 包含在 Domain 里，Domain 相当于是一套独立的空间，这个空间里可以定义各种 type，各种 name 的 ObjectName。比如前一篇 JMX 文章里自定义的那个。</p>
+<p>通过 ObjectName 可以获取到 MBean 的各种信息，包括属性、操作、通知。</p>
+<p>有些属性是简单数据类型，比如 int、long、double、String 类型，另外有些是比较复杂的，比方说 com.sun.management:type=HotSpotDiagnostic 的属性 DiagnosticOptions 就是 javax.management.openmbean.CompositeData 类型。还有的属性的数据类型是 javax.management.openmbean.TabularData。这些都要单独处理。</p>
+<p><img src="./images/无意间做了个 web 版的 JVM 监控端（前后端分离 React+Spring Boot）3.png" /></p>
+<h3 id="常用的-mbean">常用的 MBean</h3>
+<p>有些指标是监控会用到的，比如内存、CPU、堆空间、线程、类加载情况相关的 MBean。</p>
+<p>JDK 提供了一个 ManagementFactory，帮助我们方便的获取常用的 MBean。可以到 java.lang.management 包下找到这个类看一下注释和代码。</p>
+<p><em>OperatingSystemMXBean</em></p>
+<p>可以获取操作系统相关的信息，机器名称、内存使用、CPU使用等信息。</p>
+<p>可通过 <code>ManagementFactory.getOperatingSystemMXBean()</code> 方式获取。</p>
+<p><em>RuntimeMXBean</em></p>
+<p>可以获取当前 JVM 的信息，包括 JVM 参数和 JVM 相关的系统参数。</p>
+<p>可以通过 <code>ManagementFactory.getRuntimeMXBean()</code>方式获取。</p>
+<p><em>MemoryMXBean</em></p>
+<p>可以获取当前 JVM 的内存使用，包括堆内存和非堆内存。</p>
+<p>可以通过 <code>ManagementFactory.getMemoryMXBean()</code>获取</p>
+<p><em>ThreadMXBean</em></p>
+<p>获取 JVM 线程使用情况，包括活动线程、守护线程、线程峰值等。</p>
+<p>可以通过 <code>ManagementFactory.getThreadMXBean()</code> 获取。</p>
+<p><em>ClassLoadingMXBean</em></p>
+<p>获取 JVM 类加载情况，包括已加载类、未加载类等。</p>
+<p>可以通过 <code>ManagementFactory.getClassLoadingMXBean()</code> 获取。</p>
+<p><em>GarbageCollectorMXBean</em></p>
+<p>获取 JVM 垃圾收集器的情况，包括使用的哪种垃圾收集器以及回收次数等等。</p>
+<p>可以通过 <code>ManagementFactory.getGarbageCollectorMXBeans()</code> 获取，注意，这里获取到的是一个集合，因为垃圾收集器分为老年代和新生代两个。</p>
+<p>除了以上几个常用的 MBean ，还有很多其他的。有些在 ManagementFactory 类里已提供了，另外还有很多需要自己通过 ObjectName 获取。</p>
+<p><strong>在线体验</strong></p>
+<p>我在服务器上部署了一个体验版本。因为服务器配置实在惨的可怜，所以需要在本公众号内回复「<em>jmx</em>」获取体验验证码和在线地址。<br />
+公众号：「古时的风筝」或者扫描文末的二维码</p>
+<p><strong>源码地址</strong></p>
+<p>源码放到了 github 上，地址为 <a href="https://github.com/huzhicheng/little-flower" class="uri">https://github.com/huzhicheng/little-flower</a>， README 上有具体的使用方式。因为各个操作系统下的 JVM 也是不一样的，windows、Mac、Linux 也是不能通用的，所以，没有提供可用的 release jar 包。比如我开发用的 Mac 和体验环境 Linux 系统就是不一样的，需要单独编译。在使用的时候，需要下载源码，在本地编译，然后运行。</p>
+<p>有兴趣的不妨试用一下，欢迎拍砖。</p>
+<p>不要吝惜你的「<strong>推荐</strong>」呦</p>
+<p><strong>欢迎关注，不定期更新本系列和其他文章</strong><br />
+<code>古时的风筝</code> ，进入公众号可以加入交流群</p>
+<p><img src="./images/无意间做了个 web 版的 JVM 监控端（前后端分离 React+Spring Boot）4.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

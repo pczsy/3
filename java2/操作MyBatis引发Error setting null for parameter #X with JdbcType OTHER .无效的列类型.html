@@ -1,0 +1,64 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修操作MyBatis引发Error setting null for parameter #X with JdbcType OTHER .无效的列类型' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>操作MyBatis引发Error setting null for parameter #X with JdbcType OTHER .无效的列类型</center></div><div class='banquan'>原文出处:本文由博客园博主Arebirth提供。<br/>
+原文连接:https://www.cnblogs.com/arebirth/p/11436432.html</div><br>
+    <p><strong>再用MyBatis操作Oracle的时候，传入null值而引发的错误</strong></p>
+<p><strong>异常信息：</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">org.springframework.jdbc.UncategorizedSQLException: Error setting null for parameter #6 with JdbcType OTHER .
+ Try setting a different JdbcType for this parameter or a different jdbcTypeForNull configuration property. Cause: 
+ java.sql.SQLException: 无效的列类型 ; 
+ uncategorized SQLException for SQL []; SQL state [null]; error code [17004];
+ 无效的列类型; nested exception is java.sql.SQLException: 无效的列类型</span></code></pre>
+
+<p>&nbsp;</p>
+<p>当我们用MyBatis操作数据库的时候传入null值，而且没有加入jdbcType类型的时候就会引发上述这种错误类型，</p>
+<p>因为MyBatis不知道这个地方要传入什么什么参数</p>
+<p>&nbsp;</p>
+<p>解决方案：</p>
+<p>1.</p>
+<pre><code><span>单个配置</span></code></pre>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">直接在后面加上 jdbcType=类型
+#{id,jdbcType=VARCHAR}</span></code></pre>
+
+<p>2.</p>
+<p>　全局配置</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">在MyBaits的核心配置文件里面进行配置
+
+</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">settings</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">setting </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="jdbcTypeForNull"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="NULL"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">settings</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>第二种配置方式官方是这样解释的：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">Specifies the JDBC type for null values when no specific JDBC type was provided for the parameter. Some drivers require specifying the column JDBC type but others work with generic values like NULL, VARCHAR or OTHER. 
+
+
+当没有为参数提供特定的JDBC类型时，指定的jdbc类型为空。一些驱动程序需要指定列JDBC类型，但其他驱动程序使用NULL、VARCHAR或其它类型值。</span></code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

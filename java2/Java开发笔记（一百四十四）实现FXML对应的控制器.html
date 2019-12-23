@@ -1,0 +1,92 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java开发笔记（一百四十四）实现FXML对应的控制器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java开发笔记（一百四十四）实现FXML对应的控制器</center></div><div class='banquan'>原文出处:本文由博客园博主pinlantu提供。<br/>
+原文连接:https://www.cnblogs.com/pinlantu/p/11438300.html</div><br>
+    <p>前面介绍了如何通过fxml文件编排界面布局，可是光有静态界面根本没法处理业务，必须另外书写业务逻辑的代码，方能响应各按钮的单击事件，并将业务结果即使呈现到界面上。显然，fxml内部写不了Java代码，同时入口程序已经把控件都托管给了fxml文件，也无法在Application代码中干预控件的操作。既然整个界面都托付给了fxml，那么解铃还须系铃人，只能且必须由fxml指定后续的逻辑控制器。具体做法是在fxml的根节点中添加属性&ldquo;fx:controller&rdquo;，通过该属性设置当前界面的控制器路径。比如之前的登录布局文件login_with_flow.fxml，它的根节点是流式窗格FlowPane，所以就给FlowPane节点补充&ldquo;fx:controller&rdquo;的取值，详细的标签例子见下：</p>
+<src class="cnblogs_Highlighter">
+<pre><code>&lt;FlowPane fx:controller="com.javafx.fxml.LoginController"
+	xmlns:fx="http://javafx.com/fxml" alignment="center" hgap="5" vgap="5"&gt;
+</code></pre>
+
+<p>&nbsp;</p>
+<p>由以上的FlowPane标签可知，它指定的控制器路径为&ldquo;com.javafx.fxml.LoginController&rdquo;，这个LoginController类正是login_with_flow.fxml对应的控制器代码。作为FXML专属的搭档，控制器也要符合一定的格式规范，首先它必须实现了接口Initializable，并重写该接口定义的initialize方法，这个方法顾名思义会在界面初始化之时调用。其次，控制器内部需要声明FXML文件定义好的控件编号，这样才能通过控件编号操作每个控件对象。下面便是一个控制器范本的代码示例：</p>
+<src class="cnblogs_Highlighter">
+<pre><code>//界面控制器必须实现自接口Initializable
+public class LoginController implements Initializable {
+	@FXML
+	private 控件类型 控件编号; // 其中控件类型为JavaFX的控件类名，控件编号取自fxml文件中的fx:id
+
+	@Override
+	public void initialize(URL location, ResourceBundle resources) { // 界面打开后的初始化操作
+		// 可在此给各控件设置单击事件或者选中事件，也可设置控件上的文本字体及其大小
+	}
+}
+</code></pre>
+
+<p>仍以前述的登录窗口为例，它的布局文件名叫login_with_flow.fxml，同时fxml文件设定了界面对应的控制器叫做LoginController。注意到登录窗口拥有两个单选按钮和一个登录按钮，这三个按钮都应当触发单击或者选中事件，于是在控制器的代码中分别声明几个待操作的控件对象，对象名称与fxml中的fx:id保持一致。然后重写控制器的initialize方法，在该方法中各自调用三个按钮的setOnAction方法，用以注册单击或选中按钮后的触发事件。根据以上说明编写登录窗口的控制器代码示例如下：</p>
+<src class="cnblogs_Highlighter">
+<pre><code>//登录窗口的界面控制器
+public class LoginController implements Initializable {
+	@FXML
+	private RadioButton rbPassword; // 密码登录对应的单选按钮
+	@FXML
+	private RadioButton rbVerifycode; // 验证码登录对应的单选按钮
+	@FXML
+	private Label labelUser; // 用户名标签
+	@FXML
+	private TextField fieldUser; // 用户名输入框
+	@FXML
+	private Label labelPassword; // 密码标签
+	@FXML
+	private PasswordField fieldPassword; // 密码输入框
+	@FXML
+	private Button btnLogin; // 登录按钮
+	@FXML
+	private Label labelLoginResult; // 登录结果标签
+
+	@Override
+	public void initialize(URL location, ResourceBundle resources) { // 界面打开后的初始化操作
+		rbPassword.setOnAction(e -&gt; { // 选中&ldquo;密码登录&rdquo;单选按钮后触发的事件
+			labelUser.setText("用户名：");
+			labelPassword.setText("密　码：");
+		});
+		rbVerifycode.setOnAction(e -&gt; { // 选中&ldquo;验证码登录&rdquo;单选按钮后触发的事件
+			labelUser.setText("手机号：");
+			labelPassword.setText("验证码：");
+		});
+		// 
+		btnLogin.setOnAction(e -&gt; { // 单击&ldquo;登录&rdquo;按钮后触发的事件
+			String result = String.format("您输入的用户名为%s，密码为%s", 
+					fieldUser.getText(), fieldPassword.getText());
+			labelLoginResult.setText(result); // 在登录结果标签上显示登录信息
+		});
+	}
+}
+</code></pre>
+
+<p>由上面代码可见，这个控制器的处理逻辑很简单，选中按钮后仅仅给文本标签设置指定文字而已，当然这样也方便观察控件的操作结果。</p>
+<p>回到登录窗口的入口代码LoginMain，运行测试程序弹出如下图所示的登录界面。</p>
+<p><img src="./images/Java开发笔记（一百四十四）实现FXML对应的控制器0.png" alt="" /><br />由图示可见登录窗口默认选中&ldquo;密码登录&rdquo;，接着单击右边的&ldquo;验证码登录&rdquo;按钮，发现下方的用户名标签变成了&ldquo;手机号：&rdquo;，密码标签变成了&ldquo;验证码：&rdquo;，说明&ldquo;验证码登录&rdquo;按钮的选中事件被正常触发。然后分别在用户名输入框与密码输入框中填入用户名和密码，再单击下面的登录按钮，此时登录窗口的界面效果如下图所示。</p>
+<p><img src="./images/Java开发笔记（一百四十四）实现FXML对应的控制器1.png" alt="" /><br />果不其然，登录按钮下方的文本标签展示了输入的用户名和密码信息，可知登录按钮的单击事件也正确响应了。</p>
+<p><br /><em id="__mceDel"><br /></em>更多Java技术文章参见《<a href="https://www.cnblogs.com/pinlantu/p/9941789.html" target="_blank">Java开发笔记（序）章节目录</a>》</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

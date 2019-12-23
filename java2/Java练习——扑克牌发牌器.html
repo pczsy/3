@@ -1,0 +1,164 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java练习——扑克牌发牌器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java练习——扑克牌发牌器</center></div><div class='banquan'>原文出处:本文由博客园博主⑤爱C语言提供。<br/>
+原文连接:https://www.cnblogs.com/ldlihmk1314/p/11450593.html</div><br>
+    <p><strong>Java练习&mdash;&mdash;扑克牌发牌器</strong><br />声明：学习自其他博主，感谢分享，这里自己也写了一下。<br /><em>实现思路</em></p>
+<ul>
+<li> - 构建一张扑克牌</li>
+<li> - 构建一套扑克牌</li>
+<li> - 测试</li>
+</ul>
+<p><em>&nbsp;构建一张扑克牌</em></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">/**</span><span style="color: #008000;">
+* </span><span style="color: #808080;">@author</span><span style="color: #008000;"> 冬冬
+* 定义一个单张扑克牌类
+* 有花型，大小
+</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Card {
+
+</span><span style="color: #0000ff;">private</span> String flower; <span style="color: #008000;">//</span><span style="color: #008000;"> 花型</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> daxiao; <span style="color: #008000;">//</span><span style="color: #008000;"> 点数</span>
+
+<span style="color: #008000;">/**</span><span style="color: #008000;">构造方法
+* </span><span style="color: #808080;">@param</span><span style="color: #008000;"> flower
+* </span><span style="color: #808080;">@param</span><span style="color: #008000;"> daxiao
+</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> Card(String flower, <span style="color: #0000ff;">int</span><span style="color: #000000;"> daxiao) {
+</span><span style="color: #0000ff;">this</span>.flower =<span style="color: #000000;"> flower;
+</span><span style="color: #0000ff;">this</span>.daxiao =<span style="color: #000000;"> daxiao;
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;"> (non-Javadoc)
+* @see java.lang.Object#toString()
+* 获取本张卡牌的花型与大小，对于特殊的大小，如1&mdash;&mdash;A，输出时进行转换
+</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+String daxiaoStr </span>= ""<span style="color: #000000;">;
+</span><span style="color: #0000ff;">switch</span><span style="color: #000000;">(daxiao) {
+</span><span style="color: #0000ff;">case</span> 1: daxiaoStr = "A"; <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">case</span> 11: daxiaoStr = "J"; <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">case</span> 12: daxiaoStr = "Q"; <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">case</span> 13: daxiaoStr = "K"; <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">default</span>: daxiaoStr =<span style="color: #000000;"> String.valueOf(daxiao);
+}
+</span><span style="color: #0000ff;">return</span> flower +<span style="color: #000000;"> daxiaoStr;
+}
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><em>构建一套扑克牌</em></p>
+<src class="cnblogs_code">
+<pre><code><em><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Poker {
+
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> String[] flowers = {"黑桃", "红桃", "草花", "方块"<span style="color: #000000;">};
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span>[] daxiaos = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13<span style="color: #000000;">};
+</span><span style="color: #0000ff;">private</span> Card[] cards;<span style="color: #008000;">//</span><span style="color: #008000;">卡片数组，应该有54张，这里去掉大小王，只52张</span>
+
+<span style="color: #008000;">/**</span><span style="color: #008000;">
+* 构造器
+* 按顺序实例化52张扑克牌
+</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span><span style="color: #000000;"> Poker() {
+cards </span>= <span style="color: #0000ff;">new</span> Card[52<span style="color: #000000;">];
+</span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i = 0; i &lt; flowers.length; i++<span style="color: #000000;">) {
+</span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> j = 0; j &lt; daxiaos.length; j++<span style="color: #000000;">) {
+cards[i </span>* 13 + j] = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Card(flowers[i], daxiaos[j]);
+}
+}
+}
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+* 洗牌 （随机乱序）
+* 对于52个Card实例数组随机乱序排列
+</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> shuffle() {
+</span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i = 0, len = cards.length; i &lt; len; i++<span style="color: #000000;">) {
+</span><span style="color: #0000ff;">int</span> index = (<span style="color: #0000ff;">int</span>) (Math.random() *<span style="color: #000000;"> len);
+Card temp </span>=<span style="color: #000000;"> cards[index];
+cards[index] </span>=<span style="color: #000000;"> cards[i];
+cards[i] </span>=<span style="color: #000000;"> temp;
+}
+}
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+* 发牌
+* </span><span style="color: #808080;">@param</span><span style="color: #008000;"> index 发牌的位置
+* 
+</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> Card deal(<span style="color: #0000ff;">int</span><span style="color: #000000;"> index) {
+</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> cards[index];
+}
+
+}</span></em></code></pre>
+
+<p>&nbsp;</p>
+<p><em>&nbsp;测试</em></p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Test {
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+Poker poker </span>= <span style="color: #0000ff;">new</span> Poker();<span style="color: #008000;">//</span><span style="color: #008000;">生成扑克牌</span>
+poker.shuffle(); <span style="color: #008000;">//</span><span style="color: #008000;"> 洗牌（乱序）</span>
+Card c1 = poker.deal(0); <span style="color: #008000;">//</span><span style="color: #008000;"> 发第一张牌
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建四个玩家，每个玩家13张空牌</span>
+Card [] person1=<span style="color: #0000ff;">new</span> Card[13<span style="color: #000000;">];
+Card [] person2</span>=<span style="color: #0000ff;">new</span> Card[13<span style="color: #000000;">];
+Card [] person3</span>=<span style="color: #0000ff;">new</span> Card[13<span style="color: #000000;">];
+Card [] person4</span>=<span style="color: #0000ff;">new</span> Card[13<span style="color: #000000;">];
+</span><span style="color: #008000;">//</span><span style="color: #008000;">为玩家的的空牌赋值</span>
+<span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i=1;i&lt;=52;i++<span style="color: #000000;">)
+{
+</span><span style="color: #0000ff;">if</span>(i&lt;=13) person1[i-1]=poker.deal(i-1<span style="color: #000000;">);
+</span><span style="color: #0000ff;">if</span>(i&gt;13&amp;&amp;i&lt;=26) person2[i-1-13]=poker.deal(i-1<span style="color: #000000;">);
+</span><span style="color: #0000ff;">if</span>(i&gt;26&amp;&amp;i&lt;=39) person3[i-1-26]=poker.deal(i-1<span style="color: #000000;">);
+</span><span style="color: #0000ff;">if</span>(i&gt;39&amp;&amp;i&lt;=52) person4[i-1-39]=poker.deal(i-1<span style="color: #000000;">); 
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">打印</span>
+System.out.println("玩家1"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (Card card : person1) {
+System.out.print(card</span>+" "<span style="color: #000000;">);
+}
+System.out.println(</span>""<span style="color: #000000;">);
+System.out.println(</span>"玩家2"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (Card card : person2) {
+System.out.print(card</span>+" "<span style="color: #000000;">);
+}
+System.out.println(</span>""<span style="color: #000000;">);
+System.out.println(</span>"玩家3"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (Card card : person3) {
+System.out.print(card</span>+" "<span style="color: #000000;">);
+}
+System.out.println(</span>""<span style="color: #000000;">);
+System.out.println(</span>"玩家4"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (Card card : person4) {
+System.out.print(card</span>+" "<span style="color: #000000;">);
+}
+}
+}</span></code></pre>
+
+<p>结果：</p>
+<p>玩家1<br />红桃6   方块4   方块A   黑桃4   草花2   红桃Q   红桃J   红桃K   方块3   黑桃K   方块8   黑桃7   黑桃5   <br />玩家2<br />草花A   黑桃2   红桃7   草花3   草花5   方块J   方块9   草花9   草花K   黑桃8   草花J   黑桃10   红桃8   <br />玩家3<br />方块7   红桃4   红桃2   草花6   方块2   黑桃Q   黑桃9   黑桃A   草花10   草花7   红桃10   红桃A   方块Q   <br />玩家4<br />红桃9   方块5   草花8   方块10   方块K   草花Q   黑桃3   红桃5   黑桃6   黑桃J   红桃3   方块6   草花4   </p>
+<p>注意事项</p>
+<p> 1. 不要忘记在Poker类里导入Card类，在Test类里面导入Poker和Card；<br /> 2. 自己想想，动手做一做才能真正理解。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,194 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修&#39;try(A a = new A())&#39; VS &#39;try finally&#39;' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>&#39;try(A a = new A())&#39; VS &#39;try finally&#39;</center></div><div class='banquan'>原文出处:本文由博客园博主明年我18提供。<br/>
+原文连接:https://www.cnblogs.com/default/p/11909847.html</div><br>
+    <blockquote>
+<p>实现了AutoCloseable接口的类，可以在try的时候直接实例化对象。try代码块完成之后，自动调用close方法，相当于在finally里主动调用。但是出现异常后的流程和try finally有什么不同呢？ 下面写代码测试一下。</p>
+</blockquote>
+<p>首先定义一个类Cat，实现AutoCloseable接口</p>
+<pre><code><code>class Cat implements AutoCloseable{
+    void sayHello() throws Exception {
+        Utils.println(&quot;calling sayHello(), I will throw an exception&quot;);
+        throw new Exception(&quot;Exception in sayHello() &quot;);
+    }
+
+    @Override
+    public void close() throws Exception {
+        Utils.println(&quot;I&#39;m closing, I will throw an exception&quot;);
+        throw new Exception(&quot;Exception in close()&quot;);
+    }
+}</code></code></pre>
+<p>我们的这个Cat有以下特点：</p>
+<ul>
+<li>sayHello方法会抛出异常</li>
+<li>close方法也会抛出异常</li>
+</ul>
+<h2 id="test-v1-trycat-cat-new-cat-vs-try-finally">test v1: 'try(Cat cat = new Cat())' VS 'try finally'</h2>
+<blockquote>
+<p>没有catch（不要被外层的catch迷惑，那只是为了打印异常）</p>
+</blockquote>
+<pre><code><code>static void testV1(){
+    Utils.println(&quot;----try(Cat cat = new Cat())-----&quot;);
+    try{
+        try(Cat cat = new Cat()){
+            cat.sayHello();
+        }
+
+    }catch (Exception e){
+        Utils.println(&quot;cache error in main (&quot; + e + &quot;), let&#39;s see its stack trace&quot;);
+        Utils.printStackTrace(e);
+    }
+    Utils.println(&quot;--------------&quot;);
+
+    Utils.println(&quot;----try finally-----&quot;);
+    try{
+        Cat cat = null;
+        try{
+            cat = new Cat();
+            cat.sayHello();
+        }finally {
+            if(cat != null){
+                cat.close();
+            }
+        }
+    }catch (Exception e){
+        Utils.println(&quot;cache error in main (&quot; + e + &quot;), let&#39;s see its stack trace&quot;);
+        Utils.printStackTrace(e);
+    }
+    Utils.println(&quot;--------------&quot;);
+}</code></code></pre>
+<p>结果输出：</p>
+<pre><code><code>----test v1----------------------------------------
+----try(Cat cat = new Cat())-----
+calling sayHello(), I will throw an exception
+I&#39;m closing, I will throw an exception
+cache error in main (java.lang.Exception: Exception in sayHello() ), let&#39;s see its stack trace
+java.lang.Exception: Exception in sayHello() 
+    at Cat.sayHello(Cat.java:4)
+    at Test.testV1(Test.java:16)
+    at Test.main(Test.java:4)
+    Suppressed: java.lang.Exception: Exception in close()
+        at Cat.close(Cat.java:10)
+        at Test.testV1(Test.java:17)
+        ... 1 more
+--------------
+----try finally-----
+calling sayHello(), I will throw an exception
+I&#39;m closing, I will throw an exception
+cache error in main (java.lang.Exception: Exception in close()), let&#39;s see its stack trace
+java.lang.Exception: Exception in close()
+    at Cat.close(Cat.java:10)
+    at Test.testV1(Test.java:33)
+    at Test.main(Test.java:4)
+--------------</code></code></pre>
+<p>结论</p>
+<ul>
+<li>try(Cat cat = new Cat())
+<ul>
+<li>try代码块完成之后会自动调用close</li>
+<li>close抛出的异常，被Suppressed了，外层捕获的只有sayHello的异常，但通过堆栈可以找到这个Suppressed的异常</li>
+</ul></li>
+<li>try finally
+<ul>
+<li>外层捕获的是在finally执行close时抛出的异常，sayHello的异常完全不见了。</li>
+</ul></li>
+</ul>
+<h2 id="test-v2-trycat-cat-new-cat-catch-vs-try-catch-finally">test v2: 'try(Cat cat = new Cat()) catch{}' VS 'try catch finally'</h2>
+<blockquote>
+<p>有catch，并且catch里再抛出异常</p>
+</blockquote>
+<pre><code><code>static void testV2(){
+    Utils.println(&quot;----try(Cat cat = new Cat()) catch-----&quot;);
+    try{
+        try(Cat cat = new Cat()){
+            cat.sayHello();
+        } catch (Exception e) {
+            Utils.println(&quot;cached err (&quot; + e.getMessage() + &quot;), I will throw an exception again&quot;);
+            throw new Exception(&quot;Exception in catch&quot;, e);
+        }
+
+    }catch (Exception e){
+        Utils.println(&quot;cache error in main (&quot; + e + &quot;), let&#39;s see its stack trace&quot;);
+        Utils.printStackTrace(e);
+    }
+    Utils.println(&quot;-----------------------------------------&quot;);
+
+    Utils.println(&quot;----try catch finally--------------------&quot;);
+    try{
+        Cat cat = null;
+        try{
+            cat = new Cat();
+            cat.sayHello();
+        } catch (Exception e) {
+            Utils.println(&quot;cached err (&quot; + e.getMessage() + &quot;), I will throw an exception again&quot;);
+            throw new Exception(&quot;Exception in catch&quot;, e);
+        }finally {
+            if(cat != null){
+                cat.close();
+            }
+        }
+    }catch (Exception e){
+        Utils.println(&quot;cache error in main (&quot; + e + &quot;), let&#39;s see its stack trace&quot;);
+        Utils.printStackTrace(e);
+    }
+    Utils.println(&quot;-------------------------------------------&quot;);
+}</code></code></pre>
+<p>结果输出</p>
+<pre><code><code>----test v2------
+----try(Cat cat = new Cat()){} catch{}-----
+calling sayHello(), I will throw an exception
+I&#39;m closing, I will throw an exception
+cached err (Exception in sayHello() ), I will throw an exception again
+cache error in main (java.lang.Exception: Exception in catch), let&#39;s see its stack trace
+java.lang.Exception: Exception in catch
+    at Test.testV2(Test.java:50)
+    at Test.main(Test.java:8)
+-----------------------------------------
+----try catch finally--------------------
+calling sayHello(), I will throw an exception
+cached err (Exception in sayHello() ), I will throw an exception again
+I&#39;m closing, I will throw an exception
+cache error in main (java.lang.Exception: Exception in close()), let&#39;s see its stack trace
+java.lang.Exception: Exception in close()
+    at Cat.close(Cat.java:10)
+    at Test.testV2(Test.java:70)
+    at Test.main(Test.java:8)
+-------------------------------------------
+---------------------------------------------------------------------</code></code></pre>
+<p>结论</p>
+<ul>
+<li>try(Cat cat = new Cat()) catch
+<ul>
+<li>catch之前就调用了close（符合try代码块完成之后会自动调用close这个结论）</li>
+<li>catch到的是sayHello的异常，close抛出的异常依然被Suppressed了</li>
+<li>catch中再次抛出的异常被外层捕获</li>
+</ul></li>
+<li>try catch finally
+<ul>
+<li>先走catch，再走finally，所以catch捕获的是sayHello的异常</li>
+<li>catch中再次抛出的异常不见了，外层捕获的是在finally执行close时抛出的异常。</li>
+</ul></li>
+</ul>
+<p>测试代码地址：https://github.com/kongxiangxin/pine/tree/master/auto-closeable</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,69 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记</center></div><div class='banquan'>原文出处:本文由博客园博主程序员郭艺宾提供。<br/>
+原文连接:https://www.cnblogs.com/guos/p/11679616.html</div><br>
+    <h1 id="应用登记">应用登记</h1>
+<p>一个应用要求 OAuth 授权，必须先到对方网站登记，让对方知道是谁在请求。举个例子，下面是github的登记页面：</p>
+<ul>
+<li><a href="https://github.com/settings/applications/new" class="uri">https://github.com/settings/applications/new</a></li>
+</ul>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记0.png" alt="file" /></p>
+<p>下面我们来自己做一个简单的应用登记，根据表 oauth_client_details 的结构，我们登记的时候只填写应用名称和回调地址即可，其它的字段如下：</p>
+<ul>
+<li><p>client_id：使用UUID生成</p></li>
+<li><p>client_secret：使用UUID生成，并使用 BCryptPasswordEncoder 加密</p></li>
+<li><p>scope：默认all</p></li>
+<li><p>authorized_grant_types ：默认 authorization_code,password,refresh_token 三个</p></li>
+</ul>
+<p>下面是sql语句：</p>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记1.png" alt="file" /></p>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记2.png" alt="file" /></p>
+<p>Service中的方法：</p>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记3.png" alt="file" /></p>
+<p>接口定义：</p>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记4.png" alt="file" /></p>
+<p>下面来测试接口：</p>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记5.png" alt="file" /></p>
+<p>返回了预期中的客户端id和秘钥。来看一下数据库：</p>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记6.png" alt="file" /></p>
+<p>现在我们就可以使用新登记的应用来请求令牌了：</p>
+<ul>
+<li><a href="http://localhost:8029/oauth/authorize?client_id=52f301a86511406ba5b4fbb4809614b0&amp;response_type=code&amp;redirect_uri=http://localhost:8029/" class="uri">http://localhost:8029/oauth/authorize?client_id=52f301a86511406ba5b4fbb4809614b0&amp;response_type=code&amp;redirect_uri=http://localhost:8029/</a></li>
+</ul>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记7.png" alt="file" /></p>
+<p>令牌请求结果：</p>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记8.png" alt="file" /></p>
+<h1 id="状态state字段">状态state字段</h1>
+<p>为了防止CSRF攻击，在申请授权码这一步时，可以在参数中增加一个state状态参数，这个参数是由客户端生成的随机字符串，授权服务会原封不动的返回这个参数和参数值，用户进行授权客户端的请求时也会携带此字符串用于比较。如下：</p>
+<ul>
+<li><a href="http://localhost:8029/oauth/authorize?client_id=52f301a86511406ba5b4fbb4809614b0&amp;response_type=code&amp;redirect_uri=http://localhost:8029/&amp;state=123456789" class="uri">http://localhost:8029/oauth/authorize?client_id=52f301a86511406ba5b4fbb4809614b0&amp;response_type=code&amp;redirect_uri=http://localhost:8029/&amp;state=123456789</a></li>
+</ul>
+<p>返回结果如下：</p>
+<p><img src="./images/SpringBootSecurity学习（24）前后端分离版之OAuth2.0 应用登记9.png" alt="file" /></p>
+<p>如果传递过去的和回来的不一样，可以认为不合法。</p>
+<p>代码地址：<a href="https://gitee.com/blueses/spring-boot-security" class="uri">https://gitee.com/blueses/spring-boot-security</a> 29</p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn?from=article_bottom">OpenWrite</a> 发布！</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

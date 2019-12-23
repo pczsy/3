@@ -1,0 +1,58 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【运维】记一次上线前的紧急定位与修复-献上九条小经验' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【运维】记一次上线前的紧急定位与修复-献上九条小经验</center></div><div class='banquan'>原文出处:本文由博客园博主南瓜慢说提供。<br/>
+原文连接:https://www.cnblogs.com/larrydpk/p/11854639.html</div><br>
+    <h1 id="简介">1 简介</h1>
+<p>本文介绍了作者所在团队在某次上线前测试发现问题、定位问题并修复上线的过程，最后给出几点经验总结，希望对大家有用。</p>
+<h1 id="过程">2 过程</h1>
+<p>（1）今天需要上线，但昨晚才合并了所有分支，时间很紧迫。不幸的是，打包测试后发现有一个Springboot应用（模块R）启动失败，但进程没有死，一直在输出<strong>报错日志</strong>。</p>
+<p>（2）<strong>Google</strong>了相关的报错日志，并没有找到相关信息。查看了模块R的<strong>代码变更</strong>，并没有什么改动，以为是环境问题；部署到其它环境后，发现问题依旧存在，而且这个问题从未出现过，基本<strong>排除环境问题</strong>，问题还是出在代码上。</p>
+<p>（3）启动模块R<strong>上一个版本</strong>（现生产环境）的代码，正常启动。所以问题还是出现模块R的改动上。</p>
+<p>（4）<strong>对比</strong>模块R的发布包的新版本与生产版本的差异，发现第三方依赖包都一致，但自己项目的依赖包不同。</p>
+<p>（5）想到一个有效的办法，依次用生产版本<strong>替换</strong>掉自己项目的包，最终定位了问题出在<strong>通用模块D</strong>上。</p>
+<p>（6）查看模块D的<strong>代码变更记录</strong>，改动比较大，比较难发现是哪里的改动造成的。</p>
+<p>（7）重新<strong>看日志</strong>。为何要重看呢？并不是心血来潮，主要是想找关联。既然已经知道了问题在哪个模块代码上，通过<strong>查看日志与该模块可能相关的信息</strong>，或许能找到蛛丝马迹。</p>
+<p>（8）果然！！！重新查看日志发现，模块R启动时，报了一个其它错误ErrorA，但被后面不断重复出现的错误ErrorB刷掉了，所以一开始并没有注意到它。通过该报错，与模块D的代码改动对比。终于定位出了问题！</p>
+<p>（9）创建hotfix分支，修改代码提交，重新merge，打包，测试通过，部署生产！！！</p>
+<p>因为部署上线是有特定的时间窗口的，如果错过了时间，就要下次再上线，还好及时定位，及时解决！</p>
+<h1 id="经验总结">3 经验总结</h1>
+<p>（1）<strong>不要放过任何日志</strong>，特别是报错的日志，日志是极其有用的。不要只看最后面的报错，也不要只看最前面的报错，任何报错都可能提供新的方向和线索。如果日志信息不够，可以尝试打开<strong>debug模式</strong>，会有大量的日志信息，当然也要求你有足够强的过滤和整理信息的能力。</p>
+<p>（2）提取有用日志，可以用<code>grep</code>、<code>tail</code>、<code>less</code>等linux命令。</p>
+<p>（3）<strong>组件化、模块化</strong>很重要，能快速缩小问题范围。能通过只回退某个模块实现部分功能先上线。</p>
+<p>（4）善用<strong>对比</strong>工具，如<code>diff</code>命令，<strong>BeyondCompare</strong>软件等。</p>
+<p>（5）善用<strong>代码变更记录</strong>，这是版本控制给我们带来的好处，可以方便我们对比代码改动了什么，什么时候改的，能加速问题定位；也能及时回退代码。</p>
+<p>（6）上线前要做<strong>充分的测试</strong>。这次问题的出现项目流程上的原因在于没有进行充分的测试。（1）写代码的人修改了通用模块，却没有测试依赖它的其它模块的功能会不会受影响，而只测试了自己那一部分；（2）合并代码后，没有足够的时间来进行测试。部署前一天，才合并了代码打包测试。所以时间非常紧迫，在短时间要定位问题并解决，容易造成压力。</p>
+<p>（7）要有<strong>独立的测试环境</strong>。这个是导致方向性错误的原因，经过是这样的：A同学打包了自己的分支，这时刚好B同学稍晚一点也打包了分支，而打包的环境只有一个，B同学的包覆盖了A同学的包。所以在A部署的时候，实际用了B同学的代码打的包，导致启动失败。所以一直以为是A同学代码的问题，这个方向性的错误浪费了很多时间。应该要让每个分支可以同时打包，但不会覆盖。</p>
+<p>（8）不要先入为主。不要过早认定某个模块就是有问题的，请参考上一条。</p>
+<p>（9）团队作战，分工合作。整个过程全靠团队一起协作才能快速定位并解决；打造一个开放包容、沟通顺畅的团队是多么的重要。</p>
+<blockquote>
+<p>If You Want to Go Fast, Go Alone. If You Want to Go Far, Go Together.</p>
+</blockquote>
+<h1 id="最后">4 最后</h1>
+<p>运维和问题定位的知识很多，也非常重要，需要持续学习。本文仅讲述了本次过程用到的方法。更多的知识以后慢慢再介绍...</p>
+<hr />
+<p>欢迎关注公众号&lt;<strong>南瓜慢说</strong>&gt;，将持续为你更新...</p>
+<p><img src="./images/【运维】记一次上线前的紧急定位与修复-献上九条小经验0.png" alt="file" /></p>
+<p><strong>多读书，多分享；多写作，多整理。</strong></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

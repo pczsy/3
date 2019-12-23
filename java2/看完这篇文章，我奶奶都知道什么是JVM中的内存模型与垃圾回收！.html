@@ -1,0 +1,313 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！</center></div><div class='banquan'>原文出处:本文由博客园博主昨夜黄花今朝狼提供。<br/>
+原文连接:https://www.cnblogs.com/xueSpring/p/11589305.html</div><br>
+    <p><span data-spm-anchor-id="a2s0r.10291878.contentbox.i0">扩展阅读：</span><span style="font-size: 12px;"><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/xueSpring/p/11583006.html">JVM从入门开始深入每一个底层细节</a></span></p>
+<p><span data-spm-anchor-id="a2s0r.10291878.contentbox.i0">六、内存模型</span></p>
+<p>6.1、内存模型与运行时数据区</p>
+<p>Java虚拟机在执行Java程序的过程中会把它所管理的内存划分为若干不同数据区域。</p>
+<p>Java内存模型的主要目标是定义程序中各个变量的访问规则，即在虚拟机中将变量存储到内存和从内存中取出变量这样的底层细节。</p>
+<p>这里所讲的主内存、工作内存与Java内存区域中的Java堆、栈、方法区等并不是同一层次的内存划分，这两者基本上是没有关系的。如果两者一定要勉强对应起来，从变量、主内存、工作内存的定义看，主内存主要对应于Java堆中的对象实例数据部分，而工作内存则对应了虚拟机栈中部分区域。</p>
+<p>上面对运行时数据区描述了很多，其实重点存储数据的是堆和方法区(非堆)，所以内存的设计也着重从这两方面展开(注意这两块区域都是线程共享的)。</p>
+<p>对于虚拟机栈，本地方法栈，程序计数器都是线程私有的。</p>
+<p>6.2 图解</p>
+<p class="imgbox" style="text-align: center;"><span class="image-box"><img class="image-loaded" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！0.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/59b22b4863c885176c1fb3711e1fe517.webp" data-infoed="1" data-width="1080" data-height="555" data-format="WEBP" data-size="6908000" data-index="0" /><span class="share-import-title"><br /></span></span></p>
+<p>一块是非堆区，一块是堆区。</p>
+<p>堆区分为两大块，一个是Old区，一个是Young区。</p>
+<p>Young区分为两大块，一个是Survivor区（S0+S1），一块是Eden区。Eden:S0:S1=8:1:1</p>
+<p>S0和S1一样大，也可以叫From和To。</p>
+<p>根据之前对于Heap的介绍可以知道，一般对象和数组的创建会在堆中分配内存空间，关键是堆中有这么多区域，那一个对象的创建到底在哪个区域呢？</p>
+<p>6.3 对象创建所在区域</p>
+<p>一般情况下，新创建的对象都会被分配到Eden区，一些特殊的大的对象会直接分配到Old区。</p>
+<p>比如有对象A，B，C等创建在Eden区，但是Eden区的内存空间肯定有限，比如有100M，假如已经使用了100M或者达到一个设定的临界值，这时候就需要对Eden内存空间进行清理，即垃圾收集(Garbage Collect)，这样的GC我们称之为Minor GC，Minor GC指得是Young区的GC。</p>
+<p>经过GC之后，有些对象就会被清理掉，有些对象可能还存活着，对于存活着的对象需要将其复制到Survivor区，然后再清空Eden区中的这些对象。</p>
+<p>6.4 Survivor区详解</p>
+<p>由图解可以看出，Survivor区分为两块S0和S1，也可以叫做From和To。</p>
+<p>在同一个时间点上，S0和S1只能有一个区有数据，另外一个是空的。</p>
+<p>接着上面的GC来说，比如一开始只有Eden区和From中有对象，To中是空的。</p>
+<p>此时进行一次GC操作，From区中对象的年龄就会+1，我们知道Eden区中所有存活的对象会被复制到To区，From区中还能存活的对象会有两个去处。</p>
+<p>若对象年龄达到之前设置好的年龄阈值，此时对象会被移动到Old区，没有达到阈值的对象会被复制到To区。</p>
+<p>此时Eden区和From区已经被清空(被GC的对象肯定没了，没有被GC的对象都有了各自的去处)。</p>
+<p>这时候From和To交换角色，之前的From变成了To，之前的To变成了From。</p>
+<p>也就是说无论如何都要保证名为To的Survivor区域是空的。</p>
+<p>Minor GC会一直重复这样的过程，知道To区被填满，然后会将所有对象复制到老年代中。</p>
+<p>6.5 Old区详解</p>
+<p>从上面的分析可以看出，一般Old区都是年龄比较大的对象，或者相对超过了某个阈值的对象。</p>
+<p>在Old区也会有GC的操作，Old区的GC我们称作为Major GC，每次GC之后还能存活的对象年龄也会+1，如果年龄超过了某个阈值，就会被回收。</p>
+<p>6.6 对象的一辈子理解</p>
+<p>我是一个普通的Java对象,我出生在Eden区,在Eden区我还看到和我长的很像的小兄弟,我们在Eden区中玩了挺长时间。有一天Eden区中的人实在是太多了,我就被迫去了Survivor区的&ldquo;From&rdquo;区,自从去了Survivor区,我就开始漂了,有时候在Survivor的&ldquo;From&rdquo;区,有时候在Survivor的&ldquo;To&rdquo;区,居无定所。直到我18岁的时候,爸爸说我成人了,该去社会上闯闯了。</p>
+<p>于是我就去了年老代那边,年老代里,人很多,并且年龄都挺大的,我在这里也认识了很多人。在年老代里,我生活了20年(每次GC加一岁),然后被回收。（这样举例是不是非常容易理解？）</p>
+<p>6.7 常见问题</p>
+<p>如何理解Minor/Major/Full GC</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>Minor GC:新生代</p>
+</li>
+<li>
+<p>Major GC:老年代</p>
+</li>
+<li>
+<p>Full GC:新生代+老年代</p>
+</li>
+</ul>
+<p>为什么需要Survivor区?只有Eden不行吗？</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>如果没有Survivor,Eden区每进行一次Minor GC,存活的对象就会被送到老年代。这样一来，老年代很快被填满,触发Major GC(因为Major GC一般伴随着Minor GC,也可以看做触发了Full GC)。</p>
+</li>
+<li>
+<p>老年代的内存空间远大于新生代,进行一次Full GC消耗的时间比Minor GC长得多。</p>
+</li>
+<li>
+<p>执行时间长有什么坏处?频发的Full GC消耗的时间很长,会影响大型程序的执行和响应度。可能你会说，那就对老年代的空间进行增加或者较少咯。</p>
+</li>
+<li>
+<p>假如增加老年代空间，更多存活对象才能填满老年代。虽然降低Full GC频率，但是随着老年代空间加大,一旦发生Full GC,执行所需要的时间更长。</p>
+</li>
+<li>
+<p>假如减少老年代空间，虽然Full GC所需时间减少，但是老年代很快被存活对象填满,Full GC频率增加。</p>
+</li>
+</ul>
+<p>所以Survivor的存在意义,就是减少被送到老年代的对象,进而减少Full GC的发生,Survivor的预筛选保证,只有经历16次Minor GC还能在新生代中存活的对象,才会被送到老年代。</p>
+<p>为什么需要两个Survivor区？</p>
+<p>最大的好处就是解决了碎片化。也就是说为什么一个Survivor区不行?第一部分中,我们知道了必须设置Survivor区。假设现在只有一个Survivor区,我们来模拟一下流程:</p>
+<p>刚刚新建的对象在Eden中,一旦Eden满了,触发一次Minor GC,Eden中的存活对象就会被移动到Survivor区。这样继续循环下去,下一次Eden满了的时候,问题来了,此时进行Minor GC,Eden和Survivor各有一些存活对象,如果此时把Eden区的存活对象硬放到Survivor区,很明显这两部分对象所占有的内存是不连续的,也就导致了内存碎片化。</p>
+<p>永远有一个Survivor space是空的,另一个非空的Survivor space无碎片。</p>
+<p>新生代中Eden:S1:S2为什么是8:1:1？</p>
+<p>新生代中的可用内存：复制算法用来担保的内存为9：1</p>
+<p>可用内存中Eden：S1区为8：1</p>
+<p>即新生代中Eden:S1:S2 = 8：1：1</p>
+<p>p70复制算法</p>
+<p>现代的商业虚拟机都采用这种收集算法来回收新生代，IBM公司的专门研究表明，新生代中的对象大概98%是&ldquo;朝生夕死&rdquo;的，所以并不需要按照1：1的比例来划分内存空间，而是将新生代内存分为一块较大的Eden空间和两块较小的Survivor空间，每次使用Eden和其中一块Survivor，当回收时，将Eden和Survivor中还存活着的对象一次性地复制到另外一块Survivor空间上，最后清理掉Eden和刚才用过的Survivor空间。HotSpot虚拟机默认Eden和Survivor的大小比例是8：1，也就是每次新生代中可用内存空间为整个新生代容量的90%（80%+10%）。如果新生代经过回收后，存活的对象超过10%，这样就导致另外一块Survivor空间没有足够空间存放存活对象。此时，这些对象将直接通过分配担保机制进入老年代。</p>
+<p>七、Garbage Collect(垃圾回收)</p>
+<p>之前说堆内存中有垃圾回收，比如Young区的Minor GC，Old区的Major GC，Young区和Old区的Full GC。但是对于一个对象而言，怎么确定它是垃圾？是否需要被回收？怎样对它进行回收？等等这些问题我们还需要详细探索。</p>
+<p>因为Java是自动做内存管理和垃圾回收的，如果不了解垃圾回收的各方面知识，一旦出现问题我们很难进行排查和解决，自动垃圾回收机制就是寻找Java堆中的对象，并对对象进行分类判别，寻找出正在使用的对象和已经不会使用的对象，然后把那些不会使用的对象从堆上清除&nbsp;。</p>
+<p>P61关于运行时数据区各个部门的垃圾回收问题</p>
+<p>程序计数器、 虚拟机栈、 本地方法栈3个区域随线程而生，随线程而灭；栈中的栈帧随着方法的进入和退出而有条不紊地执行着出栈和入栈操作。&nbsp;每一个栈帧中分配多少内存基本上是在类结构确定下来时就已知的（尽管在运行期会由JIT编译器进行一些优化，但在本章基于概念模型的讨论中，大体上可以认为是编译期可知的），因此这几个区域的内存分配和回收都具备确定性，在这几个区域内就不需要过多考虑回收的问题，因为方法结束或者线程结束时，内存自然就跟随着回收了。&nbsp;而Java堆和方法区则不一样，一个接口中的多个实现类需要的内存可能不一样，一个方法中的多个分支需要的内存也可能不一样，我们只有在程序处于运行期间时才能知道会创建哪些对象，这部分内存的分配和回收都是动态的，垃圾收集器所关注的是这部分内存。</p>
+<p>P68&nbsp;回收方法区</p>
+<p>很多人认为方法区（或者HotSpot虚拟机中的永久代）是没有垃圾收集的，Java虚拟机规范中确实说过可以不要求虚拟机在方法区实现垃圾收集，而且在方法区进行垃圾收集的&ldquo;性价比&rdquo;一般比较低：在堆中，尤其是在新生代中，常规应用进行一次垃圾收集一般可以回收70%~95%的空间，而永久代的垃圾收集效率远低于此。</p>
+<p>永久代的垃圾收集主要回收两部分内容：废弃常量和无用的类。回收废弃常量与回收Java堆中的对象非常类似。以常量池中字面量的回收为例，假如一个字符串&ldquo;abc&rdquo;已经进入了常量池中，但是当前系统没有任何一个String对象是叫做&ldquo;abc&rdquo;的，换句话说是没有任何String对象引用常量池中的&ldquo;abc&rdquo;常量，也没有其他地方引用了这个字面量，如果在这时候发生内存回收，而且必要的话，这个&ldquo;abc&rdquo;常量就会被系统&ldquo;请&rdquo;出常量池。常量池中的其他类（接口）、方法、字段的符号引用也与此类似。</p>
+<p>7.1 如何确定一个对象是垃圾？</p>
+<p>要想进行垃圾回收，得先知道什么样的对象是垃圾。</p>
+<p>7.1.1 引用计数法</p>
+<p>对于某个对象而言，只要应用程序中持有该对象的引用，就说明该对象不是垃圾，如果一个对象没有任何指针对其引用，它就是垃圾。</p>
+<p>7.1.2 可达性分析</p>
+<p>通过GC Root的对象，开始向下寻找，看某个对象是否可达；</p>
+<p>能作为GC Root:类加载器、Thread、虚拟机栈的本地变量表、static成员、常量引用、本地方法栈的变量等。</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>虚拟机栈（栈帧中的本地变量表）中引用的对象。</p>
+</li>
+<li>
+<p>方法区中类静态属性引用的对象。</p>
+</li>
+<li>
+<p>方法区中常量引用的对象。</p>
+</li>
+<li>
+<p>本地方法栈中JNI（即一般说的Native方法）引用的对象。</p>
+</li>
+</ul>
+<p>7.2&nbsp;垃圾收集算法已经能够确定一个对象为垃圾之后，接下来要考虑的就是回收，怎么回收呢？得要有对应的算法，下面介绍常见的垃圾回收算法。</p>
+<p>7.2.1 标记-清除(Mark-Sweep)</p>
+<p>标记：找出内存中需要回收的对象，并且把它们标记出来。</p>
+<p>此时堆中所有的对象都会被扫描一遍，从而才能确定需要回收的对象，比较耗时。</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！1.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/64f8616521d6a0a23fa5024e0184f0e3.webp" data-infoed="1" data-width="871" data-height="311" data-format="WEBP" data-size="6444000" data-index="1" /><span class="share-import-title"><br /></span></span></p>
+<p>清除：清除掉被标记需要回收的对象，释放出对应的内存空间；</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！2.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/273eba70c589ff2a8755f6520952375f.webp" data-infoed="1" data-width="891" data-height="332" data-format="WEBP" data-size="6608000" data-index="2" /><span class="share-import-title"><br /></span></span></p>
+<p>缺点：</p>
+<p>标记清除之后会产生大量不连续的内存碎片，空间碎片太多可能会导致以后在程序运行过程中需要分配较大对象时，无法找到足够的连续内存而不得不提前触发另一次垃圾收集动作。</p>
+<p>(1)标记和清除两个过程都比较耗时，效率不高</p>
+<p>(2)会产生大量不连续的内存碎片，空间碎片太多可能会导致以后在程序运行过程中需要分配较大对象时，无法找到足够的连续内存而不得不提前触发另一次垃圾收集动作。</p>
+<p>7.2.2 复制(Copying)</p>
+<p>将内存划分为两块相等的区域，每次只使用其中一块，如下图所示：</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！3.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/7a91ae189ac9638bf8f1b9f82ff60e2c.webp" data-infoed="1" data-width="899" data-height="318" data-format="WEBP" data-size="7158000" data-index="3" /><span class="share-import-title"><br /></span></span></p>
+<p>当其中一块内存使用完了，就将还存活的对象复制到另外一块上面，然后把已经使用过的内存空间一次清除掉。</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！4.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/e1c9e107fc6c14d7116b761acfb1580f.webp" data-infoed="1" data-width="904" data-height="320" data-format="WEBP" data-size="7586000" data-index="4" /><span class="share-import-title"><br /></span></span></p>
+<p>缺点：空间利用率降低。</p>
+<p>7.2.3 标记-整理(Mark-Compact)</p>
+<p>复制收集算法在对象存活率较高时就要进行较多的复制操作，效率将会变低。更关键的是，如果不想浪费50%的空间，就需要有额外的空间进行分配担保，以应对被使用的内存中所有对象都有100%存活的极端情况，所以老年代一般不能直接选用这种算法。标记过程仍然与"标记-清除"算法一样，但是后续步骤不是直接对可回收对象进行清理，而是让所有存活的对象都向一端移动，然后直接清理掉端边界以外的内存。</p>
+<p>其实上述过程相对"复制算法"来讲，少了一个"保留区"</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！1.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/64f8616521d6a0a23fa5024e0184f0e3.webp" data-infoed="1" data-width="871" data-height="311" data-format="WEBP" data-size="6444000" data-index="1" /><span class="share-import-title"><br /></span></span></p>
+<p>让所有存活的对象都向一端移动，清理掉边界意外的内存。</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！6.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/8237519d8ca91fa37e2dc75329f5a255.webp" data-infoed="1" data-width="915" data-height="342" data-format="WEBP" data-size="6458000" data-index="6" /><span class="share-import-title"><br /></span></span></p>
+<p>7.3 分代收集算法</p>
+<p>既然上面介绍了3中垃圾收集算法，那么在堆内存中到底用哪一个呢？</p>
+<p>P72分代收集算法</p>
+<p>为了增加垃圾回收的效率，JVM会根据对象存活周期的不同将内存分为几块，堆中分为新生代和老年代。这样可以根据各个年代的特点采用最适当的收集算法。在新生代中，每次垃圾收集时都发现有大批对象死去，只有少量存活，那就选用复制算法，只需要付出少量存活对象的复制成本就可以完成收集。而老年代中因为对象存活率高、没有额外空间对它进行分配担保，就必须使用"标记-清除"或者"标记-整理"算法来进行回收。</p>
+<p>小结：</p>
+<p>Young区：复制算法(对象在被分配之后，可能生命周期比较短，Young区复制效率比较高)</p>
+<p>Old区：标记清除或标记整理(Old区对象存活时间比较长，复制来复制去没必要，不如做个标记再清理)</p>
+<p>7.4 垃圾收集器</p>
+<p>如果说收集算法是内存回收的方法论，那么垃圾收集器就是内存回收的具体实现。</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！7.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/fdb9d12e1380b1b824e6a253b250008f.webp" data-infoed="1" data-width="1080" data-height="632" data-format="WEBP" data-size="16194000" data-index="7" /><span class="share-import-title"><br /></span></span></p>
+<p>7.4.1 Serial收集器</p>
+<p>Serial收集器是最基本、发展历史最悠久的收集器，曾经（在JDK1.3.1之前）是虚拟机新生代收集的唯一选择。</p>
+<p>它是一种单线程收集器，不仅仅意味着它只会使用一个CPU或者一条收集线程去完成垃圾收集工作，更重要的是其在进行垃圾收集的时候需要暂停其他线程。</p>
+<p>优点：简单高效，拥有很高的单线程收集效率</p>
+<p>缺点：收集过程需要暂停所有线程</p>
+<p>算法：复制算法</p>
+<p>适用范围：新生代</p>
+<p>应用：Client模式下的默认新生代收集器</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！8.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/9567d93edcebce921368ac210c4e8bb4.webp" data-infoed="1" data-width="792" data-height="448" data-format="WEBP" data-size="8354000" data-index="8" /><span class="share-import-title"><br /></span></span></p>
+<p>7.4.2 ParNew收集器</p>
+<p>可以把这个收集器理解为Serial收集器的多线程版本。</p>
+<p>优点：在多CPU时，比Serial效率高。</p>
+<p>缺点：收集过程暂停所有应用程序线程，单CPU时比Serial效率差。</p>
+<p>算法：复制算法</p>
+<p>适用范围：新生代</p>
+<p>应用：运行在Server模式下的虚拟机中首选的新生代收集器</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！9.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/20f6ce8a6c1c54d2c3c52eea60448adf.webp" data-infoed="1" data-width="817" data-height="525" data-format="WEBP" data-size="9886000" data-index="9" /><span class="share-import-title"><br /></span></span></p>
+<p>7.4.3 Parallel Scavenge收集器</p>
+<p>Parallel Scavenge收集器是一个新生代收集器，它也是使用复制算法的收集器，又是并行的多线程收集器，看上去和ParNew一样，但是Parallel Scanvenge更关注`系统的吞吐量`。</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>吞吐量=运行用户代码的时间/(运行用户代码的时间+垃圾收集时间)</p>
+</li>
+<li>
+<p>比如虚拟机总共运行了100分钟，垃圾收集时间用了1分钟，吞吐量=(100-1)/100=99%。</p>
+</li>
+<li>
+<p>若吞吐量越大，意味着垃圾收集的时间越短，则用户代码可以充分利用CPU资源，尽快完成程序的运算任务。</p>
+</li>
+</ul>
+<p>-XX:MaxGCPauseMillis控制最大的垃圾收集停顿时间，</p>
+<p>-XX:GCRatio直接设置吞吐量的大小。</p>
+<p>7.4.4 Serial Old收集器</p>
+<p>Serial Old收集器是Serial收集器的老年代版本，也是一个单线程收集器，不同的是采用"标记-整理算法"，运行过程和Serial收集器一样。</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！10.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/85dfbf26f4c5263f79c63adfacb95628.webp" data-infoed="1" data-width="1080" data-height="379" data-format="WEBP" data-size="11936000" data-index="10" /><span class="share-import-title"><br /></span></span></p>
+<p>7.4.5 Parallel Old收集器</p>
+<p>Parallel Old收集器是Parallel Scavenge收集器的老年代版本，使用多线程和"标记-整理算法"进行垃圾回收。</p>
+<p>吞吐量优先</p>
+<p>7.4.6 CMS收集器</p>
+<p>CMS(Concurrent Mark Sweep)收集器是一种以获取`最短回收停顿时间`为目标的收集器。</p>
+<p>采用的是"标记-清除算法",整个过程分为4步</p>
+<p>(1)初始标记&nbsp; CMS initial mark</p>
+<p>标记GC Roots能关联到的对象&nbsp; Stop The World---&gt;速度很快</p>
+<p>(2)并发标记&nbsp; CMS concurrent mark</p>
+<p>进行GC Roots Tracing</p>
+<p>(3)重新标记&nbsp; CMS remark</p>
+<p>修改并发标记因用户程序变动的内容&nbsp; Stop The World</p>
+<p>(4)并发清除&nbsp; CMS concurrent sweep</p>
+<p>由于整个过程中，并发标记和并发清除，收集器线程可以与用户线程一起工作，所以总体上来说，CMS收集器的内存回收过程是与用户线程一起并发地执行的。</p>
+<p>优点：并发收集、低停顿</p>
+<p>缺点：产生大量空间碎片、并发阶段会降低吞吐量</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！11.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/1ac702c0b98d04c8a5d9f1a02c51259d.webp" data-infoed="1" data-width="1080" data-height="383" data-format="WEBP" data-size="8838000" data-index="11" /><span class="share-import-title"><br /></span></span></p>
+<p>7.4.7 G1收集器</p>
+<p>G1收集器在JDK 7正式作为商用的收集器。与前几个收集器相比，G1有以下特点</p>
+<p>P84 G1收集器</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>并行与并发</p>
+</li>
+<li>
+<p>分代收集（仍然保留了分代的概念）</p>
+</li>
+<li>
+<p>空间整合（整体上属于&ldquo;标记-整理&rdquo;算法，不会导致空间碎片）</p>
+</li>
+<li>
+<p>可预测的停顿（比CMS更先进的地方在于能让使用者明确指定一个长度为M毫秒的时间片段内，消耗在垃圾收集上的时间不得超过N毫秒）</p>
+</li>
+</ul>
+<p>使用G1收集器时，Java堆的内存布局与就与其他收集器有很大差别，它将整个Java堆划分为多个大小相等的独立区域（Region），虽然还保留有新生代和老年代的概念，但新生代和老年代不再是物理隔离的了，它们都是一部分Region（不需要连续）的集合。</p>
+<p>工作过程可以分为如下几步：</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>初始标记（Initial Marking）</p>
+</li>
+</ul>
+<p>标记以下GC Roots能够关联的对象，并且修改TAMS的值，需要暂停用户线程</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>并发标记（Concurrent Marking）</p>
+</li>
+</ul>
+<p>从GC Roots进行可达性分析，找出存活的对象，与用户线程并发执行</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>最终标记（Final Marking）</p>
+</li>
+</ul>
+<p>修正在并发标记阶段因为用户程序的并发执行导致变动的数据，需暂停用户线程</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>筛选回收（Live Data Counting and Evacuation）</p>
+</li>
+</ul>
+<p>对各个Region的回收价值和成本进行排序，根据用户所期望的GC停顿时间制定回收计划</p>
+<p class="imgbox"><span class="image-box"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！12.png" alt="" data-original="http://image.uc.cn/s/wemedia/s/upload/2019/295c9d3d13bea3866372ecd13032cc3e.webp" data-infoed="1" data-width="1080" data-height="326" data-format="WEBP" data-size="9528000" data-index="12" /><span class="share-import-title"><br /></span></span></p>
+<p>7.4.8 垃圾收集器分类</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>串行收集器-&gt;Serial和Serial Old</p>
+</li>
+</ul>
+<p>只能有一个垃圾回收线程执行，用户线程暂停。`适用于内存比较小的嵌入式设备`。</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>并行收集器[吞吐量优先]-&gt;Parallel Scanvenge、Parallel Old</p>
+</li>
+</ul>
+<p>多条垃圾收集线程并行工作，但此时用户线程仍然处于等待状态。`适用于科学计算、后台处理等若交互场景`。</p>
+<ul class=" list-paddingleft-2">
+<li>
+<p>并发收集器[停顿时间优先]-&gt;CMS、G1</p>
+</li>
+</ul>
+<p>用户线程和垃圾收集线程同时执行(但并不一定是并行的，可能是交替执行的)，垃圾收集线程在执行的时候不会停顿用户线程的运行。`适用于相对时间有要求的场景，比如Web`。</p>
+<p>7.4.9 常见问题</p>
+<p>吞吐量和停顿时间</p>
+<p>停顿时间-&gt;垃圾收集器 `进行` 垃圾回收终端应用执行响应的时间</p>
+<p>吞吐量-&gt;运行用户代码时间/(运行用户代码时间+垃圾收集时间)</p>
+<p>停顿时间越短就越适合需要和用户交互的程序，良好的响应速度能提升用户体验；</p>
+<p>高吞吐量则可以高效地利用CPU时间，尽快完成程序的运算任务，主要适合在后台运算而不需要太多交互的任务。</p>
+<p>小结:这两个指标也是评价垃圾回收器好处的标准，其实调优也就是在观察者两个变量。</p>
+<p>如何选择合适的垃圾收集器</p>
+<p>* 优先调整堆的大小让服务器自己来选择</p>
+<p>* 如果内存小于100M，使用串行收集器</p>
+<p>* 如果是单核，并且没有停顿时间要求，使用串行或JVM自己选</p>
+<p>* 如果允许停顿时间超过1秒，选择并行或JVM自己选</p>
+<p>* 如果响应时间最重要，并且不能超过1秒，使用并发收集器</p>
+<p>对于G1收集</p>
+<p>JDK 7开始使用，JDK 8非常成熟，JDK 9默认的垃圾收集器，适用于新老生代。</p>
+<p>是否使用G1收集器？</p>
+<p>（1）50%以上的堆被存活对象占用</p>
+<p>（2）对象分配和晋升的速度变化非常大</p>
+<p>（3）垃圾回收时间比较长</p>
+<p>如何开启需要的垃圾收集器这里JVM参数信息的设置大家先不用关心，下一章节会详细写到。</p>
+<p>（1）串行</p>
+<p>-XX：+UseSerialGC</p>
+<p>-XX：+UseSerialOldGC</p>
+<p>（2）并行(吞吐量优先)：</p>
+<p>-XX：+UseParallelGC</p>
+<p>-XX：+UseParallelOldGC</p>
+<p>（3）并发收集器(响应时间优先)</p>
+<p>-XX：+UseConcMarkSweepGC</p>
+<p>-XX：+UseG1GC</p>
+<p style="text-align: center;"><span style="font-size: 18px; color: #ff0000;"><strong>如果觉得本文有用，推荐顶一顶，可以让更多的人能够看到！</strong></span></p>
+<p style="text-align: center;"><img src="./images/看完这篇文章，我奶奶都知道什么是JVM中的内存模型与垃圾回收！13.png" alt="" /></p>
+<p style="text-align: center;">欢迎关注公众号：&ldquo;Java架构师学习&rdquo;</p>
+<p style="text-align: center;">你会喜欢的！</p>
+<p style="text-align: center;"><strong>&nbsp;</strong></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

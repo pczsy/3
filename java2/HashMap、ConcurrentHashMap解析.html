@@ -1,0 +1,326 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修HashMap、ConcurrentHashMap解析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>HashMap、ConcurrentHashMap解析</center></div><div class='banquan'>原文出处:本文由博客园博主MrHH提供。<br/>
+原文连接:https://www.cnblogs.com/HuiH/p/11827317.html</div><br>
+    <p><span style="color: #ff0000;"><strong><span style="font-size: 16px;">一、HashMap分析</span></strong></span></p>
+<p><span style="font-size: 16px;">　　在JDK1.8之前，hashMap由数组+链表组成，1.8之后，对hashMap进行了一些修改，最大的不同就是利用了红黑树，所以其由数组+链表+红黑树组成。查找时，根据hash值我们能够快速定位到数组的具体下标，但是之后的话，需要顺着链表一个个比较下去才能找到我们需要的，时间复杂度取决于链表的长度为O(n)，为了降低这部分的开销，在Java8中，当链表中的元素达到了8个时，会将链表转换为红黑树，在这些位置进行查找时可以降低时间复杂度为O(logn)。</span></p>
+<p><span style="color: #0000ff;"><strong><span style="font-size: 16px;">1.put过程：（JDK1.8）</span></strong></span></p>
+<p><span style="font-size: 16px;">　　　第一次put值时，会触发resize()，类似Java7的第一次put也是要初始化数组长度的。</span></p>
+<p><span style="font-size: 16px;">　　　第一次resize和后续的扩容有些不一样，因为这次是数组从null初始化到默认的16或自定义的初始容量，找到具体的数据下标，如果此位置没有值，那么直接初始化一下Node并放置在这个位置就可以了。如果数组改为只有数据：首先，判断该位置的第一个数据和我们要插入的数据，key是不是&ldquo;相等&rdquo;，如果是，取出这个节点，如果该节点是代表红黑树的节点，调用红黑树的插值方法，插入到链表的最后面（Java7是插入到链表的最前面），当treeify_threshold为8时，如果新插入的值是链表中的第8个，会触发下面的treeifyBin，也就是将链表转换为红黑树；如果在该链表中找到了&ldquo;相等&rdquo;的key（==或equals）；如果hashMap由于新插入这个值导致size已经超过了阈值，则需要进行扩容。</span></p>
+<p><span style="font-size: 16px;">　JDK1.7</span></p>
+<p><span style="font-size: 16px;">　　当插入第一个元素时，需要先初始化数组大小；</span></p>
+<p><span style="font-size: 16px;">　　1）求key的hash值（数组索引 index=hash&amp;（size-1））；</span></p>
+<p><span style="font-size: 16px;">　　2）找到对应的数组下标；<br /></span></p>
+<p><span style="font-size: 16px;">　　3）遍历一下对应下标处的链表，看是否有重复的key已经存在，如果有，直接覆盖，put方法返回旧值就结束了；</span></p>
+<p><span style="font-size: 16px;">　　4）不存在重复的key，将此entry添加到链表中。</span></p>
+<p><span style="font-size: 16px;"><span style="color: #0000ff;"><strong>2.数组扩容（当前的size已经达到了阈值，并且要插入的数组位置上已经有元素，那么就会触发扩容，扩容后，数组大小为原来的2倍）</strong></span>（JDK1.8）</span></p>
+<p><span style="font-size: 16px;">　　resize()方法用于初始化数组或数组扩容，每次扩容后，容量为原来的2倍，并进行数据迁移。</span></p>
+<p><span style="font-size: 16px;">　　1）对数组进行扩容，将数组扩大一倍，将阈值扩大一倍；</span></p>
+<p><span style="font-size: 16px;">　　2）第一次put时初始化数组；<br /></span></p>
+<p><span style="font-size: 16px;">　　3）开始遍历数组进行数据迁移；<br /></span></p>
+<p><span style="font-size: 16px;">　　如果该数组位置上只有单个元素：那就简单了，直接迁移这个元素就可以了。</span></p>
+<p><span style="font-size: 16px;">　　如果是链表：需要将此链表拆成两个链表，放到新的数组中，并且保留原来的先后顺序，loHead，loTail对应一条链表，hiHead、hiTail对应另一条链表。</span></p>
+<p><span style="font-size: 16px;">　JDK 1.7&nbsp;</span></p>
+<p><span style="font-size: 16px;">　　扩容就是一个新的大数组替换原来的小数组，并将原来数组中的值迁移到新的数组中。</span></p>
+<p><span style="font-size: 16px;">　　由于是双倍扩容，迁移过程中，会将原来table[i] 中的链表的所有节点，分拆到新的数组的newTable[i] 和 newTable[i+oldLength]位置上。如原来数组长度为16，那么扩容后，原来table[0]出的链表中的所有元素会被分配到新数组中 newTable[0] 和 newTable[16] 这两个位置。</span></p>
+<p><strong><span style="font-size: 16px; color: #0000ff;">3.get过程（JDK1.8）</span></strong></p>
+<p><span style="font-size: 16px;">　　1）计算key的hash值，根据hash值找到对应的数组下标：hash&amp;（length-1）</span></p>
+<p><span style="font-size: 16px;">　　2）判断数组该位置处的元素是否刚好是我们要找的，如果不是，走第三步；</span></p>
+<p><span style="font-size: 16px;">　　3）判断该元素类型是否是TreeNode，如果是，用红黑树的方法取数据，如果不是，走第四步；</span></p>
+<p><span style="font-size: 16px;">　　4）遍历链表，直到找到相等（==或equals）的key。</span></p>
+<p><span style="font-size: 16px;">　JDK 1.7</span></p>
+<p><span style="font-size: 16px;">　　1）根据key计算hash值；</span></p>
+<p><span style="font-size: 16px;">　　2）找到对应的数组下标：hash&amp;（length-1）</span></p>
+<p><span style="font-size: 16px;">　　3）遍历该数组位置处的链表，直到找到相等的key。</span></p>
+<p><strong><span style="font-size: 16px; color: #0000ff;">4.为什么HashMap线程不安全？（hash冲突和扩容导致的）</span></strong></p>
+<p><span style="font-size: 16px;">　　hashMap的实现使用了一个数组，每个数组项里面由一个链表方式来实现，因为hashMap使用key的hashcode来寻找存储位置，不同的key可能具有相同的hashcode，这时就出现了<strong>哈希冲突</strong>，也叫哈希碰撞。为了解决哈希冲突，有开放地址法，以及链地址法。hashMap的实现选取了链地址法，也就是将哈希值一样的entry保存在同一个数组里面，可以把一个数组项当作一个桶，桶里面装的entry的key的hashcode是一样的。</span></p>
+<p><span style="font-size: 16px;">　<strong>扩容</strong>导致的不安全：</span></p>
+<p><span style="font-size: 16px;">　　1）put时导致的多线程数据不一致。比如有两个线程A和B，首先A希望插入一个key-value对到hashMap中，首先计算记录所要落到的桶里面的链表头结点，此时线程A的时间片用完了，而此时线程B被调用得以执行，和线程A一样执行，只不过线程B成功将记录插到了桶里面，假设线程A插入的记录计算出来的桶所引和线程B要插入的记录计算出来的桶索引是一样的，那么当线程B成功插入后，线程A再次被调用运行时，它依然持有过期的链表头但是它对此一无所知，以至于它认为应该这样做，如此一来就覆盖了线程B插入的记录，这样线程B插入的记录就凭空消失了，造成了数据不一致的行为。</span></p>
+<p><span style="font-size: 16px;">　　2）get：扩容时将数组扩为二倍后，原数组中的数组的索引会发生变化，在进行get时仍然用原来的索引进行寻找，导致找不到要寻找的值。</span></p>
+<p><span style="color: #ff0000;"><strong><span style="font-size: 16px;">二、ConcurrentHashMap分析</span></strong></span></p>
+<p><span style="font-size: 16px;">　　ConcurrentHashMap是线程安全且高效的HashMap。</span></p>
+<p><span style="color: #0000ff;"><strong><span style="font-size: 16px;">1.线程不安全的HashMap</span></strong></span></p>
+<p><span style="font-size: 16px;">　　hashMap是Java中最常用的一个map类，性能好，速度快，但是不能保证线程安全，它可用null作为key/value。</span></p>
+<p><span style="font-size: 16px;">　　在多线程环境下，使用hashMap进行put操作会引起死循环，是因为多线程会导致hashMap的entry链表形成环，一旦成环，entry的next节点永远不为空，产生死循环。所以在并发情况下不能使用hashMap。</span></p>
+<p><strong><span style="font-size: 16px; color: #0000ff;">2.效率低下的HashTable</span></strong></p>
+<p><span style="font-size: 16px;">　　线程安全的Map类，其public方法均用synchronize修饰，这表示在多线程操作时，每个线程在操作之前都会锁住整个map，待操作完成后才释放。</span></p>
+<p><span style="font-size: 16px;">　　如线程1使用put操作进行元素添加，线程2不但不能使用put方法进行添加元素，也不能使用get方法来获取元素，所以竞争越激烈效率越低，这必然导致多线程时性能不佳。另外，hashTable不能使用null作为key/value。</span></p>
+<p><span style="color: #0000ff;"><strong><span style="font-size: 16px;">3. 锁分段技术可有效提升并发访问效率</span></strong></span></p>
+<p><span style="font-size: 16px; color: #000000;">　　hashTable在竞争激烈的并发环境中表现出效率低下的原因是所访问hashTable的线程都必须竞争同一把锁，假如容器中有多把锁，每一把锁用于锁容器其中一部分的数据，那么当多线程访问容器里不同数据段的数据时，线程间就不会存在锁竞争，从而可以有效提高并发访问效率，这就是ConcurrentHashMap所使用的<strong>锁分段技术</strong>。</span></p>
+<p><span style="font-size: 16px; color: #000000;">　　- 首先将数据分成一段一段地存储；</span></p>
+<p><span style="font-size: 16px; color: #000000;">　　- 然后给每个数据段配一把锁；</span></p>
+<p><span style="font-size: 16px; color: #000000;">　　- 当一个线程占用锁访问其中一个段数据时，其他段的数据也能被其他线程访问。</span></p>
+<p><span style="font-size: 16px; color: #000000;">　　<img src="./images/HashMap、ConcurrentHashMap解析0.png" alt="" width="476" height="196" /></span></p>
+<p><span style="font-size: 16px;">　　<img src="./images/HashMap、ConcurrentHashMap解析1.png" alt="" width="470" height="402" /></span></p>
+<p><span style="font-size: 16px;">　　ConcurrentHashMap是由Segment数组和HashEntry数组组成。</span></p>
+<p><span style="font-size: 16px;">　　Segment是一种可重入锁，在ConsurrentHashMap里扮演锁的角色；HashEntry则用于存储键值对数据。</span></p>
+<p><span style="font-size: 16px;">　　一个ConsurrentHashMap里包含一个Segment数组，Segment的机构和HashMap类似，是一种数组和链表结构。一个Segment里包含一个HashEntry数组，每个HashEntry是一个链表结构的元素，每个Segment守护着一个HashEntry数组里的元素，当对HashEntry数组的数据进行修改时，必须首先获得与它对应的Segment锁。如图：</span></p>
+<p><span style="font-size: 16px;">　　<img src="./images/HashMap、ConcurrentHashMap解析2.png" alt="" width="493" height="223" /></span></p>
+<p><span style="color: #0000ff;"><strong><span style="font-size: 16px;">4.ConcurrentHashMap的初始化</span></strong></span></p>
+<p><span style="font-size: 16px;">　　1）ConcurrentHashMap类中包含三个与Segment相关的成员变量：</span></p>
+<p><span style="font-size: 16px;">　　　　final int segmentMask;</span></p>
+<p><span style="font-size: 16px;">　　　　final int segmentShift;</span></p>
+<p><span style="font-size: 16px;">　　　　final Segment&lt;K,V&gt;[] segments;</span></p>
+<p><span style="font-size: 16px;">　　其中segments是Segment的原生数组，此数组的长度可以在ConcurrentHashMap的构造函数中使用并发度参数指定，其默认值为default_concurrency_level=16；segmentShift是用来计算segments数组索引的位移量，而segmentMask则是用来计算索引的掩码值。</span></p>
+<p><span style="font-size: 16px;">　　例如并发度为16时（即segments数组长度为16），segmentShift为32-4=28（因为2的4次幂为16），而segmentMask则为1111（二进制），索引的计算式如下：</span></p>
+<p><span style="font-size: 16px;">　　　　int j=(hash&gt;&gt;&gt;segmentShift) &amp; segmentMask;</span></p>
+<p><span style="font-size: 16px;">　　2）在多线程并发访问一个共享变量时，为了保证逻辑的正确，可以采用以下方法：</span></p>
+<p><span style="font-size: 16px;">　　　　加锁，性能最低，能保证原子性、可见性，防止指令重排；</span></p>
+<p><span style="font-size: 16px;">　　　　volatile修饰，性能中等，能保证原子性，防止指令重排；</span></p>
+<p><span style="font-size: 16px;">　　　　使用getObjectVolatile，性能最好，可防止指令重排；</span></p>
+<p><span style="font-size: 16px;">　　　因此ConcurrentHashMap选择了使用Unsafe的getObjectVolatile来读取segments中的元素。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #008080;">1</span> <span style="color: #0000ff;">private</span> Segment&lt;K,V&gt; segmentForHash(<span style="color: #0000ff;">int</span><span style="color: #000000;"> h) {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">long</span> u = (((h &gt;&gt;&gt; segmentShift) &amp; segmentMask) &lt;&lt; SSHIFT) +<span style="color: #000000;"> SBASE;
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">return</span> (Segment&lt;K,V&gt;<span style="color: #000000;">) UNSAFE.getObjectVolatile(segments, u);
+</span><span style="color: #008080;">4</span> }</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">　<strong>　3）Segment锁</strong><br /></span></p>
+<p><span style="font-size: 16px;">　　　　Segment继承了ReentrantLock（可重入锁），因此它实际上是一把锁。在进行put、remove、replace、clear等需要改动内容的操作时，都要进行加锁操作，其代码一般是这样的：</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">final</span> V put(K key, <span style="color: #0000ff;">int</span> hash, V value, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> onlyIfAbsent) {
+</span><span style="color: #008080;"> 2</span>     HashEntry&lt;K,V&gt; node = tryLock() ?<span style="color: #000000;">  :  scanAndLockForPut(key, hash, value);
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">    V oldValue;
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 5</span> <span style="color: #008000;">//</span><span style="color: #008000;">实际代码&hellip;&hellip;</span>
+<span style="color: #008080;"> 6</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 7</span>     } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        unlock();
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> oldValue;
+</span><span style="color: #008080;">11</span> }</code></pre>
+
+<p><span style="font-size: 16px;">　　　　首先调用tryLock，如果加锁失败，则进入scanAndLockForPut(key,hash,value)，该方法实际上是先自旋等待其他线程解锁，直至指定的次数MAX_SCAN_RETRIES；若自旋过程中，其他线程释放了锁，导致本线程直接获得了锁，就避免了本线程进入等待锁的场景，提高了效率。若自旋一定次数后，仍未获取锁，则调用lock方法进入等待锁的场景。</span></p>
+<p><span style="font-size: 16px;">　　优点：采用这种自旋锁和独占锁结合的方法，在很多场景下能够提高Segment并发操作数据的效率。</span></p>
+<p><span style="font-size: 16px;">　　<span style="color: #0000ff;"><em>初始化方法</em></span>是通过initialCapacity、loadFactor和concurrencyLevel等参数来初始化segment数组，段偏移量segmentShift、段掩码segmentMask和每个segment里的HashEntry数组来实现的。</span></p>
+<p><span style="font-size: 16px;">　<strong>　4）初始化segments数组</strong></span><strong><span style="font-size: 16px;">　</span></strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #008080;"> 1</span>  <span style="color: #0000ff;">if</span> (concurrencyLevel &gt;<span style="color: #000000;"> MAX_SEGMENTS)
+</span><span style="color: #008080;"> 2</span>             concurrencyLevel =<span style="color: #000000;"> MAX_SEGMENTS;
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">int</span> sshift = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">int</span> ssize = 1<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>             <span style="color: #0000ff;">while</span> (ssize &lt;<span style="color: #000000;"> concurrencyLevel) {
+</span><span style="color: #008080;"> 6</span>                     ++<span style="color: #000000;">sshift;
+</span><span style="color: #008080;"> 7</span>                     ssize &lt;&lt;= 1<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">               }
+</span><span style="color: #008080;"> 9</span>        segmentShift = 32 -<span style="color: #000000;"> sshift;
+</span><span style="color: #008080;">10</span>        segmentMask = ssize - 1<span style="color: #000000;">;
+</span><span style="color: #008080;">11</span>        <span style="color: #0000ff;">this</span>.segments = Segment.newArray(ssize);</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">　　　　segments数组的长度ssize是通过concurrencyLevel计算得出的；为了能通过按位与的散列算法来定位segments数组的索引，必须保证segments数组的长度为2的N次方，所以必须计算出一个大于或等于concurrencyLevel的最小的2的N次方值来作为segments数组的长度。concurrencyLevel的最大值为65535，这意味着segments数组的长度最大为65536，对应的二进制是16位。</span></p>
+<p><span style="font-size: 16px;">　<strong>　5）初始化segmentShift和segmentMask</strong></span></p>
+<p><span style="font-size: 16px;">　　　　这两个全局变量需要在定位segment时的散列算法里使用；sshift等于ssize从1向左移位的次数，默认concurrencyLevel等于16，1需要向左位移动4次，所以sshift为4.</span></p>
+<p><span style="font-size: 16px;">　　　　segmentShift用于定位参与散列算法的位数，segmentShift等于32减sshift，所以等于28。这里之所以是32，是因为ConcurrentHashMap里的hash()方法输出的最大位数为32位。</span></p>
+<p><span style="font-size: 16px;">　　　　segmentMask是散列运算的掩码，等于ssize减1，即15；掩码的二进制各个位的值都是1，因为ssize的最大长度为65536，所以segmentShift最大值是16，segmentMask最大值是65535，对应的二进制为16位，每个位都是1。</span></p>
+<p><span style="font-size: 16px;"><strong>　　6）初始化每个segment</strong><br /></span></p>
+<p><span style="font-size: 16px;">　　　　输入参数initialCapacity是ConcurrentHashMap的初始化容量，loadfactor是每个segment的负载因子，在构造方法里需要通过这两个参数来初始化数组中的每个segment。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #008080;"> 1</span>    <span style="color: #0000ff;">if</span> (initialCapacity &gt;<span style="color: #000000;"> MAXIMUM_CAPACITY)
+</span><span style="color: #008080;"> 2</span>             initialCapacity =<span style="color: #000000;"> MAXIMUM_CAPACITY;
+</span><span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">int</span> c = initialCapacity /<span style="color: #000000;"> ssize;
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">if</span> (c * ssize &lt;<span style="color: #000000;"> initialCapacity)
+</span><span style="color: #008080;"> 5</span>             ++<span style="color: #000000;">c;
+</span><span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">int</span> cap = 1<span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">while</span> (cap &lt;<span style="color: #000000;"> c)
+</span><span style="color: #008080;"> 8</span>             cap &lt;&lt;= 1<span style="color: #000000;">;
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.segments.length; ++<span style="color: #000000;">i)
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">this</span>.segments[i] = <span style="color: #0000ff;">new</span> Segment&lt;K, V&gt;(cap, loadFactor);</span></code></pre>
+
+<p><span style="font-size: 16px;">　　　　上面代码中的变量cap就是segment里HashEntry数组的长度，它等于initialCapacity除以ssize的倍数c，如果c大于1，就会取大于等于c的2的N次方值，所以cap不是1，就是2的N次方。</span></p>
+<p><span style="font-size: 16px;">　　　　segment的容量threshold=(int) cap*loadFactor，默认initialCapacity等于16，loadfactor等于0.75，通过运算cap等于1，threshold等于零。</span></p>
+<p><strong><span style="font-size: 16px;">　　7）定位Segment</span></strong></p>
+<p><span style="font-size: 16px;">　　　　既然ConcurrentHashMap使用分段锁Segment来保护不同段的数据，那么在插入和获取元素时，必须先通过散列算法定位到Segment。可以看到ConcurrentHashMap会首先使用hash的变种算法对元素的hashcode进行一次再散列。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #008080;">1</span> <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> hash(<span style="color: #0000ff;">int</span><span style="color: #000000;"> h) {
+</span><span style="color: #008080;">2</span>             h += (h &lt;&lt; 15) ^ 0xffffcd7d<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span>             h ^= (h &gt;&gt;&gt; 10<span style="color: #000000;">);
+</span><span style="color: #008080;">4</span>             h += (h &lt;&lt; 3<span style="color: #000000;">);
+</span><span style="color: #008080;">5</span>             h ^= (h &gt;&gt;&gt; 6<span style="color: #000000;">);
+</span><span style="color: #008080;">6</span>             h += (h &lt;&lt; 2) + (h &lt;&lt; 14<span style="color: #000000;">);
+</span><span style="color: #008080;">7</span>             <span style="color: #0000ff;">return</span> h ^ (h &gt;&gt;&gt; 16<span style="color: #000000;">);
+</span><span style="color: #008080;">8</span>         }</span></code></pre>
+
+<p><span style="font-size: 16px;">　　　　进行再散列，是为了减少散列冲突，使元素能够均匀地分布在不同的Segment上，从而提高容器的存取效率。</span></p>
+<p><span style="font-size: 16px;">　　　　</span><span style="font-size: 16px;">假如散列的质量差到极点，那么所有元素都在一个Segment中，不仅存区元素缓慢，分段锁也会失去意义。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;">ConcurrentHashMap通过以下散列算法定位segment</span>
+<span style="color: #008080;">2</span> <span style="color: #0000ff;">final</span> Segment&lt;K,V&gt; segmentFor(<span style="color: #0000ff;">int</span><span style="color: #000000;"> hash) {
+</span><span style="color: #008080;">3</span>       <span style="color: #0000ff;">return</span> segments[(hash &gt;&gt;&gt; segmentShift) &amp;<span style="color: #000000;"> segmentMask];
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">5</span> <span style="color: #008000;">//</span><span style="color: #008000;">默认情况下segmentShift为28,segmentMask为15,再散列后的数最大是32位二进制数据,向右无符号移动28位,即让高4位参与到散列运算中,(hash&gt;&gt;&gt;segmentShift)&amp;segmentMask的运算结果分别是4、15、7和8,可以看到散列值没有发生冲突.</span></span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">　　<strong>8）HashEntry</strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">class</span> HashEntry&lt;K,V&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> hash;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">final</span><span style="color: #000000;"> K key;
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">volatile</span><span style="color: #000000;"> V value;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">volatile</span> HashEntry&lt;K,V&gt;<span style="color: #000000;"> next;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     HashEntry(<span style="color: #0000ff;">int</span> hash, K key, V value, HashEntry&lt;K,V&gt;<span style="color: #000000;"> next) {
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">this</span>.hash =<span style="color: #000000;"> hash;
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">this</span>.key =<span style="color: #000000;"> key;
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">this</span>.value =<span style="color: #000000;"> value;
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">this</span>.next =<span style="color: #000000;"> next;
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">13</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">void</span> setNext(HashEntry&lt;K,V&gt;<span style="color: #000000;"> n) {
+</span><span style="color: #008080;">14</span>         UNSAFE.putOrderedObject(<span style="color: #0000ff;">this</span><span style="color: #000000;">, nextOffset, n);
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>     <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">long</span><span style="color: #000000;"> nextOffset;
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">static</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">20</span>             UNSAFE =<span style="color: #000000;"> sun.misc.Unsafe.getUnsafe();
+</span><span style="color: #008080;">21</span>             Class k = HashEntry.<span style="color: #0000ff;">class</span><span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>             nextOffset =<span style="color: #000000;"> UNSAFE.objectFieldOffset
+</span><span style="color: #008080;">23</span>                 (k.getDeclaredField("next"<span style="color: #000000;">));
+</span><span style="color: #008080;">24</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">25</span>             <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Error(e);
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">29</span> @SuppressWarnings("unchecked"<span style="color: #000000;">)
+</span><span style="color: #008080;">30</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> &lt;K,V&gt; HashEntry&lt;K,V&gt; entryAt(HashEntry&lt;K,V&gt;[] tab, <span style="color: #0000ff;">int</span><span style="color: #000000;"> i) {
+</span><span style="color: #008080;">31</span>     <span style="color: #0000ff;">return</span> (tab == ) ?<span style="color: #000000;">  :
+</span><span style="color: #008080;">32</span>         (HashEntry&lt;K,V&gt;<span style="color: #000000;">) UNSAFE.getObjectVolatile
+</span><span style="color: #008080;">33</span>         (tab, ((<span style="color: #0000ff;">long</span>)i &lt;&lt; TSHIFT) +<span style="color: #000000;"> TBASE);
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">35</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> &lt;K,V&gt; <span style="color: #0000ff;">void</span> setEntryAt(HashEntry&lt;K,V&gt;[] tab, <span style="color: #0000ff;">int</span> i, HashEntry&lt;K,V&gt;<span style="color: #000000;"> e) {
+</span><span style="color: #008080;">36</span>         UNSAFE.putOrderedObject(tab, ((<span style="color: #0000ff;">long</span>)i &lt;&lt; TSHIFT) +<span style="color: #000000;"> TBASE, e);
+</span><span style="color: #008080;">37</span> }</span></code></pre>
+
+<p><span style="font-size: 16px;">　　　　与Segment类似，HashEntry使用UNSAFE.putOrderedObject来设置它的next成员变量，这样既可以提高性能，又能保持并发可见性。同时entryAt方法和setEntryAt方法也使用了UNSAFE.getObjectVolatile和UNSAFE.putOrderedObject来获取和写入指定索引的HashEntry。</span></p>
+<p><span style="font-size: 16px;">　　　　总之，Segment数组和HashEntry数组的读取写入一般都是使用UNSAFE。</span></p>
+<p><span style="color: #0000ff;"><strong><span style="font-size: 16px;">5.ConcurrentHashMap的操作</span></strong></span></p>
+<p><span style="font-size: 16px;">　　<strong>5.1 get操作</strong></span></p>
+<p><span style="font-size: 16px;">　　　　先经过一次再散列，然后使用这个散列值通过散列运算定位到Segment，再通过散列算法定位到元素。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> V get(Object key) {
+</span><span style="color: #008080;"> 2</span>     Segment&lt;K,V&gt;<span style="color: #000000;"> s; 
+</span><span style="color: #008080;"> 3</span>     HashEntry&lt;K,V&gt;<span style="color: #000000;">[] tab;
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">int</span> h =<span style="color: #000000;"> hash(key);
+</span><span style="color: #008080;"> 5</span> <span style="color: #008000;">//</span><span style="color: #008000;">找到segment的地址 long u = (((h &gt;&gt;&gt; segmentShift) &amp; segmentMask) &lt;&lt; SSHIFT) + SBASE;
+</span><span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;">取出segment，并找到其hashtable if ((s = (Segment&lt;K,V&gt;)UNSAFE.getObjectVolatile(segments, u)) != null &amp;&amp;</span>
+<span style="color: #008080;"> 7</span>         (tab = s.table) !=<span style="color: #000000;"> ) {
+</span><span style="color: #008080;"> 8</span> <span style="color: #008000;">//</span><span style="color: #008000;">遍历此链表，直到找到对应的值 for (HashEntry&lt;K,V&gt; e = (HashEntry&lt;K,V&gt;) UNSAFE.getObjectVolatile</span>
+<span style="color: #008080;"> 9</span>                  (tab, ((<span style="color: #0000ff;">long</span>)(((tab.length - 1) &amp; h)) &lt;&lt; TSHIFT) + TBASE); e != ; e =<span style="color: #000000;"> e.next) {
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">                    K k;
+</span><span style="color: #008080;">11</span>                     <span style="color: #0000ff;">if</span> ((k = e.key) == key || (e.hash == h &amp;&amp;<span style="color: #000000;"> key.equals(k)))
+</span><span style="color: #008080;">12</span>                             <span style="color: #0000ff;">return</span><span style="color: #000000;"> e.value;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> ;
+</span><span style="color: #008080;">16</span> }</span></code></pre>
+
+<p><span style="font-size: 16px;">　　　　整个get方法不需要加锁，只需要计算两次hash值，然后遍历一个单向链表（此链表长度平均小于2），因此get性能很高。高效之处在于整个过程不需要加锁，除非读到的值是空才会加锁重读。</span></p>
+<p><span style="font-size: 16px;">　　<strong>HashTable容器的get方法是需要加锁的，那ConcurrentHashMap的get操作是如何做到不加锁的呢？</strong><br /></span></p>
+<p><span style="font-size: 16px;">　　　　原因是它的get方法将要使用的共享变量都定义成了volatile类型，如用于统计当前Segment大小的count字段和用于存储值得HashEntry的value。</span></p>
+<p><span style="font-size: 16px;">　　　　定义成volatile的变量，能够在线程之间保持可见性，能够被多线程同时读，并且保证不会读到过期的值，但是只能被单线程写（有一种情况可以被多线程写，就是写入的值不依赖于原值），在get操作里只需要读不需要写共享变量count和value，所以可以不用加锁。<br /></span></p>
+<p><span style="font-size: 16px;">　　　　之所以不会读到过期的值，是因为根据Java内存模型的happen before原则，对volatile字段的写操作先于读操作，即使两个线程同时修改和获取volatile变量，get操作也能拿到最新的值，这是用volatile替换锁的经典应用场景。</span></p>
+<p><span style="font-size: 16px;">　　　　　　transient volatile int count;</span></p>
+<p><span style="font-size: 16px;">　　　　　　volatile V value;</span></p>
+<p><span style="font-size: 16px;">　　　　在定位元素的代码里可以实现，定位HashEntry和定位Segment的散列算法虽然一样，都与数组的长度减去1再相&ldquo;与&rdquo;，但是相&ldquo;与&rdquo;的值不一样。</span></p>
+<p><span style="font-size: 16px;">　　　　<span style="color: #0000ff;">定位Segment使用的是元素的hashcode再散列后得到的值的高位，定位HashEntry直接使用再散列后的值。</span>其目的是避免两次散列后的值一样，虽然元素在Segment里散列开了，但是却没有在HashEntry中散列开。</span></p>
+<p><span style="font-size: 16px;">　　　　　　hash&gt;&gt;&gt;segmentShift &amp; segmentMask;　　//定位Segment所使用的hash算法</span></p>
+<p><span style="font-size: 16px;">　　　　　　int index=hash &amp; (tab.length-1);　　//定位HashEntry所使用的hash算法</span></p>
+<p><span style="font-size: 16px;">　<strong>　5.2 put操作</strong></span></p>
+<p><span style="font-size: 16px;"><strong>　　　　</strong>由于需要对共享变量进行写操作，所以为了线程安全，在操作共享变量时必须加锁。put方法首先定位到Segment，然后在Segment里进行插入操作。</span><span style="font-size: 16px;">　</span></p>
+<p><span style="font-size: 16px;">　　　　插入操作需要经历的两个步骤：</span></p>
+<p><span style="font-size: 16px;">　　　　　　判断是否需要对Segment里的HashEntry数组进行扩容；定位添加元素的位置，然后将其放在HashEntry数组里；</span></p>
+<p><span style="font-size: 16px;">　　　　1）是否需要扩容？</span></p>
+<p><span style="font-size: 16px;">　　　　　　在插入元素前会先判断Segment里的HashEntry数组是否超过容量，如果超过阈值，则对数组进行扩容。Segment的扩容判断比HashMap更恰当，因为HashMap是在插入元素后判断是否已经到达容量，如果到达了就进行扩容，但是很有可能扩容之后没有新元素插入，这时HashMap就进行了一次无效的扩容。</span></p>
+<p><span style="font-size: 16px;">　　　　2）如何扩容？</span></p>
+<p><span style="font-size: 16px;">　　　　　　在扩容时，首先会创建一个容量是原来两倍的数组，然后将原数组里的元素进行再散列后插入到新的数组里。为了高效，ConcurrentHashMap不会对整个容器进行扩容，而只对某个Segment扩容。</span></p>
+<p><span style="font-size: 16px;">　　　　<strong>put方法的第一步：</strong>计算segment数组的索引，并找到该segment，然后调用该segment的put方法。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span><span style="color: #000000;"> V put(K key, V value) {
+</span><span style="color: #008080;"> 2</span>     Segment&lt;K,V&gt;<span style="color: #000000;"> s;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">if</span> (value ==<span style="color: #000000;"> )
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NullPointerException();
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">int</span> hash =<span style="color: #000000;"> hash(key);
+</span><span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;">计算segment数组的索引，并找到该segment int j = (hash &gt;&gt;&gt; segmentShift) &amp; segmentMask;</span>
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">if</span> ((s = (Segment&lt;K,V&gt;)UNSAFE.getObject          <span style="color: #008000;">//</span><span style="color: #008000;"> nonvolatile; recheck</span>
+<span style="color: #008080;"> 8</span>          (segments, (j &lt;&lt; SSHIFT) + SBASE)) == ) <span style="color: #008000;">//</span><span style="color: #008000;">  in ensureSegment</span>
+<span style="color: #008080;"> 9</span>         s =<span style="color: #000000;"> ensureSegment(j);
+</span><span style="color: #008080;">10</span> <span style="color: #008000;">//</span><span style="color: #008000;">调用该segment的put方法 return s.put(key, hash, value, false);</span>
+<span style="color: #008080;">11</span> }</span></code></pre>
+
+<p><span style="font-size: 16px;">　　　<strong>　put方法的第二步：</strong>在Segment的put方法中进行操作。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">final</span> V put(K key, <span style="color: #0000ff;">int</span> hash, V value, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> onlyIfAbsent) {
+</span><span style="color: #008080;"> 2</span> <span style="color: #008000;">//</span><span style="color: #008000;">调用tryLock()尝试加锁，若失败则调用scanAndLockForPut进行加锁，同时寻找key相应的节点node</span>
+<span style="color: #008080;"> 3</span>     HashEntry&lt;K,V&gt; node = tryLock() ?<span style="color: #000000;">  :
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">        scanAndLockForPut(key, hash, value);
+</span><span style="color: #008080;"> 5</span> <span style="color: #008000;">//</span><span style="color: #008000;">以下的代码都运行在加锁状态</span>
+<span style="color: #008080;"> 6</span> <span style="color: #000000;">    V oldValue;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 8</span>         HashEntry&lt;K,V&gt;[] tab =<span style="color: #000000;"> table;
+</span><span style="color: #008080;"> 9</span> <span style="color: #008000;">//</span><span style="color: #008000;">计算hash表的索引值，并取出HashEntry int index = (tab.length - 1) &amp; hash;</span>
+<span style="color: #008080;">10</span>         HashEntry&lt;K,V&gt; first =<span style="color: #000000;"> entryAt(tab, index);
+</span><span style="color: #008080;">11</span> <span style="color: #008000;">//</span><span style="color: #008000;">遍历此链表 for (HashEntry&lt;K,V&gt; e = first;;) {
+</span><span style="color: #008080;">12</span> <span style="color: #008000;">//</span><span style="color: #008000;">如果链表不为空，在链表中寻找对应的node，找到后进行赋值，并退出循环 if (e != null) {</span>
+<span style="color: #008080;">13</span> <span style="color: #000000;">                K k;
+</span><span style="color: #008080;">14</span>                 <span style="color: #0000ff;">if</span> ((k = e.key) == key ||
+<span style="color: #008080;">15</span>                     (e.hash == hash &amp;&amp;<span style="color: #000000;"> key.equals(k))) {
+</span><span style="color: #008080;">16</span>                     oldValue =<span style="color: #000000;"> e.value;
+</span><span style="color: #008080;">17</span>                     <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">onlyIfAbsent) {
+</span><span style="color: #008080;">18</span>                         e.value =<span style="color: #000000;"> value;
+</span><span style="color: #008080;">19</span>                         ++<span style="color: #000000;">modCount;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">21</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">23</span>                 e =<span style="color: #000000;"> e.next;
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">25</span> <span style="color: #008000;">//</span><span style="color: #008000;">如果在链表中没有找到对应的node else {
+</span><span style="color: #008080;">26</span> <span style="color: #008000;">//</span><span style="color: #008000;">如果scanAndLockForPut方法中已经返回的对应的node，则将其插入first之前 if (node != null)</span>
+<span style="color: #008080;">27</span> <span style="color: #000000;">                    node.setNext(first);
+</span><span style="color: #008080;">28</span>                 <span style="color: #0000ff;">else</span> <span style="color: #008000;">//</span><span style="color: #008000;">否则，new一个新的HashEntry</span>
+<span style="color: #008080;">29</span>                     node = <span style="color: #0000ff;">new</span> HashEntry&lt;K,V&gt;<span style="color: #000000;">(hash, key, value, first);
+</span><span style="color: #008080;">30</span>                 <span style="color: #0000ff;">int</span> c = count + 1<span style="color: #000000;">;
+</span><span style="color: #008080;">31</span> <span style="color: #008000;">//</span><span style="color: #008000;">测试是否需要自动扩容 if (c &gt; threshold &amp;&amp; tab.length &lt; MAXIMUM_CAPACITY)</span>
+<span style="color: #008080;">32</span> <span style="color: #000000;">                    rehash(node);
+</span><span style="color: #008080;">33</span>                 <span style="color: #0000ff;">else</span> <span style="color: #008000;">//</span><span style="color: #008000;">设置node到Hash表的index索引处</span>
+<span style="color: #008080;">34</span> <span style="color: #000000;">                    setEntryAt(tab, index, node);
+</span><span style="color: #008080;">35</span>                 ++<span style="color: #000000;">modCount;
+</span><span style="color: #008080;">36</span>                 count =<span style="color: #000000;"> c;
+</span><span style="color: #008080;">37</span>                 oldValue =<span style="color: #000000;"> ;
+</span><span style="color: #008080;">38</span>                 <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">41</span>     } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">        unlock();
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">44</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> oldValue;
+</span><span style="color: #008080;">45</span> }</span></code></pre>
+
+<p><span style="font-size: 16px;">　<strong>　5.3 size操作</strong></span></p>
+<p><span style="font-size: 16px;">　　　　要统计整个ConcurrentHashMap里的元素的数量，就必须统计所有Segment里元素的数量后计总。</span></p>
+<p><span style="font-size: 16px;">　　　　Segment里的全局变量count是一个volatile，在并发场景下，是不是直接把所有的Segment的count相加就可以得到整个ConcurrentHashMap大小了呢？不是的。</span></p>
+<p><span style="font-size: 16px;">　　　　虽然相加时可以获取每个Segment的count的最新值，但是可能累加前使用的count发生了变化，那么统计结果就不准了。所以，最安全的做法就是在统计size时把所有Segment的put、remove和clear方法全部锁住，但是这种做法显然非常低效。</span></p>
+<p><span style="font-size: 16px;">　　　　因为在累加count操作过程中，之前累加过的count发生变化的机率非常小，<em><span style="color: #0000ff;">所以ConcurrentHashMap的做法是先尝试2次通过不锁Segment的方式来统计各个Segment大小，如果统计的过程中，count发生了变化，则再采用加锁的方式来统计所有Segment的大小。</span></em></span></p>
+<p><span style="font-size: 16px;">　　<em><strong>那么ConcurrentHashMap又是如何判断在统计时容器是否发生了变化呢？</strong></em></span></p>
+<p><span style="font-size: 16px;">　　　　使用modCount变量，在put、remove和clear方法里操作元素前都会将变量modCount进行加1，那么在统计size前后比较modCount是否发生变化，从而得知容器的大小是否发生了变化。</span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

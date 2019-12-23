@@ -1,0 +1,121 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot（九）RabbitMQ安装及配置和使用，消息确认机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot（九）RabbitMQ安装及配置和使用，消息确认机制</center></div><div class='banquan'>原文出处:本文由博客园博主探歌提供。<br/>
+原文连接:https://www.cnblogs.com/lgg20/p/11692685.html</div><br>
+    <h1 class="title-article">&nbsp;</h1>
+<p><span style="font-size: 18px;"><strong>Windows下RabbitMQ安装及配置地址: https://blog.csdn.net/zhm3023/article/details/82217222</strong></span><br /><span style="font-size: 18px;"><strong>RabbitMQ(四)订阅模式：https://blog.csdn.net/saytime/article/details/80541328</strong></span><br /><span style="font-size: 18px;"><strong>RabbitMQ(五)路由模式：https://blog.csdn.net/saytime/article/details/80541402</strong></span><br /><span style="font-size: 18px;"><strong>RabbitMQ(六)主题模式：https://blog.csdn.net/saytime/article/details/80541412</strong></span></p>
+<h1 class="title-article"><span style="font-size: 16px;"><span style="font-size: 16px;">简单队列不足：即一个生产者对应一个消费者，一对一的关系，不支持多个消费者</span></span></h1>
+<p><span style="font-size: 16px;">&nbsp;工作队列模式：即一个生产者可以对应多个消费者同时消费，相比简单队列支持多消费者。</span></p>
+<p><span style="font-size: 16px;">&nbsp;订阅模式：即一个生产者发送消息给多个消费者，且每个消费者都收到一次，也即是一个消息能够被多个消费者消费。类似于我们订阅同一微信公众号，微信公众号推送图文，我们每个人都能收到一份。</span></p>
+<p><span style="font-size: 16px;">&nbsp;路由模式：跟订阅模式类似，只不过在订阅模式的基础上加上了类型，订阅模式是分发到所有绑定到交换机的队列，路由模式只分发到绑定在交换机上面指定路由键的队列。</span></p>
+<p><span style="font-size: 16px;">&nbsp;主题模式：跟路由模式类似，只不过路由模式是指定固定的路由键，而主题模式是可以模糊匹配路由键，类似于SQL中=和like的关系。</span></p>
+<p><span style="font-size: 16px;">&nbsp;<strong>//简单模式：//&nbsp;获取连接.从连接开一个通道，发送消息到队列。 消费者消费队列的消息。</strong></span></p>
+<p><span style="font-size: 16px;"><strong>//订阅模式：// 获取连接.从连接开一个通道.声明一个fanout分发交换机.发送消息到交换机。消费者绑定到交换机。消费者消费具体的队列的消息。</strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 16px;"><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 生产者
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Send {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String EXCHANGE_NAME = "test_exchange_fanout"<span style="color: #000000;">;<br />
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException, TimeoutException {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取连接</span>
+        Connection connection =<span style="color: #000000;"> ConnectionUtil.getConnection();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从连接开一个通道</span>
+        Channel channel =<span style="color: #000000;"> connection.createChannel();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 声明一个fanout分发交换机</span>
+<span style="color: #000000;">        channel.exchangeDeclare(EXCHANGE_NAME, BuiltinExchangeType.FANOUT);
+        String message </span>= "hello, ps"<span style="color: #000000;">;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 发送消息</span>
+        channel.basicPublish(EXCHANGE_NAME, "", <span style="color: #0000ff;">null</span><span style="color: #000000;">, message.getBytes());
+        System.out.println(</span>" [x] Sent '" + message + "'"<span style="color: #000000;">);
+        channel.close();
+        connection.close();
+    }
+}</span></span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 16px;"><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 短信消费者
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Recv {
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 短信队列</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String QUEUE_NAME = "test_queue_fanout_sms"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String EXCHANGE_NAME = "test_exchange_fanout"<span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException, TimeoutException {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取连接</span>
+        Connection connection =<span style="color: #000000;"> ConnectionUtil.getConnection();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 打开通道</span>
+        Channel channel =<span style="color: #000000;"> connection.createChannel();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 申明要消费的队列</span>
+        channel.queueDeclare(QUEUE_NAME, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 绑定队列到交换机</span>
+        channel.queueBind(QUEUE_NAME, EXCHANGE_NAME, ""<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这样RabbitMQ就会使得每个Consumer在同一个时间点最多处理一个Message。换句话说，在接收到该Consumer的ack前，他它不会将新的Message分发给它。</span>
+        channel.basicQos(1<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建一个回调的消费者处理类</span>
+        Consumer consumer = <span style="color: #0000ff;">new</span><span style="color: #000000;"> DefaultConsumer(channel) {
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> handleDelivery(String consumerTag, Envelope envelope, AMQP.BasicProperties properties, <span style="color: #0000ff;">byte</span>[] body) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 接收到的消息</span>
+                String message = <span style="color: #0000ff;">new</span><span style="color: #000000;"> String(body);
+                System.out.println(</span>" [1] Received '" + message + "'"<span style="color: #000000;">);
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    Thread.sleep(</span>1000<span style="color: #000000;">);
+                } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+                    e.printStackTrace();
+                } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+                    System.out.println(</span>" [1] done "<span style="color: #000000;">);
+                    channel.basicAck(envelope.getDeliveryTag(), </span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+                }
+            }
+        };
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 消费消息</span>
+        channel.basicConsume(QUEUE_NAME, <span style="color: #0000ff;">false</span><span style="color: #000000;">, consumer);
+    }
+}</span></span></code></pre>
+
+<p><span style="font-size: 16px;">RabbitMQ消息确认机制之事务机制：</span></p>
+<p><span style="font-size: 16px;"><strong>1.服务器异常数据丢失问题？</strong></span></p>
+<p><span style="font-size: 16px;"><strong>第一种： AMQP 事务处理机制；https://blog.csdn.net/saytime/article/details/80541423</strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000; font-size: 16px;">txSelect  将当前channel设置为transaction模式
+channel.txCommit  提交当前事务
+channel.txRollback  事务回滚<br />成功就是发送到服务器，失败可以捕获异常再重发。缺点：降低rabbirmq的性能。</span></code></pre>
+
+<p><span style="font-size: 16px;"><strong>第二种： confirm模式 。信号确认或者失败回复：</strong></span></p>
+<p><span style="font-size: 16px;"><strong>https://blog.csdn.net/cj337083172/article/details/79730438</strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 16px;"><span style="color: #000000;">1.同步：提交消息后，等待服务端回复后才算确认，概括的简单吧。
+2.异步：使用监听方法，异步等待消息回调。
+
+控制方式
+开启confirm模式代码 : channel.confirmSelect();
+1.同步确认，等待结果方法： channel.waitForConfirms() </span><span style="color: #0000ff;">true</span>-发送成功，<span style="color: #0000ff;">false</span>-<span style="color: #000000;">发送失败
+2.异步确认，直接添加一个监听，也能叫做监听模式：
+channel.addConfirmListener(</span><span style="color: #0000ff;">new</span> ConfirmListener() {<span style="color: #008000;">//</span><span style="color: #008000;">实现返回处理方法... });</span></span></code></pre>
+
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;">&nbsp;</span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,113 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何使用websocket实现前后端通信' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何使用websocket实现前后端通信</center></div><div class='banquan'>原文出处:本文由博客园博主夜萌提供。<br/>
+原文连接:https://www.cnblogs.com/yemengshen/p/11561379.html</div><br>
+    <p><span style="font-family: 黑体;"><span style="font-size: 24px;">websocket通信是很好玩的，也很有用的的通信方式，使用方式如下：</span></span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 黑体; font-size: 18pt;">第一步由于springboot很好地集成了websocket，所以先在在pom.xml文件中引入依赖</span></p>
+<src class="cnblogs_code">
+<pre><code>&lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-websocket&lt;/artifactId&gt;
+        &lt;/dependency&gt;</code></pre>
+
+<p><span style="font-size: 18pt;">第二步在前端界面使用websocket，也就是HTML文件中编写</span></p>
+<src class="cnblogs_code">
+<pre><code>&lt;script&gt;
+    <span style="color: #0000ff;">var</span> websocket = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span>('WebSocket' <span style="color: #0000ff;">in</span><span style="color: #000000;"> window) {
+        websocket </span>= <span style="color: #0000ff;">new</span> WebSocket('ws://yesell.natapp1.cc/sell/webSocket'<span style="color: #000000;">);
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        alert(</span>'该浏览器不支持websocket!'<span style="color: #000000;">);
+    }
+
+    websocket.onopen </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (event) {
+        console.log(</span>'建立连接'<span style="color: #000000;">);
+    }
+
+    websocket.onclose </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (event) {
+        console.log(</span>'连接关闭'<span style="color: #000000;">);
+    }
+
+    websocket.onmessage </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (event) {
+        console.log(</span>'收到消息:' +<span style="color: #000000;"> event.data)
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">所要执行的操作</span>
+<span style="color: #000000;">    }
+
+    websocket.onerror </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        alert(</span>'websocket通信发生错误！'<span style="color: #000000;">);
+    }
+
+    window.onbeforeunload </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        websocket.close();
+    }
+
+</span>&lt;/script&gt;</code></pre>
+
+<p><span style="font-family: 黑体; font-size: 18pt;">第三步，一般我们是在controller层实现交互的，然而websocket的交互是在service层，</span></p>
+<p><span style="font-family: 黑体; font-size: 18pt;">其中：</span></p>
+<pre><code><span style="font-family: 黑体; font-size: 18pt;">@ServerEndpoint("/webSocket")是定义了交互的地址<br /></span></code></pre>
+<pre><code><span style="font-family: 黑体; font-size: 18pt;">@Slf4j是日志，有兴趣了解，请看这篇文章<a href="https://www.cnblogs.com/yemengshen/p/11478293.html">https://www.cnblogs.com/yemengshen/p/11478293.html</a></span></code></pre>
+<pre><code><span style="font-family: 黑体; font-size: 18pt;">@OnOpen、@OnClose、@OnMessage这三个方法与前端的三个同名方法相互交互，在需要使用的位置调用方法如下，<br />到这里基本写完了。</span></code></pre>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Component
+@ServerEndpoint(</span>"/webSocket"<span style="color: #000000;">)
+@Slf4j
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> WebSocket {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Session session;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> CopyOnWriteArraySet&lt;WebSocket&gt; webSocketSet=<span style="color: #0000ff;">new</span> CopyOnWriteArraySet&lt;&gt;<span style="color: #000000;">();
+    @OnOpen
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> onOpen(Session session){
+        </span><span style="color: #0000ff;">this</span>.session=<span style="color: #000000;">session;
+        webSocketSet.add(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">);
+        log.info(</span>"【websocket消息】有新的连接，总数：{}"<span style="color: #000000;">,webSocketSet.size());
+    }
+    @OnClose
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> onClose(){
+        webSocketSet.remove(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">);
+        log.info(</span>"【websocket消息】连接断开，总数：{}"<span style="color: #000000;">,webSocketSet.size());
+    }
+    @OnMessage
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> onMessage(String message){
+        log.info(</span>"【websocket消息】收到客户端发来的消息：{}"<span style="color: #000000;">,message);
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> sendMessage(String message){
+        </span><span style="color: #0000ff;">for</span><span style="color: #000000;">(WebSocket webSocket:webSocketSet){
+            log.info(</span>"【websocket消息】广播消息：{}"<span style="color: #000000;">,message);
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                webSocket.session.getBasicRemote().sendText(message);
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}</span></code></pre>
+
+<p>&nbsp;使用方式：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Autowired
+</span><span style="color: #0000ff;">private</span><span style="color: #000000;"> WebSocket webSocket;
+webSocket.sendMessage(</span>"传递的参数");</code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

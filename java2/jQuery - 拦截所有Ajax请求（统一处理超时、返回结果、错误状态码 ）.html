@@ -1,0 +1,146 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jQuery - 拦截所有Ajax请求（统一处理超时、返回结果、错误状态码 ）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jQuery - 拦截所有Ajax请求（统一处理超时、返回结果、错误状态码 ）</center></div><div class='banquan'>原文出处:本文由博客园博主天不生我李淳罡提供。<br/>
+原文连接:https://www.cnblogs.com/flyingDragon/p/11956096.html</div><br>
+    <h3>样例代码：</h3>
+<p>　　</p>
+<src class="cnblogs_Highlighter">
+<pre><code>&lt;html&gt;
+  &lt;head&gt;
+    &lt;title&gt;hangge.com&lt;/title&gt;
+    &lt;meta charset="utf-8"/&gt;
+    &lt;script type="text/javascript" src="./jquery-1.11.1.min.js"&gt;&lt;/script&gt;
+    &lt;script&gt;
+      //全局的ajax访问，处理ajax清求时session超时
+    <strong>  $.ajaxSetup({
+         contentType:"application/x-www-form-urlencoded;charset=utf-8",
+         complete:function(XMLHttpRequest,textStatus){
+             //通过XMLHttpRequest取得响应头，sessionstatus，
+             var sessionstatus=XMLHttpRequest.getResponseHeader("sessionstatus");
+             if(sessionstatus=="timeout"){
+                 //如果超时就处理 ，指定要跳转的页面(比如登陆页)
+                 window.location.replace("/login/index.php");
+             }
+          }
+       });
+</strong> 
+      //获取数据
+      function getContent() {
+        $.get("content.php", function (data){
+                alert(data);
+        });
+      }
+ 
+      //登录或注销
+      function login(value) {
+        $.get("login.php",{"login":value} , function (data){
+                alert(data);
+        });
+      }
+    &lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;button onclick="getContent()"&gt;获取数据&lt;/button&gt;
+    &lt;button onclick="login(true)"&gt;登录&lt;/button&gt;
+    &lt;button onclick="login(false)"&gt;注销&lt;/button&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>　</p>
+<h2>一、统一处理返回结果</h2>
+<p>我们可以将超时或是其他异常情况放置在返回结果中，前台统一解析结果来进行各种异常处理。</p>
+<h3>1，后台返回数据样例</h3>
+<p>比如后台返回如下格式的&nbsp;JSON&nbsp;数据，包括正常情况和异常情况。</p>
+<src class="cnblogs_Highlighter">
+<pre><code>//正常数据返回
+{"state":1, "msg":"", "data":"欢迎访问hangge.com"}
+ 
+//session超时数据返回
+{"state":-1, "msg":"session超时，请重新登录！"}
+ 
+//异常情况数据返回
+{"state":0, "msg":"服务器繁忙，请稍后再试。"}
+</code></pre>
+
+<p>　　</p>
+<h3>2，前台处理样例</h3>
+<p>&nbsp;</p>
+<p>　</p>
+<src class="cnblogs_Highlighter">
+<pre><code>//全局的ajax访问，处理ajax清求时异常
+$.ajaxSetup({
+   contentType:"application/x-www-form-urlencoded;charset=utf-8",
+   complete:function(XMLHttpRequest,textStatus){
+      //通过XMLHttpRequest取得响应结果
+      var res = XMLHttpRequest.responseText;
+      try{
+        var jsonData = JSON.parse(res);
+        if(jsonData.state == -1){
+          //如果超时就处理 ，指定要跳转的页面(比如登陆页)
+          alert(jsonData.msg);
+          window.location.replace("/login/index.php");
+        }else if(jsonData.state == 0){
+          //其他的异常情况,给个提示。
+          alert(jsonData.msg);
+        }else{
+          //正常情况就不统一处理了
+        }
+      }catch(e){
+      }
+    }
+ });
+ 
+//获取数据
+function getContent() {
+  $.get("content.php", function (data){
+      var jsonData = JSON.parse(data);
+      //只处理正常的情况
+      if(jsonData.state == 1){
+        alert(jsonData.data);
+      }
+   });
+}
+</code></pre>
+
+<p>　　</p>
+<h2>三、统一处理异常的HTTP状态码</h2>
+<p>我们还可以通过&nbsp;Ajax&nbsp;拦截，根据异常的&nbsp;HTTP&nbsp;状态码（404、500等）统一处理各种请求错误、服务器错误等情况。</p>
+<p><code class="js plain">$.ajaxSetup({</code></p>
+<src class="line number2 index1 alt1"><code class="js spaces">&nbsp;&nbsp;&nbsp;</code><code class="js plain">contentType:</code><code class="js string">"application/x-www-form-urlencoded;charset=utf-8"</code><code class="js plain">,</code>
+<src class="line number3 index2 alt2"><code class="js spaces">&nbsp;&nbsp;&nbsp;</code><code class="js plain">complete:</code><code class="js keyword">function</code><code class="js plain">(XMLHttpRequest,textStatus){</code>
+<src class="line number4 index3 alt1"><code class="js spaces">&nbsp;&nbsp;&nbsp;</code><code class="js plain">},</code>
+<src class="line number5 index4 alt2"><code class="js spaces">&nbsp;&nbsp;&nbsp;</code><code class="js plain">statusCode: {</code>
+<src class="line number6 index5 alt1"><code class="js spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="js plain">404:&nbsp;</code><code class="js keyword">function</code><code class="js plain">() {</code>
+<src class="line number7 index6 alt2"><code class="js spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="js plain">alert(</code><code class="js string">'数据获取/输入失败，没有此服务。404'</code><code class="js plain">);</code>
+<src class="line number8 index7 alt1"><code class="js spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="js plain">},</code>
+<src class="line number9 index8 alt2"><code class="js spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="js plain">504:&nbsp;</code><code class="js keyword">function</code><code class="js plain">() {</code>
+<src class="line number10 index9 alt1"><code class="js spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="js plain">alert(</code><code class="js string">'数据获取/输入失败，服务器没有响应。504'</code><code class="js plain">);</code>
+<src class="line number11 index10 alt2"><code class="js spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="js plain">},</code>
+<src class="line number12 index11 alt1"><code class="js spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="js plain">500:&nbsp;</code><code class="js keyword">function</code><code class="js plain">() {</code>
+<src class="line number13 index12 alt2"><code class="js spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="js plain">alert(</code><code class="js string">'服务器有误。500'</code><code class="js plain">);</code>
+<src class="line number14 index13 alt1"><code class="js spaces">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</code><code class="js plain">}</code>
+<src class="line number15 index14 alt2"><code class="js spaces">&nbsp;&nbsp;&nbsp;</code><code class="js plain">}</code>
+<src class="line number16 index15 alt1"><code class="js plain">});</code>
+<p><span style="color: #333333; font-family: arial;">&nbsp;</span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

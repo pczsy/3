@@ -1,0 +1,84 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端</center></div><div class='banquan'>原文出处:本文由博客园博主程序员郭艺宾提供。<br/>
+原文连接:https://www.cnblogs.com/guos/p/11642094.html</div><br>
+    <h1 id="自动批准授权码">自动批准授权码</h1>
+<p>前面我们授权的流程中，第一步获取授权码的时候，都会经历一个授权是否同意页面：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端0.png" alt="file" /></p>
+<p>这个流程就像第三方登录成功后，提问是否允许获取昵称和头像信息的页面一样，这个过程其实是可以自动同意的，需要在客户端配置中，增加一个自动批准：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端1.png" alt="file" /></p>
+<p>这样我们申请授权码直接就可以得到：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端2.png" alt="file" /></p>
+<p>在流程需要自动完成的时候，需要这样配置，如果需要用户点击同意，那么这里需要设置为false，不写默认也是false。</p>
+<h1 id="客户端信息整理">客户端信息整理</h1>
+<p>上面的自动批准只是客户端配置中一个小的配置，下面我们来系统整理一下客户端所有可配置的内容。首先来看现在已经配置的6个字段：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端3.png" alt="file" /></p>
+<p>上面的6个字段是我们最常用的也是不可或缺的客户端信息。不过客户端的配置还有很多其它的字段，我们来整体看一下：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端4.png" alt="file" /></p>
+<p>上面的11个字段基本上包括了所有的第三方客户端的配置内容。下面来一个个详细讲解：</p>
+<ul>
+<li><p>withClient 方法：用来配置 client_id ，是必须配置的，用于唯一标识每一个客户端(client)；注册时必须填写(也可以服务端自动生成)，这个字段是必须的，实际应用也有叫app_key</p></li>
+<li><p>resourceIds 方法：用来配置resource_ids ，表示客户端能访问的资源id集合，注册客户端时，根据实际需要可选择资源id，也可以根据不同的注册流程，赋予对应的额资源id。我们可以为每一个Resource Server（资源服务）设置一个resourceid。再给client授权的时候，可以设置这个client可以访问哪一些资源实例，如果没设置，就是对所有的resource都有访问权限。</p></li>
+<li><p>secret 方法：用来配置 client_secret ，注册填写或者服务端自动生成，实际应用也有叫app_secret,</p></li>
+<li><p>scopes 方法 ：用来配置 scope ，指定client的权限范围，比如读写权限，比如移动端还是web端权限，all表示全部权限</p></li>
+<li><p>authorizedGrantTypes 方法：用来配置 authorized_grant_types ，可选值， 授权码模式:authorization_code,密码模式:password,刷新token: refresh_token, 隐式模式: implicit: 客户端模式: client_credentials。支持多个用逗号分隔</p></li>
+<li><p>redirectUris 方法： 用来配置 web_server_redirect_uri ，客户端重定向uri，authorization_code和implicit需要该值进行校验，注册时填写</p></li>
+<li><p>authorities 方法：用来配置 authorities ，指定用户的权限范围，如果授权的过程需要用户登陆，该字段不生效，implicit和client_credentials需要</p></li>
+<li><p>accessTokenValiditySeconds 方法，用来配置 access_token_validity ，设置access_token的有效时间(秒),默认(12小时)</p></li>
+<li><p>refreshTokenValiditySeconds 方法：用来配置 refresh_token_validity ，设置refresh_token有效期(秒)，默认(30天)</p></li>
+<li><p>additionalInformation 方法： 用来配置 additional_information ，表示补充信息，可空，值必须是json格式</p></li>
+<li><p>autoApprove 方法：用来配置autoapprove ，默认false,适用于authorization_code模式,设置用户是否自动approval操作,设置true跳过用户确认授权操作页面，直接跳到redirect_uri</p></li>
+</ul>
+<p>下面我们在数据库中新建一张表，定义这是十一个字段，表名为 oauth_client_details：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端5.png" alt="file" /></p>
+<p>注意，这里表名必须是 oauth_client_details 是 oauth规定的表名，也是默认的jdbc操作中的表名。我们来增加一条记录：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端6.png" alt="file" /></p>
+<p>相比前面的例子，这里多了一个resource_ids的字段值，其它的都和前面的配置一样。注意secret存储的是加密后的密文，加密前是secret。</p>
+<p>授权服务多了一个resource_id，资源服务也得配置自己的id：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端7.png" alt="file" /></p>
+<h1 id="默认的jdbc管理客户端">默认的jdbc管理客户端</h1>
+<p>将配置死的客户端信息改为jdbc从客户端查询的方式很简单，首先引入数据库依赖：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端8.png" alt="file" /></p>
+<p>然后配置数据源：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端9.png" alt="file" /></p>
+<p>最后修改授权配置类的客户端配置：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端10.png" alt="file" /></p>
+<p>可以看到修改后的客户端配置很简单，只需要在客户端配置一个jdbc数据源即可，查询方法是自动实现的。关于实现，可以参考源码：</p>
+<ul>
+<li>org.springframework.security.oauth2.provider.client.JdbcClientDetailsService</li>
+</ul>
+<p>里面有写好的sql语句和增删改查逻辑：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端11.png" alt="file" /></p>
+<p>其中有个更新秘钥的方法，是需要加密方式的：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端12.png" alt="file" /></p>
+<p>所以我们可以在jdbc方法后面配置加密方式：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端13.png" alt="file" /></p>
+<h1 id="测试">测试</h1>
+<p>上面的除了数据库，其它的配置修改很简单，下面来测试一下：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端14.png" alt="file" /></p>
+<p>访问结果：</p>
+<p><img src="./images/SpringBootSecurity学习（17）前后端分离版之 OAuth2.0 数据库（JDBC）存储客户端15.png" alt="file" /></p>
+<p>具体流程和前面一样。</p>
+<p>代码地址： <a href="https://gitee.com/blueses/spring-boot-security" class="uri">https://gitee.com/blueses/spring-boot-security</a> 19 20</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

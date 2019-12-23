@@ -1,0 +1,161 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修不止面试—jvm类加载面试题详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>不止面试—jvm类加载面试题详解</center></div><div class='banquan'>原文出处:本文由博客园博主百里弈提供。<br/>
+原文连接:https://www.cnblogs.com/bailiyi/p/11887470.html</div><br>
+    <h1 id="面试题">面试题</h1>
+<p>带着问题学习是最高效的，本次我们将尝试回答以下问题：</p>
+<ol>
+<li>什么是类的加载？</li>
+<li>哪些情况会触发类的加载？</li>
+<li>讲一下JVM加载一个类的过程</li>
+<li>什么时候会为变量分配内存？</li>
+<li>JVM的类加载机制是什么？</li>
+<li>双亲委派机制可以打破吗？为什么</li>
+</ol>
+<p>答案放在文章的最后，来不及看原理也可以直接跳到最后直接看答案。</p>
+<h1 id="深入原理">深入原理</h1>
+<h2 id="类的生命周期">类的生命周期</h2>
+<p>类的生命周期相信大家已经耳熟能详，就像下面这样：</p>
+<p><img src="./images/不止面试—jvm类加载面试题详解0.png" alt="file" /></p>
+<p>不过这东西总是背了就忘，忘了又背，就像马什么梅一样，对吧？</p>
+<p>其实理解之后，基本上就不会再忘了。</p>
+<h3 id="加载">加载</h3>
+<p>加载主要做三件事：</p>
+<ol>
+<li>找到类文件（通过类的全限定名来获取定义此类的二进制字节流）</li>
+<li>放入方法区（将这个字节流所代表的静态存储结构转化为方法区的运行时数据结构）</li>
+<li>开个入口（生成一个代表此类的java.lang.Class对象，作为访问方法区这些数据结构的入口）</li>
+</ol>
+<p>总的来讲，这一步就是通过类加载器把类读入内存。需要注意的是，第三步虽然生成了对象，但并不在堆里，而是在方法区里。</p>
+<h3 id="连接">连接</h3>
+<p>连接分为三步，一般面试都比较喜欢问<strong>准备</strong>这一步。</p>
+<h4 id="校验">校验</h4>
+<p>顾名思义，检查Class文件的字节流中包含的信息是否符合当前虚拟机的要求。</p>
+<h4 id="准备">准备</h4>
+<p>这一步中将为静态变量和静态常量分配内存，并赋值。</p>
+<p>需要注意的是，静态变量只会给默认值。比如下面这个：</p>
+<pre><code><code>public static int value = 123;</code></code></pre>
+<p>此时赋给value的值是0，不是123。</p>
+<p>静态常量（static final修饰的）则会直接赋值。比如下面这个：</p>
+<pre><code><code>public static final int value = 123;</code></code></pre>
+<p>此时赋给value的值是123。</p>
+<h4 id="解析">解析</h4>
+<p>解析阶段就是jvm将常量池的符号引用替换为直接引用。</p>
+<p>恩......啥是常量池？啥是符号引用？啥是直接引用？</p>
+<p>常量池我们放在jvm内存结构里说。先来说下什么是符号引用和直接引用。</p>
+<h5 id="符号引用和直接引用">符号引用和直接引用</h5>
+<p>假设有一个Worker类，包含了一个Car类的run()方法，像下面这样：</p>
+<pre><code><code>class Worker{
+    ......
+    public void gotoWork(){
+        car.run(); //这段代码在Worker类中的二进制表示为符号引用        
+    }
+    ......
+}
+</code></code></pre>
+<p>在解析阶段之前，Worker类并不知道car.run()这个方法内存的什么地方，于是只能用一个字符串来表示这个方法。该字符串包含了足够的信息，比如类的信息，方法名，方法参数等，以供实际使用时可以找到相应的位置。</p>
+<p>这个字符串就被称为<strong>符号引用</strong>。</p>
+<p>在解析阶段，jvm根据字符串的内容找到内存区域中相应的地址，然后把符号引用替换成直接指向目标的指针、句柄、偏移量等，这之后就可以直接使用了。</p>
+<p>这些直接指向目标的指针、句柄、偏移量就被成为<strong>直接引用</strong>。</p>
+<h3 id="初始化">初始化</h3>
+<p>类的初始化的主要工作是为静态变量赋程序设定的初值。</p>
+<p>还记得上面的静态变量吗：</p>
+<pre><code><code>public static int value = 123;</code></code></pre>
+<p>经过这一步，value的值终于是123了。</p>
+<p>总结如下图：</p>
+<p><img src="./images/不止面试—jvm类加载面试题详解1.png" alt="file" /></p>
+<h2 id="类初始化的条件">类初始化的条件</h2>
+<p>Java虚拟机规范中严格规定了<strong>有且只有</strong>五种情况必须对类进行初始化：</p>
+<ol>
+<li>使用new字节码指令创建类的实例，或者使用getstatic、putstatic读取或设置一个静态字段的值（放入常量池中的常量除外），或者调用一个静态方法的时候，对应类必须进行过初始化。</li>
+<li>通过java.lang.reflect包的方法对类进行反射调用的时候，如果类没有进行过初始化，则要首先进行初始化。</li>
+<li>当初始化一个类的时候，如果发现其父类没有进行过初始化，则首先触发父类初始化。</li>
+<li>当虚拟机启动时，用户需要指定一个主类（包含main()方法的类），虚拟机会首先初始化这个类。</li>
+<li>使用jdk1.7的动态语言支持时，如果一个java.lang.invoke.MethodHandle实例最后的解析结果REF_getStatic、REF_putStatic、RE_invokeStatic的方法句柄，并且这个方法句柄对应的类没有进行初始化，则需要先触发其初始化。</li>
+</ol>
+<p>除了以上这五种情况，其他任何情况都不会触发类的初始化。</p>
+<p>比如下面这几种情况就不会触发类初始化：</p>
+<ol>
+<li>通过子类调用父类的静态字段。此时父类符合情况一，而子类不符合任何情况。所以只有父类被初始化。</li>
+<li>通过数组来引用类，不会触发类的初始化。因为new的是数组，而不是类。</li>
+<li>调用类的静态常量不会触发类的初始化，因为静态常量在编译阶段就会被存入调用类的常量池中，不会引用到定义常量的类。</li>
+</ol>
+<h2 id="类加载机制">类加载机制</h2>
+<h3 id="类加载器">类加载器</h3>
+<p>在上面咱们曾经说到，加载阶段需要“通过一个类的全限定名来获取描述此类的二进制字节流”。这件事情就是<strong>类加载器</strong>在做。</p>
+<p>jvm自带三种类加载器，分别是：</p>
+<ol>
+<li>启动类加载器。</li>
+<li>扩展类加载器。</li>
+<li>应用程序类加载器</li>
+</ol>
+<p>他们的继承关系如下图：</p>
+<p><img src="./images/不止面试—jvm类加载面试题详解2.png" alt="file" /></p>
+<h3 id="双亲委派">双亲委派</h3>
+<p>双亲委派机制工作过程如下：</p>
+<ol>
+<li><p>当前ClassLoader首先从自己已经加载的类中查询是否此类已经加载，如果已经加载则直接返回原来已经加载的类。每个类加载器都有自己的加载缓存，当一个类被加载了以后就会放入缓存，等下次加载的时候就可以直接返回了。</p></li>
+<li><p> 当前classLoader的缓存中没有找到被加载的类的时候，委托父类加载器去加载，父类加载器采用同样的策略，首先查看自己的缓存，然后委托父类的父类去加载，一直到bootstrp ClassLoader.</p></li>
+<li><p> 当所有的父类加载器都没有加载的时候，再由当前的类加载器加载，并将其放入它自己的缓存中，以便下次有加载请求的时候直接返回。</p></li>
+</ol>
+<p>为啥要搞这么复杂？自己处理不好吗？</p>
+<p>双亲委派的优点如下：</p>
+<ol>
+<li>避免重复加载。当父亲已经加载了该类的时候，就没有必要子ClassLoader再加载一次。</li>
+<li>为了安全。避免核心类，比如String被替换。</li>
+</ol>
+<h3 id="打破双亲委派">打破双亲委派</h3>
+<p>“双亲委派”机制只是Java推荐的机制，并不是强制的机制。</p>
+<p>比如JDBC就打破了双亲委派机制。它通过Thread.currentThread().getContextClassLoader()得到线程上下文加载器来加载Driver实现类，从而打破了双亲委派机制。</p>
+<p>至于为什么，以后再说吧。</p>
+<h1 id="答案">答案</h1>
+<p>现在，我们可以回答文章开头提出的问题了。尽量在理解的基础上回答，不需要死记硬背。</p>
+<ol>
+<li><p>什么是类的加载？</p>
+<p>JVM把通过类名获得类的二进制流之后，把类放入方法区，并创建入口对象的过程被称为类的加载。经过加载，类就被放到内存里了。</p></li>
+<li><p>哪些情况会触发类的初始化？</p>
+<p>类在5种情况下会被初始化：</p>
+<p>第一，假如这个类是入口类，他会被初始化。</p>
+<p>第二，使用new创建对象，或者调用类的静态变量，类会被初始化。不过静态常量不算。</p>
+<p>第三，通过反射获取类，类会被初始化</p>
+<p>第四，如果子类被初始化，他的父类也会被初始化。</p>
+<p>第五，使用jdk1.7的动态语言支持时，调用到静态句柄，也会被初始化。</p></li>
+<li><p>讲一下JVM加载一个类的过程</p>
+<p>同问题1。不过这里也可以问下面试官是不是想问类的生命周期。如果是问类的生命周期，可以回答有”加载、连接、初始化、使用、卸载“五个阶段，连接又可以分为”校验、准备、解析“三个阶段。</p></li>
+<li><p>什么时候会为变量分配内存？</p>
+<p>在准备阶段为静态变量分配内存。</p></li>
+<li><p>JVM的类加载机制是什么？</p>
+<p>双亲委派机制，类加载器会先让自己的父类来加载，父类无法加载的话，才会自己来加载。</p></li>
+<li><p>双亲委派机制可以打破吗？为什么</p>
+<p>可以打破，比如JDBC使用线程上下文加载器打破了双亲委派机制。原因是JDBC只提供了接口，并没有提供实现。这个问题可以再看下引用文献的内容。</p></li>
+</ol>
+<h1 id="引用文献">引用文献</h1>
+<p><a href="https://blog.csdn.net/w893932747/article/details/89067482">Java什么时候会触发类初始化及原理</a></p>
+<p><a href="https://www.cnblogs.com/mzzcy/p/7223405.html">Java 符号引用 与 直接引用</a></p>
+<p><a href="http://www.zhihu.com/question/30300585/answer/51335493">符号引用和直接引用</a></p>
+<p><a href="https://blog.csdn.net/u014656992/article/details/51107127">JVM中的直接引用和符号引用</a></p>
+<p><a href="https://www.cnblogs.com/shan1393/p/8996954.html">面试题:JVM类加载机制详解（一）JVM类加载过程</a></p>
+<p><a href="https://blog.csdn.net/weixin_39222112/article/details/81316511">深入理解双亲委托机制</a></p>
+<p><a href="https://blog.csdn.net/sinat_34976604/article/details/86723663">双亲委派模式破坏-JDBC</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

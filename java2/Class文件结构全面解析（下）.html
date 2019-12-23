@@ -1,0 +1,423 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Class文件结构全面解析（下）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Class文件结构全面解析（下）</center></div><div class='banquan'>原文出处:本文由博客园博主万猫学社提供。<br/>
+原文连接:https://www.cnblogs.com/heihaozi/p/11933218.html</div><br>
+    <h3 id="接上回书">接上回书</h3>
+<p>书接<a href="https://mp.weixin.qq.com/s/EXLlVB6gwI8w2uy_1lHHXg">上一回</a>，分享了Class文件的主要构成，同时也详细分析了魔数、次版本号、主版本号、常量池集合、访问标志的构造，接下来我们就继续学习。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="类索引和父类索引">类索引和父类索引</h3>
+<p>类索引（this_class）和父类索引（super_class）都是一个u2类型的数据，类索引用于确定这个类的全限定名，父类索引用于确定这个类的父类全限定名。由于java语言不允许多重继承，所以父类索引只有一个。</p>
+<p>类索引和父类索引各自指向常量池中类型为CONSTANT_Class_info的类描述符，再通过类描述符中的索引值找到常量池中类型为CONSTANT_Utf8_info的字符串。再来看一下之前的Class文件例子：</p>
+<p><img src="./images/Class文件结构全面解析（下）0.png" /></p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<p>结合之前javap分析出来的常量池内容：</p>
+<pre><code><code>   #3 = Class         #17        // OneMoreStudy
+   #4 = Class         #18        // java/lang/Object
+  #17 = Utf8          OneMoreStudy
+  #18 = Utf8          java/lang/Object</code></code></pre>
+<p>类索引为0x0003，去常量池里找索引为3的类描述符，类描述符中的索引为17，再去找索引为17的字符串，就是“OneMoreStudy”。</p>
+<p>父类索引为0x0004，去常量池里找索引为4的类描述符，类描述符中的索引为18，再去常量池里找索引为18的字符串，就是“java/lang/Object”。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="接口索引集合">接口索引集合</h3>
+<p>接口索引集合（interface）是一组u2类型的数据的集合，由于java语言允许实现多个接口，所以接口索引也有多个，它们按照implements语句后的接口顺序从左到右依次排列在接口索引集合中。接口索引集合的第一项数据是接口集合计数值（interfaces_count），表示有多少接口索引。如果该类没有实现任何接口，那么该计数值为0，后面的接口索引表不占任何字节。之前的例子OneMoreStudy类没有实现任何接口，所以接口集合计数值就是0，如下图：</p>
+<p><img src="./images/Class文件结构全面解析（下）1.png" /></p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="字段表集合">字段表集合</h3>
+<p>字段表（field_info）是用来描述接口或类中声明的变量。包括类级变量（静态变量）和实例级变量（成员变量），但是不包括在方法内部声明的局部变量。具体结构如下表：</p>
+<table>
+<thead>
+<tr class="header">
+<th>类型</th>
+<th>名称</th>
+<th>数量</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>u2</td>
+<td>access_flags</td>
+<td>1</td>
+<td>字段的访问标志</td>
+</tr>
+<tr class="even">
+<td>u2</td>
+<td>name_index</td>
+<td>1</td>
+<td>字段的简单名称索引</td>
+</tr>
+<tr class="odd">
+<td>u2</td>
+<td>descriptor_index</td>
+<td>1</td>
+<td>字段的描述符索引</td>
+</tr>
+<tr class="even">
+<td>u2</td>
+<td>attributes_count</td>
+<td>1</td>
+<td>字段的属性计数值</td>
+</tr>
+<tr class="odd">
+<td>attribute_info</td>
+<td>attributes</td>
+<td>attributes_count</td>
+<td>字段的属性</td>
+</tr>
+</tbody>
+</table>
+<p>字段表中的access_flags，和类的access_flags是非常类似的，但是标识和含义是不一样的。具体如下表：</p>
+<table>
+<thead>
+<tr class="header">
+<th>标志名称</th>
+<th>标志值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ACC_PUBLIC</td>
+<td>0x0001</td>
+<td>字段是否public</td>
+</tr>
+<tr class="even">
+<td>ACC_PRIVATE</td>
+<td>0x0002</td>
+<td>字段是否private</td>
+</tr>
+<tr class="odd">
+<td>ACC_PROTECTED</td>
+<td>0x0004</td>
+<td>字段是否protected</td>
+</tr>
+<tr class="even">
+<td>ACC_STATIC</td>
+<td>0x0008</td>
+<td>字段是否static</td>
+</tr>
+<tr class="odd">
+<td>ACC_FINAL</td>
+<td>0x0010</td>
+<td>字段是否为final</td>
+</tr>
+<tr class="even">
+<td>ACC_VOLATILE</td>
+<td>0x0040</td>
+<td>字段是否volatile</td>
+</tr>
+<tr class="odd">
+<td>ACC_TRANSIENT</td>
+<td>0x0080</td>
+<td>字段是否transient</td>
+</tr>
+<tr class="even">
+<td>ACC_SYNTHETIC</td>
+<td>0x1000</td>
+<td>字段是否由编译器自动产生的</td>
+</tr>
+<tr class="odd">
+<td>ACC_ENUM</td>
+<td>0x4000</td>
+<td>字段是否enum</td>
+</tr>
+</tbody>
+</table>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<p>这里提到了简单名称、描述符，和全限定名有什么区别呢？稍微说一下。</p>
+<p><strong>简单名称</strong>是没有类型和参数修饰的方法或字段名称，比如OneMoreStudy类中的number字段和plusOne()方法的简单名称分别是“number”和“plusOne”。</p>
+<p><strong>全限定名</strong>是把类全名中的“.”替换成“/”就可以了，比如java.lang.Object类的全限定名就是“java/lang/Object”。</p>
+<p><strong>描述符</strong>是用来描述字段的数据类型、方法的参数列表（包括数量、类型以及顺序）和返回值。基础数据类型和无返回的void类型都有一个大写字母表示，对象类型用字符L加对象的全限定名来表示，如下表：</p>
+<table>
+<thead>
+<tr class="header">
+<th>标识字符</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>B</td>
+<td>基本类型byte</td>
+</tr>
+<tr class="even">
+<td>C</td>
+<td>基本类型char</td>
+</tr>
+<tr class="odd">
+<td>D</td>
+<td>基本类型double</td>
+</tr>
+<tr class="even">
+<td>F</td>
+<td>基本类型float</td>
+</tr>
+<tr class="odd">
+<td>I</td>
+<td>基本类型int</td>
+</tr>
+<tr class="even">
+<td>J</td>
+<td>基本类型long</td>
+</tr>
+<tr class="odd">
+<td>S</td>
+<td>基本类型short</td>
+</tr>
+<tr class="even">
+<td>Z</td>
+<td>基本类型boolean</td>
+</tr>
+<tr class="odd">
+<td>V</td>
+<td>特殊类型void</td>
+</tr>
+<tr class="even">
+<td>L</td>
+<td>对象类型 如 Ljava/lang/Object</td>
+</tr>
+</tbody>
+</table>
+<p>对于数组类型，每一维度使用一个前置的“[”字符来描述，比如java.lang.Object[][]的二维数据，就是“[[Ljava/lang/Object”。在描述方法时，按照先参数列表，后返回值的顺序描述，参数列表按照严格顺序放在“()”值中，比如boolean equals(Object anObject)，就是“(Ljava/lang/Object)B”。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<p>再来看一下之前的Class文件例子：</p>
+<p><img src="./images/Class文件结构全面解析（下）2.png" /></p>
+<p>OneMoreStudy类中只有一个字段number，所以字段计数值为0x0001。字段number只被private修饰，没有其他修饰，所以字段的访问标志位为0x0002。字段的简单名称索引是0x0005，去常量池中找索引为5的字符串，为“number”。字段的描述符索引为0x0006，去常量池中找索引为6的字符串，为“I”，是基本类型int。以下是常量池相关内容：</p>
+<pre><code><code>   #5 = Utf8          number
+   #6 = Utf8          I</code></code></pre>
+<p>字段number的属性计数值为0x0000，也就是没有需要额外描述的信息。</p>
+<p>字段表集合中不会列出从父类或者父接口中继承而来的字段，但有可能列出原版Java代码中没有的字段，比如在内部类中为了保持对外部类的访问性，会自动添加指向外部类实例的字段。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="方法表集合">方法表集合</h3>
+<p>方法表的结构和字段表的是一样的，也是依次包括了访问标志（access_flags）、名称索引（name_index）、描述符索引（descriptor_index）和属性表集合（attributes）。具体如下表：</p>
+<table>
+<thead>
+<tr class="header">
+<th>类型</th>
+<th>名称</th>
+<th>数量</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>u2</td>
+<td>access_flags</td>
+<td>1</td>
+<td>方法的访问标志</td>
+</tr>
+<tr class="even">
+<td>u2</td>
+<td>name_index</td>
+<td>1</td>
+<td>方法的简单名称索引</td>
+</tr>
+<tr class="odd">
+<td>u2</td>
+<td>descriptor_index</td>
+<td>1</td>
+<td>方法的描述符索引</td>
+</tr>
+<tr class="even">
+<td>u2</td>
+<td>attributes_count</td>
+<td>1</td>
+<td>方法的属性计数值</td>
+</tr>
+<tr class="odd">
+<td>attribute_info</td>
+<td>attributes</td>
+<td>attributes_count</td>
+<td>方法的属性</td>
+</tr>
+</tbody>
+</table>
+<p>对于方法的访问标志，所有标志位和取值如下表：</p>
+<table>
+<thead>
+<tr class="header">
+<th>标志名称</th>
+<th>标志值</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>ACC_PUBLIC</td>
+<td>0x0001</td>
+<td>方法是否public</td>
+</tr>
+<tr class="even">
+<td>ACC_PRIVATE</td>
+<td>0x0002</td>
+<td>方法是否private</td>
+</tr>
+<tr class="odd">
+<td>ACC_PROTECTED</td>
+<td>0x0004</td>
+<td>方法是否protected</td>
+</tr>
+<tr class="even">
+<td>ACC_STATIC</td>
+<td>0x0008</td>
+<td>方法是否static</td>
+</tr>
+<tr class="odd">
+<td>ACC_FINAL</td>
+<td>0x0010</td>
+<td>方法是否为final</td>
+</tr>
+<tr class="even">
+<td>ACC_SYNCHRONIZED</td>
+<td>0x0020</td>
+<td>方法是否sychronized</td>
+</tr>
+<tr class="odd">
+<td>ACC_BRIDGE</td>
+<td>0x0040</td>
+<td>方法是否是由编译器产生的桥接方法</td>
+</tr>
+<tr class="even">
+<td>ACC_VARARGS</td>
+<td>0x0080</td>
+<td>方法是否接受不定参数</td>
+</tr>
+<tr class="odd">
+<td>ACC_NATIVE</td>
+<td>0x0100</td>
+<td>方法是否为native</td>
+</tr>
+<tr class="even">
+<td>ACC_ABSTRACT</td>
+<td>0x0400</td>
+<td>方法是否为abstract</td>
+</tr>
+<tr class="odd">
+<td>ACC_STRICT</td>
+<td>0x0800</td>
+<td>方法是否为strictfp</td>
+</tr>
+<tr class="even">
+<td>ACC_SYNTHETIC</td>
+<td>0x1000</td>
+<td>方法是否由编译器自动产生</td>
+</tr>
+</tbody>
+</table>
+<p>方法中的Java代码，经过编译器编程成字节码指令后，放在方法属性表集合中一个名为“Code”的属性里，后面会有更多分享。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<p>再来看一下之前的Class文件例子：</p>
+<p><img src="./images/Class文件结构全面解析（下）3.png" /></p>
+<p>方法计算值为0x0003，表示集合中有两个方法（编译器自动添加的无参构造方法和源码中的plusOne方法）。第一个方法的访问标志是0x0001，表示只有ACC_PUBLIC标志为true。</p>
+<p>名称索引为0x0007，在常量池中为索引为7的字符串为“<init>”，这就是编译器自动添加的无参构造方法。描述符索引为0x0008，在常量池中为索引为7的字符串为“()V”，方法的属性计数值为0x0001，表示该方法有1个属性，属性名称索引为0x0009，在常量池中为索引为7的字符串为“Code”。以下是常量池相关内容：</p>
+<pre><code><code>   #7 = Utf8          &lt;init&gt;
+   #8 = Utf8          ()V
+   #9 = Utf8          Code</code></code></pre>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="属性表集合">属性表集合</h3>
+<p>属性表（attribute_info）在前面的分享中出现了几次，在Class文件、字段表、方法表都可以有自己的属性表集合，用来描述某些场景下特有的信息。</p>
+<p>属性表不在要求具有严格的顺序，并且只要不与已有的属性名重复，任何人实现的编译器都可以写入自己定义的属性信息，Java虚拟机在运行时会忽略掉它不认识的属性。</p>
+<p>我总结了一些比较常见的属性，如下表：</p>
+<table>
+<thead>
+<tr class="header">
+<th>属性名称</th>
+<th>使用位置</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Code</td>
+<td>方法表</td>
+<td>Java代码编译成的字节码指令</td>
+</tr>
+<tr class="even">
+<td>ConstantValue</td>
+<td>字段表</td>
+<td>final关键字定义的常量值</td>
+</tr>
+<tr class="odd">
+<td>Exceptions</td>
+<td>方法表</td>
+<td>方法抛出的异常</td>
+</tr>
+<tr class="even">
+<td>InnerClasses</td>
+<td>类文件</td>
+<td>内部类列表</td>
+</tr>
+<tr class="odd">
+<td>LineNumberTable</td>
+<td>Code属性</td>
+<td>Java源码的行号与字节码指定的对应关系</td>
+</tr>
+<tr class="even">
+<td>LocalVariableTable</td>
+<td>Code属性</td>
+<td>方法的局部变量描述</td>
+</tr>
+<tr class="odd">
+<td>SourceFile</td>
+<td>类文件</td>
+<td>记录源文件名称</td>
+</tr>
+</tbody>
+</table>
+<p>对于每个属性，它的名称都从常量池中引用一个CONSTANT_Utf8_info类型的常量，而属性值的结构则是完全自定义的，只需要用一个u4类型来说明属性值所占的位数就可以了。具体结构如下：</p>
+<table>
+<thead>
+<tr class="header">
+<th>类型</th>
+<th>名称</th>
+<th>数量</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>u2</td>
+<td>attribute_name_index</td>
+<td>1</td>
+<td>属性名称索引</td>
+</tr>
+<tr class="even">
+<td>u2</td>
+<td>attribute_length</td>
+<td>1</td>
+<td>属性值所占的位数</td>
+</tr>
+<tr class="odd">
+<td>u1</td>
+<td>info</td>
+<td>attribute_length</td>
+<td>属性值</td>
+</tr>
+</tbody>
+</table>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="总结">总结</h3>
+<p>Class文件主要由魔数、次版本号、主版本号、常量池集合、访问标志、类索引、父类索引、接口索引集合、字段表集合、方法表集合和属性表集合组成。随着JDK版本的不断升级，Class文件结构也在不断更新，学习之路,永不止步。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

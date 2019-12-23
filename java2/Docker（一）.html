@@ -1,0 +1,85 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Docker（一）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Docker（一）</center></div><div class='banquan'>原文出处:本文由博客园博主探歌提供。<br/>
+原文连接:https://www.cnblogs.com/lgg20/p/11958776.html</div><br>
+    <p><span style="font-size: 16px;">Docker的优势：</span></p>
+<p><span style="font-size: 16px;">1.更高效的利用系统资源。不需要运行系统。</span></p>
+<p><span style="font-size: 16px;">2.更快的启动时间。运行在主机内核。</span></p>
+<p><span style="font-size: 16px;">3.一致的运行环境，持续交付和部署。</span></p>
+<p><span style="font-size: 16px;">4.更轻松地拓展和维护。</span></p>
+<p><span style="font-size: 16px;">docker <span class="hljs-attribute">-v ：查看Docker版本。<span class="hljs-variable">yum remove docker-ce：卸载Docker软件包。yum remove docker docker<span class="hljs-attribute">-common docker<span class="hljs-attribute">-selinux docker<span class="hljs-attribute">-engine：卸载</span></span></span>较老版本的 Docker。rm <span class="hljs-attribute">-rf /<span class="hljs-built_in">var/lib/docker：手动删除任何已编辑的配置文件。</span></span></span></span></span></p>
+<p><span style="font-size: 16px;">docker commit：将容器的存储层保存下来成为镜像。&nbsp;docker pull&nbsp;&nbsp;： 获取镜像的命令。 docker images：查看已经下载的镜像。&nbsp;查看镜像内的历史记录。docker history：查看镜像内的历史记录。</span></p>
+<p><span style="font-size: 16px;">docker run：运行容器的命令 。 $docker diff：查看修改的内容。</span></p>
+<h2 id="使用-dockerfile-定制镜像">使用 Dockerfile 定制镜像：</h2>
+<p>1.以之前定制&nbsp;<code>nginx</code>&nbsp;镜像为例，这次我们使用 Dockerfile 来定制。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">$ mkdir mynginx
+$ cd mynginx/
+$ touch Dockerfile</span></code></pre>
+
+<p>2.添加以下内容：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">FROM nginx
+RUN echo '</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>Hello, Docker!<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>' &gt; /usr/share/nginx/html/index.html</code></pre>
+
+<h3>FROM 指定基础镜像，RUN 执行命令。</h3>
+<p><img src="./images/Docker（一）0.png" alt="" /></p>
+<p><span style="font-size: 16px;">从命令的输出结果中，我们可以清晰的看到镜像的构建过程。在&nbsp;<code>Step 2/2</code>&nbsp;中，如同我们之前所说的那样，<code>RUN</code>&nbsp;指令启动了一个容器&nbsp;<code>f3f1e0d41576</code>，</span></p>
+<p><span style="font-size: 16px;">执行了所要求的命令，并最后提交了这一层&nbsp;<code>e189d22f23b5</code>，随后删除了所用到的这个容器&nbsp;<code>f3f1e0d41576</code>。</span></p>
+<p><span style="font-size: 18px;"><strong>操作Docker容器：</strong></span></p>
+<p>启动容器有两种方式：</p>
+<p>一种：是基于镜像新建一个容器并启动，二种：是将在终止状态（stopped）的容器重新启动。</p>
+<p><strong>新建并启动：主要命令为：docker run。</strong></p>
+<p><strong>启动一个 bash 终端，允许用户进行交互。</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">$ docker run -t -i ubuntu:14.04 /bin/bash
+root@af8bae53bdd3:/#
+root@af8bae53bdd3:/# pwd
+/
+root@af8bae53bdd3:/# ls
+bin boot dev etc home lib lib64 media mnt opt proc root run sbin srv sys tmp usr var</span></code></pre>
+
+<p><span style="font-size: 16px;"><code>docker ps</code>&nbsp;：命令可以查看正在运行中的容器</span></p>
+<p><span style="font-size: 16px;"><code>docker ps -a</code>&nbsp;：命令可以查看所有容器</span></p>
+<p><span style="font-size: 16px;">docker start webserve4：启动已经终止的容器。（<code>CONTAINER ID</code>或&nbsp;<code>NAMES</code>，来终止一个运行中的容器。）<br /></span></p>
+<p><span style="font-size: 16px;">可以利用&nbsp;<code>docker start</code>&nbsp;命令和上面使用&nbsp;<code>docker ps -a</code>&nbsp;查看到的&nbsp;<code>CONTAINER ID</code>或&nbsp;<code>NAMES</code>，直接将一个已经终止的容器启动运行。如图：</span></p>
+<p><img src="./images/Docker（一）1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">&nbsp;<span class="hljs-built_in">sudo docker run ubuntu:<span class="hljs-number">14.04 /bin/sh -c <span class="hljs-string">"while true; do echo hello world; sleep 1; done" ： Docker在后台运行，不打印日志到宿主机上。。/如果使用了&nbsp;<code>-d</code>&nbsp;参数运行容器，输出结果可以用docker logs 查看。</span></span></span></span></p>
+<p><span class="hljs-built_in" style="font-size: 16px;"><span class="hljs-number"><span class="hljs-string">使用&nbsp;<code>-d</code>&nbsp;参数启动后会返回一个唯一的 id，也可以通过&nbsp;<code>docker ps</code>&nbsp;命令来查看容器信息。</span></span></span></p>
+<p><span class="hljs-built_in" style="font-size: 16px;"><span class="hljs-number"><span class="hljs-string">docker logs ：获取容器的输出信息。</span></span></span></p>
+<p><span style="font-size: 16px;">docker stop webserve4：终止容器。（<code>CONTAINER ID</code>或&nbsp;<code>NAMES</code>，来终止一个运行中的容器。）此外，用户通过&nbsp;<code>exit</code>&nbsp;命令或&nbsp;<code>Ctrl+d</code>&nbsp;来退出终端时，所创建的容器立刻终止。</span></p>
+<p><span style="font-size: 16px;">docker restart : 命令会将一个运行态的容器终止，然后再重启它。</span></p>
+<p><span style="font-size: 16px;">docker rm&nbsp;webserve4：删除一个处于终止状态的容器。</span></p>
+<p><span style="font-size: 16px;">docker rm -f webserve4：删除一个运行中的容器。</span></p>
+<p><span style="font-size: 16px;">docker kill 容器id：杀死id对应容器</span></p>
+<p><span style="font-size: 16px;">sudo docker rm $(sudo docker ps -a -q)：#删除所有未运行的容器（已经运行的删除不了，未运行的就一起被删除了）</span></p>
+<p><span style="font-size: 16px;">进入一个容器：docker exec -it 容器ID bash。 或者&nbsp;docker exec -it 容器名&nbsp; bash。&nbsp; 例如：docker exec -it mysql-zhangl bash</span></p>
+<h3 id="新建并启动"><code>&nbsp;</code></h3>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3 id="run-执行命令">&nbsp;</h3>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

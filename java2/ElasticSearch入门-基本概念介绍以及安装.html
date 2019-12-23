@@ -1,0 +1,248 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ElasticSearch入门-基本概念介绍以及安装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ElasticSearch入门-基本概念介绍以及安装</center></div><div class='banquan'>原文出处:本文由博客园博主李锋镝提供。<br/>
+原文连接:https://www.cnblogs.com/lifengdi/p/11525648.html</div><br>
+    <h1 id="elasticsearch基本概念">Elasticsearch基本概念</h1>
+<p>Elasticsearch是基于Lucene的全文检索库，本质也是存储数据，很多概念与传统关系型数据库类似。</p>
+<h2 id="传统关系型数据库与elasticsearch进行概念对比">传统关系型数据库与Elasticsearch进行概念对比</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Elasticsearch</th>
+<th style="text-align: center;">传统关系型数据库</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">indices(索引库)</td>
+<td style="text-align: center;">Databases(数据库)</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">type(类型)</td>
+<td style="text-align: center;">Table(数据表)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">Document(文档)</td>
+<td style="text-align: center;">Row(行)</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Field(字段)</td>
+<td style="text-align: center;">Columns(列)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">mappings(映射配置)</td>
+<td style="text-align: center;">表结构</td>
+</tr>
+</tbody>
+</table>
+<h2 id="具体说明">具体说明</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">概念</th>
+<th style="text-align: left;">具体说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">indices(索引库)</td>
+<td style="text-align: left;">indices是index的复数，代表许多的索引</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">type(类型)</td>
+<td style="text-align: left;">类型是模拟传统关系型数据库中的table概念，一个索引库下可以有不同类型的索引，比如商品索引，订单索引，其数据格式不同。不过这会导致索引库混乱，因此未来版本中会移除这个概念</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">Document(文档)</td>
+<td style="text-align: left;">存入索引库原始的数据。比如每一条商品信息，就是一个文档</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Field(字段)</td>
+<td style="text-align: left;">文档中的属性</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">mappings(映射配置)</td>
+<td style="text-align: left;">字段的数据类型、属性、是否索引、是否存储等特性</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">索引集(Indices，index的复数)</td>
+<td style="text-align: left;">逻辑上的完整索引</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">分片(shard)</td>
+<td style="text-align: left;">数据拆分后的各个部分</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">副本(replica)</td>
+<td style="text-align: left;">每个分片的复制</td>
+</tr>
+</tbody>
+</table>
+<p>注：Elasticsearch本身就是分布式的，因此即便你只有一个节点，Elasticsearch默认也会对你的数据进行分片(默认5个分片)和副本操作，当你向集群添加新数据时，数据也会在新加入的节点中进行平衡。</p>
+<h1 id="安装elasticsearch和ik分词器">安装Elasticsearch和ik分词器</h1>
+<ul>
+<li><p>Elasticsearch下载地址：<a href="https://www.elastic.co/cn/downloads/elasticsearch">Elasticsearch官网</a></p></li>
+<li><p>ik分词器下载：<a href="https://github.com/medcl/elasticsearch-analysis-ik/releases">elasticsearch-analysis-ik</a></p></li>
+</ul>
+<p>安装前需要配置JAVA环境</p>
+<h2 id="mac">Mac</h2>
+<h3 id="安装elasticsearch">安装Elasticsearch</h3>
+<p>homebrew安装</p>
+<blockquote>
+<p>brew install elasticsearch</p>
+</blockquote>
+<h3 id="运行">运行</h3>
+<ul>
+<li><p>查看状态</p>
+<blockquote>
+<p>$ brew services list</p>
+</blockquote></li>
+<li><p>启动</p>
+<blockquote>
+<p>$ brew services start elasticsearch</p>
+</blockquote></li>
+<li><p>重启</p>
+<blockquote>
+<p>$ brew services restart elasticsearch</p>
+</blockquote></li>
+<li><p>停止</p>
+<blockquote>
+<p>$ brew services stop elasticsearch</p>
+</blockquote></li>
+</ul>
+<p>浏览器输入 <a href="http://localhost:9200" class="uri">http://localhost:9200</a> 查看ES是否运行</p>
+<p>你也可以打开终端，执行以下操作：</p>
+<blockquote>
+<p>curl '<a href="http://localhost:9200/?pretty" class="uri">http://localhost:9200/?pretty</a>'</p>
+</blockquote>
+<p>最终的响应结果和下面类似：</p>
+<pre><code><code>{
+  &quot;name&quot;: &quot;pYaFJhZ&quot;,
+  &quot;cluster_name&quot;: &quot;docker-cluster&quot;,
+  &quot;cluster_uuid&quot;: &quot;oC28y-cNQduGItC7qq5W8w&quot;,
+  &quot;version&quot;: {
+    &quot;number&quot;: &quot;6.8.2&quot;,
+    &quot;build_flavor&quot;: &quot;oss&quot;,
+    &quot;build_type&quot;: &quot;tar&quot;,
+    &quot;build_hash&quot;: &quot;b506955&quot;,
+    &quot;build_date&quot;: &quot;2019-07-24T15:24:41.545295Z&quot;,
+    &quot;build_snapshot&quot;: false,
+    &quot;lucene_version&quot;: &quot;7.7.0&quot;,
+    &quot;minimum_wire_compatibility_version&quot;: &quot;5.6.0&quot;,
+    &quot;minimum_index_compatibility_version&quot;: &quot;5.0.0&quot;
+  },
+  &quot;tagline&quot;: &quot;You Know, for Search&quot;
+}</code></code></pre>
+<h3 id="安装ik分词器">安装ik分词器</h3>
+<p><strong>终端下安装：</strong></p>
+<blockquote>
+<p>$ cd /usr/local/Cellar/elasticsearch/ES版本</p>
+</blockquote>
+<blockquote>
+<p>$ bin/elasticsearch-plugin install <a href="https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v6.8.2/elasticsearch-analysis-ik-6.8.2.zip" class="uri">https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v6.8.2/elasticsearch-analysis-ik-6.8.2.zip</a></p>
+</blockquote>
+<blockquote>
+<p>install后边的地址为ES对应版本的ik分词器的下载地址</p>
+</blockquote>
+<h2 id="windows">Windows</h2>
+<h3 id="安装elasticsearch-1">安装Elasticsearch</h3>
+<p>下载安装包，解压，然后双击执行 bin/elasticsearch.bat进行安装。</p>
+<h3 id="运行-1">运行</h3>
+<p><strong>命令提示符</strong></p>
+<blockquote>
+<p>elasticsearch.bat -d</p>
+</blockquote>
+<p>或者直接双击执行elasticsearch.bat</p>
+<p>浏览器输入 <a href="http://localhost:9200" class="uri">http://localhost:9200</a> 查看ES是否运行。</p>
+<p>或者下载cURL(<a href="http://curl.haxx.se/download.html">点此下载</a>)，使用cURL的方式验证：</p>
+<blockquote>
+<p>curl '<a href="http://localhost:9200/?pretty" class="uri">http://localhost:9200/?pretty</a>'</p>
+</blockquote>
+<h3 id="安装ik分词器-1">安装ik分词器</h3>
+<p><strong>命令提示符下安装：</strong></p>
+<blockquote>
+<p>\bin\elasticsearch-plugin.bat install <a href="https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v6.8.2/elasticsearch-analysis-ik-6.8.2.zip" class="uri">https://github.com/medcl/elasticsearch-analysis-ik/releases/download/v6.8.2/elasticsearch-analysis-ik-6.8.2.zip</a></p>
+</blockquote>
+<p>注：</p>
+<ol>
+<li>安装完ik分词器之后需要重启ES</li>
+<li>Elasticsearch版本和elasticsearch-analysis-ik需要一一对应！</li>
+</ol>
+<h1 id="elasticsearch配置文件elasticsearch.yml">Elasticsearch配置文件elasticsearch.yml</h1>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">配置参数</th>
+<th style="text-align: left;">介绍</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">cluster.name</td>
+<td style="text-align: left;">集群名称,默认是elasticsearch</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">node.name</td>
+<td style="text-align: left;">节点名,称默认从elasticsearch-2.4.3/lib/elasticsearch-2.4.3.jar!config/names.txt中随机选择一个名称</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">path.data</td>
+<td style="text-align: left;">指定es的数据存储目录，默认存储在es_home/data目录下</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">path.logs</td>
+<td style="text-align: left;">指定es的日志存储目录，默认存储在es_home/logs目录下</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">bootstrap.memory_lock</td>
+<td style="text-align: left;">锁定物理内存地址，防止elasticsearch内存被交换出去,也就是避免es使用swap交换分区</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">network.host</td>
+<td style="text-align: left;">为es设置ip绑定，默认是127.0.0.1，也就是默认只能通过127.0.0.1 或者localhost才能访问</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">http.port</td>
+<td style="text-align: left;">为es设置自定义端口，默认是9200(在同一个服务器中启动多个es节点的话，默认监听的端口号会自动加1：例如：9200，9201，9202...)</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">discovery.zen.ping.unicast.hosts</td>
+<td style="text-align: left;">当启动新节点时，通过这个ip列表进行节点发现，组建集群默认节点列表： [&quot;127.0.0.1&quot;, &quot;[::1]&quot;] 127.0.0.1:表示ipv4的回环地址。 [::1]:表示ipv6的回环地址</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">discovery.zen.minimum_master_nodes</td>
+<td style="text-align: left;">通过配置这个参数来防止集群脑裂现象 (集群总节点数量/2)+1</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">gateway.recover_after_nodes</td>
+<td style="text-align: left;">一个集群中的N个节点启动后,才允许进行数据恢复处理，默认是1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">action.destructive_requires_name</td>
+<td style="text-align: left;">设置是否可以通过正则或者_all删除或者关闭索引库，默认true表示必须需要显式指定索引库名称</td>
+</tr>
+</tbody>
+</table>
+<p>本文链接：<a href="https://www.lifengdi.com/archives/article/tech/869" class="uri">https://www.lifengdi.com/archives/article/tech/869</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

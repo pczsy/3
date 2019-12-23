@@ -1,0 +1,346 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在RedisTemplate中使用scan代替keys指令' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在RedisTemplate中使用scan代替keys指令</center></div><div class='banquan'>原文出处:本文由博客园博主alterem提供。<br/>
+原文连接:https://www.cnblogs.com/alterem/p/11433340.html</div><br>
+    <p><code>keys *</code> 这个命令千万别在生产环境乱用。特别是数据庞大的情况下。因为Keys会引发Redis锁，并且增加Redis的CPU占用。很多公司的运维都是禁止了这个命令的</p>
+<p>当需要扫描key，匹配出自己需要的key时，可以使用 <code>scan</code> 命令</p>
+<h4 id="scan操作的helper实现"><code>scan</code>操作的Helper实现</h4>
+<pre><code><code>import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
+
+@Component
+public class RedisHelper {
+    
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+    
+    /**
+     * scan 实现
+     * @param pattern   表达式
+     * @param consumer  对迭代到的key进行操作
+     */
+    public void scan(String pattern, Consumer&lt;byte[]&gt; consumer) {
+        this.stringRedisTemplate.execute((RedisConnection connection) -&gt; {
+            try (Cursor&lt;byte[]&gt; cursor = connection.scan(ScanOptions.scanOptions().count(Long.MAX_VALUE).match(pattern).build())) {
+                cursor.forEachRemaining(consumer);
+                return null;
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    /**
+     * 获取符合条件的key
+     * @param pattern   表达式
+     * @return
+     */
+    public List&lt;String&gt; keys(String pattern) {
+        List&lt;String&gt; keys = new ArrayList&lt;&gt;();
+        this.scan(pattern, item -&gt; {
+            //符合条件的key
+            String key = new String(item,StandardCharsets.UTF_8);
+            keys.add(key);
+        });
+        return keys;
+    }
+}</code></code></pre>
+<p>但是会有一个问题：没法移动cursor，也只能scan一次，并且容易导致redis链接报错</p>
+<h1 id="先了解下scanhscansscanzscan">先了解下scan、hscan、sscan、zscan</h1>
+<p><a href="https://links.jianshu.com/go?to=http%3A%2F%2Fdoc.redisfans.com%2Fkey%2Fscan.html">http://doc.redisfans.com/key/scan.html</a></p>
+<h1 id="keys-为啥不安全">keys 为啥不安全？</h1>
+<ul>
+<li>keys的操作会导致数据库暂时被锁住，其他的请求都会被堵塞；业务量大的时候会出问题</li>
+</ul>
+<h1 id="spring-redistemplate实现scan">Spring RedisTemplate实现scan</h1>
+<h2 id="hscan-sscan-zscan">1. hscan sscan zscan</h2>
+<ul>
+<li>例子中的&quot;field&quot;是值redis的key，即从key为&quot;field&quot;中的hash中查找</li>
+<li>redisTemplate的opsForHash，opsForSet，opsForZSet 可以 分别对应 sscan、hscan、zscan</li>
+<li>当然这个网上的例子其实也不对，因为没有拿着cursor遍历，只scan查了一次</li>
+<li>可以偷懒使用 <code>.count(Integer.MAX_VALUE)</code>，一下子全查回来；但是这样子和 keys 有啥区别呢？搞笑脸 &amp; 疑问脸</li>
+<li>可以使用 <code>(JedisCommands) connection.getNativeConnection()</code>的 hscan、sscan、zscan 方法实现cursor遍历，参照下文2.2章节</li>
+</ul>
+<pre><code><code>try {
+    Cursor&lt;Map.Entry&lt;Object,Object&gt;&gt; cursor = redisTemplate.opsForHash().scan(&quot;field&quot;,
+    ScanOptions.scanOptions().match(&quot;*&quot;).count(1000).build());
+    while (cursor.hasNext()) {
+        Object key = cursor.next().getKey();
+        Object valueSet = cursor.next().getValue();
+    }
+    //关闭cursor
+    cursor.close();
+} catch (IOException e) {
+    e.printStackTrace();
+}</code></code></pre>
+<ul>
+<li>cursor.close(); 游标一定要关闭，不然连接会一直增长；可以使用<code>client lists``info clients``info stats</code>命令查看客户端连接状态，会发现scan操作一直存在</li>
+<li>我们平时使用的redisTemplate.execute 是会主动释放连接的，可以查看源码确认</li>
+</ul>
+<pre><code><code>client list
+......
+id=1531156 addr=xxx:55845 fd=8 name= age=80 idle=11 flags=N db=0 sub=0 psub=0 multi=-1 qbuf=0 qbuf-free=0 obl=0 oll=0 omem=0 events=r cmd=scan
+......
+org.springframework.data.redis.core.RedisTemplate#execute(org.springframework.data.redis.core.RedisCallback&lt;T&gt;, boolean, boolean)
+
+finally {
+    RedisConnectionUtils.releaseConnection(conn, factory);
+}</code></code></pre>
+<h2 id="scan">2. scan</h2>
+<h3 id="网上给的例子多半是这个">2.1 网上给的例子多半是这个</h3>
+<ul>
+<li>这个 connection.scan 没法移动cursor，也只能scan一次</li>
+</ul>
+<pre><code><code>public Set&lt;String&gt; scan(String matchKey) {
+    Set&lt;String&gt; keys = redisTemplate.execute((RedisCallback&lt;Set&lt;String&gt;&gt;) connection -&gt; {
+        Set&lt;String&gt; keysTmp = new HashSet&lt;&gt;();
+        Cursor&lt;byte[]&gt; cursor = connection.scan(new ScanOptions.ScanOptionsBuilder().match(&quot;*&quot; + matchKey + &quot;*&quot;).count(1000).build());
+        while (cursor.hasNext()) {
+            keysTmp.add(new String(cursor.next()));
+        }
+        return keysTmp;
+    });
+
+    return keys;
+}</code></code></pre>
+<h3 id="使用-multikeycommands">2.2 使用 MultiKeyCommands</h3>
+<ul>
+<li>获取 <code>connection.getNativeConnection</code>；<code>connection.getNativeConnection()</code>实际对象是Jedis（debug可以看出） ，Jedis实现了很多接口</li>
+</ul>
+<pre><code><code>public class Jedis extends BinaryJedis implements JedisCommands, MultiKeyCommands, AdvancedJedisCommands, ScriptingCommands, BasicCommands, ClusterCommands, SentinelCommands </code></code></pre>
+<ul>
+<li>当 scan.getStringCursor() 存在 且不是 0 的时候，一直移动游标获取</li>
+</ul>
+<pre><code><code>public Set&lt;String&gt; scan(String key) {
+    return redisTemplate.execute((RedisCallback&lt;Set&lt;String&gt;&gt;) connection -&gt; {
+        Set&lt;String&gt; keys = Sets.newHashSet();
+
+        JedisCommands commands = (JedisCommands) connection.getNativeConnection();
+        MultiKeyCommands multiKeyCommands = (MultiKeyCommands) commands;
+
+        ScanParams scanParams = new ScanParams();
+        scanParams.match(&quot;*&quot; + key + &quot;*&quot;);
+        scanParams.count(1000);
+        ScanResult&lt;String&gt; scan = multiKeyCommands.scan(&quot;0&quot;, scanParams);
+        while (null != scan.getStringCursor()) {
+            keys.addAll(scan.getResult());
+            if (!StringUtils.equals(&quot;0&quot;, scan.getStringCursor())) {
+                scan = multiKeyCommands.scan(scan.getStringCursor(), scanParams);
+                continue;
+            } else {
+                break;
+            }
+        }
+
+        return keys;
+    });
+}</code></code></pre>
+<h1 id="发散思考">发散思考</h1>
+<h2 id="cursor没有close到底谁阻塞了是-redis-么">cursor没有close，到底谁阻塞了，是 Redis 么</h2>
+<ul>
+<li>测试过程中，我基本只要发起十来个scan操作，没有关闭cursor，接下来的请求都卡住了</li>
+</ul>
+<h3 id="redis侧分析">redis侧分析</h3>
+<ul>
+<li><code>client lists``info clients``info stats</code>查看<br />
+发现 连接数 只有 十几个，也没有阻塞和被拒绝的连接</li>
+<li><code>config get maxclients</code>查询redis允许的最大连接数 是 10000</li>
+</ul>
+<pre class="bash"><code>1) &quot;maxclients&quot;
+2) &quot;10000&quot;`</code></code></pre>
+<ul>
+<li><code>redis-cli</code>在其他机器上也可以直接登录 操作</li>
+</ul>
+<p><strong>综上，redis本身没有卡死</strong></p>
+<h3 id="应用侧分析">应用侧分析</h3>
+<ul>
+<li><code>netstat</code>查看和redis的连接，6333是redis端口；连接一直存在</li>
+</ul>
+<pre class="bash"><code>➜  ~ netstat -an | grep 6333
+netstat -an | grep 6333
+tcp4       0      0  xx.xx.xx.aa.52981      xx.xx.xx.bb.6333     ESTABLISHED
+tcp4       0      0  xx.xx.xx.aa.52979      xx.xx.xx.bb.6333     ESTABLISHED
+tcp4       0      0  xx.xx.xx.aa.52976      xx.xx.xx.bb.6333     ESTABLISHED
+tcp4       0      0  xx.xx.xx.aa.52971      xx.xx.xx.bb.6333     ESTABLISHED
+tcp4       0      0  xx.xx.xx.aa.52969      xx.xx.xx.bb.6333     ESTABLISHED
+tcp4       0      0  xx.xx.xx.aa.52967      xx.xx.xx.bb.6333     ESTABLISHED
+tcp4       0      0  xx.xx.xx.aa.52964      xx.xx.xx.bb.6333     ESTABLISHED
+tcp4       0      0  xx.xx.xx.aa.52961      xx.xx.xx.bb.6333     ESTABLISHED</code></code></pre>
+<ul>
+<li><code>jstack</code>查看应用的堆栈信息<br />
+发现很多 WAITING 的 线程，全都是在获取redis连接<br />
+所以基本可以断定是应用的redis线程池满了</li>
+</ul>
+<pre class="verilog"><code>&quot;http-nio-7007-exec-2&quot; #139 daemon prio=5 os_prio=31 tid=0x00007fda36c1c000 nid=0xdd03 waiting on condition [0x00007000171ff000]
+   java.lang.Thread.State: WAITING (parking)
+        at sun.misc.Unsafe.park(Native Method)
+        - parking to wait for  &lt;0x00000006c26ef560&gt; (a java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject)
+        at java.util.concurrent.locks.LockSupport.park(LockSupport.java:175)
+        at java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await(AbstractQueuedSynchronizer.java:2039)
+        at org.apache.commons.pool2.impl.LinkedBlockingDeque.takeFirst(LinkedBlockingDeque.java:590)
+        at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:441)
+        at org.apache.commons.pool2.impl.GenericObjectPool.borrowObject(GenericObjectPool.java:362)
+        at redis.clients.util.Pool.getResource(Pool.java:49)
+        at redis.clients.jedis.JedisPool.getResource(JedisPool.java:226)
+        at redis.clients.jedis.JedisPool.getResource(JedisPool.java:16)
+        at org.springframework.data.redis.connection.jedis.JedisConnectionFactory.fetchJedisConnector(JedisConnectionFactory.java:276)
+        at org.springframework.data.redis.connection.jedis.JedisConnectionFactory.getConnection(JedisConnectionFactory.java:469)
+        at org.springframework.data.redis.core.RedisConnectionUtils.doGetConnection(RedisConnectionUtils.java:132)
+        at org.springframework.data.redis.core.RedisTemplate.executeWithStickyConnection(RedisTemplate.java:371)
+        at org.springframework.data.redis.core.DefaultHashOperations.scan(DefaultHashOperations.java:244)</code></code></pre>
+<p><strong>综上，是应用侧卡死</strong></p>
+<h2 id="后续">后续</h2>
+<ul>
+<li>过了一个中午，redis <code>client lists</code>显示 scan 连接还在，没有释放；应用线程也还是处于卡死状态</li>
+<li>检查 <code>config get timeout</code>，redis未设置超时时间，可以用 <code>config set timeout xxx</code>设置，单位秒；但是设置了redis的超时，redis释放了连接，应用还是一样卡住</li>
+</ul>
+<pre class="bash"><code>1) &quot;timeout&quot;
+2) &quot;0&quot;</code></code></pre>
+<ul>
+<li><code>netstat</code>查看和redis的连接，6333是redis端口；连接从ESTABLISHED变成了CLOSE_WAIT；</li>
+<li><code>jstack</code>和 原来表现一样，卡在<code>JedisConnectionFactory.getConnection</code></li>
+</ul>
+<pre class="bash"><code>➜  ~ netstat -an | grep 6333
+netstat -an | grep 6333
+tcp4       0      0  xx.xx.xx.aa.52981      xx.xx.xx.bb.6333     CLOSE_WAIT
+tcp4       0      0  xx.xx.xx.aa.52979      xx.xx.xx.bb.6333     CLOSE_WAIT
+tcp4       0      0  xx.xx.xx.aa.52976      xx.xx.xx.bb.6333     CLOSE_WAIT
+tcp4       0      0  xx.xx.xx.aa.52971      xx.xx.xx.bb.6333     CLOSE_WAIT
+tcp4       0      0  xx.xx.xx.aa.52969      xx.xx.xx.bb.6333     CLOSE_WAIT
+tcp4       0      0  xx.xx.xx.aa.52967      xx.xx.xx.bb.6333     CLOSE_WAIT
+tcp4       0      0  xx.xx.xx.aa.52964      xx.xx.xx.bb.6333     CLOSE_WAIT
+tcp4       0      0  xx.xx.xx.aa.52961      xx.xx.xx.bb.6333     CLOSE_WAIT</code></code></pre>
+<ul>
+<li>回顾一下TCP四次挥手<br />
+ESTABLISHED 表示连接已被建立<br />
+CLOSE_WAIT 表示远程计算器关闭连接，正在等待socket连接的关闭<br />
+和现象符合</li>
+<li>redis连接池配置<br />
+根据上面 <code>netstat -an</code>基本可以确定 redis 连接池的大小是 8 ；结合代码配置，没有指定的话，默认也确实是8</li>
+</ul>
+<pre><code><code>redis.clients.jedis.JedisPoolConfig
+private int maxTotal = 8;
+private int maxIdle = 8;
+private int minIdle = 0;</code></code></pre>
+<ul>
+<li>如何配置更大的连接池呢？<br />
+A. 原配置</li>
+</ul>
+<pre><code><code>@Bean
+public RedisConnectionFactory redisConnectionFactory() {
+    RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
+    redisStandaloneConfiguration.setHostName(redisHost);
+    redisStandaloneConfiguration.setPort(redisPort);
+    redisStandaloneConfiguration.setPassword(RedisPassword.of(redisPasswd));
+    JedisConnectionFactory cf = new JedisConnectionFactory(redisStandaloneConfiguration);
+    cf.afterPropertiesSet();
+    return cf;
+}</code></code></pre>
+<p>readTimeout，connectTimeout不指定，有默认值 2000 ms</p>
+<pre><code><code>org.springframework.data.redis.connection.jedis.JedisConnectionFactory.MutableJedisClientConfiguration
+private Duration readTimeout = Duration.ofMillis(Protocol.DEFAULT_TIMEOUT);
+private Duration connectTimeout = Duration.ofMillis(Protocol.DEFAULT_TIMEOUT); </code></code></pre>
+<p>B. 修改后配置</p>
+<ul>
+<li><ol>
+<li>配置方式一：部分接口已经Deprecated了</li>
+</ol></li>
+</ul>
+<pre><code><code>@Bean
+public RedisConnectionFactory redisConnectionFactory() {
+    JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
+    jedisPoolConfig.setMaxTotal(16); // --最多可以建立16个连接了
+    jedisPoolConfig.setMaxWaitMillis(10000); // --10s获取不到连接池的连接，
+                                             // --直接报错Could not get a resource from the pool
+
+    jedisPoolConfig.setMaxIdle(16);
+    jedisPoolConfig.setMinIdle(0);
+
+    JedisConnectionFactory cf = new JedisConnectionFactory(jedisPoolConfig);
+    cf.setHostName(redisHost); // -- @Deprecated 
+    cf.setPort(redisPort); // -- @Deprecated 
+    cf.setPassword(redisPasswd); // -- @Deprecated 
+    cf.setTimeout(30000); // -- @Deprecated 貌似没生效，30s超时，没有关闭连接池的连接；
+                          // --redis没有设置超时，会一直ESTABLISHED；redis设置了超时，且超时之后，会一直CLOSE_WAIT
+
+    cf.afterPropertiesSet();
+    return cf;
+}</code></code></pre>
+<ul>
+<li><ol>
+<li>配置方式二：这是群里好友给找的新的配置方式，效果一样</li>
+</ol></li>
+</ul>
+<pre><code><code>RedisStandaloneConfiguration redisStandaloneConfiguration = new RedisStandaloneConfiguration();
+redisStandaloneConfiguration.setHostName(redisHost);
+redisStandaloneConfiguration.setPort(redisPort);
+redisStandaloneConfiguration.setPassword(RedisPassword.of(redisPasswd));
+
+JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
+jedisPoolConfig.setMaxTotal(16);
+jedisPoolConfig.setMaxWaitMillis(10000);
+jedisPoolConfig.setMaxIdle(16);
+jedisPoolConfig.setMinIdle(0);
+
+cf = new JedisConnectionFactory(redisStandaloneConfiguration, JedisClientConfiguration.builder()
+        .readTimeout(Duration.ofSeconds(30))
+        .connectTimeout(Duration.ofSeconds(30))
+        .usePooling().poolConfig(jedisPoolConfig).build());</code></code></pre>
+<h1 id="参考">参考</h1>
+<blockquote>
+<p><a href="https://links.jianshu.com/go?to=https%3A%2F%2Fwww.wandouip.com%2Ft5i73668%2F">redistemplate-游标scan使用注意事项</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://www.jianshu.com/p/7bf5dc61ca06/">如何使用RedisTemplate访问Redis数据结构</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://links.jianshu.com/go?to=https%3A%2F%2Flearnku.com%2Farticles%2F25892">Redis 中 Keys 与 Scan 的使用</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://links.jianshu.com/go?to=https%3A%2F%2Fmp.weixin.qq.com%2Fs%2FfRtxp-ivEqWfa3kN0EZ3MQ">深入理解Redis的scan命令</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://links.jianshu.com/go?to=https%3A%2F%2Fblog.csdn.net%2Fh363659487%2Farticle%2Fdetails%2F74955543">spring-boot-starter-redis配置详解</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://links.jianshu.com/go?to=https%3A%2F%2Fcloud.tencent.com%2Fdeveloper%2Farticle%2F1381359">线上大量CLOSE_WAIT原因排查</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://links.jianshu.com/go?to=https%3A%2F%2Fblog.csdn.net%2Fgezilan%2Farticle%2Fdetails%2F82117039">redis如何配置standAlone版的jedisPool</a></p>
+</blockquote>
+<blockquote>
+<p><a href="https://links.jianshu.com/go?to=https%3A%2F%2Fmy.oschina.net%2Fu%2F1178805%2Fblog%2F868677%3Futm_medium%3Dreferral">一次jedis使用不规范，导致redis客户端close_wait大量增加的bug</a></p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

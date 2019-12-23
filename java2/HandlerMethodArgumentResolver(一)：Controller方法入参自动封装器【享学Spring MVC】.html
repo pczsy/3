@@ -1,0 +1,535 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修HandlerMethodArgumentResolver(一)：Controller方法入参自动封装器【享学Spring MVC】' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>HandlerMethodArgumentResolver(一)：Controller方法入参自动封装器【享学Spring MVC】</center></div><div class='banquan'>原文出处:本文由博客园博主_YourBatman提供。<br/>
+原文连接:https://www.cnblogs.com/fangshixiang/p/11423579.html</div><br>
+    <h4 id="每篇一句">每篇一句</h4>
+<blockquote>
+<p>你的工作效率高，老板会认为你强度不够。你代码bug多，各种生产环境救火，老板会觉得你是团队的核心成员。</p>
+</blockquote>
+<h4 id="前言">前言</h4>
+<p>在享受<code>Spring MVC</code>带给你便捷的时候，你是否曾经这样疑问过：<code>Controller</code>的<code>handler</code>方法参数能够自动完成封装（有时即使没有<code>@PathVariable</code>、<code>@RequestParam</code>、<code>@RequestBody</code>等注解都可），甚至在方法参数任意位置写<code>HttpServletRequest</code>、<code>HttpSession</code>、<code>Writer</code>...等类型的参数，它<strong>自动</strong>就有值了便可直接使用。<br />
+对此你是否想问一句：<code>Spring MVC</code>它是怎么办到的？那么本文就揭开它的神秘面纱，还你一片&quot;清白&quot;。</p>
+<p><code>Spring MVC</code>作为一个最为流行的web框架，早早已经成为了实际意义上的标准化（框架），特别是随着<code>Struts2</code>的突然崩塌，<code>Spring MVC</code>几乎一骑绝尘，因此深入了解它有着深远的意义</p>
+<p><code>Spring MVC</code>它只需要区区几个注解就能够让一个普通的java方法成为一个<code>Handler</code>处理器，并且还能有自动参数封装、返回值视图处理/渲染等一系列强大功能，让coder的精力更加的聚焦在自己的业务。</p>
+<blockquote>
+<p>像JSF、Google Web Toolkit、Grails Framework等web框架至少我是没有用过的。<br />
+这里有个<strong>轻量级</strong>的web框架：<code>Play Framework</code>设计上我个人觉得还挺有意思，有兴趣的可以玩玩</p>
+</blockquote>
+<h2 id="handlermethodargumentresolver">HandlerMethodArgumentResolver</h2>
+<p>策略接口：用于在<strong>给定请求的上下文中</strong>将方法参数解析为参数值。简单的理解为：它负责处理你<code>Handler</code>方法里的<strong>所有入参</strong>：包括自动封装、自动赋值、校验等等。有了它才能会让<code>Spring MVC</code>处理入参显得那么高级、那么自动化。<br />
+<code>Spring MVC</code>内置了非常非常多的实现，当然若还不能满足你的需求，你依旧可以自定义和自己注册，后面我会给出自定义的示例。</p>
+<p>有个形象的公式：<code>HandlerMethodArgumentResolver = HandlerMethod + Argument(参数) + Resolver(解析器)</code>。<br />
+解释为：它是<code>HandlerMethod</code>方法的解析器，将<code>HttpServletRequest(header + body 中的内容)</code>解析为<code>HandlerMethod</code>方法的参数（method parameters）</p>
+<pre><code><code>// @since 3.1   HandlerMethod 方法中 参数解析器
+public interface HandlerMethodArgumentResolver {
+
+    // 判断 HandlerMethodArgumentResolver 是否支持 MethodParameter
+    // (PS: 一般都是通过 参数上面的注解|参数的类型)
+    boolean supportsParameter(MethodParameter parameter);
+    
+    // 从NativeWebRequest中获取数据，ModelAndViewContainer用来提供访问Model
+    // MethodParameter parameter：请求参数
+    // WebDataBinderFactory用于创建一个WebDataBinder用于数据绑定、校验
+    @Nullable
+    Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception;
+}</code></code></pre>
+<p>基于这个接口的处理器实现类不可谓不丰富，非常之多。我截图如下：<br />
+<img src="./images/HandlerMethodArgumentResolver(一)：Controller方法入参自动封装器【享学Spring MVC】0.png" alt="在这里插入图片描述" /><br />
+因为子类众多，所以我分类进行说明。我把它分为四类进行描述：</p>
+<ol>
+<li>基于<code>Name</code></li>
+<li>数据类型是<code>Map</code>的</li>
+<li>固定参数类型</li>
+<li>基于<code>ContentType</code>的消息转换器</li>
+</ol>
+<h3 id="第一类基于name">第一类：基于<code>Name</code></h3>
+<blockquote>
+<p>从URI（路径变量）、HttpServletRequest、HttpSession、Header、Cookie...等中根据名称key来获取值</p>
+</blockquote>
+<p>这类处理器所有的都是基于抽象类<code>AbstractNamedValueMethodArgumentResolver</code>来实现，<strong>它是最为重要的分支（分类）</strong>。</p>
+<pre><code><code>// @since 3.1  负责从路径变量、请求、头等中拿到值。（都可以指定name、required、默认值等属性）
+// 子类需要做如下事：获取方法参数的命名值信息、将名称解析为参数值
+// 当需要参数值时处理缺少的参数值、可选地处理解析值
+
+//特别注意的是：默认值可以使用${}占位符，或者SpEL语句#{}是木有问题的
+public abstract class AbstractNamedValueMethodArgumentResolver implements HandlerMethodArgumentResolver {
+
+    @Nullable
+    private final ConfigurableBeanFactory configurableBeanFactory;
+    @Nullable
+    private final BeanExpressionContext expressionContext;
+    private final Map&lt;MethodParameter, NamedValueInfo&gt; namedValueInfoCache = new ConcurrentHashMap&lt;&gt;(256);
+
+    public AbstractNamedValueMethodArgumentResolver() {
+        this.configurableBeanFactory = null;
+        this.expressionContext = null;
+    }
+    public AbstractNamedValueMethodArgumentResolver(@Nullable ConfigurableBeanFactory beanFactory) {
+        this.configurableBeanFactory = beanFactory;
+        // 默认是RequestScope
+        this.expressionContext = (beanFactory != null ? new BeanExpressionContext(beanFactory, new RequestScope()) : null);
+    }
+
+    // protected的内部类  所以所有子类（注解）都是用友这三个属性值的
+    protected static class NamedValueInfo {
+        private final String name;
+        private final boolean required;
+        @Nullable
+        private final String defaultValue;
+        public NamedValueInfo(String name, boolean required, @Nullable String defaultValue) {
+            this.name = name;
+            this.required = required;
+            this.defaultValue = defaultValue;
+        }
+    }
+
+    // 核心方法  注意此方法是final的，并不希望子类覆盖掉他~
+    @Override
+    @Nullable
+    public final Object resolveArgument(MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer, NativeWebRequest webRequest, @Nullable WebDataBinderFactory binderFactory) throws Exception {
+
+        // 创建 MethodParameter 对应的 NamedValueInfo
+        NamedValueInfo namedValueInfo = getNamedValueInfo(parameter);
+        // 支持到了Java 8 中支持的 java.util.Optional
+        MethodParameter nestedParameter = parameter.nestedIfOptional();
+
+        // name属性（也就是注解标注的value/name属性）这里既会解析占位符，还会解析SpEL表达式，非常强大
+        // 因为此时的 name 可能还是被 ${} 符号包裹, 则通过 BeanExpressionResolver 来进行解析
+        Object resolvedName = resolveStringValue(namedValueInfo.name);
+        if (resolvedName == null) {
+            throw new IllegalArgumentException(&quot;Specified name must not resolve to null: [&quot; + namedValueInfo.name + &quot;]&quot;);
+        }
+
+
+        // 模版抽象方法：将给定的参数类型和值名称解析为参数值。  由子类去实现
+        // @PathVariable     --&gt; 通过对uri解析后得到的decodedUriVariables值(常用)
+        // @RequestParam     --&gt; 通过 HttpServletRequest.getParameterValues(name) 获取（常用）
+        // @RequestAttribute --&gt; 通过 HttpServletRequest.getAttribute(name) 获取   &lt;-- 这里的 scope 是 request
+        // @SessionAttribute --&gt; 略
+        // @RequestHeader    --&gt; 通过 HttpServletRequest.getHeaderValues(name) 获取
+        // @CookieValue      --&gt; 通过 HttpServletRequest.getCookies() 获取
+        Object arg = resolveName(resolvedName.toString(), nestedParameter, webRequest);
+
+        // 若解析出来值仍旧为null，那就走defaultValue （若指定了的话）
+        if (arg == null) {
+            // 可以发现：defaultValue也是支持占位符和SpEL的~~~
+            if (namedValueInfo.defaultValue != null) {
+                arg = resolveStringValue(namedValueInfo.defaultValue);
+
+            // 若 arg == null &amp;&amp; defaultValue == null &amp;&amp; 非 optional 类型的参数 则通过 handleMissingValue 来进行处理, 一般是报异常
+            } else if (namedValueInfo.required &amp;&amp; !nestedParameter.isOptional()) {
+                
+                // 它是个protected方法，默认抛出ServletRequestBindingException异常
+                // 各子类都复写了此方法，转而抛出自己的异常（但都是ServletRequestBindingException的异常子类）
+                handleMissingValue(namedValueInfo.name, nestedParameter, webRequest);
+            }
+    
+            // handleNullValue是private方法，来处理null值
+            // 针对Bool类型有这个判断：Boolean.TYPE.equals(paramType) 就return Boolean.FALSE;
+            // 此处注意：Boolean.TYPE = Class.getPrimitiveClass(&quot;boolean&quot;) 它指的基本类型的boolean，而不是Boolean类型哦~~~
+            // 如果到了这一步（value是null），但你还是基本类型，那就抛出异常了（只有boolean类型不会抛异常哦~）
+            // 这里多嘴一句，即使请求传值为&amp;bool=1，效果同bool=true的（1：true 0：false） 并且不区分大小写哦（TrUe效果同true）
+            arg = handleNullValue(namedValueInfo.name, arg, nestedParameter.getNestedParameterType());
+        }
+        // 兼容空串，若传入的是空串，依旧还是使用默认值（默认值支持占位符和SpEL）
+        else if (&quot;&quot;.equals(arg) &amp;&amp; namedValueInfo.defaultValue != null) {
+            arg = resolveStringValue(namedValueInfo.defaultValue);
+        }
+
+        // 完成自动化的数据绑定~~~
+        if (binderFactory != null) {
+            WebDataBinder binder = binderFactory.createBinder(webRequest, null, namedValueInfo.name);
+            try {
+                // 通过数据绑定器里的Converter转换器把arg转换为指定类型的数值
+                arg = binder.convertIfNecessary(arg, parameter.getParameterType(), parameter);
+            } catch (ConversionNotSupportedException ex) { // 注意这个异常：MethodArgumentConversionNotSupportedException  类型不匹配的异常
+                throw new MethodArgumentConversionNotSupportedException(arg, ex.getRequiredType(),
+                        namedValueInfo.name, parameter, ex.getCause());
+            } catch (TypeMismatchException ex) { //MethodArgumentTypeMismatchException是TypeMismatchException 的子类
+                throw new MethodArgumentTypeMismatchException(arg, ex.getRequiredType(),
+                        namedValueInfo.name, parameter, ex.getCause());
+
+            }
+        }
+
+        // protected的方法，本类为空实现，交给子类去复写（并不是必须的）
+        // 唯独只有PathVariableMethodArgumentResolver把解析处理啊的值存储一下数据到 
+        // HttpServletRequest.setAttribute中（若key已经存在也不会存储了）
+        handleResolvedValue(arg, namedValueInfo.name, parameter, mavContainer, webRequest);
+        return arg;
+    }
+
+
+    // 此处有缓存，记录下每一个MethodParameter对象   value是NamedValueInfo值
+    private NamedValueInfo getNamedValueInfo(MethodParameter parameter) {
+        NamedValueInfo namedValueInfo = this.namedValueInfoCache.get(parameter);
+        if (namedValueInfo == null) {
+            // createNamedValueInfo是抽象方法，子类必须实现
+            namedValueInfo = createNamedValueInfo(parameter);
+            // updateNamedValueInfo：这一步就是我们之前说过的为何Spring MVC可以根据参数名封装的方法
+            // 如果info.name.isEmpty()的话（注解里没指定名称），就通过`parameter.getParameterName()`去获取参数名~
+            // 它还会处理注解指定的defaultValue：`\n\t\.....`等等都会被当作null处理
+            // 都处理好后：new NamedValueInfo(name, info.required, defaultValue);（相当于吧注解解析成了此对象嘛~~）
+            namedValueInfo = updateNamedValueInfo(parameter, namedValueInfo);
+            this.namedValueInfoCache.put(parameter, namedValueInfo);
+        }
+        return namedValueInfo;
+    }
+
+    // 抽象方法 
+    protected abstract NamedValueInfo createNamedValueInfo(MethodParameter parameter);
+    // 由子类根据名称，去把值拿出来
+    protected abstract Object resolveName(String name, MethodParameter parameter, NativeWebRequest request) throws Exception;
+}</code></code></pre>
+<p>该抽象类中定义了解析参数的主逻辑（模版逻辑），子类只需要实现对应的抽象模版方法即可。<br />
+对此部分的处理步骤，我把它简述如下：</p>
+<ol>
+<li>基于<code>MethodParameter</code>构建<code>NameValueInfo</code> &lt;-- 主要有<code>name, defaultValue, required</code>（其实主要是解析方法参数上标注的注解~）</li>
+<li>通过<code>BeanExpressionResolver</code>(<code>${}</code>占位符以及<code>SpEL</code>) 解析<code>name</code></li>
+<li>通过模版方法<code>resolveName</code>从 <code>HttpServletRequest, Http Headers, URI template variables</code> 等等中获取对应的属性值（具体由子类去实现）</li>
+<li>对 <code>arg==null</code>这种情况的处理, 要么使用默认值, 若 <code>required = true &amp;&amp; arg == null</code>, 则一般报出异常（boolean类型除外~）</li>
+<li>通过<code>WebDataBinder</code>将<code>arg</code>转换成<code>Methodparameter.getParameterType()</code>类型（注意：这里仅仅只是用了数据转换而已，并没有用<code>bind()</code>方法）</li>
+</ol>
+<p><strong>该抽象类继承树如下：</strong><br />
+<img src="./images/HandlerMethodArgumentResolver(一)：Controller方法入参自动封装器【享学Spring MVC】1.png" alt="在这里插入图片描述" /><br />
+从上源码可以看出，抽象类已经定死了处理模版（方法为final的），留给子类需要做的事就不多了，大体还有如下三件事：</p>
+<ol>
+<li>根据<code>MethodParameter</code>创建<code>NameValueInfo</code>（子类的实现可继承自<code>NameValueInfo</code>，就是对应注解的属性们）</li>
+<li>根据方法参数名称<code>name</code>从<code>HttpServletRequest, Http Headers, URI template variables</code>等等中获取属性值</li>
+<li>对<code>arg == null</code>这种情况的处理（非必须）</li>
+</ol>
+<h4 id="pathvariablemethodargumentresolver">PathVariableMethodArgumentResolver</h4>
+<p>它帮助<code>Spring MVC</code>实现restful风格的URL。它用于处理标注有<code>@PathVariable</code>注解的方法参数，用于从URL中获取值（并不是?后面的参数哦）。<br />
+<strong>并且，并且，并且它还可以解析<code>@PathVariable</code>注解的value值不为空的Map（使用较少，个人不太建议使用）~</strong></p>
+<h2 id="section">---</h2>
+<p><code>UriComponentsContributor</code>接口：通过查看方法参数和参数值并决定应更新目标URL的哪个部分，为构建<code>UriComponents</code>的策略接口。</p>
+<pre><code><code>// @since 4.0 出现得还是比较晚的
+public interface UriComponentsContributor {
+
+    // 此方法完全同HandlerMethodArgumentResolver的这个方法~~~
+    boolean supportsParameter(MethodParameter parameter);
+    // 处理给定的方法参数，然后更新UriComponentsbuilder，或者使用uri变量添加到映射中，以便在处理完所有参数后用于扩展uri~~~
+    void contributeMethodArgument(MethodParameter parameter, Object value, UriComponentsBuilder builder,
+            Map&lt;String, Object&gt; uriVariables, ConversionService conversionService);
+}</code></code></pre>
+<p>它的三个实现类：<br />
+<img src="./images/HandlerMethodArgumentResolver(一)：Controller方法入参自动封装器【享学Spring MVC】2.png" alt="在这里插入图片描述" /><br />
+关于此接口的使用，后面再重点介绍，此处建议自动选择性忽略。</p>
+<h2 id="section-1">---</h2>
+<pre><code><code>// @since 3.0 需要注意的是：它只支持标注在@RequestMapping的方法（处理器）上使用~
+@Target(ElementType.PARAMETER)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface PathVariable {
+    @AliasFor(&quot;name&quot;)
+    String value() default &quot;&quot;;
+    @AliasFor(&quot;value&quot;)
+    String name() default &quot;&quot;;
+    
+    // 注意：它并没有defaultValue哦~
+
+    // @since 4.3.3  它也是标记为false非必须的~~~~
+    boolean required() default true;
+}
+
+// @since 3.1
+public class PathVariableMethodArgumentResolver extends AbstractNamedValueMethodArgumentResolver implements UriComponentsContributor {
+    private static final TypeDescriptor STRING_TYPE_DESCRIPTOR = TypeDescriptor.valueOf(String.class);
+
+
+    // 简单一句话描述：@PathVariable是必须，不管你啥类型
+    // 标注了注解，且是Map类型，
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        if (!parameter.hasParameterAnnotation(PathVariable.class)) {
+            return false;
+        }
+        if (Map.class.isAssignableFrom(parameter.nestedIfOptional().getNestedParameterType())) {
+            PathVariable pathVariable = parameter.getParameterAnnotation(PathVariable.class);
+            return (pathVariable != null &amp;&amp; StringUtils.hasText(pathVariable.value()));
+        }
+        return true;
+    }
+
+    @Override
+    protected NamedValueInfo createNamedValueInfo(MethodParameter parameter) {
+        PathVariable ann = parameter.getParameterAnnotation(PathVariable.class);
+        return new PathVariableNamedValueInfo(ann);
+    }
+    private static class PathVariableNamedValueInfo extends NamedValueInfo {
+        public PathVariableNamedValueInfo(PathVariable annotation) {
+            // 默认值使用的DEFAULT_NONE~~~
+            super(annotation.name(), annotation.required(), ValueConstants.DEFAULT_NONE);
+        }
+    }
+
+    // 根据name去拿值的过程非常之简单，但是它和前面的只知识是有关联的
+    // 至于这个attr是什么时候放进去的，AbstractHandlerMethodMapping.handleMatch()匹配处理器方法上
+    // 通过UrlPathHelper.decodePathVariables() 把参数提取出来了，然后放进request属性上暂存了~~~
+    // 关于HandlerMapping内容，可来这里：https://blog.csdn.net/f641385712/article/details/89810020
+    @Override
+    @Nullable
+    protected Object resolveName(String name, MethodParameter parameter, NativeWebRequest request) throws Exception {
+        Map&lt;String, String&gt; uriTemplateVars = (Map&lt;String, String&gt;) request.getAttribute(HandlerMapping.URI_TEMPLATE_VARIABLES_ATTRIBUTE, RequestAttributes.SCOPE_REQUEST);
+        return (uriTemplateVars != null ? uriTemplateVars.get(name) : null);
+    }
+
+    // MissingPathVariableException是ServletRequestBindingException的子类
+    @Override
+    protected void handleMissingValue(String name, MethodParameter parameter) throws ServletRequestBindingException {
+        throw new MissingPathVariableException(name, parameter);
+    }
+
+
+    // 值完全处理结束后，把处理好的值放进请求域，方便view里渲染时候使用~
+    // 抽象父类的handleResolvedValue方法，只有它复写了~
+    @Override
+    @SuppressWarnings(&quot;unchecked&quot;)
+    protected void handleResolvedValue(@Nullable Object arg, String name, MethodParameter parameter, @Nullable ModelAndViewContainer mavContainer, NativeWebRequest request) {
+
+        String key = View.PATH_VARIABLES;
+        int scope = RequestAttributes.SCOPE_REQUEST;
+        Map&lt;String, Object&gt; pathVars = (Map&lt;String, Object&gt;) request.getAttribute(key, scope);
+        if (pathVars == null) {
+            pathVars = new HashMap&lt;&gt;();
+            request.setAttribute(key, pathVars, scope);
+        }
+        pathVars.put(name, arg);
+    }
+    ...
+}</code></code></pre>
+<p>关于<code>@PathVariable</code>的使用，不用再给例子了。<br />
+唯一需要说一下如果类型是<code>Map</code>类型的情况下的使用注意事项，如下：</p>
+<pre><code><code>@PathVariable(&quot;jsonStr&quot;) Map&lt;String,Object&gt; map</code></code></pre>
+<p>希望把<code>jsonStr</code>对应的字符串解析成键值对封装进<code>Map</code>里。那么你<strong>必须，必须，必须</strong>注册了能处理此字符串的<code>Converter/PropertyEditor</code>（自定义）。使用起来相对麻烦，但技术隐蔽性高。我一般不建议这么来用~</p>
+<hr />
+<h5 id="关于pathvariable的requiredfalse使用注意事项">关于@PathVariable的<code>required=false</code>使用注意事项</h5>
+<p>这个功能是很多人比较疑问的，如何使用？？？</p>
+<pre><code><code>@ResponseBody
+@GetMapping(&quot;/test/{id}&quot;)
+public Person test(@PathVariable(required = false) Integer id) { ... }</code></code></pre>
+<p>以为这样写通过<code>/test</code>这个url就能访问到了，其实这样是不行的，会404。<br />
+正确姿势：</p>
+<pre><code><code>@ResponseBody
+@GetMapping({&quot;/test/{id}&quot;, &quot;/test&quot;})
+public Person test(@PathVariable(required = false) Integer id) { ... }</code></code></pre>
+<p>这样<code>/test</code>和<code>/test/1</code>这两个url就都能正常work了~</p>
+<h2 id="pathvariable的requiredfalse使用较少一般用于在用url传多个值时但有些值是非必传的时候使用比如这样的urluseridnameuseriduser">&gt; @PathVariable的<code>required=false</code>使用较少，一般用于在用URL传多个值时，但有些值是非必传的时候使用。比如这样的URL：<code>&quot;/user/{id}/{name}&quot;,&quot;/user/{id}&quot;,&quot;/user&quot;</code></h2>
+<h4 id="requestparammethodargumentresolver">RequestParamMethodArgumentResolver</h4>
+<p>顾名思义，是解析标注有<code>@RequestParam</code>的方法入参解析器，这个注解比上面的注解强大很多了，<strong>它用于从请求参数（?后面的）中获取值完成封装</strong>。这是我们的绝大多数使用场景。除此之外，它还支持<code>MultipartFile</code>，也就是说能够从<code>MultipartHttpServletRequest | HttpServletRequest</code> 获取数据，并且并且并且还<strong>兜底处理没有标注任何注解的“简单类型”</strong>~</p>
+<pre><code><code>// @since 2.5
+@Target(ElementType.PARAMETER)
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+public @interface RequestParam {
+    @AliasFor(&quot;name&quot;)
+    String value() default &quot;&quot;;
+     // @since 4.2
+    @AliasFor(&quot;value&quot;)
+    String name() default &quot;&quot;;
+    boolean required() default true;
+    String defaultValue() default ValueConstants.DEFAULT_NONE;
+}</code></code></pre>
+<pre><code><code>// @since 3.1
+public class RequestParamMethodArgumentResolver extends AbstractNamedValueMethodArgumentResolver implements UriComponentsContributor {
+
+    private static final TypeDescriptor STRING_TYPE_DESCRIPTOR = TypeDescriptor.valueOf(String.class);
+
+    // 这个参数老重要了：
+    // true：表示参数类型是基本类型 参考BeanUtils#isSimpleProperty(什么Enum、Number、Date、URL、包装类型、以上类型的数组类型等等)
+    // 如果是基本类型，即使你不写@RequestParam注解，它也是会走进来处理的~~~(这个@PathVariable可不会哟~)
+    // fasle：除上以外的。  要想它处理就必须标注注解才行哦，比如List等~
+    // 默认值是false
+    private final boolean useDefaultResolution;
+
+    // 此构造只有`MvcUriComponentsBuilder`调用了  传入的false
+    public RequestParamMethodArgumentResolver(boolean useDefaultResolution) {
+        this.useDefaultResolution = useDefaultResolution;
+    }
+    // 传入了ConfigurableBeanFactory ，所以它支持处理占位符${...} 并且支持SpEL了
+    // 此构造都在RequestMappingHandlerAdapter里调用，最后都会传入true来Catch-all Case  这种设计挺有意思的
+    public RequestParamMethodArgumentResolver(@Nullable ConfigurableBeanFactory beanFactory, boolean useDefaultResolution) {
+        super(beanFactory);
+        this.useDefaultResolution = useDefaultResolution;
+    }
+
+    // 此处理器能处理如下Case：
+    // 1、所有标注有@RequestParam注解的类型（非Map）/ 注解指定了value值的Map类型（自己提供转换器哦）
+    // ======下面都表示没有标注@RequestParam注解了的=======
+    // 1、不能标注有@RequestPart注解，否则直接不处理了
+    // 2、是上传的request：isMultipartArgument() = true（MultipartFile类型或者对应的集合/数组类型  或者javax.servlet.http.Part对应结合/数组类型）
+    // 3、useDefaultResolution=true情况下，&quot;基本类型&quot;也会处理
+    @Override
+    public boolean supportsParameter(MethodParameter parameter) {
+        if (parameter.hasParameterAnnotation(RequestParam.class)) {
+            if (Map.class.isAssignableFrom(parameter.nestedIfOptional().getNestedParameterType())) {
+                RequestParam requestParam = parameter.getParameterAnnotation(RequestParam.class);
+                return (requestParam != null &amp;&amp; StringUtils.hasText(requestParam.name()));
+            } else {
+                return true;
+            }
+        } else {
+            if (parameter.hasParameterAnnotation(RequestPart.class)) {
+                return false;
+            }
+            parameter = parameter.nestedIfOptional();
+            if (MultipartResolutionDelegate.isMultipartArgument(parameter)) {
+                return true;
+            } else if (this.useDefaultResolution) {
+                return BeanUtils.isSimpleProperty(parameter.getNestedParameterType());
+            } else {
+                return false;
+            }
+        }
+    }
+
+
+    // 从这也可以看出：即使木有@RequestParam注解，也是可以创建出一个NamedValueInfo来的
+    @Override
+    protected NamedValueInfo createNamedValueInfo(MethodParameter parameter) {
+        RequestParam ann = parameter.getParameterAnnotation(RequestParam.class);
+        return (ann != null ? new RequestParamNamedValueInfo(ann) : new RequestParamNamedValueInfo());
+    }
+
+
+    // 核心方法：根据Name 获取值（普通/文件上传）
+    // 并且还有集合、数组等情况
+    @Override
+    @Nullable
+    protected Object resolveName(String name, MethodParameter parameter, NativeWebRequest request) throws Exception {
+        HttpServletRequest servletRequest = request.getNativeRequest(HttpServletRequest.class);
+
+        // 这块解析出来的是个MultipartFile或者其集合/数组
+        if (servletRequest != null) {
+            Object mpArg = MultipartResolutionDelegate.resolveMultipartArgument(name, parameter, servletRequest);
+            if (mpArg != MultipartResolutionDelegate.UNRESOLVABLE) {
+                return mpArg;
+            }
+        }
+
+        Object arg = null;
+        MultipartRequest multipartRequest = request.getNativeRequest(MultipartRequest.class);
+        if (multipartRequest != null) {
+            List&lt;MultipartFile&gt; files = multipartRequest.getFiles(name);
+            if (!files.isEmpty()) {
+                arg = (files.size() == 1 ? files.get(0) : files);
+            }
+        }
+
+        // 若解析出来值仍旧为null，那处理完文件上传里木有，那就去参数里取吧
+        // 由此可见：文件上传的优先级是高于请求参数的
+        if (arg == null) {
+        
+            //小知识点：getParameter()其实本质是getParameterNames()[0]的效果
+            // 强调一遍：?ids=1,2,3 结果是[&quot;1,2,3&quot;]（兼容方式，不建议使用。注意：只能是逗号分隔）
+            // ?ids=1&amp;ids=2&amp;ids=3  结果是[1,2,3]（标准的传值方式，建议使用）
+            // 但是Spring MVC这两种都能用List接收  请务必注意他们的区别~~~
+            String[] paramValues = request.getParameterValues(name);
+            if (paramValues != null) {
+                arg = (paramValues.length == 1 ? paramValues[0] : paramValues);
+            }
+        }
+        return arg;
+    }
+    ...
+}</code></code></pre>
+<p>可以看到这个<code>ArgumentResolver</code>处理器还是很强大的：不仅能处理标注了<code>@RequestParam</code>的参数，还能接收文件上传参数。甚至那些你平时使用中<strong>不标注该注解的</strong>封装也是它来<strong>兜底完成</strong>的。至于它如何兜底的，可以参见下面这个骚操作：</p>
+<pre><code><code>public class RequestMappingHandlerAdapter extends AbstractHandlerMethodAdapter implements BeanFactoryAware, InitializingBean {
+    ...
+    private List&lt;HandlerMethodArgumentResolver&gt; getDefaultArgumentResolvers() {
+        List&lt;HandlerMethodArgumentResolver&gt; resolvers = new ArrayList&lt;&gt;();
+        // Annotation-based argument resolution
+        resolvers.add(new RequestParamMethodArgumentResolver(getBeanFactory(), false));
+        ...
+        // Catch-all  兜底
+        resolvers.add(new RequestParamMethodArgumentResolver(getBeanFactory(), true));
+        resolvers.add(new ServletModelAttributeMethodProcessor(true));
+
+        return resolvers;
+    }
+    ...
+}</code></code></pre>
+<p>可以看到<code>ServletModelAttributeMethodProcessor</code>和<code>RequestParamMethodArgumentResolver</code>一样，也是有兜底的效果的。</p>
+<h2 id="section-2">---</h2>
+<hr />
+<p>在本文末，我搜集了一些自己使用过程中的一些疑惑进行解惑，希望也一样能帮助你豁然开朗。</p>
+<h4 id="get请求如何传值数组集合list">get请求如何传值数组、集合（List）</h4>
+<p>如题的这个<code>case</code>太常见了有木有，我们经常会遇到使用get请求向后端需要传值的需求（比如根据ids批量查询）。但到底如何传，URL怎么写，应该是有傻傻分不清楚的不确定的情况。</p>
+<h6 id="pathvariable传参">@PathVariable传参</h6>
+<pre><code><code>    @ResponseBody
+    @GetMapping(&quot;/test/{objects}&quot;)
+    public Object test(@PathVariable List&lt;Object&gt; objects) {
+        System.out.println(objects);
+        return objects;
+    }</code></code></pre>
+<p>请求URL：<code>/test/fsx,fsx,fsx</code>。控制台打印：</p>
+<pre><code><code>[fsx, fsx, fsx]</code></code></pre>
+<p>集合接收成功（使用<code>@PathVariable Object[] objects</code>也是可以正常接收的）。<br />
+使用时应注意如下两点：</p>
+<ol>
+<li>多个值<strong>只能</strong>使用<code>,</code>号分隔才行（否则会被当作一个值，放进数组/集合里，不会报错）</li>
+<li><code>@PathVariable</code>注解是必须的。否则会交给<code>ServletModelAttributeMethodProcessor</code>兜底去处理，它要求有空构造所以反射创建实例会报错（数组/List）。（注意：如果是这样写<code>ArrayList&lt;Object&gt; objects</code>，那是不会报错的，只是值肯定是封装不进来的，一个空对象而已）</li>
+</ol>
+<blockquote>
+<p>说明：为何逗号分隔的String类型默认就能转化为数组，集合。请参考<code>StringToCollectionConverter/StringToArrayConverter</code>这种内置的<code>GenericConverter</code>通用转换器~~</p>
+</blockquote>
+<h5 id="requestparam传参">@RequestParam传参</h5>
+<pre><code><code>    @ResponseBody
+    @GetMapping(&quot;/test&quot;)
+    public Object test(@RequestParam List&lt;Object&gt; objects) {
+        System.out.println(objects);
+        return objects;
+    }</code></code></pre>
+<p>请求URL：<code>/test/?objects=1,2,3</code>。控制台打印：</p>
+<pre><code><code>[1, 2, 3]</code></code></pre>
+<p>请求URL改为：<code>/test/?objects=1&amp;objects=2&amp;objects=3</code>。控制台打印：</p>
+<pre><code><code>[1, 2, 3]</code></code></pre>
+<p><strong>两个请求的URL不一样，但都能正确的达到效果</strong>。（<code>@RequestParam Object[] objects</code>这么写两种URL也能正常封装）</p>
+<p>对此有如下这个细节你必须得注意：对于集合<code>List</code>而言<code>@RequestParam</code>注解是<strong>必须</strong>存在的，否则报错如下（因为交给兜底处理了）：<br />
+<img src="./images/HandlerMethodArgumentResolver(一)：Controller方法入参自动封装器【享学Spring MVC】3.png" alt="在这里插入图片描述" /><br />
+但如果你这么写<code>String[] objects</code>，<strong>即使不写注解</strong>，也能够正常完成<strong>正确封装</strong>。</p>
+<blockquote>
+<p>说明：<code>Object[] objects</code>这么写的话不写注解是不行的（报错如上）。<strong>至于原因，各位小伙伴可以自行思考，没想明白的话可以给我留言（建议小伙伴一定要弄明白缘由）~</strong></p>
+</blockquote>
+<hr />
+<p>PS：需要注意的是，<code>Spring MVC</code>的这么多<code>HandlerMethodArgumentResolver</code>它的解析是有顺序的：如果多个<code>HandlerMethodArgumentResolver</code>都可以解析某一种类型，以<strong>顺序在前面的</strong>先解析（后面的就不会再执行解析了）。</p>
+<blockquote>
+<p>源码参考处：<code>HandlerMethodArgumentResolverComposite.getArgumentResolver(MethodParameter parameter);</code></p>
+</blockquote>
+<p>由于<code>RequestParamMethodArgumentResolver</code>同样可以对<code>Multipart</code>文件上传进行解析，并且默认顺序在<code>RequestPartMethodArgumentResolver</code>之前，所以<strong>如果不添加<code>@RequestPart</code>注解，<code>Multipart</code>类型的参数会被<code>RequestParamMethodArgumentResolver</code>解析</strong>。</p>
+<hr />
+<h4 id="总结">总结</h4>
+<p>本文是你理解<code>Spring MVC</code>强大的自动数据封装功能非常重要的一篇文章。它介绍了<code>HandlerMethodArgumentResolver</code>的功能和基本使用，以及深入介绍了最为重要的两个注解<code>@PathVariable</code>和<code>@RequestParam</code>以及各自对应的<code>ArgumentResolver</code>处理器。<br />
+由于这个体系庞大，所以我会分多个章节进行描述，欢迎订阅和持续关注~</p>
+<h4 id="相关阅读">相关阅读</h4>
+<p><a href="https://blog.csdn.net/f641385712/article/details/89810020">【小家Spring】Spring MVC容器的web九大组件之---HandlerMapping源码详解(二)---RequestMappingHandlerMapping系列</a></p>
+<p><a href="https://blog.csdn.net/f641385712/article/details/98989698">HandlerMethodArgumentResolver(一)：Controller方法入参自动封装器（将参数parameter解析为值）【享学Spring MVC】</a><br />
+<a href="https://blog.csdn.net/f641385712/article/details/99980042">HandlerMethodArgumentResolver(二)：Map参数类型和固定参数类型【享学Spring MVC】</a><br />
+<a href="https://blog.csdn.net/f641385712/article/details/100016055">HandlerMethodArgumentResolver(三)：基于HttpMessageConverter消息转换器的参数处理器【享学Spring MVC】</a></p>
+<h4 id="知识交流">知识交流</h4>
+<p>==The last：如果觉得本文对你有帮助，不妨点个赞呗。当然分享到你的朋友圈让更多小伙伴看到也是被<code>作者本人许可的~</code>==</p>
+<p><strong>若对技术内容感兴趣可以加入wx群交流：<code>Java高工、架构师3群</code>。<br />
+若群二维码失效，请加wx号：<code>fsx641385712</code>（或者扫描下方wx二维码）。并且备注：<code>&quot;java入群&quot;</code> 字样，会手动邀请入群</strong><br />
+==若对Spring、SpringBoot、MyBatis等源码分析感兴趣，可加我wx：fsx641385712，手动邀请你入群一起飞==</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

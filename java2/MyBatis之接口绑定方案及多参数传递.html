@@ -1,0 +1,106 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修MyBatis之接口绑定方案及多参数传递' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>MyBatis之接口绑定方案及多参数传递</center></div><div class='banquan'>原文出处:本文由博客园博主suhaha提供。<br/>
+原文连接:https://www.cnblogs.com/suhaha/p/11794450.html</div><br>
+    <h2 id="说明">1.说明</h2>
+<p>  所谓的MyBatis接口绑定，指的是实现创建一个接口后，把mapper.xml 由mybatis 生成接口的实现类,通过调用接口对象就可以获取mapper.xml 中编写的sql。在SSM框架中，MyBatis 和Spring 整合时使用的就是这个方案。</p>
+<h2 id="实现步骤">2.实现步骤</h2>
+<ol>
+<li>创建一个接口(Interface)<br />
+</li>
+</ol>
+<ul>
+<li>创建的接口所在包名和接口名必须与mapper.xml文件中<mapper>标签的namespace属性值相同<br />
+</li>
+<li>接口中方法名和mapper.xml配置文件中标签的id属性相同<br />
+</li>
+</ul>
+<ol>
+<li>在mybatis.xml全局配置文件中配置<package>标签，使得MyBatis进行扫描接口和mapper.xml</li>
+</ol>
+<h2 id="代码实现步骤">3.代码实现步骤:</h2>
+<ol>
+<li>在mybatis.xml 全局配置文件中<mappers>下使用<package><br />
+</li>
+</ol>
+<pre><code><code>&lt;mappers&gt;
+    &lt;package name=&quot;com.susu.mapper&quot;/&gt;
+&lt;/mappers&gt;</code></code></pre>
+<ol>
+<li>在com.susu.mapper 下新建接口<br />
+</li>
+</ol>
+<pre class="java"><code>public interface LogMapper {
+      List&lt;Log&gt; selAll();
+}</code></code></pre>
+<ol>
+<li>在com.susu.mapper 新建一个LogMapper.xml<br />
+注意：<br />
+</li>
+</ol>
+<ul>
+<li>namespace 必须和接口的全限定路径(包名+类名)一致<br />
+</li>
+<li>id 值必须和接口中方法名相同<br />
+</li>
+<li>如果接口中方法为多个参数,可以省略parameterType<br />
+</li>
+</ul>
+<pre><code><code>&lt;mapper namespace=&quot;com.susu.mapper.LogMapper&quot;&gt;
+  &lt;select id=&quot;selAll&quot; resultType=&quot;log&quot;&gt;
+    select * from log
+  &lt;/select&gt;
+&lt;/mapper&gt;</code></code></pre>
+<h2 id="多参数实现办法">4.多参数实现办法</h2>
+<ol>
+<li>在接口中声明方法<br />
+</li>
+</ol>
+<pre class="java"><code>List&lt;Log&gt; selByAccInAccout(String accin,String accout);</code></code></pre>
+<ol>
+<li>在mapper.xml 中添加<br />
+#{}中使用 0,1,2 或param1,param2<br />
+</li>
+</ol>
+<pre><code><code>&lt;!-- 当多参数时,不需要写parameterType --&gt;
+&lt;select id=&quot;selByAccInAccout&quot; resultType=&quot;log&quot; &gt;
+   select * from log where accin=#{0}   and accout=#{1}
+&lt;/select&gt;</code></code></pre>
+<h2 id="可以使用注解方式">5. 可以使用注解方式</h2>
+<ol>
+<li>在接口中声明方法<br />
+</li>
+</ol>
+<pre class="java"><code>List&lt;Log&gt; selByAccInAccout(@Param(&quot;accin&quot;) String accin123,@Param(&quot;accout&quot;) String accout3454235);</code></code></pre>
+<p>mybatis 把参数转换为map 了,其中@Param(&quot;key&quot;) 参数内容就是map 的value</p>
+<ol>
+<li>在mapper.xml 中添加<br />
+#{} 里面写@Param(“内容”)参数中内容<br />
+</li>
+</ol>
+<pre><code><code>&lt;!-- 当多参数时,不需要写parameterType --&gt;
+&lt;select id=&quot;selByAccInAccout&quot; resultType=&quot;log&quot; &gt;
+   select * from log where accin=#{accin}   and accout=#{accout}
+&lt;/select&gt;</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

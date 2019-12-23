@@ -1,0 +1,375 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot（四） SpringBoot整合JdbcTemplate' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot（四） SpringBoot整合JdbcTemplate</center></div><div class='banquan'>原文出处:本文由博客园博主探歌提供。<br/>
+原文连接:https://www.cnblogs.com/lgg20/p/11574335.html</div><br>
+    <p>一、数据准备<br />CREATE TABLE `tb_user` (<br />  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'ID',<br />  `username` varchar(50) NOT NULL COMMENT '用户名',<br />  `age` int(11) NOT NULL COMMENT '年龄',<br />  `ctm` datetime NOT NULL COMMENT '创建时间',<br />  PRIMARY KEY (`id`)<br />) ENGINE=InnoDB DEFAULT CHARSET=utf8<br />INSERT INTO `db_test`.`tb_user` (`username`, `age`, `ctm`) VALUES('张三', '18', NOW()) ;<br />INSERT INTO `db_test`.`tb_user` (`username`, `age`, `ctm`) VALUES('李四', '20', NOW()) ;<br />INSERT INTO `db_test`.`tb_user` (`username`, `age`, `ctm`) VALUES('王五', '19', NOW()) ;</p>
+<p><br />二、引入依赖：<br />&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">parent</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-parent<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.0.4.RELEASE<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">parent</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project</span><span style="color: #ff0000;">.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>UTF-8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project</span><span style="color: #ff0000;">.reporting.outputEncoding</span><span style="color: #0000ff;">&gt;</span>UTF-8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project.reporting.outputEncoding</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">java</span><span style="color: #ff0000;">.version</span><span style="color: #0000ff;">&gt;</span>1.8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">java.version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> jdbcTemplate </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-jdbc<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> MySQL连接 </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>mysql<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>mysql-connector-java<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>runtime<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-configuration-processor<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">optional</span><span style="color: #0000ff;">&gt;</span>true<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">optional</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.apache.logging.log4j<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>log4j-api<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.11.2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> Spring-Mybatis </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.mybatis.spring.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>mybatis-spring-boot-starter<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.3.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> MySQL </span><span style="color: #008000;">--&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>mysql<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>mysql-connector-java<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>    
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-web<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-configuration-processor<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">optional</span><span style="color: #0000ff;">&gt;</span>true<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">optional</span><span style="color: #0000ff;">&gt;</span>
+         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-devtools<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">optional</span><span style="color: #0000ff;">&gt;</span>true<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">optional</span><span style="color: #0000ff;">&gt;</span>
+         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-maven-plugin<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">fork</span><span style="color: #0000ff;">&gt;</span>true<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">fork</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>三、数据库配置文件<br />一如既往，我们采用yaml文件配置，当然properties文件也是一样。</p>
+<p>注意点，SpringBoot默认采用tomcat-jdbc连接池，如果需要C3P0，DBCP，Druid等作为连接池，需要加入相关依赖以及配置，这里不作说明，采用默认配置即可。</p>
+<p>spring:<br />  datasource:<br />    driver-class-name: com.mysql.jdbc.Driver<br />    url: jdbc:mysql://localhost:3306/db_user<br />    username: root<br />    password: root<br />&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</p>
+<h3 id="四-代码">四、代码</h3>
+<p>项目结构如下：</p>
+<p><img src="./images/SpringBoot（四） SpringBoot整合JdbcTemplate0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;实体类User.class：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.demo.bean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Date;
+ 
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> User {
+ 
+    </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">int</span><span style="color: #000000;"> id;
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;">  String username;
+    </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">int</span><span style="color: #000000;"> age;
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;">  Date ctm;
+ 
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User() {
+    }
+ 
+    </span><span style="color: #0000ff;">public</span> User(String username, <span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+        </span><span style="color: #0000ff;">this</span>.username =<span style="color: #000000;"> username;
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+        </span><span style="color: #0000ff;">this</span>.ctm = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date();
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getId() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> id;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setId(<span style="color: #0000ff;">int</span><span style="color: #000000;"> id) {
+        </span><span style="color: #0000ff;">this</span>.id =<span style="color: #000000;"> id;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getUsername() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> username;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setUsername(String username) {
+        </span><span style="color: #0000ff;">this</span>.username =<span style="color: #000000;"> username;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getAge() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> age;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setAge(<span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Date getCtm() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ctm;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setCtm(Date ctm) {
+        </span><span style="color: #0000ff;">this</span>.ctm =<span style="color: #000000;"> ctm;
+    }
+    
+}</span></code></pre>
+
+<p>UserDao：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.demo.dao;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.bean.User;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> UserDao {
+    
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User getUserById(Integer id);
+    
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUserList();
+
+}</span></code></pre>
+
+<p>UserDaoImpl：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.demo.dao.impl;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.jdbc.core.BeanPropertyRowMapper;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.jdbc.core.JdbcTemplate;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Repository;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.bean.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.dao.UserDao;
+
+
+@Repository
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserDaoImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> UserDao{
+    
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> JdbcTemplate jdbcTemplate;
+
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User getUserById(Integer id) {
+        List</span>&lt;User&gt; list = jdbcTemplate.query("select * from tb_user where id = ?", <span style="color: #0000ff;">new</span> Object[]{id}, <span style="color: #0000ff;">new</span> BeanPropertyRowMapper(User.<span style="color: #0000ff;">class</span><span style="color: #000000;">));
+        </span><span style="color: #0000ff;">if</span>(list!=<span style="color: #0000ff;">null</span> &amp;&amp; list.size()&gt;0<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">return</span> list.get(0<span style="color: #000000;">);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUserList() {
+        List</span>&lt;User&gt; list = jdbcTemplate.query("select * from tb_user", <span style="color: #0000ff;">new</span> Object[]{}, <span style="color: #0000ff;">new</span> BeanPropertyRowMapper(User.<span style="color: #0000ff;">class</span><span style="color: #000000;">));
+        </span><span style="color: #0000ff;">if</span>(list!=<span style="color: #0000ff;">null</span> &amp;&amp; list.size()&gt;0<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> list;
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+    }
+
+}</span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;"><span style="color: #ff6600;"><strong>UserService：</strong></span><br /><br />package</span><span style="color: #000000;"> com.demo.service;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.bean.User;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> UserService {
+    
+    User getUserById(Integer id);
+     
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUserList();
+
+}</span></code></pre>
+
+<p>UserServiceImpl：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.demo.service.impl;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Service;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.bean.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.dao.UserDao;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.service.UserService;
+
+
+@Service
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserServiceImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> UserService{
+    
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> UserDao userDao;
+
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User getUserById(Integer id) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userDao.getUserById(id);
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUserList() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userDao.getUserList();
+    }
+
+}</span></code></pre>
+
+<p>UserController：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.demo.web;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.http.ResponseEntity;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.PathVariable;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestBody;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestMethod;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RestController;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.bean.JsonResult;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.bean.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.service.UserService;
+ 
+@RestController
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserController {
+ 
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> UserService userService;
+ 
+    @RequestMapping(value </span>= "user/{id}", method =<span style="color: #000000;"> RequestMethod.GET)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;JsonResult&gt; getUserById (@PathVariable(value = "id"<span style="color: #000000;">) Integer id){
+        JsonResult r </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> JsonResult();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            User user </span>=<span style="color: #000000;"> userService.getUserById(id);
+            r.setResult(user);
+            r.setStatus(</span>"ok"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            r.setResult(e.getClass().getName() </span>+ ":" +<span style="color: #000000;"> e.getMessage());
+            r.setStatus(</span>"error"<span style="color: #000000;">);
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ResponseEntity.ok(r);
+    }
+ 
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 查询用户列表
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span><span style="color: #000000;">
+    @RequestMapping(value </span>= "users", method =<span style="color: #000000;"> RequestMethod.GET)
+    </span><span style="color: #0000ff;">public</span> ResponseEntity&lt;JsonResult&gt;<span style="color: #000000;"> getUserList (){
+        JsonResult r </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> JsonResult();
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            List</span>&lt;User&gt; users =<span style="color: #000000;"> userService.getUserList();
+            r.setResult(users);
+            r.setStatus(</span>"ok"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            r.setResult(e.getClass().getName() </span>+ ":" +<span style="color: #000000;"> e.getMessage());
+            r.setStatus(</span>"error"<span style="color: #000000;">);
+            e.printStackTrace();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ResponseEntity.ok(r);
+    }
+ 
+
+ 
+}</span></code></pre>
+
+<p>JsonResult:</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.demo.bean;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JsonResult {
+    
+    </span><span style="color: #0000ff;">private</span> String status = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+     
+    </span><span style="color: #0000ff;">private</span> Object result = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+ 
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> JsonResult status(String status) {
+        </span><span style="color: #0000ff;">this</span>.status =<span style="color: #000000;"> status;
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getStatus() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> status;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setStatus(String status) {
+        </span><span style="color: #0000ff;">this</span>.status =<span style="color: #000000;"> status;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Object getResult() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setResult(Object result) {
+        </span><span style="color: #0000ff;">this</span>.result =<span style="color: #000000;"> result;
+    }
+
+   
+
+}</span></code></pre>
+
+<p>测试：</p>
+<p>访问：</p>
+<p><a href="http://localhost:8080/users">http://localhost:8080/user</a>/1&nbsp;&nbsp;</p>
+<p><a href="http://localhost:8080/users">http://localhost:8080/users</a></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

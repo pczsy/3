@@ -1,0 +1,44 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Set的交集、差集踩坑记录' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Set的交集、差集踩坑记录</center></div><div class='banquan'>原文出处:本文由博客园博主yellowgg提供。<br/>
+原文连接:https://www.cnblogs.com/yellowgg/p/11872069.html</div><br>
+    <p>项目中我用到了Set的retainAll和removeAll两个方法取差集和交集。</p>
+<p>用法网上都有，我也不展示了。</p>
+<p>但是因为我是急着用，直接就照着写了，没想到出大问题了。</p>
+<p>因为我的set是一个map的keySet()方法返回的，然后刚好上面的那两个方法</p>
+<p>都是会对源数据进行操作的，比如说</p>
+<pre><code>Map&lt;String, String&gt; map；（十条数据）</code></pre>
+<pre><code>Set&lt;String&gt; keys= map.keySet();（十条数据）<br />Set&lt;String&gt; a ;(五条数据)<br />执行：keys.removeAll(a);</code></pre>
+<p>此时map就只剩下五条数据了，这就有点坑了。</p>
+<p>所以Set的retainAll和removeAll一定要慎用，如果不想改变源数据的话，可以用这个</p>
+<h1 class="title-article">（com.google.common.collect）</h1>
+<p>我们现在用的是这个集合工具，还挺方便的。</p>
+<p>因此，用它的话，取交集差集就不用担心影响到源数据了，因为它没有动源数据。</p>
+<p><span style="font-size: 14pt;">差集</span>：</p>
+<p>difference()函数返回两个集合的差集，即返回的在第一个集合但不在第二个集合中的元素</p>
+<pre><code>Sets.difference(set1, set2);<br /><br /></code></pre>
+<p><span style="font-size: 14pt;">交集：</span></p>
+<p>intersection()方法用于返回两个或更多集合中都包含的元素，即交集。</p>
+<pre><code>Sets.intersection(set1,set2);<br /><br /></code></pre>
+<p>总结：出现这种bug是我对api不熟练的原因，所幸失败是成功之母，这次踩坑了，以后就会记住了。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

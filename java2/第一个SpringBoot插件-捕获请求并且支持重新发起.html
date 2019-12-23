@@ -1,0 +1,121 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修第一个SpringBoot插件-捕获请求并且支持重新发起' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>第一个SpringBoot插件-捕获请求并且支持重新发起</center></div><div class='banquan'>原文出处:本文由博客园博主cccc_hi提供。<br/>
+原文连接:https://www.cnblogs.com/liyuhui-Z/p/11732280.html</div><br>
+    <h1 id="springboot-插件入门">SpringBoot 插件入门</h1>
+<h2 id="简介">简介</h2>
+<ul>
+<li>公司用的是SpringBoot,api框架用的是swagger-ui,确实用的不错,但是在使用过程中发现一个问题,就是当前端正式调用的时候,如果参数一多的话模拟请求比较麻烦,或者swagger-ui无法模拟出前端的完整请求参数,比如参数放到header里面的,就萌生了一个想法,可以不可以自己写一个类似swagger-ui的插件,通过捕捉访问进来的请求,将其header和param保存下来,下次如果出现问题的话可以通过相同的header和param来再次进行请求.</li>
+</ul>
+<h2 id="思考过程">思考过程</h2>
+<ul>
+<li><p>即通过filter捕获指定路径内的请求,然后将其params和headers存放到一个map中,暂时还没有保存数据库,最大容量为100,提供了一个简单的前端页面来进行内容的页面化,页面上可以选择直接用相同的参数发起请求,同时还支持更改其中的参数来发起请求,请求是通过前台页面直接发起.</p></li>
+<li><p>这个逻辑其实蛮简单的,难点在于如何将一个springboot打成jar包供其他项目引用,如何把页面集成到springBoot中,是否需要进行其他的配置,如何将其他包内的Bean引入到主项目中.</p></li>
+<li><p>最后还是去参考了一下swagger-ui的源码,<a href="https://github.com/springfox/springfox">Swagger-UI源码</a></p></li>
+</ul>
+<h2 id="开发过程">开发过程</h2>
+<ul>
+<li>首先编写基本的代码,即Filter,数据的保存类,以及对应的前台UI,编写UI的时候有一个难点,就是如何获取到当前项目的地址,最后用下面的代码解决:</li>
+</ul>
+<pre><code><code>   var urlMatches = /(.*)\/reqCatch.html.*/.exec(window.location.href);
+   this.baseUrl = urlMatches[1] + &#39;/&#39;;        </code></code></pre>
+<ul>
+<li>编写完成基本代码以后要考虑如何将其打成jar包给其他工程直接调用,因为用的是SpringBoot的工程,所以说需要将打包的插件更改为maven的打包插件,如下,然后运行maven install命令就可以将其打成一个可以被别的项目引入的jar.</li>
+</ul>
+<pre><code><code>    &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+                &lt;artifactId&gt;maven-compiler-plugin&lt;/artifactId&gt;
+                &lt;configuration&gt;
+                    &lt;source&gt;1.8&lt;/source&gt; 
+                    &lt;target&gt;1.8&lt;/target&gt;
+                &lt;/configuration&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;</code></code></pre>
+<ul>
+<li><p>打成jar以后首先要看一下前端页面是否可以访问到,静态资源html等发到static下面,打成jar以后还是直接可以通过原先的网址访问的,不会冲突,到这一步则可以引入jar,可以访问到前台页面,只需要将其Bean添加到主项目中,然后编写一下指定的配置类即可.</p></li>
+<li>如何将bean引入到主项目的Spring环境中,此处是借鉴Swagger-UI的用法,首先编写一个注解,并且运用Import引入一个配置类,然后在配置类上通过@ComponentScan((basePackages= {&quot;com.xx&quot;,&quot;com.xx&quot;})),直接在主类的配置文件编写这个注解就可以引入对应的Spring环境中</li>
+</ul>
+<pre><code><code>        // 注解类
+        @Retention(RetentionPolicy.RUNTIME)
+        @Target({java.lang.annotation.ElementType.TYPE})
+        @Documented
+        @Import({CatchReqConfiguration.class})   // 将这个类交给Spring管理
+        public @interface CatchReq {
+
+        }
+
+        // 配置类
+        @Configuration
+        @ComponentScan(basePackages= {&quot;com.req.controller&quot;,&quot;com.req.filter&quot;})  // 扫描包
+        public class CatchReqConfiguration {
+        }</code></code></pre>
+<ul>
+<li><p>这样就可以将jar包内指定路径的Bean交给Spring管理.</p></li>
+<li>下一步就是编写改插件的配置文件,通俗点就是注册一个Filter,将下面的配置方法放到主项目中,即可以开启插件效果,到此,一个非常简单的Spring Boot的插件就算开发完成.</li>
+</ul>
+<pre><code><code>    @Configuration
+    @CatchReq
+    public class CatchFilterDemo {
+        @Bean
+        @SuppressWarnings({ &quot;rawtypes&quot;, &quot;unchecked&quot; })
+        public FilterRegistrationBean timerFilter() {
+            FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean();
+            filterRegistrationBean.setFilter(new CatrhReqFilter());
+            filterRegistrationBean.addUrlPatterns(&quot;/*&quot;);
+            return filterRegistrationBean;
+        }
+    }</code></code></pre>
+<h2 id="发布该jar到私有库">发布该jar到私有库</h2>
+<ul>
+<li>在配置文件中配置发布信息</li>
+</ul>
+<pre><code><code>    &lt;distributionManagement&gt;
+        &lt;!--正式版本 --&gt;
+        &lt;repository&gt;
+            &lt;!-- nexus服务器中用户名：在settings.xml中&lt;server&gt;的id --&gt;
+            &lt;id&gt;nexus-releases&lt;/id&gt;
+            &lt;!-- 这个名称自己定义 --&gt;
+            &lt;name&gt;Release repository&lt;/name&gt;
+            &lt;url&gt;http://192.168.1.241:8088/repository/maven-releases/&lt;/url&gt;
+        &lt;/repository&gt;
+        &lt;!--快照 --&gt;
+        &lt;snapshotRepository&gt;
+            &lt;id&gt;nexus-snapshots&lt;/id&gt;
+            &lt;name&gt;Snapshots repository&lt;/name&gt;
+            &lt;url&gt;http://192.168.1.241:8088/repository/maven-snapshots/&lt;/url&gt;
+        &lt;/snapshotRepository&gt;
+    &lt;/distributionManagement&gt;</code></code></pre>
+<ul>
+<li>然后运行 clean deploy</li>
+</ul>
+<h2 id="界面演示">界面演示</h2>
+<ul>
+<li><img src="./images/第一个SpringBoot插件-捕获请求并且支持重新发起0.png" alt="演示" /></li>
+</ul>
+<h2 id="代码">代码</h2>
+<ul>
+<li><a href="https://github.com/hardlyh/CatchReq">github</a></li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,215 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JAVA–利用Filter和session防止页面重复提交' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JAVA–利用Filter和session防止页面重复提交</center></div><div class='banquan'>原文出处:本文由博客园博主小檗提供。<br/>
+原文连接:https://www.cnblogs.com/xiaobozhi/p/11604490.html</div><br>
+    <p><strong>JAVA&ndash;利用Filter和session防止页面重复提交</strong><br />解决思路:<br />1 用户访问表单页面,先经过过滤器,过滤器设置一个随机id作为token令牌,	并将该token放入表单隐藏域中.<br />2 表单响应到浏览器,用户填充数据后提交请求;<br />3 请求经过过滤器,过滤器获取表单中的令牌进行验证,如果和之前生成的令牌一致,则将请求放行,并且清空令牌;<br />4 如果用户重复提交表单,请求经过过滤器,过滤器进行验证.因为第一次放行后令牌已经清空失效,令牌不一致,不放行.跳转到提醒界面.</p>
+<p>需用知识:<br />1 过滤器基础知识<br />2 servlet基础知识<br />3 filter基础知识<br />4 jsp基础知识<br /><br />代码实现</p>
+<p>1 jsp实现form表单页面</p>
+<src class="cnblogs_Highlighter">
+<pre><code>&lt;%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%&gt;
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset="UTF-8"&gt;
+&lt;title&gt;Insert title here&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+	&lt;form action="login" method="post"&gt;
+		&lt;!-- 利用表单的隐藏域 保存token令牌 --&gt;
+		&lt;!--  ${token}等价于req.getsession().getAttribute("token")--&gt;
+		
+		&lt;input type="hidden" name="token" value="${token}" /&gt;
+		用户名:&lt;input type="text" name="username"/&gt;&lt;br/&gt;
+		密码:&lt;input type="password" name="password"/&gt;&lt;br/&gt;
+		&lt;input type="submit" value="login"/&gt;
+	&lt;/form&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>　　</p>
+<p>2 filter过滤器</p>
+<p>&nbsp;</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">package com.woniu.filter.controler;
+
+import java.io.IOException;
+import java.util.UUID;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.annotation.WebFilter;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+/**
+ * Servlet Filter implementation class TokenFilte
+ */
+
+//过滤所有servlet
+@WebFilter("*")
+
+public class TokenFilte implements Filter {
+
+  
+    public TokenFilte() {
+        // TODO Auto-generated constructor stub
+    }
+
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+		// TODO Auto-generated method stub
+		//设置编码集
+		request.setCharacterEncoding("utf-8");
+		response.setCharacterEncoding("utf-8");
+		response.setContentType("text/html;charser=utr-8");
+		//向下转型
+		HttpServletRequest req=(HttpServletRequest) request;
+		HttpServletResponse resp=(HttpServletResponse) response;
+		
+		//获取表单的token
+		String parameterToken = req.getParameter("token");
+		//获取session中的token
+		String sessionToken = (String) req.getSession().getAttribute("token");
+		
+		//判断表单的token,不为空说明用户已经提交form表单,需要验证是否重复提交,
+		//为空说明是第一次进入登录页面,需要设置token
+		if (parameterToken!=null) {
+			//判断两个令牌是否相等,相等则放行,并重置令牌
+			if(parameterToken.equals(sessionToken)) {
+				//重置令牌
+				req.getSession().removeAttribute("token");
+				chain.doFilter(request, response);
+			}else {//说明是重复提交,转发到提示页面
+				req.getRequestDispatcher("repeatReminder").forward(request, response);
+				
+			}
+		}else {//第一次进来,需要设置令牌
+			//生成宇宙唯一码
+			String token = UUID.randomUUID().toString();
+			//设置session
+			req.getSession().setAttribute("token",token);
+			//放行
+			chain.doFilter(request, response);
+		}
+	
+	}
+
+	@Override
+	public void destroy() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void init(FilterConfig filterConfig) throws ServletException {
+		// TODO Auto-generated method stub
+		
+	}
+
+}
+</code></pre>
+
+<p>　　</p>
+<p>3 表单响应的servlet<br />利用线程睡30秒,模拟网络拥堵</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">package com.woniu.filter.controler;
+
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+/**
+ * Servlet implementation class PrintUser
+ */
+@WebServlet("/login")
+public class Login extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+       
+    public Login() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		try {
+			//线程睡30秒,便于演示网络拥堵
+			Thread.sleep(30000);
+			response.getWriter().write("登录成功");
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		doGet(request, response);
+	}
+
+}
+</code></pre>
+
+<p>　　</p>
+<p>4 重复提交时响应的servlet<br />重复提交时跳转到该提醒页面</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:java;gutter:true;">package com.woniu.filter.controler;
+
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+/**
+ * Servlet implementation class repeatReminder
+ */
+@WebServlet("/repeatReminder")
+public class repeatReminder extends HttpServlet {
+	private static final long serialVersionUID = 1L;
+    public repeatReminder() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+	protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		response.getWriter().write("页面正在处理,请勿重复提交");
+	}
+
+	protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+		// TODO Auto-generated method stub
+		doGet(request, response);
+	}
+
+}
+</code></pre>
+
+<p>　　</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

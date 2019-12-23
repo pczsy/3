@@ -1,0 +1,243 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修fastjson自定义序列化竟然有这么多姿势？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>fastjson自定义序列化竟然有这么多姿势？</center></div><div class='banquan'>原文出处:本文由博客园博主Java碎碎念提供。<br/>
+原文连接:https://www.cnblogs.com/haha12/p/11970156.html</div><br>
+    <blockquote>
+<p>本文介绍下fastjson自定义序列化的各种操作。</p>
+</blockquote>
+<h3 id="一什么是fastjson">一、什么是fastjson？</h3>
+<p>fastjson是阿里巴巴的开源JSON解析库，它可以解析JSON格式的字符串，支持将Java Bean序列化为JSON字符串，也可以从JSON字符串反序列化到JavaBean。</p>
+<h3 id="二如何使用">二、如何使用</h3>
+<p>添加如下maven依赖即可：</p>
+<pre><code><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
+    &lt;artifactId&gt;fastjson&lt;/artifactId&gt;
+    &lt;version&gt;1.2.60&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<h3 id="三fastjson默认序列化">三、fastjson默认序列化</h3>
+<p>fastjson入口类是com.alibaba.fastjson.JSON，一个最简单默认的序列化代码如下：</p>
+<pre><code><code>User user = new User();
+String str= JSON.toJSONString(user);</code></code></pre>
+<h3 id="四如何自定义序列化">四、如何自定义序列化</h3>
+<p>fastjson支持多种方式自定义序列化。</p>
+<h4 id="使用序列化属性serializerfeature">1.使用序列化属性SerializerFeature</h4>
+<p>SerializerFeature常用属性如下：</p>
+<table>
+<thead>
+<tr class="header">
+<th>名称</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>WriteNonStringKeyAsString</td>
+<td>如果key不为String，则转换为String</td>
+</tr>
+<tr class="even">
+<td>WriteNonStringValueAsString</td>
+<td>如果value不为String，则转换为String</td>
+</tr>
+<tr class="odd">
+<td>WriteMapNullValue</td>
+<td>输出为空的字段</td>
+</tr>
+<tr class="even">
+<td>WriteNullStringAsEmpty</td>
+<td>String为null时输出&quot;&quot;</td>
+</tr>
+<tr class="odd">
+<td>WriteNullNumberAsZero</td>
+<td>number为null时输出0</td>
+</tr>
+<tr class="even">
+<td>WriteDateUseDateFormat</td>
+<td>修改日期格式,yyyy-MM-dd</td>
+</tr>
+</tbody>
+</table>
+<p>常用的属性介绍完了，咱们先来看下效果，新建一个User类，代码如下：</p>
+<pre><code><code>@Data
+public class User implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    private Integer id;
+
+    private Integer age;
+
+    private String name;
+
+    private String sex;
+
+    private Date createDate;
+
+    private Map&lt;Integer, Integer&gt; dataMap;
+
+}</code></code></pre>
+<p>运行类代码如下：</p>
+<pre><code><code>public static void main(String[] args) {
+        User user = new User();
+        user.setId(1000);
+        user.setName(&quot;Java碎碎念&quot;);
+        user.setCreateDate(new Date());
+
+        Map&lt;Integer, Integer&gt; datamap = new HashMap&lt;&gt;();
+        datamap.put(1, 100);
+        datamap.put(2, 200);
+        user.setDataMap(datamap);
+
+        System.out.println(&quot;默认序列化结果：\n&quot; + JSON.toJSONString(user));
+        System.out.println(&quot;指定WriteNonStringKeyAsString序列化结果：\n&quot; + JSON.toJSONString(user, SerializerFeature.WriteNonStringKeyAsString));
+        System.out.println(&quot;指定WriteNonStringValueAsString序列化结果：\n&quot; + JSON.toJSONString(user, SerializerFeature.WriteNonStringValueAsString));
+        System.out.println(&quot;指定WriteMapNullValue序列化结果：\n&quot; + JSON.toJSONString(user, SerializerFeature.WriteMapNullValue));
+        System.out.println(&quot;指定WriteNullStringAsEmpty序列化结果：\n&quot; + JSON.toJSONString(user, SerializerFeature.WriteNullStringAsEmpty));
+        System.out.println(&quot;指定WriteNullNumberAsZero序列化结果：\n&quot; + JSON.toJSONString(user, SerializerFeature.WriteNullNumberAsZero));
+        System.out.println(&quot;指定WriteDateUseDateFormat序列化结果：\n&quot; + JSON.toJSONString(user, SerializerFeature.WriteDateUseDateFormat));
+    }</code></code></pre>
+<p>运行结果：</p>
+<pre><code><code>默认序列化结果：
+{&quot;createDate&quot;:1575038247084,&quot;dataMap&quot;:{1:100,2:200},&quot;id&quot;:1000,&quot;name&quot;:&quot;Java碎碎念&quot;}
+指定WriteNonStringKeyAsString序列化结果：
+{&quot;createDate&quot;:1575038247084,&quot;dataMap&quot;:{&quot;1&quot;:100,&quot;2&quot;:200},&quot;id&quot;:1000,&quot;name&quot;:&quot;Java碎碎念&quot;}
+指定WriteNonStringValueAsString序列化结果：
+{&quot;createDate&quot;:1575038247084,&quot;dataMap&quot;:{1:&quot;100&quot;,2:&quot;200&quot;},&quot;id&quot;:&quot;1000&quot;,&quot;name&quot;:&quot;Java碎碎念&quot;}
+指定WriteMapNullValue序列化结果：
+{&quot;age&quot;:null,&quot;createDate&quot;:1575038247084,&quot;dataMap&quot;:{1:100,2:200},&quot;id&quot;:1000,&quot;name&quot;:&quot;Java碎碎念&quot;,&quot;sex&quot;:null}
+指定WriteNullStringAsEmpty序列化结果：
+{&quot;createDate&quot;:1575038247084,&quot;dataMap&quot;:{1:100,2:200},&quot;id&quot;:1000,&quot;name&quot;:&quot;Java碎碎念&quot;,&quot;sex&quot;:&quot;&quot;}
+指定WriteNullNumberAsZero序列化结果：
+{&quot;age&quot;:0,&quot;createDate&quot;:1575038247084,&quot;dataMap&quot;:{1:100,2:200},&quot;id&quot;:1000,&quot;name&quot;:&quot;Java碎碎念&quot;}
+指定WriteDateUseDateFormat序列化结果：
+{&quot;createDate&quot;:&quot;2019-11-29 22:37:27&quot;,&quot;dataMap&quot;:{1:100,2:200},&quot;id&quot;:1000,&quot;name&quot;:&quot;Java碎碎念&quot;}</code></code></pre>
+<h4 id="使用jsonfield">2.使用JSONField</h4>
+<p>JSONField是fastjson的一个注解，可以用在字段上，也可以用在getter/setter方法上面。</p>
+<p>2.1 JSONField注解</p>
+<p>注解主要内容如下：</p>
+<pre><code><code>package com.alibaba.fastjson.annotation;
+
+public @interface JSONField {
+    // 配置序列化和反序列化的顺序，1.1.42版本之后才支持
+    int ordinal() default 0;
+
+     // 指定字段的名称
+    String name() default &quot;&quot;;
+
+    // 指定字段的格式，对日期格式有用
+    String format() default &quot;&quot;;
+
+    // 是否序列化
+    boolean serialize() default true;
+
+    // 是否反序列化
+    boolean deserialize() default true;
+}</code></code></pre>
+<p>2.2 JSONField注解配置方式</p>
+<ul>
+<li>配置在字段上</li>
+</ul>
+<pre><code><code>@Data
+public class User implements Serializable {
+
+    @JSONField(name = &quot;_id&quot;)
+    private Integer id;
+}</code></code></pre>
+<ul>
+<li>配置在getter/setter上</li>
+</ul>
+<pre><code><code>    @JSONField(name=&quot;_id&quot;)
+    public Integer getId() {
+        return id;
+    }
+
+    @JSONField(name=&quot;_id&quot;)
+    public void setId(Integer id) {
+        this.id = id;
+    }
+</code></code></pre>
+<ul>
+<li>使用format配置日期格式化</li>
+</ul>
+<pre><code><code>    @JSONField(format=&quot;yyyy-MM-dd&quot;)
+    private Date createDate;</code></code></pre>
+<ul>
+<li>使用serialize/deserialize指定字段不序列化</li>
+</ul>
+<pre><code><code>    @JSONField(serialize=false)
+    private Integer age;</code></code></pre>
+<ul>
+<li>使用ordinal指定字段的顺序</li>
+</ul>
+<pre><code><code>@JSONField(ordinal = 2)
+    private String name;</code></code></pre>
+<p>下面直接修改代码看下效果，修改后User类如下：</p>
+<pre><code><code>@Data
+public class User implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    @JSONField(name = &quot;_id&quot;, ordinal = 3)
+    private Integer id;
+
+    @JSONField(serialize = false, ordinal = 4)
+    private Integer age;
+
+    @JSONField(ordinal = 1)
+    private String name;
+
+    @JSONField(ordinal = 2)
+    private String sex;
+
+    @JSONField(format = &quot;yyyy-MM-dd&quot;, ordinal = 5)
+    private Date createDate;
+}</code></code></pre>
+<p>测试类运行结果如下：</p>
+<pre><code><code>默认序列化结果：
+{&quot;age&quot;:18,&quot;createDate&quot;:1575006127174,&quot;id&quot;:1000,&quot;name&quot;:&quot;Java碎碎念&quot;}
+使用JSONField后序列化结果：
+{&quot;name&quot;:&quot;Java碎碎念&quot;,&quot;_id&quot;:1000,&quot;createDate&quot;:&quot;2019-11-29&quot;}</code></code></pre>
+<p>通过运行结果可以看到，使用@JSONField注解变化如下：</p>
+<blockquote>
+<ul>
+<li>id序列化后变成了_id</li>
+</ul>
+</blockquote>
+<ul>
+<li>createDate格式化为yyyy-MM-dd</li>
+<li>序列化后字段的顺序跟ordinal指定的一致</li>
+<li>设置了serialize=false的字段age没有序列化</li>
+</ul>
+<p>结果和预期一致，说明自定义序列化没有问题，到此fastjson自定义序列化的功能已经全部实现，有问题欢迎留言沟通哦！</p>
+<p><strong>推荐阅读</strong></p>
+<p><a href="https://mp.weixin.qq.com/s/kxUmDtRe-wIcPwF-ATKGjQ">1.SpringBoot2.0整合集成WebSocket，实现后端数据实时推送！</a></p>
+<p><a href="https://mp.weixin.qq.com/s/FRvQeLgPY1Md1K2G3naK0Q">2.一分钟带你了解下MyBatis的动态SQL！</a></p>
+<p><a href="https://mp.weixin.qq.com/s/C17hdX6E7EHw0K6GImAbQQ">3.一分钟带你了解下Spring Security！</a></p>
+<p><a href="https://mp.weixin.qq.com/s/HSlmvdSsQikfJ8M99MYGNg">4.一分钟带你学会利用mybatis-generator自动生成代码！</a></p>
+<p><a href="https://mp.weixin.qq.com/s/g_fCo8rFGtWseVoKWahaIQ">5.手把手带你实战下Spring的七种事务传播行为</a></p>
+<blockquote>
+<p>限时领取免费Java相关资料，涵盖了Java、Redis、MongoDB、MySQL、Zookeeper、Spring Cloud、Dubbo/Kafka、Hadoop、Hbase、Flink等高并发分布式、大数据、机器学习等技术。<br />
+关注下方公众号即可免费领取：</p>
+</blockquote>
+<p><img src="./images/fastjson自定义序列化竟然有这么多姿势？0.png" alt="Java碎碎念公众号" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

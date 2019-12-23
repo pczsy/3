@@ -1,0 +1,101 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修《设计模式》之策略模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>《设计模式》之策略模式</center></div><div class='banquan'>原文出处:本文由博客园博主低调小熊猫提供。<br/>
+原文连接:https://www.cnblogs.com/aodeng/p/11776333.html</div><br>
+    <h2 id="策略模式">策略模式</h2>
+<p><strong>这里我举一个计算器的例子</strong></p>
+<p><strong>我会创建一个计算接口，接口实现加法，减法这两个类，再创建一个计算器类（设置计算方法，返回值），最后创建一个test类测试</strong><br />
+计算接口</p>
+<pre><code><code>public interface Operation {
+    public int doOperation(int number1,int number2);
+}</code></code></pre>
+<p>接口实现加法，减法这两个类</p>
+<pre><code><code>public class OperationAdd implements Operation {
+    @Override
+    public int doOperation(int number1, int number2) {
+        return number1+number2;
+    }
+}
+
+public class OperationSub implements Operation {
+    @Override
+    public int doOperation(int number1, int number2) {
+        return number1-number2;
+    }
+}</code></code></pre>
+<p>再创建一个计算器类（设置计算方法，返回值）</p>
+<pre><code><code>public class Cal {
+    private Operation operation;
+
+    public void setOperation(Operation operation){
+        this.operation=operation;
+    }
+    public int doOperation(int number1,int number2){
+        return this.operation.doOperation(number1,number2);
+    }
+}</code></code></pre>
+<p>最后创建一个test类测试</p>
+<pre><code><code>/**
+ * @program:hope
+ * @author:aodeng
+ * @微信公众号:低调小熊猫
+ * @create:2018-11-08 20:40
+ **/
+public class TestController {
+    private static final Logger log= LoggerFactory.getLogger(TestController.class);
+    public static void main(String[] args) {
+        Cal cal=new Cal();
+        //使用加法
+        cal.setOperation(new OperationAdd());
+        //输出结果
+        log.info(&quot;[计算器加]-[{}]&quot;,cal.doOperation(4,2));
+
+        //使用减法
+        cal.setOperation(new OperationSub());
+        //输出结果
+        log.info(&quot;[计算器减]-[{}]&quot;,cal.doOperation(4,2));
+    }
+}</code></code></pre>
+<p>运行效果</p>
+<pre><code><code>&quot;C:\Program Files\Java\jdk1.8\bin\java&quot; com.hope.test.TestController
+20:44:33.994 [main] INFO com.hope.test.TestController - [计算器加]-[6]
+20:44:34.012 [main] INFO com.hope.test.TestController - [计算器减]-[2]
+
+Process finished with exit code 0</code></code></pre>
+<p><strong>设计模式的基本原则：开闭原则。<br />
+意思就是：对修改关闭、对扩展开放</strong></p>
+<p>我们的计算器算和接口算是修改关闭的了，如果要扩展其他算法，乘，除，只需要实现计算接口，然后调用计算器的setOption(new 扩展的接口)就行了，这样我们程序，扩展性就非常强大了。</p>
+<p>以下是我看教程的时候的一段话，我直接copy过来一下(哥认为最后一句话是重点，圈起来)：<br />
+优点<br />
+已经十分明显了，那就是遵循了开闭原则，扩展性良好。</p>
+<p>缺点<br />
+随着你的策略增加，你的类也会越来越多。<br />
+所有的策略类都要暴露出去，所以如果你在实际开发中使用了策略模式，一定要记得写好文档让你的伙伴们知道已有哪些策略。就像 shiro 默认提供了三种验证策略，就必须在文档中写清楚，否则我们根本不知道如何使用。</p>
+<p>当然，权衡利弊，跟优点比起来，这些缺点都不算事儿。 最后欢迎关注公众号：低调小熊猫</p>
+
+
+<blockquote>
+<p>本文由低调小熊猫一文多发操作发布！ <a href="https://mp.weixin.qq.com/s?__biz=MzUzNDY0MzcwNg==&amp;mid=2247484258&amp;idx=1&amp;sn=02a060b8ee1e6a4baeb16cc4876da327&amp;chksm=fa90d5f7cde75ce1705297f163944dca2e710019132f5bbf31d8d2f563473f9b3019af0df221&amp;token=1164299938&amp;lang=zh_CN#rd">版权归：低调小熊猫所有，禁止转载</a></p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,196 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Redis 主从，哨兵，集群实战(四)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Redis 主从，哨兵，集群实战(四)</center></div><div class='banquan'>原文出处:本文由博客园博主sanri1993提供。<br/>
+原文连接:https://www.cnblogs.com/sanri1993/p/11610244.html</div><br>
+    <h2 id="下载地址及版本说明">下载地址及版本说明</h2>
+<p>Redis 各版本下载地址： <a href="http://download.redis.io/releases/" class="uri">http://download.redis.io/releases/</a></p>
+<p>版本说明：一般来说版本号第二位，偶数是稳定版本，奇数是在开发中的版本</p>
+<p>本文基于Redis 版本为：<code>3.2.12</code></p>
+<p>理论依据文章为：</p>
+<p><a href="https://blog.csdn.net/sanri1993/article/details/101599701" class="uri">https://blog.csdn.net/sanri1993/article/details/101599701</a></p>
+<p><a href="https://blog.csdn.net/sanri1993/article/details/101620171" class="uri">https://blog.csdn.net/sanri1993/article/details/101620171</a></p>
+<h2 id="主从搭建">主从搭建</h2>
+<h3 id="一主多从结构">一主多从结构</h3>
+<h4 id="结构">结构</h4>
+<p>master 6379</p>
+<p>slave 6380 -&gt; 6379</p>
+<p>slave 6381 -&gt; 6379</p>
+<h4 id="搭建过程">搭建过程</h4>
+<ul>
+<li>配置节点</li>
+</ul>
+<p>master 6379 redis6379.conf</p>
+<pre><code><code>port 6379
+protected-mode no
+daemonize yes</code></code></pre>
+<p>slave 6380 redis6380.conf</p>
+<pre><code><code>port 6380
+protected-mode no
+daemonize yes
+slaveof localhost 6379</code></code></pre>
+<p>slave 6381 redis6381.conf</p>
+<pre><code><code>port 6381
+protected-mode no
+daemonize yes
+slaveof localhost 6379</code></code></pre>
+<ul>
+<li>启动</li>
+</ul>
+<pre><code><code>./redis-server conf/redis6379.conf 
+./redis-server conf/redis6380.conf 
+./redis-server conf/redis6381.conf </code></code></pre>
+<ul>
+<li>查看是否启动成功</li>
+</ul>
+<pre><code><code># 先看进程是否启动
+netstat -tlnp | grep -E &quot;6379|6380|6381&quot;
+# 查看拓扑结构 
+127.0.0.1:6379&gt; info Replication
+role:master
+connected_slaves:2
+slave0:ip=127.0.0.1,port=6380,state=online,offset=10459,lag=0
+slave1:ip=127.0.0.1,port=6381,state=online,offset=10459,lag=0</code></code></pre>
+<h3 id="树状主从结构">树状主从结构</h3>
+<h4 id="结构-1">结构</h4>
+<p>master 6379</p>
+<p>slave 6380 -&gt; 6379</p>
+<p>slave 6381 -&gt; 6380</p>
+<h4 id="搭建过程-1">搭建过程</h4>
+<p>和一主多从有变化的配置，其它环节一致</p>
+<p>slave 6381 redis6381.conf</p>
+<pre><code><code>port 6381
+protected-mode no
+daemonize yes
+slaveof localhost 6380</code></code></pre>
+<h3 id="哨兵环境搭建">哨兵环境搭建</h3>
+<p>现切换成一主多从结构 ，在一主多从的情况下，搭建三个哨兵</p>
+<h4 id="结构-2">结构</h4>
+<p>sentinel 26379 sentinel 26380 sentinel 26381</p>
+<p>master 6379</p>
+<p>slave 6380 -&gt; 6379</p>
+<p>slave 6381 -&gt; 6379</p>
+<h4 id="搭建过程-2">搭建过程</h4>
+<ul>
+<li>配置哨兵节点</li>
+</ul>
+<p>sentinel 26379</p>
+<pre><code><code>port 26379
+daemonize yes
+sentinel monitor mymaster 127.0.0.1 6379 2</code></code></pre>
+<p>sentinel 26380</p>
+<pre><code><code>port 26380
+daemonize yes
+sentinel monitor mymaster 127.0.0.1 6379 2</code></code></pre>
+<p>sentinel 26381</p>
+<pre><code><code>port 26381
+daemonize yes
+sentinel monitor mymaster 127.0.0.1 6379 2</code></code></pre>
+<ul>
+<li>启动哨兵</li>
+</ul>
+<pre><code><code>./redis-sentinel conf/sentinel26379.conf
+./redis-sentinel conf/sentinel26380.conf
+./redis-sentinel conf/sentinel26381.conf</code></code></pre>
+<ul>
+<li>查看是否启动成功</li>
+</ul>
+<pre><code><code># 查看进程是否启动成功
+ps aux | grep sentinel
+
+# 关闭主节点，看是否会选举一台从节点成为主节点
+127.0.0.1:6379&gt; shutdown 
+
+# 重启之前的主节点，一段时间后，查看是否成为 slave 节点</code></code></pre>
+<h2 id="集群环境搭建">集群环境搭建</h2>
+<h4 id="结构-3">结构</h4>
+<p>cluster master -&gt;cluster slave</p>
+<p>master 6379 -&gt; slave6389</p>
+<p>master 6380 -&gt; slave6390</p>
+<p>master 6381 -&gt; slave6391</p>
+<h4 id="搭建过程-3">搭建过程</h4>
+<ul>
+<li>配置节点配置信息</li>
+</ul>
+<p>master 6379</p>
+<pre><code><code>port 6379
+protected-mode no
+daemonize yes
+
+cluster-enabled yes
+cluster-node-timeout 15000
+# . 相对于命令运行路径，最好写绝对路径
+cluster-config-file ./nodes-6379.conf</code></code></pre>
+<p>其它 master slave 只需要修改端口号即可，然后使用 <code>./redis-server &lt;configfile&gt;</code> 启动</p>
+<ul>
+<li>建立集群通信</li>
+</ul>
+<pre><code><code># 将集群的每一个节点建立通信
+192.168.108.128:6379&gt;cluster meet ip port  
+
+# 查询集群节点
+192.168.108.128:6379&gt;cluster nodes </code></code></pre>
+<ul>
+<li>映射数据槽</li>
+</ul>
+<p>redis集群有16384个哈希槽，要把所有数据映射到16384槽，需要批量设置槽</p>
+<pre><code><code># 查询集群状态
+192.168.108.128:6381&gt; cluster info
+cluster_state:fail
+
+# 显示为 fail 是还没有映射槽，还不能提供服务
+redis-cli -h 192.168.108.128 -p 6379 cluster addslots {0..5461}
+redis-cli -h 192.168.108.128 -p 6380 cluster addslots {5462..10922}
+redis-cli -h 192.168.108.128 -p 6381 cluster addslots {10923..16383}</code></code></pre>
+<ul>
+<li>配置主从，在从节点上操作，复制哪一个 master</li>
+</ul>
+<pre><code><code>192.168.152.128:6389&gt; cluster replicate 9b7b0c22f95eb01fb9935ad4b04d396c7f99e881
+192.168.152.128:6390&gt; cluster replicate 5351c088472467ae485ed519cea271efda646bfa
+192.168.152.128:6391&gt; cluster replicate e718f126278072e1e180c3e518d73e0bc877b3dc</code></code></pre>
+<ul>
+<li>测试集群是否正常工作</li>
+</ul>
+<pre><code><code># 登录上之后，执行不同的 set 操作，看能否跳转至其它节点执行命令
+./redis-cli -c </code></code></pre>
+<h2 id="springboot-连接-redis-集群">SpringBoot 连接 redis 集群</h2>
+<ul>
+<li>引入 spring-boot-starter-data-redis</li>
+</ul>
+<pre class="xml"><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-data-redis&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></code></pre>
+<ul>
+<li>配置节点信息</li>
+</ul>
+<pre class="properties"><code>spring.redis.cluster.nodes=192.168.108.128:6379,192.168.108.128:6380,192.168.108.128:6381</code></code></pre>
+<h2 id="一点小推广">一点小推广</h2>
+<p>创作不易，希望可以支持下我的开源软件，及我的小工具，欢迎来 gitee 点星，fork ，提 bug 。</p>
+<p>Excel 通用导入导出，支持 Excel 公式<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/100601578" class="uri">https://blog.csdn.net/sanri1993/article/details/100601578</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-excel-poi" class="uri">https://gitee.com/sanri/sanri-excel-poi</a></p>
+<p>使用模板代码 ，从数据库生成代码 ，及一些项目中经常可以用到的小工具<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/98664034" class="uri">https://blog.csdn.net/sanri1993/article/details/98664034</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-tools-maven" class="uri">https://gitee.com/sanri/sanri-tools-maven</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

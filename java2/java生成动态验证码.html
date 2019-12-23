@@ -1,0 +1,196 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修java生成动态验证码' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>java生成动态验证码</center></div><div class='banquan'>原文出处:本文由博客园博主撑起一片阳光提供。<br/>
+原文连接:https://www.cnblogs.com/cqyp/p/11459787.html</div><br>
+    <src>
+<p><strong><span style="font-family: 宋体; font-size: 16px;">编写CheckImgServlet实现类</span></strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.awt.Color;
+</span><span style="color: #008080;">  2</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.awt.Font;
+</span><span style="color: #008080;">  3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.awt.Graphics;
+</span><span style="color: #008080;">  4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.awt.Graphics2D;
+</span><span style="color: #008080;">  5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.awt.image.BufferedImage;
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.BufferedReader;
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.FileReader;
+</span><span style="color: #008080;">  8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+</span><span style="color: #008080;">  9</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.ArrayList;
+</span><span style="color: #008080;"> 10</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #008080;"> 11</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Random;
+</span><span style="color: #008080;"> 12</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.imageio.ImageIO;
+</span><span style="color: #008080;"> 13</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.ServletException;
+</span><span style="color: #008080;"> 14</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServlet;
+</span><span style="color: #008080;"> 15</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #008080;"> 16</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+</span><span style="color: #008080;"> 17</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 18</span> <span style="color: #008000;"> * 验证码生成程序
+</span><span style="color: #008080;"> 19</span> <span style="color: #008000;"> * 
+</span><span style="color: #008080;"> 20</span> <span style="color: #008000;"> * 
+</span><span style="color: #008080;"> 21</span> <span style="color: #008000;"> * 
+</span><span style="color: #008080;"> 22</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 23</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> CheckImgServlet <span style="color: #0000ff;">extends</span><span style="color: #000000;"> HttpServlet {
+</span><span style="color: #008080;"> 24</span>  <span style="color: #008000;">//</span><span style="color: #008000;"> 集合中保存所有成语</span>
+<span style="color: #008080;"> 25</span>  <span style="color: #0000ff;">private</span> List&lt;String&gt; words = <span style="color: #0000ff;">new</span> ArrayList&lt;String&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;"> 26</span> <span style="color: #000000;"> @Override
+</span><span style="color: #008080;"> 27</span>  <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> init() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException {
+</span><span style="color: #008080;"> 28</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 初始化阶段，读取new_words.txt
+</span><span style="color: #008080;"> 29</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> web工程中读取 文件，必须使用绝对磁盘路径</span>
+<span style="color: #008080;"> 30</span>   String path = getServletContext().getRealPath("/WEB-INF/new_words.txt"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 31</span>   <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 32</span>    BufferedReader reader = <span style="color: #0000ff;">new</span> BufferedReader(<span style="color: #0000ff;">new</span><span style="color: #000000;"> FileReader(path));
+</span><span style="color: #008080;"> 33</span> <span style="color: #000000;">   String line;
+</span><span style="color: #008080;"> 34</span>    <span style="color: #0000ff;">while</span> ((line = reader.readLine()) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 35</span> <span style="color: #000000;">    words.add(line);
+</span><span style="color: #008080;"> 36</span> <span style="color: #000000;">   }
+</span><span style="color: #008080;"> 37</span> <span style="color: #000000;">   reader.close();
+</span><span style="color: #008080;"> 38</span>   } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException e) {
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">   e.printStackTrace();
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;"> }
+</span><span style="color: #008080;"> 42</span>  <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> doGet(HttpServletRequest request, HttpServletResponse response)
+</span><span style="color: #008080;"> 43</span>    <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+</span><span style="color: #008080;"> 44</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 禁止缓存
+</span><span style="color: #008080;"> 45</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> response.setHeader("Cache-Control", "no-cache");
+</span><span style="color: #008080;"> 46</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> response.setHeader("Pragma", "no-cache");
+</span><span style="color: #008080;"> 47</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> response.setDateHeader("Expires", -1);</span>
+<span style="color: #008080;"> 48</span>   <span style="color: #0000ff;">int</span> width = 120<span style="color: #000000;">;
+</span><span style="color: #008080;"> 49</span>   <span style="color: #0000ff;">int</span> height = 30<span style="color: #000000;">;
+</span><span style="color: #008080;"> 50</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 步骤一 绘制一张内存中图片</span>
+<span style="color: #008080;"> 51</span>   BufferedImage bufferedImage = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BufferedImage(width, height,
+</span><span style="color: #008080;"> 52</span> <span style="color: #000000;">    BufferedImage.TYPE_INT_RGB);
+</span><span style="color: #008080;"> 53</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 步骤二 图片绘制背景颜色 ---通过绘图对象</span>
+<span style="color: #008080;"> 54</span>   Graphics graphics = bufferedImage.getGraphics();<span style="color: #008000;">//</span><span style="color: #008000;"> 得到画图对象 --- 画笔
+</span><span style="color: #008080;"> 55</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 绘制任何图形之前 都必须指定一个颜色</span>
+<span style="color: #008080;"> 56</span>   graphics.setColor(getRandColor(200, 250<span style="color: #000000;">));
+</span><span style="color: #008080;"> 57</span>   graphics.fillRect(0, 0<span style="color: #000000;">, width, height);
+</span><span style="color: #008080;"> 58</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 步骤三 绘制边框</span>
+<span style="color: #008080;"> 59</span> <span style="color: #000000;">  graphics.setColor(Color.WHITE);
+</span><span style="color: #008080;"> 60</span>   graphics.drawRect(0, 0, width - 1, height - 1<span style="color: #000000;">);
+</span><span style="color: #008080;"> 61</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 步骤四 四个随机数字</span>
+<span style="color: #008080;"> 62</span>   Graphics2D graphics2d =<span style="color: #000000;"> (Graphics2D) graphics;
+</span><span style="color: #008080;"> 63</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 设置输出字体</span>
+<span style="color: #008080;"> 64</span>   graphics2d.setFont(<span style="color: #0000ff;">new</span> Font("宋体", Font.BOLD, 18<span style="color: #000000;">));
+</span><span style="color: #008080;"> 65</span>   Random random = <span style="color: #0000ff;">new</span> Random();<span style="color: #008000;">//</span><span style="color: #008000;"> 生成随机数</span>
+<span style="color: #008080;"> 66</span>   <span style="color: #0000ff;">int</span> index =<span style="color: #000000;"> random.nextInt(words.size());
+</span><span style="color: #008080;"> 67</span>   String word = words.get(index);<span style="color: #008000;">//</span><span style="color: #008000;"> 获得成语
+</span><span style="color: #008080;"> 68</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 定义x坐标</span>
+<span style="color: #008080;"> 69</span>   <span style="color: #0000ff;">int</span> x = 10<span style="color: #000000;">;
+</span><span style="color: #008080;"> 70</span>   <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; word.length(); i++<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 71</span>    <span style="color: #008000;">//</span><span style="color: #008000;"> 随机颜色</span>
+<span style="color: #008080;"> 72</span>    graphics2d.setColor(<span style="color: #0000ff;">new</span> Color(20 + random.nextInt(110), 20 +<span style="color: #000000;"> random
+</span><span style="color: #008080;"> 73</span>      .nextInt(110), 20 + random.nextInt(110<span style="color: #000000;">)));
+</span><span style="color: #008080;"> 74</span>    <span style="color: #008000;">//</span><span style="color: #008000;"> 旋转 -30 --- 30度</span>
+<span style="color: #008080;"> 75</span>    <span style="color: #0000ff;">int</span> jiaodu = random.nextInt(60) - 30<span style="color: #000000;">;
+</span><span style="color: #008080;"> 76</span>    <span style="color: #008000;">//</span><span style="color: #008000;"> 换算弧度</span>
+<span style="color: #008080;"> 77</span>    <span style="color: #0000ff;">double</span> theta = jiaodu * Math.PI / 180<span style="color: #000000;">;
+</span><span style="color: #008080;"> 78</span>    <span style="color: #008000;">//</span><span style="color: #008000;"> 获得字母数字</span>
+<span style="color: #008080;"> 79</span>    <span style="color: #0000ff;">char</span> c =<span style="color: #000000;"> word.charAt(i);
+</span><span style="color: #008080;"> 80</span>    <span style="color: #008000;">//</span><span style="color: #008000;"> 将c 输出到图片</span>
+<span style="color: #008080;"> 81</span>    graphics2d.rotate(theta, x, 20<span style="color: #000000;">);
+</span><span style="color: #008080;"> 82</span>    graphics2d.drawString(String.valueOf(c), x, 20<span style="color: #000000;">);
+</span><span style="color: #008080;"> 83</span>    graphics2d.rotate(-theta, x, 20<span style="color: #000000;">);
+</span><span style="color: #008080;"> 84</span>    x += 30<span style="color: #000000;">;
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;"> 86</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 将验证码内容保存session</span>
+<span style="color: #008080;"> 87</span>   request.getSession().setAttribute("checkcode_session"<span style="color: #000000;">, word);
+</span><span style="color: #008080;"> 88</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 步骤五 绘制干扰线</span>
+<span style="color: #008080;"> 89</span>   graphics.setColor(getRandColor(160, 200<span style="color: #000000;">));
+</span><span style="color: #008080;"> 90</span>   <span style="color: #0000ff;">int</span><span style="color: #000000;"> x1;
+</span><span style="color: #008080;"> 91</span>   <span style="color: #0000ff;">int</span><span style="color: #000000;"> x2;
+</span><span style="color: #008080;"> 92</span>   <span style="color: #0000ff;">int</span><span style="color: #000000;"> y1;
+</span><span style="color: #008080;"> 93</span>   <span style="color: #0000ff;">int</span><span style="color: #000000;"> y2;
+</span><span style="color: #008080;"> 94</span>   <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; 30; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 95</span>    x1 =<span style="color: #000000;"> random.nextInt(width);
+</span><span style="color: #008080;"> 96</span>    x2 = random.nextInt(12<span style="color: #000000;">);
+</span><span style="color: #008080;"> 97</span>    y1 =<span style="color: #000000;"> random.nextInt(height);
+</span><span style="color: #008080;"> 98</span>    y2 = random.nextInt(12<span style="color: #000000;">);
+</span><span style="color: #008080;"> 99</span>    graphics.drawLine(x1, y1, x1 + x2, x2 +<span style="color: #000000;"> y2);
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">101</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 将上面图片输出到浏览器 ImageIO</span>
+<span style="color: #008080;">102</span>   graphics.dispose();<span style="color: #008000;">//</span><span style="color: #008000;"> 释放资源
+</span><span style="color: #008080;">103</span>   
+<span style="color: #008080;">104</span>   <span style="color: #008000;">//</span><span style="color: #008000;">将图片写到response.getOutputStream()中</span>
+<span style="color: #008080;">105</span>   ImageIO.write(bufferedImage, "jpg"<span style="color: #000000;">, response.getOutputStream());
+</span><span style="color: #008080;">106</span> <span style="color: #000000;"> }
+</span><span style="color: #008080;">107</span>  <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> doPost(HttpServletRequest request, HttpServletResponse response)
+</span><span style="color: #008080;">108</span>    <span style="color: #0000ff;">throws</span><span style="color: #000000;"> ServletException, IOException {
+</span><span style="color: #008080;">109</span> <span style="color: #000000;">  doGet(request, response);
+</span><span style="color: #008080;">110</span> <span style="color: #000000;"> }
+</span><span style="color: #008080;">111</span>  <span style="color: #008000;">/**</span>
+<span style="color: #008080;">112</span> <span style="color: #008000;">  * 取其某一范围的color
+</span><span style="color: #008080;">113</span> <span style="color: #008000;">  * 
+</span><span style="color: #008080;">114</span> <span style="color: #008000;">  * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> fc
+</span><span style="color: #008080;">115</span> <span style="color: #008000;">  *            int 范围参数1
+</span><span style="color: #008080;">116</span> <span style="color: #008000;">  * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> bc
+</span><span style="color: #008080;">117</span> <span style="color: #008000;">  *            int 范围参数2
+</span><span style="color: #008080;">118</span> <span style="color: #008000;">  * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> Color
+</span><span style="color: #008080;">119</span>   <span style="color: #008000;">*/</span>
+<span style="color: #008080;">120</span>  <span style="color: #0000ff;">private</span> Color getRandColor(<span style="color: #0000ff;">int</span> fc, <span style="color: #0000ff;">int</span><span style="color: #000000;"> bc) {
+</span><span style="color: #008080;">121</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 取其随机颜色</span>
+<span style="color: #008080;">122</span>   Random random = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Random();
+</span><span style="color: #008080;">123</span>   <span style="color: #0000ff;">if</span> (fc &gt; 255<span style="color: #000000;">) {
+</span><span style="color: #008080;">124</span>    fc = 255<span style="color: #000000;">;
+</span><span style="color: #008080;">125</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">126</span>   <span style="color: #0000ff;">if</span> (bc &gt; 255<span style="color: #000000;">) {
+</span><span style="color: #008080;">127</span>    bc = 255<span style="color: #000000;">;
+</span><span style="color: #008080;">128</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">129</span>   <span style="color: #0000ff;">int</span> r = fc + random.nextInt(bc -<span style="color: #000000;"> fc);
+</span><span style="color: #008080;">130</span>   <span style="color: #0000ff;">int</span> g = fc + random.nextInt(bc -<span style="color: #000000;"> fc);
+</span><span style="color: #008080;">131</span>   <span style="color: #0000ff;">int</span> b = fc + random.nextInt(bc -<span style="color: #000000;"> fc);
+</span><span style="color: #008080;">132</span>   <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Color(r, g, b);
+</span><span style="color: #008080;">133</span> <span style="color: #000000;"> }
+</span><span style="color: #008080;">134</span> }</code></pre>
+
+<p><strong><span style="font-family: 宋体; font-size: 16px;">用于生成验证码图片上的文字如下下面四字成语，太多只打出一部分，你们可以自己添加，将其保存为txt文档，保存web项目的WEB-INF下</span></strong></p>
+
+<src><span style="color: #000000; background-color: #ffffff;"><span style="font-family: 宋体;"><span style="font-family: 宋体;">一唱一和<br />一呼百应<br />一干二净<br />一举两得<br />一落千丈<br />一模一样<br />一暴十寒<br />一日千里<br />一五一十<br />一心一意<br />两面三刀<br />三长两短<br />三番五次<br />三三两两<br />三头六臂<br />三心二意<br />三言两语<br /><br /></span></span></span>
+<p><strong><span style="font-family: 宋体; font-size: 18px; background-color: #ffffff;"><span style="font-size: 16px;">html.login文件，确定验证码显示的位置</span>，</span><span style="font-family: 宋体; font-size: 16px; background-color: #ffffff;">用于登陆页面</span></strong></p>
+<src>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 4</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 5</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Insert title here<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 7</span> <span style="background-color: #f5f5f5; color: #000000;">   window.onload </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;">(){
+</span><span style="color: #008080;"> 8</span>     
+<span style="color: #008080;"> 9</span> <span style="background-color: #f5f5f5; color: #000000;">   }
+</span><span style="color: #008080;">10</span>    <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> changeImg(obj){
+</span><span style="color: #008080;">11</span> <span style="background-color: #f5f5f5; color: #000000;">    obj.src</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">/WEB3/checkImg?time=</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> Date().getTime();
+</span><span style="color: #008080;">12</span> <span style="background-color: #f5f5f5; color: #000000;">   }
+</span><span style="color: #008080;">13</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">14</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">15</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span> 
+<span style="color: #008080;">16</span>  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">form </span><span style="color: #ff0000;">action</span><span style="color: #0000ff;">="/WEB2/login"</span><span style="color: #ff0000;"> method</span><span style="color: #0000ff;">="post"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">17</span>   用户名：<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="username"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">18</span>   密码：<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="password"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="password"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">19</span>    验证码:<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="username"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">onclick</span><span style="color: #0000ff;">="changeImg(this)"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="/WEB3/checkImg"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">20</span>   <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="submit"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="登录"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">21</span>  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">22</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">23</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+
+<src>&nbsp;
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,127 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot起飞系列-拦截器和统一错误处理（七）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot起飞系列-拦截器和统一错误处理（七）</center></div><div class='banquan'>原文出处:本文由博客园博主Lookings提供。<br/>
+原文连接:https://www.cnblogs.com/lookings/p/11662792.html</div><br>
+    <h1>一、前言</h1>
+<p>在前边部分我们已经学会了基本的web开发流程，在web开发中，我们通常会对请求做统一处理，比如未登录的用户要拦截掉相关请求，报错页面统一显示等等，这些都需要配置，可以大大简化我们的代码，实现功能的完整性与统一性。</p>
+<h1>二、拦截器配置</h1>
+<p>首先我们先做一个登录身份验证拦截器，来拦截那些没有登录的用户，保护我们的资源。下面我们创建一个拦截器，需要实现拦截器接口。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.component;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.servlet.HandlerInterceptor;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.servlet.ModelAndView;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletResponse;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> LoginHandlerInterceptor <span style="color: #0000ff;">implements</span><span style="color: #000000;"> HandlerInterceptor {
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">if</span>(request.getSession().getAttribute("loginUser") == <span style="color: #0000ff;">null</span><span style="color: #000000;">){
+</span><span style="color: #008080;">14</span>             request.setAttribute("msg","请先登录"<span style="color: #000000;">);
+</span><span style="color: #008080;">15</span>             request.getRequestDispatcher("/index.html"<span style="color: #000000;">).forward(request,response);
+</span><span style="color: #008080;">16</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">18</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">22</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">23</span> 
+<span style="color: #008080;">24</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">27</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">30</span> }</code></pre>
+
+<p>这个拦截器的作用是获取当前session中的loginUser属性，如果有值说明登录了就可以放行，当然我们需要在登录成功的代码里边设置好session的这个属性。</p>
+<p>在WebConfig中添加我们的拦截器：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #008000;">//</span><span style="color: #008000;">所有的WebMvcConfigurerAdapter组件都会一起起作用</span>
+<span style="color: #008080;"> 2</span>     @Bean <span style="color: #008000;">//</span><span style="color: #008000;">将组件注册在容器</span>
+<span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> WebMvcConfigurerAdapter webMvcConfigurerAdapter(){
+</span><span style="color: #008080;"> 4</span>         WebMvcConfigurerAdapter adapter = <span style="color: #0000ff;">new</span><span style="color: #000000;"> WebMvcConfigurerAdapter() {
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            @Override
+</span><span style="color: #008080;"> 6</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> addViewControllers(ViewControllerRegistry registry) {
+</span><span style="color: #008080;"> 7</span>                 registry.addViewController("/").setViewName("login"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 8</span>                 registry.addViewController("/index.html").setViewName("login"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #000000;">            @Override
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> addInterceptors(InterceptorRegistry registry) {
+</span><span style="color: #008080;">13</span>                 registry.addInterceptor(<span style="color: #0000ff;">new</span><span style="color: #000000;"> LoginHandlerInterceptor())
+</span><span style="color: #008080;">14</span>                         .excludePathPatterns("/index.html","/","/user/login"<span style="color: #000000;">);
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> adapter;
+</span><span style="color: #008080;">18</span>     }</code></pre>
+
+<p>第12-15行，注册我们拦截器之后，排除掉不需要验证的页面，默认情况下静态资源不会做验证。</p>
+<h1>三、统一错误处理</h1>
+<p>springboot默认已经配置了统一错误处理，只不过错误页面是内置的，可能不是我们想要的，所以如果我们要自定义错误页面，还得重新配置。</p>
+<h2>3.1 定制错误页面</h2>
+<p>在使用模板的情况下，springboot默认会找到/templates/error/xxx.html页面作为错误页面显示，比如我们用4xx.html处理所有httpstatuscode以4开头的错误，比如401，403，404，如果有具体的数字，就先用具体的数字对应页面，如果没有就用有前缀开头的页面。</p>
+<p>显示错误页面时，页面上能获取到以下信息，可以让我们看到详细的错误信息：</p>
+<p class="md-end-block md-p"><span class="md-tab"> <span class="md-plain">timestamp：时间戳。</span></span></p>
+<p class="md-end-block md-p"><span class="md-tab"> <span class="md-plain">status：状态码。</span></span></p>
+<p class="md-end-block md-p"><span class="md-tab"> <span class="md-plain">error：错误提示。</span></span></p>
+<p class="md-end-block md-p"><span class="md-tab"> <span class="md-plain">exception：异常对象。</span></span></p>
+<p class="md-end-block md-p"><span class="md-tab"> <span class="md-plain">message：异常消息。</span></span></p>
+<p class="md-end-block md-p md-focus"><span class="md-tab"> <span class="md-plain">errors：JSR303数据校验的错误都在这里。</span></span></p>
+<p class="md-end-block md-p md-focus"><span class="md-tab"><span class="md-plain">在没有模板的情况下，会去找静态资源下的相关页面，如果静态资源下也没有，就用springboot默认的错误页面。如下，我添加了一个4xx.html的错误处理页面，当我访问一个不存在的路径（404错误）时，就会显示我添加的4xx.html页面：</span></span></p>
+<p class="md-end-block md-p md-focus"><span class="md-tab"><span class="md-plain"><img style="border: 1px solid black;" src="./images/SpringBoot起飞系列-拦截器和统一错误处理（七）0.png" alt="" /></span></span></p>
+<p><img style="border: 1px solid black;" src="./images/SpringBoot起飞系列-拦截器和统一错误处理（七）1.png" alt="" /></p>
+<h2>3.2 自定义返回的json数据</h2>
+<p>默认情况下springboot会出现自适应的错误显示，当用浏览器访问（接受类型为text/html）时会显示错误页面，当用postman(接受类型为application/json）会显示错误json数据。不过显示的字段都是内置固定的，如果我们想要添加自己的错误数据，就要自己定制了。</p>
+<p>在springboot中，出现错误以后，会来到/error请求，会被BasicErrorController处理，响应出去可以获取的数据是由getErrorAttributes得到的（是AbstractErrorController（ErrorController）规定的方法），这里我们就可以编写一个ErrorController的实现类【或者是编写AbstractErrorController的子类】，放在容器中替换掉原来的ErrorController，页面上能用的数据，或者是json返回能用的数据都是通过errorAttributes.getErrorAttributes得到。</p>
+<p>添加自定一个ErrorAttribute，重写errorAttributes.getErrorAttributes，返回自己的数据map：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.component;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.web.servlet.error.DefaultErrorAttributes;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Component;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.context.request.WebRequest;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Map;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">@Component
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> MyErrorAttributes <span style="color: #0000ff;">extends</span><span style="color: #000000;"> DefaultErrorAttributes {
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span> Map&lt;String, Object&gt; getErrorAttributes(WebRequest webRequest, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> includeStackTrace) {
+</span><span style="color: #008080;">13</span>         Map&lt;String, Object&gt; map =  <span style="color: #0000ff;">super</span><span style="color: #000000;">.getErrorAttributes(webRequest, includeStackTrace);
+</span><span style="color: #008080;">14</span>         map.put("code",1<span style="color: #000000;">);
+</span><span style="color: #008080;">15</span>         map.put("msg","自定义错误"<span style="color: #000000;">);
+</span><span style="color: #008080;">16</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> map;
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">18</span> }</code></pre>
+
+<p class="md-end-block md-p md-focus">访问错误页面和json返回：</p>
+<p class="md-end-block md-p md-focus"><img style="border: 1px solid black;" src="./images/SpringBoot起飞系列-拦截器和统一错误处理（七）2.png" alt="" /></p>
+<p><img style="border: 1px solid black;" src="./images/SpringBoot起飞系列-拦截器和统一错误处理（七）3.png" alt="" /></p>
+<h1>四、总结</h1>
+<p>不得不说，springboot真是很懂我们，把所有东西都配置好了，只要我们稍微修修补补就能很好的满足我们的需求了，这里我们可以完全不要原始的错误信息，可以把错误信息获取数据组装成我们标准统一格式的错误信息，也可以在这里统一记录我们的错误日志，也是非常的方便。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

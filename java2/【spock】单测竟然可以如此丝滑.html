@@ -1,0 +1,699 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【spock】单测竟然可以如此丝滑' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【spock】单测竟然可以如此丝滑</center></div><div class='banquan'>原文出处:本文由博客园博主KIWI的碎碎念提供。<br/>
+原文连接:https://www.cnblogs.com/kiwifly/p/11789468.html</div><br>
+    <p><img src="./images/【spock】单测竟然可以如此丝滑0.png" alt="image.png" /></p>
+<h2 id="为什么人人都讨厌写单测">0. 为什么人人都讨厌写单测</h2>
+<p>在之前的关于<a href="https://mp.weixin.qq.com/s?__biz=MzIzODE1NzA1MA==&amp;mid=2650157673&amp;idx=1&amp;sn=ed8cb9a37722938344d2ea5520d99368&amp;chksm=f13f3ffcc648b6ea26b86301bc3f3d2ccbf4bbb6dbfbdf09b55a14f6290f139e1636b9deb699&amp;scene=0&amp;xtrack=1#rd">swagger</a>文章里提到过，<strong>程序员最讨厌的两件事，一件是别人不写文档，另一件就是自己写文档。这里如果把文档换成单元测试也同样成立。</strong><br />
+每个开发人员都明白单元测试的作用，也都知道代码覆盖率越高越好。高覆盖率的代码，相对来说出现 BUG 的概率就越低，在线上运行就越稳定，接的锅也就越少，就也不会害怕测试同事突然的关心。<br />
+既然这么多好处，为什么还会讨厌他呢？至少在我看来，单测有如下几点让我喜欢不起来的理由。<br />
+<strong>第一，要额外写很多很多的代码</strong>，一个高覆盖率的单测代码，往往比你要测试的，真正开发的业务代码要多，甚至是业务代码的好几倍。这让人觉得难以接受，你想想开发 5 分钟，单测 2 小时是什么样的心情。而且并不是单测写完就没事了，后面业务要是变更了，你所写的单测代码也要同步维护。<br />
+第二，即使你有那个耐心去写单测，但是在当前这个拼速度挤时间的大环境下，会给你那么多写单测的时间吗？<strong>写一个单测的时间可以实现一个需求</strong>，你会如何去选？<br />
+<strong>第三，写单测通常是一件很无趣的事</strong>，因为他比较死，主要目的就是为了验证，相比之下他更像是个体力活，没有真正写业务代码那种创造的成就感。写出来，验证不出bug很失落，白写了，验证出bug又感到自己是在打自己脸。</p>
+<h2 id="为什么人人又必须写单测">1. 为什么人人又必须写单测</h2>
+<p>所以得到的结论就是不写单测？那么问题又来了，<strong>出来混迟早是要还的</strong>，上线出了问题，最终责任人是谁？不是提需求的产品、不是没发现问题的测试同学，他们顶多就是连带责任。最该负责的肯定是写这段代码的你。特别是对于那些从事金融、交易、电商等息息相关业务的开发人员，跟每行代码打交通的都是真金白银。每次明星搞事，微博就挂，已经被传为笑谈，毕竟只是娱乐相关，如果挂的是支付宝、微信，那用户就没有那么大的包容度了。这些业务如果出现严重问题，轻则扫地出门，然后整个职业生涯背负这个污点，<strong>重则直接从面向对象开发变成面向监狱开发</strong>。所以<strong>单元测试保护的不仅仅是程序，更保护的是写程序的你</strong>。<br />
+最后得出了一个无可奈何的结论，<strong>单测是个让人又爱又恨的东西，是不想做但又不得不做的事情</strong>。虽然我们没办法改变要写单测这件事，但是我们可以改变怎么去写单元测试这件事。</p>
+<h2 id="spock-可以帮你改善单测体验">2. SPOCK 可以帮你改善单测体验</h2>
+<p>当然，本文不是教你用旁门左道的方法提高代码覆盖率。而是通过一个神奇的框架 spock 去提高你编写单元测试的效率。spock 这名称来源，个人猜测是因为《星际迷航》的同名人物（封面图）。那么spock 是如何提高编写单测的效率呢？我觉得有以下几点：<br />
+<strong>第一，他可以用更少的代码去实现单元测试</strong>，让你可以更加专注于去验证结果而不是写单测代码的过程。那么他又是如何做到少写代码这件事呢？原来他使用一种叫做 groovy 的魔法。<br />
+groovy 其实是一门基于 jvm 的动态语言。可以简单的理解成跑在 jvm 上的 python 或 js。说到这里，可能没有接触过动态语言的同学，对它们都会有一个比较刻板的印象，太过于灵活，很容易出现问题，且可维护性差，所以有了那一句『动态一时爽，全家 xxx』的梗。首先，这些的确是他的问题，严格的说是使用不当时才带来的问题。所以主要还是看使用的人。比如安卓领域的官方依赖管理工具 gradle 就是基于 groovy 开发的。<br />
+另外不要误以为我学这门框架，还要多学一门语言，成本太大。其实大可不必担心，你如果会 groovy 当然更好，如果不会也没有关系。因为 groovy 是基于 java 的，所以完全可以放心大胆的使用 java 的语法，某些要用到的 groovy 独有的语法很少，而且后面都会告诉你。<br />
+<strong>第二，他有更好的语义化，让你的单测代码可读性更高。</strong><br />
+语义化这个词可能不太好理解。举两个例子来说吧，第一个是语义化比较好的语言 -- HTML。他的语法特点就是标签，不同的类型放在不同的标签里。比如 head 就是头部的信息，body 是主体内容的信息，table 就是表格的信息，对于没有编程经验的人来说，也可以很容易理解。第二个是语义化比较差的语言 -- 正则。他可以说基本上没有语义这种东西，由此导致的直接问题就是，即使是你自己的写的正则，几天之后你都不知道当时写的是什么。比如下面这个正则，你能猜出他是什么意思吗？（可以留言回复）</p>
+<pre><code><code>((?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d))</code></code></pre>
+<h2 id="领略-spock-的魔法">3. 领略 SPOCK 的魔法</h2>
+<h3 id="引入依赖">3.1 引入依赖</h3>
+<pre class="xml"><code>        &lt;!--如果没有使得 spring boot，以下包可以省略--&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+        &lt;!--引入spock 核心包--&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.spockframework&lt;/groupId&gt;
+            &lt;artifactId&gt;spock-core&lt;/artifactId&gt;
+            &lt;version&gt;1.3-groovy-2.5&lt;/version&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+        &lt;!--引入spock 与 spring 集成包--&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.spockframework&lt;/groupId&gt;
+            &lt;artifactId&gt;spock-spring&lt;/artifactId&gt;
+            &lt;version&gt;1.3-groovy-2.5&lt;/version&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+        &lt;!--引入 groovy 依赖--&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.codehaus.groovy&lt;/groupId&gt;
+            &lt;artifactId&gt;groovy-all&lt;/artifactId&gt;
+            &lt;version&gt;2.5.7&lt;/version&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;</code></code></pre>
+<h5 id="说明">说明</h5>
+<p>注释已经标明，第一个包是 spring boot 项目需要使用的，如果你只是想使用 spock，只要最下面 3 个即可。其中第一个包 <strong>spock-core</strong> 提供了 spock 的核心功能，第二个包 <strong>spock-spring</strong> 提供了与 spring 的集成（不用 spring 的情况下也可以不引入）。 注意这两个包的版本号 -&gt; <strong>1.3-groovy-2.5</strong>。第一个版本号 1.3 其实代表是 spock 的版本，第二个版本号代表的是 spock 所要依赖的 groovy 环境的版本。最后一个包就是我们要依赖的 groovy 。</p>
+<h3 id="准备基础测试类">3.2 准备基础测试类</h3>
+<h4 id="calculator.java">3.2.1 <strong>Calculator.java</strong></h4>
+<pre class="xml"><code>/*
+ * *
+ *  * blog.coder4j.cn
+ *  * Copyright (C) 2016-2019 All Rights Reserved.
+ *
+ */
+package cn.coder4j.study.example.spock;
+
+/**
+ * @author buhao
+ * @version Calculator.java, v 0.1 2019-10-30 10:34 buhao
+ */
+public class Calculator {
+
+    /**
+     * 加操作
+     *
+     * @param num1
+     * @param num2
+     * @return
+     */
+    public static int add(int num1, int num2) {
+        return num1 + num2;
+    }
+
+    /**
+     * 整型除操作
+     *
+     * @param num1
+     * @param num2
+     * @return
+     */
+    public static int divideInt(int num1, int num2) {
+        return num1 / num2;
+    }
+
+    /**
+     * 浮点型操作
+     * @param num1
+     * @param num2
+     * @return
+     */
+    public static double divideDouble(double num1,  double num2){
+        return num1 / num2;
+    }
+}</code></code></pre>
+<h5 id="说明-1">说明</h5>
+<p>这是一个很简单的计算器类。只写了三个方法，一个是加法的操作、一个整型的除法操作、一个浮点类型的除法操作。</p>
+<h3 id="开始单测calculator.java">3.3 开始单测 <strong>Calculator.java</strong></h3>
+<h4 id="创建单测类calculatortest.groovy">3.3.1 创建单测类 CalculatorTest.groovy</h4>
+<pre class="groovy"><code>class CalculatorTest extends  Specification {
+    
+}</code></code></pre>
+<h5 id="说明-2">说明</h5>
+<p>这里一定要注意，之前我们已经说了 spock 是基于 groovy 。所以单测类的后缀不是 .java 而** .groovy<strong>。千万不要创建成普通 java 类了。否则创建没有问题，但是写一些 groovy 语法会报错。如果你用的是 IDEA 可以通过如下方式创建，以前创建 Java 类我们都是选择第一个选项，现在我们选择第三个 </strong>Groovy Class** 就可以了。<br />
+<img src="./images/【spock】单测竟然可以如此丝滑1.png" alt="image.png" /><br />
+另外就是 spock 的测试类需要继承 <strong>spock.lang.Specification </strong>类。</p>
+<h4 id="验证加操作---expect">3.3.2 验证加操作 - expect</h4>
+<pre class="groovy"><code>    def &quot;test add&quot;(){
+        expect:
+        Calculator.add(1, 1) == 2
+    }</code></code></pre>
+<h5 id="说明-3">说明</h5>
+<p><strong>def</strong> 是 groovy 的关键字，可以用来定义变量跟方法名。后面 <strong>&quot;test add&quot; </strong>是你单元测试的名称，也可以用中文。最后重点说明的是 <strong>expect</strong> 这个关键字。<br />
+expect 字面上的意思是期望，我们期望什么样的事情发生。在使用其它单测框架时，与之类似的是 assert 。比如 _Assert.assertEquals(_Calculator.add(_1 + 1）, 2) _这样，表示我们断言加操作传入1 与 1 相加结果为 2。如果结果是这样则用例通过，如果不是则用例失败。这与我们上面的代码功能上完成一致。<br />
+expect 的语法意义就是在 expect 的<strong>块</strong>内，所有表达式成立则验证通过，反之有任一个不成立则验证失败。这里引入了一个<strong>块</strong>的概念。怎么理解 spock 的块呢？我们上面说 spock 有良好的语义化及更好的阅读性就是因为这个块的作用。可以类比成 html 中的标签。html 的标签的范围是两个标签之间，而 spock 更简洁一点，从这个标签开始到下一个标签开始或代码结束的地方，就是他的范围。我们只要看到 expect 这个标签就明白，他的范围内都是我们预期要得到的结果。</p>
+<h4 id="验证加操作---given---and">3.3.3 验证加操作 - given - and</h4>
+<p>这里代码比较简单，参数我只使用了一次，所以直接写死。如果想复用，我就得把这些参数抽成变量。这个时候可以使用 spock 的 <strong>given</strong> 块。given 的语法意义相当于是一个初始化的代码块。</p>
+<pre class="groovy"><code>    def &quot;test add with given&quot;(){
+        given:
+        def num1 = 1
+        def num2 = 1
+        def result = 2
+
+        expect:
+        Calculator.add(num1, num2) == result
+    }</code></code></pre>
+<p>当然你也可以像下面这样写，但是<strong>严重不推荐</strong>，因为虽然可以达到同样的效果，但是<strong>不符合 spock 的语义</strong>。就像我们一般是在 head 里面引入 js、css，但是你在 body 或者任何标签里都可以引入，语法没有问题但是破坏了语义，不便理解与维护。</p>
+<pre class="groovy"><code>    // 反倒
+    def &quot;test add with given&quot;(){
+        expect:
+        def num1 = 1
+        def num2 = 1
+        def result = 2
+        Calculator.add(num1, num2) == result
+    }</code></code></pre>
+<p>如果你还想让语义更好一点，我们可以把参数与结果分开定义，这个时候可以使用 <strong>and</strong> 块。它的语法功能可以理解成同他上面最近的一个标签。</p>
+<pre class="groovy"><code>    def &quot;test add with given and&quot;(){
+        given:
+        def num1 = 1
+        def num2 = 1
+
+        and:
+        def result = 2
+
+        expect:
+        Calculator.add(num1, num2) == result
+    }</code></code></pre>
+<h4 id="验证加操作---expect---where">3.3.4 验证加操作 - expect - where</h4>
+<p>看了上面例子，可能觉得 spock 只是语义比较好，但是没有少写几行代码呀。别急，下面我们就来看 spock 的一大杀器 <strong>where</strong>。</p>
+<pre class="groovy"><code>    def &quot;test add with expect where&quot;(){
+        expect:
+        Calculator.add(num1, num2) == result
+
+        where:
+        num1    |   num2    |   result
+        1       |   1       |   2
+        1       |   2       |   3
+        1       |   3       |   4
+    }</code></code></pre>
+<p><strong>where 块可以理解成准备测试数据的地方</strong>，他可以跟 expect 组合使用。上面代码里 expect 块里面定义了三个变量 num1、num2、result。这些数据我们可以在 where 块里定义。where 块使用了一种很像 markdown 中表格的定义方法。第一行或者说表头，列出了我们要传数据的变量名称，这里要<strong>与 expect 中对应</strong>，不能少但是可以多。其它行都是数据行，与表头一样都是通过 『 | 』 号分隔。通过这样，spock 就会跑 3 次用例，分别是 1 + 2 = 2、1 + 2 = 3、1 + 3 = 4 这些用例。怎么样？是不是很方便，后面再扩充用例只要再加一行数据就可以了。 </p>
+<h4 id="验证加操作---expect---where---unroll">3.3.5 验证加操作 - expect - where - @Unroll</h4>
+<p>上面这些用例都是正常可以跑通的，如果是 IDEA 跑完之后会如下所示：<br />
+<img src="./images/【spock】单测竟然可以如此丝滑2.png" alt="image.png" /><br />
+那么现在我们看看如果有用例不通过会怎么样，把上面代码的最后一个 4 改成 5</p>
+<pre class="groovy"><code>    def &quot;test add with expect where&quot;(){
+        expect:
+        Calculator.add(num1, num2) == result
+
+        where:
+        num1    |   num2    |   result
+        1       |   1       |   2
+        1       |   2       |   3
+        1       |   3       |   5
+    }</code></code></pre>
+<p>再跑一次，IDEA 会出现如下显示<br />
+<img src="./images/【spock】单测竟然可以如此丝滑3.png" alt="image.png" /><br />
+左边标注出来的是用例执行结果，可以看出来虽然有 3 条数据，其中 2 条数据是成功，但是只会显示整体的成功与否，所以显示未通过。但是 3 条数据，我怎么知道哪条没通过呢？<br />
+右边标注出来的是 spock 打印的的错误日志。可以很清楚的看到，在 num1 为 1，num2 为 3，result 为 5 并且 他们之间的判断关系为 == 的结果是 false 才是正确的。 spock 的这个日志打印的是相当历害，如果是比较字符串，还会计算异常字符串与正确字符串之间的匹配度，有兴趣的同学，可以自行测试。<br />
+嗯，虽然可以通过日志知道哪个用例没通过，但是还是觉得有点麻烦。spock 也知道这一点。所以他还同时提供了一个** @Unroll **注解。我们在上面的代码上再加上这个注解：</p>
+<pre class="groovy"><code>    @Unroll
+    def &quot;test add with expect where unroll&quot;(){
+        expect:
+        Calculator.add(num1, num2) == result
+
+        where:
+        num1    |   num2    |   result
+        1       |   1       |   2
+        1       |   2       |   3
+        1       |   3       |   5
+    }</code></code></pre>
+<p>运行结果如下： <img src="./images/【spock】单测竟然可以如此丝滑4.png" alt="image.png" /><br />
+通过添加** @Unroll** 注解，spock 自动把上面的代码拆分成了 3 个独立的单测测试，分别运行，运行结果更清晰了。<br />
+那么还能更清晰吗？当然可以，我们发现 spock 拆分后，每个用例的名称其实都是你写的单测方法的名称，然后后面加一个数组下标，不是很直观。我们可以通过 groovy 的字符串语法，把变量放入用例名称中，代码如下：</p>
+<pre class="groovy"><code>    @Unroll
+    def &quot;test add with expect where unroll by #num1 + #num2 = #result&quot;(){
+        expect:
+        Calculator.add(num1, num2) == result
+
+        where:
+        num1    |   num2    |   result
+        1       |   1       |   2
+        1       |   2       |   3
+        1       |   3       |   5
+    }</code></code></pre>
+<p>如上，我们在方法名后加了一句 <strong>#num1 + #num2 = #result</strong>。这里有点类似我们在 mybatis 或者一些模板引擎中使用的方法。# 号拼接声明的变量就可以了，执行后结果如下。<br />
+<img src="./images/【spock】单测竟然可以如此丝滑5.png" alt="image.png" /><br />
+这下更清晰了。<br />
+另外一点，就是 where 默认使用的是表格的这种形式：</p>
+<pre class="groovy"><code>        where:
+        num1    |   num2    |   result
+        1       |   1       |   2
+        1       |   2       |   3
+        1       |   3       |   5</code></code></pre>
+<p>很直观，但是这种形式有一个弊端。上面 『 | 』 号对的这么整齐。都是我一个空格一个 TAG 按出来的。虽然语法不要求对齐，但是逼死强迫症。不过，好在还可以有另一种形式：</p>
+<pre class="groovy"><code>    @Unroll
+    def &quot;test add with expect where unroll arr by #num1 + #num2 = #result&quot;(){
+        expect:
+        Calculator.add(num1, num2) == result
+
+        where:
+        num1 &lt;&lt; [1, 1, 2]
+        num2 &lt;&lt; [1, 2, 3]
+        result &lt;&lt; [1, 3, 4]
+    }</code></code></pre>
+<p>可以通过 『&lt;&lt;』 符（注意方向），把一个数组赋给变量，等同于上面的数据表格，没有表格直观，但是比较简洁也不用考虑对齐问题，这两种形式看个人喜好了。</p>
+<h4 id="验证整数除操作---when---then">3.3.6 验证整数除操作 - when - then</h4>
+<p>我们都知道一个整数除以0 会有抛出一个『/ by zero』异常，那么如果断言这个异常呢。用上面 expect 不太好操作，我们可以使用另一个类似的块** when ... then**。</p>
+<pre class="groovy"><code>    @Unroll
+    def &quot;test int divide zero exception&quot;(){
+        when:
+        Calculator.divideInt(1, 0)
+
+        then:
+        def ex = thrown(ArithmeticException)
+        ex.message == &quot;/ by zero&quot;
+    }</code></code></pre>
+<p><strong>when ... then </strong>通常是成对出现的，它代表着当执行了 when 块中的操作，会出现 then 块中的期望。比如上面的代码说明了，当执行了 <em>Calculator.divideInt(1, 0) <em>的操作，就一定会抛出 <em>ArithmeticException</em> 异常，并且异常信息是 </em>/ by zero</em>。</p>
+<h3 id="准备spring测试类">3.4 准备Spring测试类</h3>
+<p>上面我们已经学会了 spock 的基础用法，下面我们将学习与 spring 整合的知识，首先创建几个用于测试的demo 类</p>
+<h4 id="user.java">3.4.1 User.java</h4>
+<pre class="groovy"><code>/*
+ * *
+ *  * blog.coder4j.cn
+ *  * Copyright (C) 2016-2019 All Rights Reserved.
+ *
+ */
+package cn.coder4j.study.example.spock.model;
+
+import java.util.Objects;
+
+/**
+ * @author buhao
+ * @version User.java, v 0.1 2019-10-30 16:23 buhao
+ */
+public class User {
+    private String name;
+    private Integer age;
+    private String passwd;
+
+    public User(String name, Integer age, String passwd) {
+        this.name = name;
+        this.age = age;
+        this.passwd = passwd;
+    }
+
+    /**
+     * Getter method for property &lt;tt&gt;passwd&lt;/tt&gt;.
+     *
+     * @return property value of passwd
+     */
+    public String getPasswd() {
+        return passwd;
+    }
+
+    /**
+     * Setter method for property &lt;tt&gt;passwd&lt;/tt&gt;.
+     *
+     * @param passwd value to be assigned to property passwd
+     */
+    public void setPasswd(String passwd) {
+        this.passwd = passwd;
+    }
+
+    /**
+     * Getter method for property &lt;tt&gt;name&lt;/tt&gt;.
+     *
+     * @return property value of name
+     */
+    public String getName() {
+        return name;
+    }
+
+    /**
+     * Setter method for property &lt;tt&gt;name&lt;/tt&gt;.
+     *
+     * @param name value to be assigned to property name
+     */
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Getter method for property &lt;tt&gt;age&lt;/tt&gt;.
+     *
+     * @return property value of age
+     */
+    public Integer getAge() {
+        return age;
+    }
+
+    /**
+     * Setter method for property &lt;tt&gt;age&lt;/tt&gt;.
+     *
+     * @param age value to be assigned to property age
+     */
+    public void setAge(Integer age) {
+        this.age = age;
+    }
+
+    public User() {
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return Objects.equals(name, user.name) &amp;&amp;
+                Objects.equals(age, user.age) &amp;&amp;
+                Objects.equals(passwd, user.passwd);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, age, passwd);
+    }
+}</code></code></pre>
+<h4 id="userdao.java">3.4.2 UserDao.java</h4>
+<pre class="groovy"><code>/*
+ * *
+ *  * blog.coder4j.cn
+ *  * Copyright (C) 2016-2019 All Rights Reserved.
+ *
+ */
+package cn.coder4j.study.example.spock.dao;
+
+import cn.coder4j.study.example.spock.model.User;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author buhao
+ * @version UserDao.java, v 0.1 2019-10-30 16:24 buhao
+ */
+@Component
+public class UserDao {
+
+    /**
+     * 模拟数据库
+     */
+    private static Map&lt;String, User&gt; userMap = new HashMap&lt;&gt;();
+    static {
+        userMap.put(&quot;k&quot;,new User(&quot;k&quot;, 1, &quot;123&quot;));
+        userMap.put(&quot;i&quot;,new User(&quot;i&quot;, 2, &quot;456&quot;));
+        userMap.put(&quot;w&quot;,new User(&quot;w&quot;, 3, &quot;789&quot;));
+    }
+
+    /**
+     * 通过用户名查询用户
+     * @param name
+     * @return
+     */
+    public User findByName(String name){
+        return userMap.get(name);
+    }
+}</code></code></pre>
+<h4 id="userservice.java">3.4.3 UserService.java</h4>
+<pre class="groovy"><code>/*
+ * *
+ *  * blog.coder4j.cn
+ *  * Copyright (C) 2016-2019 All Rights Reserved.
+ *
+ */
+package cn.coder4j.study.example.spock.service;
+
+import cn.coder4j.study.example.spock.dao.UserDao;
+import cn.coder4j.study.example.spock.model.User;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+/**
+ * @author buhao
+ * @version UserService.java, v 0.1 2019-10-30 16:29 buhao
+ */
+@Service
+public class UserService {
+
+    @Autowired
+    private UserDao userDao;
+
+    public User findByName(String name){
+        return userDao.findByName(name);
+    }
+
+    public void loginAfter(){
+        System.out.println(&quot;登录成功&quot;);
+    }
+
+    public void login(String name, String passwd){
+        User user = findByName(name);
+        if (user == null){
+            throw new RuntimeException(name + &quot;不存在&quot;);
+        }
+        if (!user.getPasswd().equals(passwd)){
+            throw new RuntimeException(name + &quot;密码输入错误&quot;);
+        }
+        loginAfter();
+    }
+}</code></code></pre>
+<h4 id="application.java">3.4.3 Application.java</h4>
+<pre class="groovy"><code>/*
+ * *
+ *  * blog.coder4j.cn
+ *  * Copyright (C) 2016-2019 All Rights Reserved.
+ *
+ */
+
+package cn.coder4j.study.example.spock;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+
+}
+</code></code></pre>
+<h3 id="与-spring-集成测试">3.5 与 spring 集成测试</h3>
+<pre class="groovy"><code>/*
+ * *
+ *  * blog.coder4j.cn
+ *  * Copyright (C) 2016-2019 All Rights Reserved.
+ *
+ */
+
+package cn.coder4j.study.example.spock.service
+
+import cn.coder4j.study.example.spock.model.User
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import spock.lang.Specification
+import spock.lang.Unroll
+
+@SpringBootTest
+class UserServiceFunctionTest extends Specification {
+
+    @Autowired
+    UserService userService
+
+    @Unroll
+    def &quot;test findByName with input #name return #result&quot;() {
+        expect:
+        userService.findByName(name) == result
+
+        where:
+        name &lt;&lt; [&quot;k&quot;, &quot;i&quot;, &quot;kk&quot;]
+        result &lt;&lt; [new User(&quot;k&quot;, 1, &quot;123&quot;), new User(&quot;i&quot;, 2, &quot;456&quot;), null]
+
+    }
+
+    @Unroll
+    def &quot;test login with input #name and #passwd throw #errMsg&quot;() {
+        when:
+        userService.login(name, passwd)
+
+        then:
+        def e = thrown(Exception)
+        e.message == errMsg
+
+        where:
+        name    |   passwd  |   errMsg
+        &quot;kd&quot;     |   &quot;1&quot;     |   &quot;${name}不存在&quot;
+        &quot;k&quot;     |   &quot;1&quot;     |   &quot;${name}密码输入错误&quot;
+
+    }
+}
+</code></code></pre>
+<p>spock 与 spring 集成特别的简单，只要你加入了开头所说的 <strong>spock-spring</strong> 和 <strong>spring-boot-starter-test</strong>。再于测试代码的类上加上 <strong>@SpringBootTest</strong> 注解就可以了。想用的类直接注入进来就可以了，但是要注意的是这里只能算功能测试或集成测试，因为在跑用例时是会启动 spring 容器的，外部依赖也必须有。很耗时，而且有时候外部依赖本地也跑不了，所以我们通常都是通过 mock 来完成单元测试。</p>
+<h3 id="与-spring-mock-测试">3.6 与 spring mock 测试</h3>
+<pre class="groovy"><code>/*
+ * *
+ *  * blog.coder4j.cn
+ *  * Copyright (C) 2016-2019 All Rights Reserved.
+ *
+ */
+
+package cn.coder4j.study.example.spock.service
+
+import cn.coder4j.study.example.spock.dao.UserDao
+import cn.coder4j.study.example.spock.model.User
+import spock.lang.Specification
+import spock.lang.Unroll
+
+class UserServiceUnitTest extends Specification  {
+
+    UserService userService = new UserService()
+    UserDao userDao = Mock(UserDao)
+
+    def setup(){
+        userService.userDao = userDao
+    }
+
+    def &quot;test login with success&quot;(){
+
+        when:
+        userService.login(&quot;k&quot;, &quot;p&quot;)
+
+        then:
+        1 * userDao.findByName(&quot;k&quot;) &gt;&gt; new User(&quot;k&quot;, 12,&quot;p&quot;)
+    }
+
+    def &quot;test login with error&quot;(){
+        given:
+        def name = &quot;k&quot;
+        def passwd = &quot;p&quot;
+
+        when:
+        userService.login(name, passwd)
+
+        then:
+        1 * userDao.findByName(name) &gt;&gt; null
+
+        then:
+        def e = thrown(RuntimeException)
+        e.message == &quot;${name}不存在&quot;
+
+    }
+
+    @Unroll
+    def &quot;test login with &quot;(){
+        when:
+        userService.login(name, passwd)
+
+        then:
+        userDao.findByName(&quot;k&quot;) &gt;&gt; null
+        userDao.findByName(&quot;k1&quot;) &gt;&gt; new User(&quot;k1&quot;, 12, &quot;p&quot;)
+
+        then:
+        def e = thrown(RuntimeException)
+        e.message == errMsg
+
+        where:
+        name        |   passwd  |   errMsg
+        &quot;k&quot;         |   &quot;k&quot;     |   &quot;${name}不存在&quot;
+        &quot;k1&quot;        |   &quot;p1&quot;     |   &quot;${name}密码输入错误&quot;
+
+    }
+}</code></code></pre>
+<p>spock 使用 mock 也很简单，直接使用 <strong>Mock(类)</strong> 就可以了。如上代码 _UserDao userDao = Mock(UserDao) 。_上面写的例子中有几点要说明一下，以如下这个方法为例：</p>
+<pre class="groovy"><code>    def &quot;test login with error&quot;(){
+        given:
+        def name = &quot;k&quot;
+        def passwd = &quot;p&quot;
+
+        when:
+        userService.login(name, passwd)
+
+        then:
+        1 * userDao.findByName(name) &gt;&gt; null
+
+        then:
+        def e = thrown(RuntimeException)
+        e.message == &quot;${name}不存在&quot;
+
+    }</code></code></pre>
+<p>given、when、then 不用说了，大家已经很熟悉了，但是第一个 then 里面的 <strong><em>1 * userDao.findByName(name) &gt;&gt; null</em> </strong>是什么鬼？<br />
+首先，我们可以知道的是，一个用例中可以有多个 then 块，对于多个期望可以分别放在多个 then 中。<br />
+第二， <strong>1 * xx </strong>表示 期望 xx 操作执行了 1 次。<em>1 * userDao.findByName(name)</em>** <strong>就表现当执行 <em>userService.login(name, passwd) 时我期望执行 1 次 userDao.findByName(name) <em>方法。如果期望不执行这个方法就是_0 * xx</em>，这在条件代码的验证中很有用，然后 </em>&gt;&gt; null_ 又是什么意思？他代表当执行了 <em>userDao.findByName(name) 方法后，我让他结果返回 null</em>。因为 userDao 这个对象是我们 mock 出来的，他就是一个假对象，为了让后续流程按我们的想法进行，我可以通过『 &gt;&gt;』 让 spock 模拟返回指定数据。<br />
+第三，要注意第二个 then 代码块使用</strong> ${name} <strong>引用变量，跟标题的</strong> #name** 是不同的。</p>
+<h3 id="其它内容">3.7 其它内容</h3>
+<h4 id="公共方法">3.7.1 公共方法</h4>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;"><strong>方法名</strong></th>
+<th style="text-align: center;"><strong>作用</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">setup()</td>
+<td style="text-align: center;">每个方法执行前调用</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">cleanup()</td>
+<td style="text-align: center;">每个方法执行后调用</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">setupSpec()</td>
+<td style="text-align: center;">每个方法类加载前调用一次</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">cleanupSpec()</td>
+<td style="text-align: center;">每个方法类执行完调用一次</td>
+</tr>
+</tbody>
+</table>
+<p>这些方法通常用于测试开始前的一些初始化操作，和测试完成后的清理操作，如下：</p>
+<pre class="groovy"><code>    def setup() {
+        println &quot;方法开始前初始化&quot;
+    }
+
+    def cleanup() {
+        println &quot;方法执行完清理&quot;
+    }
+
+    def setupSpec() {
+        println &quot;类加载前开始前初始化&quot;
+    }
+
+    def cleanupSpec() {
+        println &quot;所以方法执行完清理&quot;
+    }</code></code></pre>
+<h4 id="timeout">3.7.2 @Timeout</h4>
+<p>对于某些方法，需要规定他的时间，如果运行时间超过了指定时间就算失败，这时可以使用 timeout 注解</p>
+<pre class="groovy"><code>    @Timeout(value = 900, unit = TimeUnit.MILLISECONDS)
+    def &quot;test timeout&quot;(){
+        expect:
+        Thread.sleep(1000)
+        1 == 1
+    }</code></code></pre>
+<p>注解有两个值，一个是 value 我们设置的数值，unit 是数值的单位。</p>
+<h4 id="with">3.7.3 with</h4>
+<pre class="groovy"><code>    def &quot;test findByName by verity&quot;() {
+        given:
+        def userDao = Mock(UserDao)
+
+        when:
+        userDao.findByName(&quot;kk&quot;) &gt;&gt; new User(&quot;kk&quot;, 12, &quot;33&quot;)
+
+        then:
+        def user = userDao.findByName(&quot;kk&quot;)
+        with(user) {
+            name == &quot;kk&quot;
+            age == 12
+            passwd == &quot;33&quot;
+        }
+
+    }</code></code></pre>
+<p><strong>with</strong> 算是一个语法糖，没有他之前我们要判断对象的值只能，user.getXxx() == xx。如果属性过多也是挺麻烦的，用 with 包裹之后，只要在花括号内直接写属性名称即可，如上代码所示。</p>
+<h2 id="其它">4. 其它</h2>
+<h3 id="完整代码">4.1 完整代码</h3>
+<p>因为篇幅有限，无法贴完所有代码，完整代码已上传 <a href="https://github.com/kiwiflydream/study-example/tree/master/study-spock-example">github</a>。</p>
+<h3 id="参考文档">4.2 参考文档</h3>
+<p>本文在瞻仰了如下博主的精彩博文后，再加上自身的学习总结加工而来，如果本文在看的时候有不明白的地方可以看一下下方链接。</p>
+<ol>
+<li><a href="https://juejin.im/post/5d982268e51d45782e6039bf">Spock in Java 慢慢爱上写单元测试</a></li>
+<li><a href="https://www.cnblogs.com/lovesqcc/p/8647201.html">使用Groovy+Spock轻松写出更简洁的单测</a></li>
+<li><a href="http://jvm123.com/2019/08/spock.html">Spock 测试框架的介绍和使用详解</a></li>
+<li><a href="https://www.alicharles.com/article/spock/#_%E9%87%87%E7%94%A8groovy_spock%E9%92%88%E5%AF%B9userservice%E7%BC%96%E5%86%99%E6%B5%8B%E8%AF%95">Spock 基于BDD测试</a></li>
+<li><a href="http://spockframework.org/spock/docs/1.3/all_in_one.html">Spock 官方文档</a></li>
+<li><a href="http://www.liuhaihua.cn/archives/540855.html">Spock测试框架</a></li>
+<li><a href="https://stackoverflow.com/questions/19185596/spock-testing-exceptions-with-data-tables">spock-testing-exceptions-with-data-tables</a></li>
+</ol>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

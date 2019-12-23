@@ -1,0 +1,90 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot系列：Spring Boot使用模板引擎Thymeleaf' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot系列：Spring Boot使用模板引擎Thymeleaf</center></div><div class='banquan'>原文出处:本文由博客园博主杨小格子提供。<br/>
+原文连接:https://www.cnblogs.com/imyanger/p/11667813.html</div><br>
+    <h3 id="一java模板引擎">一、Java模板引擎</h3>
+<p>模板引擎（这里特指用于Web开发的模板引擎）是为了使用户界面与业务数据（内容）分离而产生的，它可以生成特定格式的文档，用于网站的模板引擎就会生成一个标准的HTML文档。</p>
+<p>在java中，主要的模板引擎有JSP、Thymeleaf、FreeMarker、<br />
+Velocity等。</p>
+<p>虽然随着前后端分离的崛起和流行，模板引擎已遭受到冷落，但不少旧项目依然使用java的模板引擎渲染界面，而偶尔自己写一些练手项目，使用模板引擎也比起前后端分离要来的快速。</p>
+<p>本系列会分别讲解SpringBoot怎么集成JSP、Thymeleaf和FreeMarker，至于Velocity，高版本的SpringBoot已经不支持Velocity了，这里也就不进行讲解了。</p>
+<p>而这一篇，主要讲解Spring Boot如何集成Thymeleaf。</p>
+<h3 id="一spring-boot集成thymeleaf">一、Spring Boot集成Thymeleaf</h3>
+<p>首先我们要引入依赖，除了核心的web依赖外，只需引入thymeleaf的statrer即可。</p>
+<pre><code><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+&lt;!-- thymeleaf模板 --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-thymeleaf&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>然后就是配置文件了。spring.thymeleaf下配置视图文件目录prefix以及文件后缀suffix，如果是本地开发，cache可以设置为false关闭缓存，避免修改文件后需要重新启动服务。</p>
+<pre class="yml"><code>server:
+  port: 10900
+
+spring:
+  profiles:
+    active: dev
+  thymeleaf:
+    prefix: classpath:/templates/
+    check-template-location: true #是否检查模板位置是否存在
+    suffix: .html
+    encoding: utf-8 #模板编码
+    servlet:
+      content-type: text/html
+    mode: HTML5
+    cache: false #禁用缓存，本地开发设置为false，避免修改后重启服务器</code></code></pre>
+<p>然后resoucres目录下新建templates目录，分别新建了hello.html和mv.html文件。</p>
+<pre class="html"><code>&lt;h3&gt;hello thymeleaf&lt;/h3&gt;</code></code></pre>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot; xmlns:th=&quot;http://www.thymeleaf.org&quot;&gt;
+    &lt;h3&gt;mv thymeleaf&lt;/h3&gt;
+    &lt;span&gt;I&#39;m &lt;span th:text=&quot;${name}&quot;&gt;&lt;/span&gt; from mv method&lt;/span&gt;
+&lt;/html&gt;</code></code></pre>
+<p>这里主要讲解如何集成Thymeleaf，不对Thymeleaf语法做过多的讲解，所以仅仅提供了两个简单的html文件作为演示。</p>
+<p>接着再创建Controller类路由页面，该类十分简单，跳转hello页面，以及携带name=imyang跳转mv页面。</p>
+<pre><code><code>@Controller
+@RequestMapping(&quot;index&quot;)
+public class IndexApi {
+
+    @RequestMapping(&quot;/hello&quot;)
+    public String hello(){
+        return &quot;hello&quot;;
+    }
+
+    @RequestMapping(&quot;/mv&quot;)
+    public ModelAndView mv(){
+        ModelAndView mv = new ModelAndView(&quot;mv&quot;);
+        mv.addObject(&quot;name&quot;,&quot;yanger&quot;);
+        return mv;
+    }
+
+}</code></code></pre>
+<p>启动项目，分别访问http://localhost:10900/index/hello和http://localhost:10900/index/mv，可以看到已经可以展示页面信息了。</p>
+<p><img src="./images/SpringBoot系列：Spring Boot使用模板引擎Thymeleaf0.png" /></p>
+<p>源码地址：<a href="https://github.com/imyanger/springboot-project/tree/master/p18-springboot-thymeleaf" class="uri">https://github.com/imyanger/springboot-project/tree/master/p18-springboot-thymeleaf</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,257 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Docker 从入门到掉坑' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Docker 从入门到掉坑</center></div><div class='banquan'>原文出处:本文由博客园博主Java知音*提供。<br/>
+原文连接:https://www.cnblogs.com/javazhiyin/p/11804582.html</div><br>
+    <h2>Docker 介绍</h2>
+<p>简单的对docker进行介绍，可以把它理解为一个应用程序执行的容器。但是docker本身和虚拟机还是有较为明显的出入的。我大致归纳了一下，可以总结为以下几点：</p>
+<p><img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑0.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑0.png" /></p>
+<p><br />docker自身也有着很多的优点，关于它的优点，可以总结为以下几项：</p>
+<p>&nbsp;</p>
+<p>
+<img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑1.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑1.png" /></p>
+<h2>安装docker</h2>
+<p>从 2017 年 3 月开始 docker 在原来的基础上分为两个分支版本: Docker CE 和 Docker EE。</p>
+<p>Docker CE 即社区免费版，Docker EE 即企业版，强调安全，但需付费使用。</p>
+<p>首先我们需要移除旧的docker版本：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">$ sudo yum remove docker 
+                  docker</span>-<span style="color: #000000;">client 
+                  docker</span>-client-<span style="color: #000000;">latest 
+                  docker</span>-<span style="color: #000000;">common 
+                  docker</span>-<span style="color: #000000;">latest 
+                  docker</span>-latest-<span style="color: #000000;">logrotate 
+                  docker</span>-<span style="color: #000000;">logrotate 
+                  docker</span>-<span style="color: #000000;">selinux 
+                  docker</span>-engine-<span style="color: #000000;">selinux 
+                  docker</span>-engine</code></pre>
+
+<p>&nbsp;</p>
+<p>接着我们需要安装一些必要的系统工具：</p>
+<src class="cnblogs_code">
+<pre><code>sudo yum install -y yum-utils device-mapper-persistent-data lvm2</code></pre>
+
+<p>&nbsp;</p>
+<p>接下来我们需要添加软件源信息：</p>
+<src class="cnblogs_code">
+<pre><code>sudo yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo</code></pre>
+
+<p>&nbsp;</p>
+<p>更新 yum 缓存：</p>
+<src class="cnblogs_code">
+<pre><code>sudo yum makecache fast</code></pre>
+
+<p>&nbsp;</p>
+<h2>验证容器</h2>
+<p>上边的操作都是一些准备操作，如果步骤过程中没有出现什么异常的话，后边就可以安装docker了</p>
+<src class="cnblogs_code">
+<pre><code>sudo yum -y install docker-ce</code></pre>
+
+<p>&nbsp;</p>
+<p>安装完毕之后便是开启docker后台服务步骤：</p>
+<src class="cnblogs_code">
+<pre><code>sudo systemctl start docker</code></pre>
+
+<p>&nbsp;</p>
+<p>当我们的docker镜像下载完毕之后，默认会有个helloworld的镜像用于测试：</p>
+<p>测试运行 hello-world</p>
+<src class="cnblogs_code">
+<pre><code>[root@runoob ~]<span style="color: #008000;">#</span><span style="color: #008000;"> docker run hello-world</span></code></pre>
+
+<p>&nbsp;</p>
+<p>由于本地没有hello-world这个镜像，所以会下载一个hello-world的镜像，并在容器内运行。</p>
+<h2>关于docker的镜像和容器介绍</h2>
+<p>容器的本质就是进程，不同的容器有着自己独立的root文件系统，网络配置，一个隔离的空间。容器一旦消失，则里面包含的数据也会发生丢失。容器里面所有的存储信息都应该使用数据卷或者其他形式。数据卷的生存周期独立于容器，容器消亡，数据卷不会消亡。因此，使用数据卷后，容器删除或者重新运行之后，数据却不会丢失。</p>
+<p>Docker 镜像是一个特殊的文件系统，除了提供容器运行时所需的程序、库、资源、配置等文件外，还包含了一些为运行时准备的一些配置参数（如匿名卷、环境变量、用户等）。镜像不包含任何动态数据，其内容在构建之后也不会被改变。</p>
+<h2>docker安装nginx</h2>
+<p>初步安装完了docker之后便开始进入一些实战环节吧</p>
+<p><strong>首先我们需要在docker里面pull相关的nginx镜像：</strong></p>
+<p>一开始宿主机并没有启动docker容器，需要启动docker服务</p>
+<src class="cnblogs_code">
+<pre><code>service docker start</code></pre>
+
+<p>&nbsp;</p>
+<p>然后pull镜像下来，并且启动</p>
+<src class="cnblogs_code">
+<pre><code>docker run -d -p 80:80 --restart=always nginx:latest</code></pre>
+
+<p>&nbsp;</p>
+<p>参数讲解：-d 后台启动 -p 宿主机的80端口映射容器的80端口。测试一下相关页面，成功则如下图：</p>
+<p><img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑2.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑2.png" /></p>
+<p>&nbsp;</p>
+<p>接下来我们可以查看一下镜像标签</p>
+<src class="cnblogs_code">
+<pre><code>docker images</code></pre>
+
+<p>&nbsp;</p>
+<p>这个命令查询出来的只是镜像的id，但是我们无法根据镜像id进入容器中，进入容器需要有容器的id才可以：</p>
+<p>于是可以通过这个命令来查看容器的id：</p>
+<src class="cnblogs_code">
+<pre><code>docker ps</code></pre>
+
+<p>&nbsp;</p>
+<p>然后进入容器修改信息<br />进入容器的命令有很多种，这里推荐可以使用这种类型：</p>
+<src class="cnblogs_code">
+<pre><code>docker <span style="color: #0000ff;">exec</span> -it 999318c7d567 /bin/bash</code></pre>
+
+<p>&nbsp;</p>
+<p>通过选择相应的tag-id进入容器，进入到容器里面之后，会发现里面仿佛就是一个新的linux操作系统：</p>
+<p><img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑3.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑3.png" /></p>
+<p><strong>如何关闭docker容器？</strong></p>
+<p>比较简单，这里不多说，自己操作就懂了</p>
+<src class="cnblogs_code">
+<pre><code>docker kill 4591552a4185</code></pre>
+
+<p>&nbsp;</p>
+<h2>文件拷贝</h2>
+<p>懂得了基本的docker容器操作之后，我们来试试如何上传文件到docker容器中，这个需要和宿主机进行文件交换才可以。</p>
+<p>首先我们需要拿到容器id的全称：</p>
+<src class="cnblogs_code">
+<pre><code>[root@localhost html]<span style="color: #008000;">#</span><span style="color: #008000;"> docker ps </span>
+<span style="color: #000000;">CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                NAMES
+0d4173ecf31f        nginx:latest        </span><span style="color: #800000;">"</span><span style="color: #800000;">nginx -g 'daemon of&hellip;</span><span style="color: #800000;">"</span>   9 minutes ago       Up 9 minutes        0.0.0.0:80-&gt;80/<span style="color: #000000;">tcp   sleepy_gould
+
+[root@localhost html]</span><span style="color: #008000;">#</span><span style="color: #008000;"> docker inspect -f '{{.Id}}' 0d4173ecf31f</span>
+0d4173ecf31f894e234ae9eb3d9eddd1b9d10b7af5c46608679fe11918af9644</code></pre>
+
+<p>&nbsp;</p>
+<p>然后将文件拷贝进入docker容器中：</p>
+<src class="cnblogs_code">
+<pre><code>[root@localhost html]<span style="color: #008000;">#</span><span style="color: #008000;"> docker cp /opt/html/user_login.html 0d4173ecf31f894e234ae9eb3d9eddd1b9d10b7af5c46608679fe11918af9644:/root/user_login.html</span>
+[root@localhost html]<span style="color: #008000;">#</span></code></pre>
+
+<p>&nbsp;</p>
+<p>接下来的操作就比较简单了，查看到移动的页面即可：</p>
+<src class="cnblogs_code">
+<pre><code>root@0d4173ecf31f:/usr/share/nginx/html<span style="color: #008000;">#</span><span style="color: #008000;"> ls</span>
+<span style="color: #000000;">50x.html  index.html  user_login.html
+root@0d4173ecf31f:</span>/usr/share/nginx/html<span style="color: #008000;">#</span></code></pre>
+
+<p>&nbsp;</p>
+<p>接下来的基本都是常规操作了，进入我们的nginx配置中：</p>
+<src class="cnblogs_code">
+<pre><code>root@0d4173ecf31f:/etc/nginx<span style="color: #008000;">#</span><span style="color: #008000;"> vi nginx.conf </span>
+bash: vi: command <span style="color: #0000ff;">not</span><span style="color: #000000;"> found
+root@0d4173ecf31f:</span>/etc/nginx<span style="color: #008000;">#</span></code></pre>
+
+<p>&nbsp;</p>
+<blockquote>
+<p>发现没有vi命令，需要下载安装</p>
+</blockquote>
+<p>在使用docker容器时，有时候里边没有安装vi，敲vi命令时提示说：vi: command not found，这个时候就需要安装vi，可是当你敲apt-get install vi命令时，提示：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">Reading package lists... Done  
+Building dependency tree         
+Reading state information... Done  
+E: Unable to locate package vi</span></code></pre>
+
+<p>&nbsp;</p>
+<p>这时候需要敲：apt-get update，这个命令的作用是：同步 /etc/apt/sources.list 和 /etc/apt/sources.list.d 中列出的源的索引，这样才能获取到最新的软件包。等更新完毕以后再敲命令：apt-get install vi命令即可。</p>
+<p>现在docker有了，nginx镜像也开启了，就可以对nginx的配置做修改了。</p>
+<h2>docker里面安装redis</h2>
+<p>首先还是老规矩，pull镜像</p>
+<src class="cnblogs_code">
+<pre><code>[root@izwz9ic9ggky8kub9x1ptuz docker]<span style="color: #008000;">#</span><span style="color: #008000;"> docker pull redis:4.0</span></code></pre>
+
+<p>&nbsp;</p>
+<p>拉取镜像结束之后，内容如下：</p>
+<src class="cnblogs_code">
+<pre><code>[root@izwz9ic9ggky8kub9x1ptuz docker]<span style="color: #008000;">#</span><span style="color: #008000;"> docker pull redis:4.0</span>
+4.0: Pulling <span style="color: #0000ff;">from</span> library/<span style="color: #000000;">redis
+b8f262c62ec6: Pull complete 
+93789b5343a5: Pull complete 
+49cdbb315637: Pull complete 
+e244975d5eb1: Pull complete 
+25dca704d939: Pull complete 
+db11ecc9cf34: Pull complete 
+Digest: sha256:615b872e3af387206b62ffe66c1052f1653ed31b3afcfaa292a9244c92f2007a
+Status: Downloaded newer image </span><span style="color: #0000ff;">for</span> redis:4.0<span style="color: #000000;">
+docker.io</span>/library/redis:4.0</code></pre>
+
+<p>&nbsp;</p>
+<p>ok，基本镜像有了，那么就直接开启容器吧</p>
+<p>这里我们修改了宿主机的端口号为8879映射容器里面的6379哈。</p>
+<src class="cnblogs_code">
+<pre><code>[root@izwz9ic9ggky8kub9x1ptuz /]<span style="color: #008000;">#</span> 
+docker run -p 8879:6379 
+ -v $PWD/data:/<span style="color: #000000;">data  
+ </span>-v $PWD/conf/redis.conf:/etc/redis/<span style="color: #000000;">redis.conf  
+ </span>--privileged=<span style="color: #000000;">true
+ </span>--<span style="color: #000000;">name myredis 
+ </span>-d redis:4.0 redis-server /etc/redis/redis.conf</code></pre>
+
+<p>&nbsp;</p>
+<p><strong>参数解释</strong></p>
+<ul class="list-paddingleft-2">
+<li><strong>-p 8879:8879:</strong>&nbsp;将容器的8879端口映射到主机的6379端口</li>
+<li><strong>-v $PWD/data:/data :</strong>&nbsp;将主机中当前目录下的data挂载到容器的/data</li>
+<li><strong>redis-server &mdash;appendonly yes :</strong>&nbsp;在容器执行redis-server启动命令，并打开redis持久化配置</li>
+</ul>
+<p>启动完毕之后，一切都开始正常运行了。</p>
+<p>进入容器，开始检测redis是否正常：</p>
+<p>这里建议开启redis的时候最好在宿主机做一份redis配置文件，映射到容器里面，不然进入容器中根本找不到相应的redis配置文件，很痛苦。</p>
+<h2>docker里面安装MySQL</h2>
+<p>这部分的内容比较简单，只需要将镜像拉下来即可：</p>
+<src class="cnblogs_code">
+<pre><code>docker run --name 【容器名】 -e MYSQL_ROOT_PASSWORD=【mysql密码】 -d -i -p 3309:3306 mysql:5.7.24</code></pre>
+
+<p>&nbsp;</p>
+<p>然后等待一段时间，终于我们的MySQL容器安装好了：</p>
+<p><img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑4.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑4.png" /></p>
+<p><br /><strong>容器的内存资源消耗情况</strong><br />由于我购买的是一台小型的服务器，相关的配置如下所示，所以在给各个运行的容器进行资源分配的时候需要考虑到每个docker容器占用的资源情况。</p>
+<p>&nbsp;</p>
+<p>
+<img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑5.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑5.png" /></p>
+<p>目前已经搭建了mysql容器，redis容器，还有一个nginx容器，如果再添加一个java应用的话，目测跑java容器需要至少500m左右的内存大小来支撑。</p>
+<p>通过使用<strong>docker stats</strong>命令来看当前服务器的内存，由于平日的访问量并不高，可以给当前的mysql，redis分配小一些内存资源：</p>
+<p>
+<img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑6.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑6.png" /></p>
+<p>这时候可以采用docker的update命令来对内存大小进行管理分配：</p>
+<src class="cnblogs_code">
+<pre><code>docker update -m 350m  --memory-swap -1  mysqlserver</code></pre>
+
+<p>&nbsp;</p>
+<p><code>--memory-swap -1</code>&nbsp;参数是指不让容器和宿主机进行内存交换，如果需要则需要额外调整，<br />设置下内存的限制之后结果如下：</p>
+<p>
+<img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑7.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑7.png" /></p>
+<h2>docker容器启动失败分析实战</h2>
+<p>在配置docker新容器的时候，例如说给mysql配置my.cnf文件的某些属性，需要重启容器才能生效。但是有时候可能因为手误，导致配置出现异常，容器重启失败，这个时候该怎么办呢？</p>
+<p>这个时候最简单粗暴的方式就是，将该容器先rm掉，然后重新安装，但是这样的操作过于暴力化，万一容器里面还有其他重要数据，直接rm操作不可取。</p>
+<p>其实docker本质也是安装在宿主机里面的，所以相应的配置文件在宿主机里面也能找到痕迹，这里记录了之前我掉坑的一些补救方式：</p>
+<src class="cnblogs_code">
+<pre><code>docker inspect [容器名称]</code></pre>
+
+<p>&nbsp;</p>
+<p>通过该命令可以查看到容器的内部配置属性信息：</p>
+<p><img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑8.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑8.png" /></p>
+<p><br />这时候我们可以查看到一个叫做MergedDir的目录文件夹，进入该文件夹的上一级目录，</p>
+<src class="cnblogs_code">
+<pre><code> cd /var/lib/docker/overlay2/f4ab9eff7a18f20f977595af38f5eb273127e0de8845a42fe71fa9b8850a988b</code></pre>
+
+<p>&nbsp;</p>
+<p>接着我们查看该目录下结构，会发现一个叫做diff的文件夹</p>
+<p><img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑9.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑9.png" /></p>
+<p><br />带着好奇心，一步一步地进入到文件夹的内部，就会找到之前在docker容器中配置的mysql文件了，手动将原先的配置修改回来，容器便重启成功了。</p>
+<p>
+<img title="Docker 从入门到掉坑" src="./images/Docker 从入门到掉坑10.png" alt="Docker 从入门到掉坑" data-original="./images/Docker 从入门到掉坑10.png" /></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

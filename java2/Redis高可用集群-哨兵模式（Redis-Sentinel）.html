@@ -1,0 +1,75 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Redis高可用集群-哨兵模式（Redis-Sentinel）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Redis高可用集群-哨兵模式（Redis-Sentinel）</center></div><div class='banquan'>原文出处:本文由博客园博主久伴成忆提供。<br/>
+原文连接:https://www.cnblogs.com/starluke/p/11735081.html</div><br>
+    <src><span style="font-size: 18px;"><strong>&nbsp;前言</strong></span>
+<src>Redis哨兵模式，用现在流行的话可以说就是一个&ldquo;哨兵机器人&rdquo;，给&ldquo;哨兵机器人&rdquo;进行相应的配置之后，这个"机器人"可以7*24小时工作，它能能够自动帮助你做一些事情，如监控，提醒，自动处理故障等。
+<src>&nbsp;
+<src><span style="font-size: 18px;"><strong>Redis-sentinel简介</strong></span>
+<src>Redis-sentinel是Redis的作者antirez，因为Redis集群的被各大公司使用，每个公司要写自己的集群管理工具，于是antirez花了几个星期写出了Redis-sentinel。
+<src>&nbsp;
+<src>Redis 的 Sentinel 系统用于管理多个 Redis 服务器（instance），Redis 的 Sentinel 为Redis提供了高可用性。使用哨兵模式创建一个可以不用人为干预而应对各种故障的Redis部署。
+<src>&nbsp;
+<src>该系统执行以下三个任务：
+<src>&nbsp;
+<src><strong>监控（Monitoring）：</strong>Sentinel会不断地检查你的主服务器和从服务器是否允许正常。
+<src><strong>提醒（Notification）：</strong>当被监控的某个Redis服务器出现问题时，Sentinel可以通过API向管理员或者其他应用程序发送通知。
+<src><strong>自动故障迁移（Automatic failover）：</strong><br />（1）当一个主服务器不能正常工作时，Sentinel会开始一次自动故障迁移操作，他会将失效主服务器的其中一个从服务器升级为新的主服务器，并让失效主服务器的其他从服务器改为复制新的主服务器；
+<src>（2）客户端试图连接失败的主服务器时，集群也会向客服端返回新主服务器的地址，是的集群可以使用新主服务器代替失效服务器。<br /><br />
+<src><span style="font-size: 18px;"><strong>sentinel的分布式特性</strong></span>
+<src>Redis Sentinel 是一个分布式系统， 你可以在一个架构中运行多个 Sentinel 进程（progress）， 这些进程使用流言协议（gossip protocols)来接收关于主服务器是否下线的信息， 并使用投票协议（agreement protocols）来决定是否执行自动故障迁移， 以及选择哪个从服务器作为新的主服务器。
+<src>&nbsp;
+<src>单个sentinel进程来监控redis集群是不可靠的，当sentinel进程宕掉后(sentinel本身也有单点问题，single-point-of-failure)整个集群系统将无法按照预期的方式运行。所以有必要将sentinel集群，这样有几个好处：
+<src>&nbsp;
+<src>有一些sentinel进程宕掉了，依然可以进行redis集群的主备切换；
+<src>&nbsp;
+<src>如果只有一个sentinel进程，如果这个进程运行出错，或者是网络堵塞，那么将无法实现redis集群的主备切换（单点问题）;
+<src>&nbsp;
+<src>如果有多个sentinel，redis的客户端可以随意地连接任意一个sentinel来获得关于redis集群中的信息
+<src>&nbsp;
+<src>一个健壮的部署至少需要三个哨兵实例。
+<src>&nbsp;
+<src>三个哨兵实例应该放置在客户使用独立方式确认故障的计算机或虚拟机中。例如不同的物理机或不同可用区域的虚拟机。<br /><br />
+<src><span style="font-size: 18px;"><strong>Redis-Sentinel高可用场景演示</strong></span>
+<src><strong><span style="font-size: 18px;">场景1：主服务器master宕机</span></strong>
+<src>当主服务器master宕机，那么Sentinel会通过选举（算法）机制，从Salve中选出一个作为新Master。
+<src>大概原理是当选出一个Slave要作为Master的时候，会发送命令slaveofno one来取消选中的这个slave，使其成为Master。哨兵会发送给其他从服务器Slave配置选中的这个为新主服务器Master，并删除监听列表中出现故障的Master服务器。
+<src>(1)关闭掉 6379主服务器<br />(2)查看观察选举新的master的过程和显示了failover的过程，整个日志信息还是比较完整的。最后选举了6381为主服务器！&nbsp;<br />(3)查看6381服务器信息,角色为主，从服务器6380！<br />
+<h3><span style="font-size: 18px;">场景2：之前故障的6379 master重新启动</span></h3>
+<p>（1）启动6379服务，发现6379成为6381的从服务器！<br />（2）查看6381服务器状态信息：原来的master自动切换成slave，不会自动恢复成master。</p>
+<h3><span style="font-size: 18px;">场景3：从服务器Slave宕机和重启</span></h3>
+<p>（1）关闭6380从服务器<br />（2）Sentinel日志<br />（3）查看住服务器6381状态信息<br />（4）启动从服务器6380<br />（5）查看住服务器6381状态信息：6380又回来了！</p>
+
+
+
+<src>
+<src><span style="font-size: 18px;"><strong>总结</strong></span>
+<src>Redis-Sentinel是Redis官方推荐的高可用性(HA) 解决方案，Redis-sentinel本身也是一个独立运行的进程，它能监控多个master-slave集群，发现master宕机后能进行自动切换。Sentinel可以监视任意多个主服务器（复用），以及主服务器属下的从服务器，并在被监视的主服务器下线时，自动执行故障转移操作。
+<src>为了防止sentinel的单点故障，可以对sentinel进行集群化，创建多个sentinel。
+
+
+
+
+
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

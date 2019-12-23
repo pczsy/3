@@ -1,0 +1,204 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修AKKA Actor创建' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>AKKA Actor创建</center></div><div class='banquan'>原文出处:本文由博客园博主itank提供。<br/>
+原文连接:https://www.cnblogs.com/tankaixiong/p/11511251.html</div><br>
+    <h2>Actor 类定义&nbsp;</h2>
+<p>Actor 类需要继承<strong>AbstractActor</strong>类</p>
+<p>实现<strong>createReceive</strong>方法,绑定各类actor收到不同类型消息对应处理不同业务逻辑</p>
+<p>默认提供了<strong>ReceiveBuilder</strong>类辅助创建 Receive</p>
+<p>对actorOf的调用返回ActorRef的实例。这是 Actor 实例的句柄，也是与之交互的<span style="color: #ff0000;"><strong>唯一</strong></span>方法。</p>
+<p>ActorRef是不可变的，并且与它所表示的 Actor 有一对一的关系。ActorRef也是可序列化的， 序列化通过网络发送它，并在远程主机上使用它，并且它仍然在网络上表示原始节点上的同一个 Actor。</p>
+<h2>Actor的层级关系</h2>
+<p>Actor的层级关系类似树模式</p>
+<p><strong>谁创建谁管理原则：</strong></p>
+<p>ActorSystem 创建就由ActorSystem负责监控管理（重启，异常，恢复等）<br />Actor中创建另外的Actor,则创建者看做为父级，负责监控管理它创建出来的actor</p>
+<h2>&nbsp;Actor&nbsp;生命周期</h2>
+<p><img src="./images/AKKA Actor创建0.png" alt="" /></p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code> actorOf -&gt; preStart -&gt; start -&gt; receive -&gt; stop -&gt; postStop</code></pre>
+
+<p>另外：</p>
+<p>reRestart()默认行为是在重启（restarting）之前，它会终止所有的children actors（这个过程是递归的）。postRestart()则发生在重启成功之后。当然，方法都可以重写这两个方法以改变其行为。</p>
+<p>&nbsp;</p>
+<h2>Props&nbsp;</h2>
+<p>Props 创建 Actor 的配置选项，推荐在actor类提供一个通用的props方法来创建</p>
+<p><strong>注意：</strong></p>
+<p>１，同一个akka集群中创建的actor 实例 name不能重复，不然会报InvalidActorNameException异常</p>
+<p>２，ActorSytem同一个集群，各节点的ActorSytem name必须相同</p>
+<p>３，不允许自行new创建actor实例<br />如果直接new Actor实例方式创建Actor会报ActorInitializationException错误</p>
+<p>&nbsp;</p>
+<p>示例：</p>
+<src class="cnblogs_code">
+<pre><code>&lt;!-- Gradle --&gt;<span style="color: #000000;">
+dependencies {
+  compile group: </span>'com.typesafe.akka', name: 'akka-actor_2.12', version: '2.5.21'<span style="color: #000000;">
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> akka.demo.actor
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> akka.actor.AbstractActor
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> akka.actor.ActorRef
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> akka.actor.Props
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> akka.japi.pf.ReceiveBuilder
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.LoggerFactory
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ ** created by tankx
+ ** 2019/9/10
+ *</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloActor(val name: String) : AbstractActor() {
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">创建子actor</span>
+  <span style="color: #0000ff;">private</span> val childActor: ActorRef =<span style="color: #000000;"> context.actorOf(ChildActor.props())
+
+  companion object {
+    </span><span style="color: #0000ff;">private</span> val log = LoggerFactory.getLogger(HelloActor::<span style="color: #0000ff;">class</span><span style="color: #000000;">.java)
+　　 //提供静态通用对外的props　　
+    fun props(name: String): Props {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">return Props.create(HelloActor::class.java, name)</span><span style="color: #008000;">//</span><span style="color: #008000;">默认方式</span>
+      <span style="color: #0000ff;">return</span> Props.create(HelloActor::<span style="color: #0000ff;">class</span><span style="color: #000000;">.java) {
+        HelloActor(name)
+      }
+    }
+  }
+
+  override fun preStart() {
+    log.info(</span>"preStart"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">super</span><span style="color: #000000;">.preStart()
+  }
+
+  override fun postStop() {
+    log.info(</span>"postStop"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">super</span><span style="color: #000000;">.postStop()
+  }
+
+  override fun createReceive(): Receive {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ReceiveBuilder.create().matchAny(::onReceive).build()
+  }
+
+  fun onReceive(msg: Any) {
+
+    log.info(</span>"$name say: $msg"<span style="color: #000000;">)
+    log.info(</span>"sender:{}"<span style="color: #000000;">, sender.toString())
+
+
+  }
+
+}</span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> akka.demo.actor
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> akka.actor.AbstractActor
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> akka.actor.Props
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> akka.japi.pf.ReceiveBuilder
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.LoggerFactory
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ ** created by tankx
+ ** 2019/9/10
+ *</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> ChildActor : AbstractActor() {
+
+  </span><span style="color: #0000ff;">private</span> val log = LoggerFactory.getLogger(ChildActor::<span style="color: #0000ff;">class</span><span style="color: #000000;">.java)
+
+  companion object {
+    fun props(): Props {
+      </span><span style="color: #0000ff;">return</span> Props.create(ChildActor::<span style="color: #0000ff;">class</span><span style="color: #000000;">.java)
+    }
+  }
+
+  override fun preStart() {
+    log.info(</span>"preStart"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">super</span><span style="color: #000000;">.preStart()
+  }
+
+  override fun postStop() {
+    log.info(</span>"postStop"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">super</span><span style="color: #000000;">.postStop()
+  }
+
+  override fun createReceive(): Receive {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ReceiveBuilder.create().matchAny(::onReceive).build()
+  }
+
+  fun onReceive(msg: Any) {
+    log.info(</span>"onReceive: $msg"<span style="color: #000000;">)
+  }
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;创建ACTOR，并发消息</p>
+<src class="cnblogs_code">
+<pre><code>val system = ActorSystem.create("akka-system"<span style="color: #000000;">)
+
+val actorRef </span>= system.actorOf(HelloActor.props("aa"), HelloActor::<span style="color: #0000ff;">class</span><span style="color: #000000;">.java.simpleName)
+
+actorRef.tell(</span>"hi world", ActorRef.noSender()) <span style="color: #008000;">//</span><span style="color: #008000;">给actor发消息</span></code></pre>
+
+<p>&nbsp;</p>
+<h2>&nbsp;依赖注入</h2>
+<p>如果有依赖注入的情况，需要传入依赖项来构建Actor</p>
+<p>示例：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> akka.demo.actor
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> akka.actor.Actor
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> akka.actor.IndirectActorProducer
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ ** created by tankx
+ ** 2019/9/11
+ ** 如果有依赖注入方式可使用当前的工厂类的方式进行创建actor
+ *</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> ActorFactory(var applicationContext: String) : IndirectActorProducer {
+
+
+  override fun actorClass(): Class</span>&lt;out Actor&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> HelloActor::<span style="color: #0000ff;">class</span><span style="color: #000000;">.java
+  }
+
+  override fun produce(): Actor {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> HelloActor(applicationContext)
+  }
+
+
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>创建方式:</p>
+<src class="cnblogs_code">
+<pre><code>val actorFactoryRef = system.actorOf(Props.create(ActorFactory::<span style="color: #0000ff;">class</span>.java, "aaa"), "aaa"<span style="color: #000000;">)
+  actorFactoryRef.tell(</span>"hi factory", ActorRef.noSender())</code></pre>
+
+<p>&nbsp;</p>
+<h2>总结：</h2>
+<p>&nbsp;AKKA创建Actor需要严格按照推荐的方式去创建，以避免破坏Actor 封装。</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

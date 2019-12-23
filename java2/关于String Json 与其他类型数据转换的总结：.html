@@ -1,0 +1,57 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于String Json 与其他类型数据转换的总结：' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于String Json 与其他类型数据转换的总结：</center></div><div class='banquan'>原文出处:本文由博客园博主GuiJimy提供。<br/>
+原文连接:https://www.cnblogs.com/guiji-zyq/p/11977659.html</div><br>
+    <p>一：关于自己遇到的坑：</p>
+<p>　　跨域请求获取到 String Json(GSON处理) 数据后处理转换为实体类进行存储：</p>
+<p>　　跨域 return Gson.toJson(map)；</p>
+<p>　　通过Http等方法获取请求结果为 StringBuffer (此过程不加赘述，自行baidu)，</p>
+<p>　　处理 结果 buffer（Test测试）：</p>
+<p>　　<img src="./images/关于String Json 与其他类型数据转换的总结：0.png" alt="" width="719" height="391" /></p>
+<p>　　Test中List 数据格式：</p>
+<p>　　[<br />&nbsp;　　　　{"Filesystem":"/dev/mapper/vg_gsbwapp1-lv_root","Size":"485G","Used":"60G","Avail":"401G","UseP":"13%","Mountedon":"/","IPID":1},<br />&nbsp;　　　　{"Filesystem":"tmpfs","Size":"7.7G","Used":"72K","Avail":"7.7G","UseP":"1%","Mountedon":"/dev/shm","IPID":1},<br />&nbsp;　　　　{"Filesystem":"/dev/sda2","Size":"485M","Used":"39M","Avail":"421M","UseP":"9%","Mountedon":"/boot","IPID":1},<br />&nbsp;　　　　{"Filesystem":"/dev/sda1","Size":"200M","Used":"260K","Avail":"200M","UseP":"1%","Mountedon":"/boot/efi","IPID":1},<br />&nbsp;　　　　{"Filesystem":"/dev/mapper/vg_gsbwapp1-lv_home","Size":"49G","Used":"2.6G","Avail":"44G","UseP":"6%","Mountedon":"/home","IPID":1}<br />　　]</p>
+<p>　　注意：</p>
+<pre><code>　　　 <span style="color: #ff0000;"><strong>String retule = gson.toJson(disk_re.get(disk_i));</strong></span><br /><strong><span style="color: #ff0000;">　坑： String retule =</span> <span style="color: #ff0000;">disk_re.get(disk_i).toString(); 此方法转换String类型之后字符串内部结构发生变化，使用 Gson.fromJson(String json,T&lt;Class&gt;)时出现异常<br /><br />　.toString() 之后数据格式变为：<br />　　{Filesystem=/dev/mapper/vg_gsbwapp1-lv_root,Size=485G,Used=60G,Avail=401G,UseP=13%,Mountedon=/,IPID=1.0}<br /><br /><span style="color: #333300;">二： 总结Gson转换用法</span></span></strong>　　　　</code></pre>
+<src>
+<src>
+<src>　　　import com.google.gson.Gson;<br />　　　import com.google.gson.reflect.TypeToken;
+<src>　　　import java.util.Date;<br />　　　import java.util.List;<br />　　　import java.util.Map;
+<src><em><em>　　　　</em></em>
+<src>　　public class GsonUtil {<br />&nbsp;&nbsp;&nbsp; 　　private static Gson gson = null;
+<src>&nbsp;&nbsp;&nbsp; 　　static {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 　　gson = new Gson();<br />&nbsp;&nbsp;&nbsp; 　　}
+<src>&nbsp;&nbsp;&nbsp; 　　private GsonUtil() {<br />&nbsp;&nbsp;&nbsp; 　　}
+<src>&nbsp;&nbsp;&nbsp; /**<br />&nbsp;&nbsp;&nbsp;&nbsp; * 转成json<br />&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp; 　　public static String GsonString(Object object) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 　　String gsonString = null;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 　　if (gson != null) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 　　gsonString = gson.toJson(object);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 return gsonString;<br />&nbsp;&nbsp;&nbsp;　　 }
+<src>&nbsp;&nbsp;&nbsp; /**<br />&nbsp;&nbsp;&nbsp;&nbsp; * 转成bean<br />&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp;　　 public static &lt;T&gt; T GsonToBean(String gsonString, Class&lt;T&gt; cls) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 　　T t = null;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp; if (gson != null) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp; t = gson.fromJson(gsonString, cls);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp; return t;<br />&nbsp;&nbsp;&nbsp;　　 }
+<src>&nbsp;&nbsp;&nbsp; /**<br />&nbsp;&nbsp;&nbsp;&nbsp; * 转成list<br />&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp; 　　public static &lt;T&gt; List&lt;T&gt; GsonToList(String gsonString, Class&lt;T&gt; cls) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp; List&lt;T&gt; list = null;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp; if (gson != null) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp; list = gson.fromJson(gsonString, new TypeToken&lt;List&lt;T&gt;&gt;() {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp; }.getType());<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp; return list;<br />&nbsp;&nbsp;　　&nbsp; }
+<src>&nbsp;&nbsp;&nbsp; /**<br />&nbsp;&nbsp;&nbsp;&nbsp; * 转成list中有map的<br />&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp; 　　public static &lt;T&gt; List&lt;Map&lt;String, T&gt;&gt; GsonToListMaps(String gsonString) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 List&lt;Map&lt;String, T&gt;&gt; list = null;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 if (gson != null) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp; list = gson.fromJson(gsonString,<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; new TypeToken&lt;List&lt;Map&lt;String, T&gt;&gt;&gt;() {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }.getType());<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp; return list;<br />&nbsp;&nbsp;&nbsp; 　　}
+<src>&nbsp;&nbsp;&nbsp; /**<br />&nbsp;&nbsp;&nbsp;&nbsp; * 转成map的<br />&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp; 　　public static &lt;T&gt; Map&lt;String, T&gt; GsonToMaps(String gsonString) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 Map&lt;String, T&gt; map = null;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 if (gson != null) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp;&nbsp; map = gson.fromJson(gsonString, new TypeToken&lt;Map&lt;String, T&gt;&gt;() {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }.getType());<br />&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp; return map;<br />&nbsp;&nbsp;　　&nbsp; }
+<src>&nbsp;&nbsp;&nbsp; /*<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Object 转map<br />&nbsp;&nbsp;&nbsp;&nbsp; */<br />&nbsp;&nbsp;&nbsp; 　　static &lt;T&gt; Object ObjectToMaps(Object object) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp; if (object == null) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return null;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp; if (object instanceof Integer || object instanceof String || object instanceof Double ||<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; object instanceof Float || object instanceof Long || object instanceof Boolean ||<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; object instanceof Date || object instanceof List) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp; return object;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 /*if (object instanceof HibernateProxy) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 System.out.println("object instanceof HibernateProxy");<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　 Gson gson = new GsonBuilder()<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp; .registerTypeAdapterFactory(HibernateProxyTypeAdapter.FACTORY)<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp; .create();*/<br />&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp; Map&lt;String, T&gt; map = null;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp; map = gson.fromJson(gson.toJson(object), new TypeToken&lt;Map&lt;String, T&gt;&gt;() {<br />&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp; }.getType());<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp; return map;<br />&nbsp;&nbsp;　　&nbsp; }<br />}
+
+
+
+
+
+
+<pre><code></code></pre>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

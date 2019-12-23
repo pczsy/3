@@ -1,0 +1,159 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修PostgreSQL Json字段作为查询条件的解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>PostgreSQL Json字段作为查询条件的解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主因为喜欢提供。<br/>
+原文连接:https://www.cnblogs.com/weigy/p/11864708.html</div><br>
+    <p>读前思考：</p>
+<p>&nbsp; &nbsp;　　你没想到解决办法？PostgreSQL 数据库本身就支持还是另有解决办法？</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 使用JOSNB作为字段类型。现在开始,,,,,,,,,,,,,,,,,,</p>
+<p>json如下：</p>
+<src>
+<src class="cnblogs_code">
+<src class="cnblogs_code">
+<pre><code>"rule"<span style="color: #000000;">:{
+    </span>"tags"<span style="color: #000000;">: {
+        </span>"target": "logon"<span style="color: #000000;">
+    },
+    </span>"time": "2019-11-15 10:00:00"<span style="color: #000000;">,
+    </span>"method": "scheduled"<span style="color: #000000;">,
+    </span>"source": "backend"<span style="color: #000000;">,
+    </span>"aliases"<span style="color: #000000;">: [],
+    </span>"sendType": "tag"<span style="color: #000000;">,
+    </span>"registrationIds"<span style="color: #000000;">: []
+}</span></code></pre>
+
+
+<p>现在我想获取 rule 字段 里面的&nbsp;&nbsp;sendType="tag",那现在怎么搞？</p>
+<p>代码如下：</p>
+
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">  #####Mybatis#####
+  </span><span style="color: #808080;">&lt;</span><span style="color: #0000ff;">select</span> id<span style="color: #808080;">=</span>"selectPushDataList" resultMap<span style="color: #808080;">=</span>"BaseResultMap" parameterType<span style="color: #808080;">=</span>"com.jpc.JpushData" <span style="color: #808080;">&gt;</span>
+    <span style="color: #0000ff;">SELECT</span>
+      <span style="color: #808080;">&lt;</span>include refid<span style="color: #808080;">=</span>"Base_Column_List" <span style="color: #808080;">/&gt;</span>
+    <span style="color: #0000ff;">FROM</span><span style="color: #000000;">
+        jp_push jpt
+    </span><span style="color: #808080;">&lt;</span><span style="color: #0000ff;">where</span><span style="color: #808080;">&gt;</span><span style="color: #000000;">
+      delete_flag</span><span style="color: #808080;">=</span><span style="color: #800000; font-weight: bold;">1</span>
+      <span style="color: #808080;">and</span> <strong>(<span style="color: #0000ff;">rule</span>::json<span style="color: #808080;">-&gt;&gt;</span><span style="color: #ff0000;">'</span><span style="color: #ff0000;">sendType</span><span style="color: #ff0000;">'</span>)::<span style="color: #0000ff;">text</span> <span style="color: #808080;">=</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">tag</span><span style="color: #ff0000;">'</span></strong>
+      <span style="color: #808080;">&lt;</span><span style="color: #0000ff;">if</span> test<span style="color: #808080;">=</span>"name <span style="color: #808080;">!=</span> <span style="color: #0000ff;">null</span> <span style="color: #808080;">and</span> name <span style="color: #808080;">!=</span><span style="color: #ff0000;">''</span>" <span style="color: #808080;">&gt;</span>
+        <span style="color: #808080;">and</span> name <span style="color: #808080;">=</span>#{name,jdbcType<span style="color: #808080;">=</span><span style="color: #0000ff;">VARCHAR</span><span style="color: #000000;">}
+      </span><span style="color: #808080;">&lt;/</span><span style="color: #0000ff;">if</span><span style="color: #808080;">&gt;</span>
+      <span style="color: #0000ff;">ORDER</span> <span style="color: #0000ff;">BY</span><span style="color: #000000;">
+        create_time </span><span style="color: #0000ff;">ASC</span><span style="color: #000000;">
+         LIMIT ${pageSize} OFFSET ${(currentPage </span><span style="color: #808080;">-</span> <span style="color: #800000; font-weight: bold;">1</span>) <span style="color: #808080;">*</span><span style="color: #000000;"> pageSize}
+    </span><span style="color: #808080;">&lt;/</span><span style="color: #0000ff;">where</span><span style="color: #808080;">&gt;</span>
+  <span style="color: #808080;">&lt;/</span><span style="color: #0000ff;">select</span><span style="color: #808080;">&gt;</span><span style="color: #000000;">
+  
+  ####PostgreSQL  SQL####
+      </span><span style="color: #0000ff;">SELECT</span><span style="color: #000000;">
+        uuid,create_user,create_time,update_user,update_time,delete_flag,NAME,type,push,</span><span style="color: #0000ff;">rule</span><span style="color: #000000;">, STATUS 
+    </span><span style="color: #0000ff;">FROM</span><span style="color: #000000;">
+        jp_push jpt 
+    </span><span style="color: #0000ff;">WHERE</span><span style="color: #000000;">
+        jpt.delete_flag </span><span style="color: #808080;">=</span> <span style="color: #800000; font-weight: bold;">1</span> 
+        <span style="color: #808080;">AND</span> ( jpct.<span style="color: #0000ff;">rule</span> :: json <span style="color: #808080;">-&gt;&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">sendType</span><span style="color: #ff0000;">'</span> ) :: <span style="color: #0000ff;">text</span> <span style="color: #808080;">=</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">tag</span><span style="color: #ff0000;">'</span> 
+        <span style="color: #808080;">AND</span> jpt.NAME <span style="color: #808080;">=</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">testname</span><span style="color: #ff0000;">'</span> 
+    <span style="color: #0000ff;">ORDER</span> <span style="color: #0000ff;">BY </span><span style="color: #000000;">jpt.create_time </span><span style="color: #0000ff;">ASC</span><span style="color: #000000;"> LIMIT </span><span style="color: #800000; font-weight: bold;">20</span> OFFSET <span style="color: #800000; font-weight: bold;">0</span></code></pre>
+
+<p>结果如下：</p>
+<p><img src="./images/PostgreSQL Json字段作为查询条件的解决方案0.png" alt="" /></p>
+<p>再看如下的json串：</p>
+<p>--如何获取title，description呢--------</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">----------pre- zh en app----------
+"pre": {
+  "zh": {
+     "app": {
+       "title": "test",
+       "description": "test",
+       "images": [
+           "https://www.baidu.com/",
+           "https://www.baidu.com/1"
+   ]
+}
+},
+"en": {
+ "app": {
+  "title": "test",
+   "description": "test",
+   "images": [
+    "https://www.baidu.com/",
+   "https://www.baidu.com/1"
+  ]
+  }
+}
+---------------pre zh en web------------------------------------
+"pre": {
+  "zh": {
+   "web": {
+   "title": "test",
+   "description": "test",
+    "images": [
+      "https://www.baidu.com/",
+      "https://www.baidu.com/1"
+   ]
+  }
+},
+"en": {
+"web": {
+  "title": "test",
+  "description": "test",
+     "images": [
+       "https://www.baidu.com/",
+       "https://www.baidu.com/1"
+    ]
+   }
+  }
+}</span></code></pre>
+
+<pre><code><span>
+如何写sql？ 把语言和端作为一个变量传进去...</span></code></pre>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">SELECT</span><span style="color: #000000;">
+　　　　uuid,　address,pre,
+　　　　pre :: json </span><span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${lunguage}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${device}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">title</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">AS</span><span style="color: #000000;"> title,
+　　　　pre :: json </span><span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${lunguage}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${device}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">description</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">AS</span><span style="color: #000000;"> description 
+</span><span style="color: #0000ff;">FROM</span><span style="color: #000000;">
+　　"ban".test j</span></code></pre>
+
+<p>&nbsp;获取 zh-web不为空的内容：</p>
+<pre><code>lunguage 传  zh,device传 web</code></pre>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">SELECT</span><span style="color: #000000;">
+　　　　uuid,address,　pre,
+　　　　pre :: json </span><span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${lunguage}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${device}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">title</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">AS</span><span style="color: #000000;"> title,
+　　　　pre :: json </span><span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${lunguage}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${device}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">description</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">AS</span><span style="color: #000000;"> description 
+</span><span style="color: #0000ff;">FROM</span><span style="color: #000000;">
+　　"ban".test j  </span><span style="color: #0000ff;">where</span>  pre :: json <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${lunguage}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${device}</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">is</span> <span style="color: #808080;">not</span> <span style="color: #0000ff;">null</span></code></pre>
+
+<p>获取 zh-web-images数组里面的第一个图片信息不为空的内容：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">SELECT <br /></span><span style="color: #000000;">     uuid,address,　pre,
+　　　　pre :: json </span><span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${lunguage}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${device}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">title</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">AS</span><span style="color: #000000;"> title,
+　　　　pre :: json </span><span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${lunguage}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${device}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">description</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">AS</span><span style="color: #000000;"> description,
+       pre :: json </span><span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${lunguage}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${device}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;&gt;</span><span style="color: #800000; font-weight: bold;">0</span>::<span style="color: #ff0000;">'</span><span style="color: #ff0000;">images</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">AS</span><span style="color: #000000;"> images
+</span><span style="color: #0000ff;">FROM</span> <br />   　"ban".test j <span style="color: #0000ff;">where</span> pre :: json <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${lunguage}</span><span style="color: #ff0000;">'</span> <span style="color: #808080;">-&gt;</span> <span style="color: #ff0000;">'</span><span style="color: #ff0000;">${device}</span><span style="color: #ff0000;">'</span> <span style="color: #0000ff;">is</span> <span style="color: #808080;">not</span> <span style="color: #0000ff;">null</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;总结：PostgreSQL 本身就支持以json作为sql的查询条件。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

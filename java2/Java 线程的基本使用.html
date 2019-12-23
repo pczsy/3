@@ -1,0 +1,390 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java 线程的基本使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java 线程的基本使用</center></div><div class='banquan'>原文出处:本文由博客园博主浮云Cloud提供。<br/>
+原文连接:https://www.cnblogs.com/cloudfloating/p/11719219.html</div><br>
+    <p>GitHub Page: <a href="http://blog.cloudli.top/posts/Java-线程的基本使用/" class="uri">http://blog.cloudli.top/posts/Java-线程的基本使用/</a></p>
+<h2 id="创建线程">创建线程</h2>
+<p>创建线程的方式有两种：</p>
+<ul>
+<li>继承 <code>Thread</code> 类</li>
+<li>实现 <code>Runnable</code> 接口</li>
+</ul>
+<p><code>Thread</code> 类实现了 <code>Runnable</code> 接口。<strong>使用继承 <code>Thread</code> 类的方式创建线程时，最大的局限是不支持多继承</strong>。所以为了支持多继承，应该使用实现 <code>Runnable</code> 接口的方式。两种方式创建的线程在工作时是一样的，没有本质区别。</p>
+<p>第一种方式，继承 <code>Thread</code> 类并重写 <code>run()</code> 方法：</p>
+<pre><code><code>public class Work extends Thread {
+    
+    @Override
+    public void run() {
+        System.out.println(&quot;Working...&quot;);
+    }
+}
+
+public class Run {
+    public static void main(String[] args) {
+        Work work = new Work();
+        work.start();
+        System.out.println(&quot;End!&quot;);
+    }
+}</code></code></pre>
+<p>运行结果可能 “End！”先输出。在使用多线程时，运行结果与调用顺序是无关的。</p>
+<blockquote>
+<p>调用 <code>run()</code> 方法只是普通的方法调用，不会启动线程。如果多次调用 <code>start()</code> 方法，会抛出 <code>IllegalThreadStateException</code> 异常。</p>
+</blockquote>
+<p>第二种方式，实现 <code>Runnable</code> 接口：</p>
+<pre><code><code>public class Work implements Runnable {
+    
+    @Override
+    public void run() {
+        System.out.println(&quot;Working...&quot;);
+    }
+}
+
+public class Run {
+    public static void main(String[] args) {
+        Thread t = new Thread(new Work());
+        t.start();
+        System.out.println(&quot;End!&quot;);
+    }
+}</code></code></pre>
+<p>这种方式与第一种在运行上没有什么区别。其优点在于突破了单继承的限制。</p>
+<p>Thread 类的部分构造方法：</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">构造方法</th>
+<th style="text-align: left;">说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Thread()</td>
+<td style="text-align: left;">创建一个新的线程</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Thread(String name)</td>
+<td style="text-align: left;">创建一个新的线程，并指定名称</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Thread(Runnable target)</td>
+<td style="text-align: left;">创建一个新的线程，将 target 作为运行对象</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Thread(Runnable target, String name)</td>
+<td style="text-align: left;">将 target 作为运行对象，并指定名称</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Thread(ThreadGroup group, Runnable target)</td>
+<td style="text-align: left;">将 target 作为运行对象，并作为线程组的一员</td>
+</tr>
+</tbody>
+</table>
+<h2 id="线程的方法">线程的方法</h2>
+<h3 id="currentthread-方法">currentThread() 方法</h3>
+<p><code>currentThread()</code> 方法返回正在被执行的线程的信息。</p>
+<pre><code><code>public class Run() {
+    public static void main(String[] args) {
+        System.out.println(Thread.currentThread().getName());
+    }
+}</code></code></pre>
+<p>以上代码在控制台输出 “main“，说明该方法被名为 main 的线程调用。</p>
+<pre><code><code>import static java.lang.System.out;
+
+public class Run {
+
+    static class Work extends Thread {
+    
+        @Override
+        public void run() {
+            out.printf(&quot;%s 被调用\n&quot;, currentThread().getName());
+        }
+    }
+
+    public static void main(String[] args) {
+        Work t1 = new Work(),
+                t2 = new Work();
+        t1.start();
+        t2.start();
+    }
+}</code></code></pre>
+<p>以上代码运行结果：</p>
+<pre class="shell"><code>Thread-0 被调用
+Thread-1 被调用
+
+Process finished with exit code 0</code></code></pre>
+<blockquote>
+<p>在 <code>run()</code> 方法中可以省略 <code>Thread</code> 直接调用 <code>currentThread()</code> 方法。</p>
+</blockquote>
+<h3 id="isalive-方法">isAlive() 方法</h3>
+<p>该方法判断当前线程是否处于活动状态。</p>
+<pre><code><code>import static java.lang.System.out;
+
+public class Run {
+
+    static class Work extends Thread {
+    
+        @Override
+        public void run() {
+            out.printf(&quot;运行中 %s\n&quot;, isAlive());
+        }
+    }
+
+    public static void main(String[] args) throws Throwable {
+        Work t = new Work();
+        out.printf(&quot;运行前: %s\n&quot;, t.isAlive());
+        t.start();
+        // 等待线程运行完成
+        Thread.sleep(1000);
+        out.printf(&quot;运行结束: %s\n&quot;, t.isAlive());
+    }
+}</code></code></pre>
+<p>以上代码运行结果：</p>
+<pre class="shell"><code>运行前: false
+运行中 true
+运行结束: false
+
+Process finished with exit code 0</code></code></pre>
+<h3 id="sleep-方法">sleep() 方法</h3>
+<p><code>sleep()</code> 方法指定毫秒数让当前线程休眠（暂停运行），<strong>该操作不会释放锁</strong>。</p>
+<h2 id="停止线程">停止线程</h2>
+<h3 id="interrupt-方法">interrupt() 方法</h3>
+<p><code>interrupt()</code> 方法并不能立刻停止线程，只是在在线程中打了一个停止的标记。</p>
+<pre><code><code>import static java.lang.System.out;
+
+public class StopThread {
+
+    static class Work extends Thread {
+
+        @Override
+        public void run() {
+            for (int i = 1; i &lt;= 50000; i++) {
+                out.printf(&quot;i = %d\n&quot;, i);
+            }
+        }
+    }
+
+    public static void main(String[] args) throws Throwable {
+        Work work = new Work();
+        work.start();
+        Thread.sleep(200);
+        work.interrupt();
+        out.println(&quot;Call interrupt!&quot;);
+    }
+}</code></code></pre>
+<p>以上代码运行结果：</p>
+<pre class="shell"><code>...
+i = 8190
+i = 8191
+i = 8192
+Call interrupt!
+i = 8193
+i = 8194
+i = 8195
+...</code></code></pre>
+<p><code>interrupt()</code> 方法调用后，线程仍在运行。</p>
+<p>要使用 <code>interrupt()</code> 方法停止线程，需要在线程中判断中断状态，有两个方法：</p>
+<ul>
+<li><code>interrupted()</code>：测试当前线程是否是中断状态，执行后将状态清除，设置为 <code>false</code>；</li>
+<li><code>isInterrupted()</code>：作用同上，但是不清除状态。</li>
+</ul>
+<pre><code><code>import static java.lang.System.out;
+
+public class StopThread {
+
+    static class Work extends Thread {
+
+        @Override
+        public void run() {
+            for (int i = 1; i &lt;= 50000; i++) {
+                if (isInterrupted()) {
+                    out.println(&quot;跳出循环!&quot;);
+                    break;
+                }
+                out.printf(&quot;i = %d\n&quot;, i);
+            }
+        }
+    }
+
+    public static void main(String[] args) throws Throwable {
+        Work work = new Work();
+        work.start();
+        Thread.sleep(200);
+        work.interrupt();
+        out.println(&quot;Call interrupt!&quot;);
+    }
+}</code></code></pre>
+<p>以上代码执行结果：</p>
+<pre class="shell"><code>...
+i = 8301
+i = 8302
+i = 8303
+i = 8304
+i = 8305
+i = 8306
+i = 8307
+Call interrupt!
+跳出循环!
+
+Process finished with exit code 0</code></code></pre>
+<p>在调用 <code>interrupt()</code> 方法后，循环已经退出。但是这种方式只是跳出了循环，假如 for 循环外还有代码，仍然会执行。</p>
+<h3 id="抛出异常停止线程">抛出异常停止线程</h3>
+<p>可以在判断线程状态为中断时，抛出一个异常，在 <code>catch</code> 或 <code>finally</code> 块中做中断后的处理：</p>
+<pre><code><code>import static java.lang.System.out;
+
+public class StopThread {
+
+    static class Work extends Thread {
+
+        @Override
+        public void run() {
+            try {
+                for (int i = 1; i &lt;= 50000; i++) {
+                    if (isInterrupted()) {
+                        out.println(&quot;Interrupted！&quot;);
+                        throw new InterruptedException(&quot;抛出异常！&quot;);
+                    }
+                    out.printf(&quot;i = %d\n&quot;, i);
+                }
+                out.println(&quot;for 循环结束!&quot;);
+            } catch (InterruptedException e) {
+                out.println(e.getMessage());
+            }
+        }
+    }
+
+    public static void main(String[] args) throws Throwable {
+        Work work = new Work();
+        work.start();
+        Thread.sleep(200);
+        work.interrupt();
+        out.println(&quot;Call interrupt!&quot;);
+    }
+}</code></code></pre>
+<p>以上代码将线程要执行的任务放入 <code>try</code> 块中，当判断为中断状态时，抛出 <code>InterruptedException</code> ，如果需要释放锁，可以在 <code>finally</code> 块中执行。</p>
+<p>也可以配合 <code>return</code> 来停止线程：</p>
+<pre><code><code>if (isInterrupted()) {
+    return;
+}</code></code></pre>
+<h2 id="暂停线程">暂停线程</h2>
+<p>Java 提供了 <del><code>suspend()</code></del> 和 <del><code>resume()</code></del> 方法来暂停和恢复线程，不过这两个方法已经过期作废了。</p>
+<p><code>suspend()</code> 方法暂停线程时，不会释放锁。所以使用 <code>suspend()</code> 方法容易产生死锁。</p>
+<p>如果需要暂停线程，可以加入一个标记，若标记指出线程需要暂停，使用 <code>wait()</code> 进入等待状态，如需要恢复，使用 <code>notify()</code> 唤醒。</p>
+<pre><code><code>import static java.lang.System.out;
+
+public class StopThread {
+
+    static class Work extends Thread {
+        // 暂停标记
+        private boolean isSuspended = false;
+
+        void pause() {
+            isSuspended = true;
+        }
+
+        synchronized void wake() {
+            isSuspended = false;
+            // 唤醒
+            this.notify();
+            out.println(&quot;已唤醒!&quot;);
+        }
+
+        @Override
+        public void run() {
+            synchronized (this) {
+                try {
+                    for (int i = 1; i &lt;= 5000; i++) {
+                        if (isInterrupted()) {
+                            return;
+                        }
+
+                        if (isSuspended) {
+                            out.println(&quot;已暂停!&quot;);
+                            // 等待
+                            this.wait();
+                        }
+
+                        out.printf(&quot;%s i = %d\n&quot;, getName(), i);
+                    }
+                    out.printf(&quot;%s end!\n&quot;, getName());
+                } catch (InterruptedException e) {
+                    out.println(e.getMessage());
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws Throwable {
+        Work work = new Work();
+        work.start();
+        Thread.sleep(100);
+        // 暂停
+        work.pause();
+        Thread.sleep(100);
+        // 唤醒
+        work.wake();
+    }
+}</code></code></pre>
+<p>以上代码使用 <code>wait()</code> 和 <code>notify()</code> 暂停与恢复线程。运行结果：</p>
+<pre class="shell"><code>...
+Thread-0 i = 202
+Thread-0 i = 203
+Thread-0 i = 204
+已暂停!
+已唤醒!
+Thread-0 i = 205
+Thread-0 i = 206
+Thread-0 i = 207
+...
+Thread-0 i = 4998
+Thread-0 i = 4999
+Thread-0 i = 5000
+Thread-0 end!
+
+Process finished with exit code 0</code></code></pre>
+<h3 id="yield-方法">yield 方法</h3>
+<p><code>yield()</code> 方法的作用是放弃当前的 CPU 资源，让其他的任务去占用 CPU 执行时间。但放弃的时间不确定，有可能刚刚放弃，马上又获得时间片。</p>
+<pre><code><code>import static java.lang.System.currentTimeMillis;
+import static java.lang.System.out;
+
+public class Yield {
+    static class Work extends Thread {
+
+        @Override
+        public void run() {
+            long before = currentTimeMillis();
+            int sum = 0;
+            for (int i =1; i &lt; 2000000; i++) {
+                // yield();
+                sum += (i + 1);
+            }
+            long after = currentTimeMillis();
+            out.printf(&quot;Cost: %dms\n&quot;, after - before);
+        }
+    }
+
+    public static void main(String[] args) {
+        new Work().start();
+    }
+}</code></code></pre>
+<p>以上代码不使用 <code>yield()</code> 方法时大概 15ms 执行完，加上后大概有 500ms。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

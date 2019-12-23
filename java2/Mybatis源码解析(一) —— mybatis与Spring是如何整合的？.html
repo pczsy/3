@@ -1,0 +1,401 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Mybatis源码解析(一) —— mybatis与Spring是如何整合的？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Mybatis源码解析(一) —— mybatis与Spring是如何整合的？</center></div><div class='banquan'>原文出处:本文由博客园博主想飞的猿提供。<br/>
+原文连接:https://www.cnblogs.com/bug9/p/11793728.html</div><br>
+    <h2 id="mybatis源码解析一-mybatis与spring是如何整合的">Mybatis源码解析(一) —— mybatis与Spring是如何整合的？</h2>
+<p>  从大学开始接触mybatis到现在差不多快3年了吧，最近寻思着使用3年了，我却还不清楚其内部实现细节，比如：</p>
+<ul>
+<li><p>它是如何加载各种mybatis相关的xml？</p></li>
+<li><p>它是如何仅仅通过一个Mapper接口 + Mappe.xml实现数据库操作的（尽管很多人可能都清楚是通过代理实现，但面试时一旦深入询问：比如Mapper的代理类名是什么？是通过JDK还是cglib实现？）？</p></li>
+<li><p>在同一个方法中，Mybatis多次请求数据库，是否要创建多个SqlSession会话？</p></li>
+<li><p>它与Spring是如何适配(整合)的？</p></li>
+<li><p>在Spring中是如何保障SqlSession的生命周期的？</p></li>
+<li><p>等等一系列的问题。。。</p></li>
+</ul>
+<p>  如果以上问题你自认为无法回答，或者说了解一些，那么就从现在开始，我们来一一揭开这层面纱。</p>
+<h3 id="一mybatis最简单测试demo">一、Mybatis：最简单测试Demo</h3>
+<p>  相信只要用过Mybatis的同学看到下面的代码一定不会陌生，如果不清楚的可以看下<a href="https://mybatis.org/mybatis-3/zh/getting-started.html">官网文档</a></p>
+<pre><code><code>
+    String resource = &quot;mybatis-config.xml&quot;;
+    InputStream inputStream = Resources.getResourceAsStream(resource);
+    SqlSessionFactory sqlSessionFactory = new SqlSessionFactoryBuilder().build(inputStream);
+
+    // 1、目前流行方式
+    try (SqlSession session = sqlSessionFactory.openSession()) {
+        UserMapper mapper = session.getMapper(UserMapper.class);
+        User user = mapper.selectById(101);
+    }
+    // 2、以前流行方式
+    try (SqlSession session = sqlSessionFactory.openSession()) {
+        User user =  sqlSession.selectOne(&quot;xxx.UserMapper.selectById&quot;, &quot;101&quot;);;
+    }    
+    </code></code></pre>
+<p>  示列代码演示了Mybatis进行一次数据库操作的过程，大致分为（针对目前流行方式，其实以前的使用和目前流行的使用方式实现原理一样）：</p>
+<ul>
+<li><p>1、 通过 <strong>SqlSessionFactoryBuilder</strong> 将读取到的配置资源 build 生成 SqlSessionFactory</p></li>
+<li><p>2、 通过 <strong>SqlSessionFactory</strong> 的 openSession() 获取到 SqlSession</p></li>
+<li><p>3、 通过 <strong>SqlSession</strong> 获取到 Mapper的代理对象(<strong>MapperProxy</strong>)</p></li>
+<li><p>4、 通过 Mapper 进行 数据库请求操作</p></li>
+</ul>
+<p><strong>SqlSession、SqlSessionFactory、SqlSessionFactoryBuilder</strong></p>
+<p>  我们可以轻易的发现每次去请求数据库操作都需要通过 <strong>SqlSessionFactory</strong> 去获取到 <strong>SqlSession</strong>，而 SqlSessionFactory 是通过 <strong>SqlSessionFactoryBuilder</strong> 构造出来的， 并且最后请求操作完成后都关闭了SqlSession。因此，不难得出：</p>
+<ul>
+<li><strong>SqlSessionFactory</strong> 一个应用程序中最好只有1个，即单列。</li>
+<li><strong>SqlSessionFactoryBuilder</strong> 只有一个作用： 创建 SqlSessionFactory对象。</li>
+<li><strong>一个SqlSession应该仅存活于一个业务请求中，也可以说一个SqlSession对应一次数据库会话，它不是永久存活的，每次访问数据库时都需要创建它，并且访问完成后都必须执行会话关闭</strong></li>
+</ul>
+<p>  针对这3个类以及mapper的作用域（Scope）和生命周期的描述，个人觉得官方文档写得很清楚：</p>
+<blockquote>
+<p><strong>SqlSessionFactoryBuilder</strong></p>
+<p>这个类可以被实例化、使用和丢弃，一旦创建了 SqlSessionFactory，就不再需要它了。 因此 SqlSessionFactoryBuilder 实例的最佳作用域是方法作用域（也就是局部方法变量）。 你可以重用 SqlSessionFactoryBuilder 来创建多个 SqlSessionFactory 实例，但是最好还是不要让其一直存在，以保证所有的 XML 解析资源可以被释放给更重要的事情。</p>
+<p><strong>SqlSessionFactory</strong></p>
+<p>SqlSessionFactory 一旦被创建就应该在应用的运行期间一直存在，没有任何理由丢弃它或重新创建另一个实例。 使用 SqlSessionFactory 的最佳实践是在应用运行期间不要重复创建多次，多次重建 SqlSessionFactory 被视为一种代码“坏味道（bad smell）”。因此 SqlSessionFactory 的最佳作用域是应用作用域。 有很多方法可以做到，最简单的就是使用单例模式或者静态单例模式。</p>
+<p><strong>SqlSession</strong></p>
+<p>每个线程都应该有它自己的 SqlSession 实例。SqlSession 的实例不是线程安全的，因此是不能被共享的，所以它的最佳的作用域是请求或方法作用域。 绝对不能将 SqlSession 实例的引用放在一个类的静态域，甚至一个类的实例变量也不行。 也绝不能将 SqlSession 实例的引用放在任何类型的托管作用域中，比如 Servlet 框架中的 HttpSession。 如果你现在正在使用一种 Web 框架，要考虑 SqlSession 放在一个和 HTTP 请求对象相似的作用域中。 换句话说，每次收到的 HTTP 请求，就可以打开一个 SqlSession，返回一个响应，就关闭它。 这个关闭操作是很重要的，你应该把这个关闭操作放到 finally 块中以确保每次都能执行关闭。<br />
+依赖注入框架可以创建线程安全的、基于事务的 SqlSession 和映射器，并将它们直接注入到你的 bean 中，因此可以直接忽略它们的生命周期。 如果对如何通过依赖注入框架来使用 MyBatis 感兴趣，可以研究一下 MyBatis-Spring 或 MyBatis-Guice 两个子项目。</p>
+</blockquote>
+<blockquote>
+<p><strong>映射器实例（Mapper实例）</strong><br />
+映射器是一些由你创建的、绑定你映射的语句的接口。映射器接口的实例是从 SqlSession 中获得的。因此从技术层面讲，任何映射器实例的最大作用域是和请求它们的 SqlSession 相同的。尽管如此，映射器实例的最佳作用域是方法作用域。 也就是说，映射器实例应该在调用它们的方法中被请求，用过之后即可丢弃。 并不需要显式地关闭映射器实例，尽管在整个请求作用域保持映射器实例也不会有什么问题，但是你很快会发现，像 SqlSession 一样，在这个作用域上管理太多的资源的话会难于控制。 为了避免这种复杂性，最好把映射器放在方法作用域内。就像示列代码一样。<br />
+如果SqlSession是注入的，那么映射器实例也可通过依赖注入，并且可忽略其生命周期。</p>
+</blockquote>
+<h3 id="二mybatis-spring将mybatis代码无缝地整合到spring">二、Mybatis-Spring：将MyBatis代码无缝地整合到Spring</h3>
+<p>  前面是学习mybatis常看到的一种代码，但缺点也很明显: 每次请求都得创建SqlSession，并且Mapper的代理类是通过SqlSession获取（说明耦合度很高），也就意味着每次请求都得创建一个新的Mapper代理类。为了整合Spring，并且解决前面问题，所以<a href="http://mybatis.org/spring/zh/getting-started.html">Mybatis-Spring</a> 子项目来袭。</p>
+<blockquote>
+<p>MyBatis-Spring 会帮助你将 MyBatis 代码无缝地整合到 Spring 中。<strong>它将允许 MyBatis 参与到 Spring 的事务管理之中，创建映射器 mapper 和 SqlSession 并注入到 bean中</strong>。</p>
+</blockquote>
+<p>  上面是 Mybatis-Spring的官方介绍，其中 <strong>允许 MyBatis 参与到 Spring 的事务管理之中，创建映射器 mapper 和 SqlSession 并注入到 bean中</strong> 是我们本次解析的关键点。那么开始分析吧！</p>
+<p><strong>SqlSessionFactoryBean 、 MapperScannerConfigurer</strong></p>
+<p>  在Spring项目中应用了Mybatis都会有下面的2个bean配置，这2个配置就是实现xml加载、mapper和SqlSession注入的起始配置。</p>
+<pre><code><code>
+    &lt;bean id=&quot;sqlSessionFactory&quot; class=&quot;org.mybatis.spring.SqlSessionFactoryBean&quot;&gt;
+        &lt;property name=&quot;dataSource&quot; ref=&quot;dataSource&quot;/&gt;
+        &lt;property name=&quot;mapperLocations&quot; value=&quot;classpath:mapper/*.xml&quot;&gt;&lt;/property&gt;
+        &lt;property name=&quot;configLocation&quot; value=&quot;classpath:mybatis-config.xml&quot;/&gt;
+    &lt;/bean&gt;
+
+    &lt;!-- DAO接口所在包名，Spring会自动查找其下的类 --&gt;
+    &lt;bean class=&quot;org.mybatis.spring.mapper.MapperScannerConfigurer&quot;&gt;
+        &lt;property name=&quot;basePackage&quot; value=&quot;xxx.dao&quot;/&gt;
+        &lt;property name=&quot;sqlSessionFactoryBeanName&quot; value=&quot;sqlSessionFactory&quot;&gt;&lt;/property&gt;
+    &lt;/bean&gt;
+</code></code></pre>
+<h4 id="一-sqlsessionfactorybean-加载xml及build-sqlsessionfactory对象">一、 SqlSessionFactoryBean ： 加载xml及build SqlSessionFactory对象</h4>
+<p>  从配置中我们可以看的 SqlSessionFactoryBean 配置了数据源、mapper的xml路径、mybatis-config的xml路径。因此，不难想象，SqlSessionFactoryBean 内部实现了xml配置文件的加载及SqlSessionFactory对象的创建。我们来看下 SqlSessionFactoryBean继承关系图形：</p>
+<p><img src="./images/Mybatis源码解析(一) —— mybatis与Spring是如何整合的？0.png" alt="SqlSessionFactoryBean继承关系图形" /></p>
+<p>在继承关系图中，我们发现了 <strong>InitializingBean、FactoryBean</strong> 的身影，可能清楚这个的同学，大概已经猜到了肯定有 afterPropertiesSet() 来创建 SqlSessionFactory 对象 和 getObject() 来获取 SqlSessionFactory 对象 。 话不多说，先看下getObject()实现：</p>
+<pre><code><code>
+  public SqlSessionFactory getObject() throws Exception {
+    if (this.sqlSessionFactory == null) {
+      afterPropertiesSet();
+    }
+
+    return this.sqlSessionFactory;
+  }
+  </code></code></pre>
+<p>  getObject()相对简单，我们都知道FactoryBean子类都是通过getObject()来获取到实际的Bean对象，这里也就是SqlSessionFactory。从源码中我们看到当 sqlSessionFactory为null会去调用 afterPropertiesSet()，所以 SqlSessionFactory 肯定是由 afterPropertiesSet() 来实现创建的。继续看afterPropertiesSet()实现：</p>
+<pre><code><code>  public void afterPropertiesSet() throws Exception {
+    notNull(dataSource, &quot;Property &#39;dataSource&#39; is required&quot;);
+    notNull(sqlSessionFactoryBuilder, &quot;Property &#39;sqlSessionFactoryBuilder&#39; is required&quot;);
+
+    this.sqlSessionFactory = buildSqlSessionFactory();
+  }
+</code></code></pre>
+<p>  afterPropertiesSet() 内部首先 验证了 dataSource 和 sqlSessionFactoryBuilder 部位null，最后调用 buildSqlSessionFactory()方法获取到 SqlSessionFactory 对象，并赋值到类字段属性 sqlSessionFactory 。 继续查看buildSqlSessionFactory()源码：</p>
+<pre><code><code>
+protected SqlSessionFactory buildSqlSessionFactory() throws IOException {
+
+    // 省略了 SqlSessionFactoryBean 的属性（比如：ObjectFactory ）赋值到 Configuration 对象中的操作
+    //  1 Configuration : Mybatis的核心类之一，主要存放读取到的xml数据,包括mapper.xml 
+    Configuration configuration;
+
+    XMLConfigBuilder xmlConfigBuilder = null;
+    if (this.configLocation != null) {
+      //  2 创建  xmlConfigBuilder 对象 : 用于解析 mybatis-config.xml 数据
+      xmlConfigBuilder = new XMLConfigBuilder(this.configLocation.getInputStream(), null, this.configurationProperties);
+      configuration = xmlConfigBuilder.getConfiguration();
+    } else {
+      if (logger.isDebugEnabled()) {
+        logger.debug(&quot;Property &#39;configLocation&#39; not specified, using default MyBatis Configuration&quot;);
+      }
+      configuration = new Configuration();
+      configuration.setVariables(this.configurationProperties);
+    }
+
+    if (xmlConfigBuilder != null) {
+      try {
+        //  3  XmlConfigBuilder 解析方法执行 
+        xmlConfigBuilder.parse();
+      } catch (Exception ex) {
+        throw new NestedIOException(&quot;Failed to parse config resource: &quot; + this.configLocation, ex);
+      } finally {
+        ErrorContext.instance().reset();
+      }
+    }
+    
+    if (!isEmpty(this.mapperLocations)) {
+      for (Resource mapperLocation : this.mapperLocations) {
+        if (mapperLocation == null) {
+          continue;
+        }
+        try {
+          //  4 创建  XMLMapperBuilder 对象 : 用于解析 mapper.xml 数据
+          XMLMapperBuilder xmlMapperBuilder = new XMLMapperBuilder(mapperLocation.getInputStream(),
+              configuration, mapperLocation.toString(), configuration.getSqlFragments());
+          xmlMapperBuilder.parse();
+        } catch (Exception e) {
+          throw new NestedIOException(&quot;Failed to parse mapping resource: &#39;&quot; + mapperLocation + &quot;&#39;&quot;, e);
+        } finally {
+          ErrorContext.instance().reset();
+        }
+      }
+    } 
+    // 5 通过 SqlSessionFactoryBuilder bulid  SqlSessionFactory 对象
+    return this.sqlSessionFactoryBuilder.build(configuration);
+  }
+</code></code></pre>
+<p>   整个 buildSqlSessionFactory() 源码主要有以下几个重要的点：</p>
+<ul>
+<li><p>1、 <strong>XMLConfigBuilder</strong> ，通过调用其 parse() 方法来 解析 mybatis-config.xml 配置（如果 配置有 mapper.xml ，其会通过 XMLMapperBuilder 进行解析加载），并将解析的数据赋值到 <strong>Configuration</strong>（Mybatis的核心类之一，主要存放读取到的xml数据,包括mapper.xml，该类贯穿整个mybatis，足以见得其重要性）</p></li>
+<li><p>2、 <strong>XMLMapperBuilder</strong> : 通过调用其 parse() 方法来 解析 mapper.xml 配置， 并将解析的数据赋值到 <strong>Configuration</strong></p></li>
+<li><p>3、 将存放有解析数据的 <strong>Configuration</strong> 作为 <strong>sqlSessionFactoryBuilder</strong>.build() 参数，创建 <strong>sqlSessionFactory</strong> 对象。</p></li>
+</ul>
+<p>至此</p>
+<h4 id="二-mapperscannerconfigurer-扫描mapper接口路径将-mapper-偷梁换柱成-mapperfactorybean">二、 MapperScannerConfigurer ：扫描Mapper接口路径，将 Mapper 偷梁换柱成 MapperFactoryBean</h4>
+<p>  MapperScannerConfigurer 是 mybatis-spring 项目中为了实现方便加载Mapper接口，以及将 Mapper 偷梁换柱成 <strong>MapperFactoryBean</strong>。查看 MapperScannerConfigurer 源码，先看下其继承关系图：</p>
+<p><img src="./images/Mybatis源码解析(一) —— mybatis与Spring是如何整合的？1.png" alt="MapperScannerConfigurer继承关系图形" /></p>
+<p>   从中我们其继承了 BeanDefinitionRegistryPostProcessor 接口，熟悉Spring 的同学应该 已经大致想到了 其如何将 Mapper 偷梁换柱成 <strong>MapperFactoryBean</strong> 了。话不多说，我们来看看 MapperScannerConfigurer 是如何实现 BeanDefinitionRegistryPostProcessor 的 postProcessBeanDefinitionRegistry 方法：</p>
+<pre><code><code> public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
+    if (this.processPropertyPlaceHolders) {
+      processPropertyPlaceHolders();
+    }
+
+    ClassPathMapperScanner scanner = new ClassPathMapperScanner(registry);
+    scanner.setAddToConfig(this.addToConfig);
+    scanner.setAnnotationClass(this.annotationClass);
+    scanner.setMarkerInterface(this.markerInterface);
+    scanner.setSqlSessionFactory(this.sqlSessionFactory);
+    scanner.setSqlSessionTemplate(this.sqlSessionTemplate);
+    scanner.setSqlSessionFactoryBeanName(this.sqlSessionFactoryBeanName);
+    scanner.setSqlSessionTemplateBeanName(this.sqlSessionTemplateBeanName);
+    scanner.setResourceLoader(this.applicationContext);
+    scanner.setBeanNameGenerator(this.nameGenerator);
+    scanner.registerFilters();
+    scanner.scan(StringUtils.tokenizeToStringArray(this.basePackage, ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS));
+  }
+</code></code></pre>
+<p>   我们可以发现整个方法内部其实就是通过 <strong>ClassPathMapperScanner</strong> 的 scan() 方法，查看 scan() 实现，发现其内部调用了关键方法 doScan(),那么我们来看下 doScan() 方法实现：</p>
+<pre><code><code>
+  @Override
+  public Set&lt;BeanDefinitionHolder&gt; doScan(String... basePackages) {
+    // 1、调用父类 ClassPathBeanDefinitionScanner的 doScan方法 加载路径下所有的mapper接口生成对应的 BeanDefinition 
+    Set&lt;BeanDefinitionHolder&gt; beanDefinitions = super.doScan(basePackages);
+
+    if (beanDefinitions.isEmpty()) {
+      logger.warn(&quot;No MyBatis mapper was found in &#39;&quot; + Arrays.toString(basePackages) + &quot;&#39; package. Please check your configuration.&quot;);
+    } else {
+      for (BeanDefinitionHolder holder : beanDefinitions) {
+        GenericBeanDefinition definition = (GenericBeanDefinition) holder.getBeanDefinition();
+
+        // 2、 设置 被代理的 Bean（也就是Mapper） 的class信息
+        definition.getPropertyValues().add(&quot;mapperInterface&quot;, definition.getBeanClassName());
+        // 3、 偷梁换柱成 MapperFactoryBean 
+        definition.setBeanClass(MapperFactoryBean.class);
+
+        definition.getPropertyValues().add(&quot;addToConfig&quot;, this.addToConfig);
+
+        boolean explicitFactoryUsed = false;
+        // 4、 设置 sqlSessionFactory 
+        if (StringUtils.hasText(this.sqlSessionFactoryBeanName)) {
+          definition.getPropertyValues().add(&quot;sqlSessionFactory&quot;, new RuntimeBeanReference(this.sqlSessionFactoryBeanName));
+          explicitFactoryUsed = true;
+        } else if (this.sqlSessionFactory != null) {
+          definition.getPropertyValues().add(&quot;sqlSessionFactory&quot;, this.sqlSessionFactory);
+          explicitFactoryUsed = true;
+        }
+        
+        // 5、 设置 sqlSessionTemplate
+        if (StringUtils.hasText(this.sqlSessionTemplateBeanName)) {
+          definition.getPropertyValues().add(&quot;sqlSessionTemplate&quot;, new RuntimeBeanReference(this.sqlSessionTemplateBeanName));
+          explicitFactoryUsed = true;
+        } else if (this.sqlSessionTemplate != null) {
+          definition.getPropertyValues().add(&quot;sqlSessionTemplate&quot;, this.sqlSessionTemplate);
+          explicitFactoryUsed = true;
+        }
+        
+        if (!explicitFactoryUsed) {
+          definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
+        }
+      }
+    }
+
+    return beanDefinitions;
+  }
+
+</code></code></pre>
+<p>   整个方法分为3个部分：</p>
+<ul>
+<li><p>1、 调用父类 ClassPathBeanDefinitionScanner的 doScan()方法 加载路径下所有的mapper接口生成对应的 BeanDefinition</p></li>
+<li><p>2、 通过definition.setBeanClass(MapperFactoryBean.class) 偷梁换柱成 MapperFactoryBean</p></li>
+<li><p>3、 通过 definition.getPropertyValues().add() 添加 MapperFactoryBean 所需的 字段或者方法参数信息 ： sqlSessionFactory 、 mapperInterface等</p></li>
+</ul>
+<p>   至此 MapperScannerConfigurer 的使命已经完成， 至于 MapperFactoryBean 的创建就完全交给Spring来完成了。</p>
+<h4 id="三-mapperfactorybean-sqlsessiontemplatemapper与sqlsession解耦的利器">三、 MapperFactoryBean 、SqlSessionTemplate：Mapper与SqlSession解耦的利器</h4>
+<p>   我们知道在mybatis中，Mapper是通过 SqlSession创建的，而SqlSession的生命周期仅仅在一次会话中，那么按照这种设计，每一次会话都要去创建SqlSession，然后再通过SqlSession去创建Mapper。我们知道Mapper其实没有必要每次都去创建，它更加适合作为一个单列对象。那么怎么将SqlSession和Mapper解耦呢？ 在mybatis-spring项目中通过 MapperFactoryBean 、SqlSessionTemplate 来实现的。接下来我们就来解析它们。</p>
+<p><strong>MapperFactoryBean</strong></p>
+<p>   正如前面我们所看到的一样，MapperFactoryBean 其实可以理解为 Mapper的代理工厂Bean，我们可以通过 MapperFactoryBean 的方法获取到 Mapper的代理对象。先来看下 MapperFactoryBean继承关系 ：<br />
+<img src="./images/Mybatis源码解析(一) —— mybatis与Spring是如何整合的？2.png" alt="MapperFactoryBean继承关系图" /></p>
+<p>   我们可以看到 MapperFactoryBean 实现了 FactoryBean， 那么 肯定通过 实现 getObject() 获取到 Mapper的代理对象，查看源码如下：</p>
+<pre><code><code>
+  public T getObject() throws Exception {
+    return getSqlSession().getMapper(this.mapperInterface);
+  }
+</code></code></pre>
+<p>   其内部就是我们熟悉的 getSqlSession().getMapper() 创建Mapper代理对象的方法。熟悉Spring 的同学都知道 在Bean加载的过程中如果发现当前Bean对象是 FactoryBean 会去 调用getObject() 获取真正的Bean对象。不熟悉的同学可以去看下 AbstractBeanFactory 的 getBean() 方法。</p>
+<p>   但是似乎还是没有吧SqlSession和Mapper解耦的迹象呢？不着急，我们继续看下 getSqlSession(), 发现其是 父类 SqlSessionDaoSupport 实现，我们看下SqlSessionDaoSupport源码：</p>
+<pre><code><code>
+public abstract class SqlSessionDaoSupport extends DaoSupport {
+
+  private SqlSession sqlSession;
+
+  private boolean externalSqlSession;
+
+  //  创建 SqlSession子类 SqlSessionTemplate 
+  public void setSqlSessionFactory(SqlSessionFactory sqlSessionFactory) {
+    if (!this.externalSqlSession) {
+      this.sqlSession = new SqlSessionTemplate(sqlSessionFactory);
+    }
+  }
+
+  public void setSqlSessionTemplate(SqlSessionTemplate sqlSessionTemplate) {
+    this.sqlSession = sqlSessionTemplate;
+    this.externalSqlSession = true;
+  }
+
+  
+  public SqlSession getSqlSession() {
+    return this.sqlSession;
+  }
+
+  ....
+
+}
+</code></code></pre>
+<p>   我们发现我们获取到的SqlSession其实是其子类<strong>SqlSessionTemplate</strong>, 我们查看其构造方法源码：</p>
+<pre><code><code>
+  public SqlSessionTemplate(SqlSessionFactory sqlSessionFactory, ExecutorType executorType,
+      PersistenceExceptionTranslator exceptionTranslator) {
+
+    notNull(sqlSessionFactory, &quot;Property &#39;sqlSessionFactory&#39; is required&quot;);
+    notNull(executorType, &quot;Property &#39;executorType&#39; is required&quot;);
+
+    this.sqlSessionFactory = sqlSessionFactory;
+    this.executorType = executorType;
+    this.exceptionTranslator = exceptionTranslator;
+    // 维护了一个 SqlSession的代理对象
+    this.sqlSessionProxy = (SqlSession) newProxyInstance(
+        SqlSessionFactory.class.getClassLoader(),
+        new Class[] { SqlSession.class },
+        new SqlSessionInterceptor());
+  }
+  </code></code></pre>
+<p>   我们可以清楚的发现，其内部维护了一个 SqlSession的字段 sqlSessionProxy ，其赋值的是代理对象 SqlSessionInterceptor。 我们再来看下 SqlSessionInterceptor 的源码：</p>
+<pre><code><code>
+ private class SqlSessionInterceptor implements InvocationHandler {
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+      // 通过getSqlSession() 获取一个 SqlSession
+      SqlSession sqlSession = getSqlSession(
+          SqlSessionTemplate.this.sqlSessionFactory,
+          SqlSessionTemplate.this.executorType,
+          SqlSessionTemplate.this.exceptionTranslator);
+      try {
+        Object result = method.invoke(sqlSession, args);
+        if (!isSqlSessionTransactional(sqlSession, SqlSessionTemplate.this.sqlSessionFactory)) {
+          // force commit even on non-dirty sessions because some databases require
+          // a commit/rollback before calling close()
+          sqlSession.commit(true);
+        }
+        return result;
+      } catch (Throwable t) {
+        Throwable unwrapped = unwrapThrowable(t);
+        if (SqlSessionTemplate.this.exceptionTranslator != null &amp;&amp; unwrapped instanceof PersistenceException) {
+          // release the connection to avoid a deadlock if the translator is no loaded. See issue #22
+          closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
+          sqlSession = null;
+          Throwable translated = SqlSessionTemplate.this.exceptionTranslator.translateExceptionIfPossible((PersistenceException) unwrapped);
+          if (translated != null) {
+            unwrapped = translated;
+          }
+        }
+        throw unwrapped;
+      } finally {
+        if (sqlSession != null) {
+          closeSqlSession(sqlSession, SqlSessionTemplate.this.sqlSessionFactory);
+        }
+      }
+    }
+  }
+  </code></code></pre>
+<p>  我们发现其代理实现时，通过getSqlSession() 获取一个 全新的SqlSession。也就是说创建Mapper的SqlSession和会话请求的SqlSession不是同一个。这里就完美的解耦了Mapper和SqlSession，并且保障了每次会话SqlSession的生命周期范围。</p>
+<p>  这里超前提下： getSqlSession().getMapper() 其实 是通过 configuration.getMapper() 来获取的，那么就意味着 configuration内部必须添加了Mapper信息，那么configuration是何时添加的呢？ 可以看下 MapperFactoryBean的checkDaoConfig()方法，源码如下：</p>
+<pre><code><code>
+  @Override
+  protected void checkDaoConfig() {
+    super.checkDaoConfig();
+
+    notNull(this.mapperInterface, &quot;Property &#39;mapperInterface&#39; is required&quot;);
+
+    Configuration configuration = getSqlSession().getConfiguration();
+    if (this.addToConfig &amp;&amp; !configuration.hasMapper(this.mapperInterface)) {
+      try {
+        configuration.addMapper(this.mapperInterface);
+      } catch (Throwable t) {
+        logger.error(&quot;Error while adding the mapper &#39;&quot; + this.mapperInterface + &quot;&#39; to configuration.&quot;, t);
+        throw new IllegalArgumentException(t);
+      } finally {
+        ErrorContext.instance().reset();
+      }
+    }
+  }
+  </code></code></pre>
+<p>  由于父类实现了 InitializingBean 接口，并且其afterPropertiesSet() 调用了 checkDaoConfig() 方法 ，所以，至少在初始化创建MapperFactoryBean 时，就已经向 configuration内部必须添加了Mapper信息。</p>
+<h3 id="三个人总结">三、个人总结</h3>
+<p>  本文解析了Mybatis与Spring是如何整合的，其中的关键对象包括：</p>
+<ul>
+<li><p><strong>SqlSessionFactoryBuilder</strong>: 用于创建 SqlSessionFactory</p></li>
+<li><p><strong>SqlSessionFactory</strong>： 用于创建 SqlSession</p></li>
+<li><p><strong>SqlSession</strong>： Mybatis工作的最顶层API会话接口，所有访问数据库的操作都是通过SqlSession来的</p></li>
+<li><p><strong>Configuration</strong>： 存放有所有的mybatis配置信息，包括mapper.xml、 mybatis-config.xml等</p></li>
+<li><p><strong>XMLConfigBuilder</strong>： 解析 mybatis-config.xml 配置并存放到Configuration中</p></li>
+<li><p><strong>XMLMapperBuilder</strong>： 解析 mapper.xml 配置并存放到Configuration中</p></li>
+<li><p><strong>SqlSessionFactoryBean</strong>： mybatis整合Spring时的 生成 SqlSessionFactory 的FactoryBean</p></li>
+<li><p><strong>MapperScannerConfigurer</strong>： mybatis整合Spring时的 实现方便加载Mapper接口，以及将 Mapper 偷梁换柱成 <strong>MapperFactoryBean</strong></p></li>
+<li><p><strong>MapperFactoryBean</strong>： 生成 Mapper 代理对象的FactoryBean</p></li>
+<li><p><strong>SqlSessionTemplate</strong>： 内部维护有 SqlSession 的代理对象，解耦Mapper和SqlSession的关键对象。</p></li>
+</ul>
+<p>         <strong>如果您对这些感兴趣，欢迎star、follow、收藏、转发给予支持！</strong></p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn?from=article_bottom">OpenWrite</a> 发布！</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

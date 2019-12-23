@@ -1,0 +1,110 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理</center></div><div class='banquan'>原文出处:本文由博客园博主程序员郭艺宾提供。<br/>
+原文连接:https://www.cnblogs.com/guos/p/11655036.html</div><br>
+    <h1 id="内存中存储token">内存中存储token</h1>
+<p>我们来继续授权服务代码的下一个优化。现在授权服务中，token的存储是存储在内存中的，我们使用的是 InMemoryTokenStore ：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理0.png" alt="file" /></p>
+<p>图中的tokenStore方法支持很多种令牌的存储方式，来看一下：</p>
+<ul>
+<li><p>InMemoryTokenStore：这个版本的实现是被默认采用的，它可以完美的工作在单服务器上（即访问并发量压力不大的情况下，并且它在失败的时候不会进行备份），大多数的项目都可以使用这个版本的实现来进行尝试，你可以在开发的时候使用它来进行管理，因为不会被保存到磁盘中，所以更易于调试。</p></li>
+<li><p>JwtTokenStore：这个版本的全称是 JSON Web Token（JWT），它可以把令牌相关的数据进行编码（因此对于后端服务来说，它不需要进行存储，这将是一个重大优势），但是它有一个缺点，那就是撤销一个已经授权令牌将会非常困难，所以它通常用来处理一个生命周期较短的令牌以及撤销刷新令牌（refresh_token）。另外一个缺点就是这个令牌占用的空间会比较大，如果你加入了比较多用户凭证信息。JwtTokenStore 不会保存任何数据，但是它在转换令牌值以及授权信息方面与 DefaultTokenServices 所扮演的角色是一样的。</p></li>
+<li><p>JdbcTokenStore：这是一个基于JDBC的实现，令牌会被保存进关系型数据库。使用这个实现时，你可以在不同的服务器之间共享令牌信息，使用的时候请注意把&quot;spring-jdbc&quot;这个依赖加入到你的classpath当中。</p></li>
+<li><p>RedisTokenStore ： 这是一个基于Redis的实现，令牌会被保Redis缓存中。使用这个实现时，你可以在不同的服务器之间共享令牌信息，使用的时候请注意把redis依赖加入到你的classpath当中。关于redis和数据库存储数据有什么不同和需要注意的地方，这里不再描述。</p></li>
+</ul>
+<p>默认的 InMemoryTokenStore 方式存储也是可以进行查询和删除的，我们来看一下，首先将 InMemoryTokenStore 配置为一个bean：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理1.png" alt="file" /></p>
+<p>然后配置时调用这个bean：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理2.png" alt="file" /></p>
+<p>我们来看一下 InMemoryTokenStore 类中对token有哪些操作：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理3.png" alt="file" /></p>
+<p>从方法的名字可以看出，对token的增删改查操作基本都是齐全的，我们来写两个方法查询和删除token：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理4.png" alt="file" /></p>
+<p>类中注入的InMemoryTokenStore正是前面定义的bean，只有这样才能操作内存中的token，下面来看一下测试，先根据前面的流程，申请到令牌，然后查询令牌：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理5.png" alt="file" /></p>
+<p>然后测试删除令牌：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理6.png" alt="file" /></p>
+<p>然后再根据令牌查询受保护的资源，可以发现无法访问了。</p>
+<p>使用内存的方式虽然基本的功能都在，但是缺点上面也提到了，就是只能工作在单服务器上面，无法默认实现token共享，另外测试环境使用内存存储也是比较好的选择。</p>
+<h1 id="redis存储token">Redis存储token</h1>
+<p>令牌除了可以存储在内存中，还可以存储在公共的地方，比如redis中，这样单服务器数据不同步的问题可以解决。存储在redis中首先要引入依赖：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理7.png" alt="file" /></p>
+<p>然后配置数据源：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理8.png" alt="file" /></p>
+<p>然后修改授权配置类，配置redis存储的bean：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理9.png" alt="file" /></p>
+<p>这样redis存储token的配置基本就完成了，然后仿照前面的内存存储操作，写两个接口用来查询和删除redis中的token：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理10.png" alt="file" /></p>
+<p>启动项目，按照之前的流程获取令牌，访问保护资源，然后查看redis，可以看到里面存储了我们获取的令牌：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理11.png" alt="file" /></p>
+<p>来看查询token接口的效果：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理12.png" alt="file" /></p>
+<p>来看删除token接口的效果：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理13.png" alt="file" /></p>
+<p>删除后，redis中的token也删除了：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理14.png" alt="file" /></p>
+<p>只剩下三个刷新的key。</p>
+<h1 id="jdbc存储token">JDBC存储token</h1>
+<p>使用jdbc存储token的方式也可以做到token共享，操作类是 JdbcTokenStore ，我们来看一下这个类：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理15.png" alt="file" /></p>
+<p>类中定义了好多默认操作的sql语句，总共涉及到两张表：oauth_access_token和oauth_refresh_token（如果客户端的grant_type不支持refresh_token,则不会使用该表），来看一下 oauth_access_token 表的结构：</p>
+<ul>
+<li><p>token_id：该字段的值是将access_token的值通过MD5加密后存储的</p></li>
+<li><p>token：存储将OAuth2AccessToken.java对象序列化后的二进制数据, 是真实的AccessToken的数据值</p></li>
+<li><p>authentication_id：该字段具有唯一性, 其值是根据当前的username(如果有),client_id与scope通过MD5加密生成的. 具体实现请参考DefaultAuthenticationKeyGenerator.java类</p></li>
+<li><p>user_name：登录时的用户名, 若客户端没有用户名(如grant_type=&quot;client_credentials&quot;),则该值等于client_id</p></li>
+<li><p>client_id：你懂得</p></li>
+<li><p>authentication：存储将OAuth2Authentication.java对象序列化后的二进制数据</p></li>
+<li><p>refresh_token ：该字段的值是将refresh_token的值通过MD5加密后存储的</p></li>
+</ul>
+<p>来看一下 oauth_refresh_token 表的字段结构：</p>
+<ul>
+<li><p>token_id：该字段的值是将refresh_token的值通过MD5加密后存储的.</p></li>
+<li><p>token：存储将OAuth2RefreshToken.java对象序列化后的二进制数据.</p></li>
+<li><p>authentication：存储将OAuth2Authentication.java对象序列化后的二进制数据</p></li>
+</ul>
+<p>在数据库中创建这两张表：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理16.png" alt="file" /></p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理17.png" alt="file" /></p>
+<p>然后在pom中引入jdbc依赖，在配置文件中配置数据源，此处不再演示。下一步修改授权配置类：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理18.png" alt="file" /></p>
+<p>最后仿照前面，写两个查询和删除token的接口：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理19.png" alt="file" /></p>
+<p>使用数据库存储token，比前面两种方式多了很多方法和操作，来看 JdbcTokenStore 类：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理20.png" alt="file" /></p>
+<p>除了增删改查的操作多了几个方法，包括sql语句的默认写法也有覆盖的set方法。下面来测试，首先按照前面的流程获取token令牌，然后查询数据库：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理21.png" alt="file" /></p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理22.png" alt="file" /></p>
+<p>可以看到数据库中多了两条token数据，看一下查询token接口：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理23.png" alt="file" /></p>
+<p>删除接口：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理24.png" alt="file" /></p>
+<p>看一下删除接口调用的方法源码：</p>
+<p><img src="./images/SpringBootSecurity学习（19）前后端分离版之OAuth2.0 token的存储和管理25.png" alt="file" /></p>
+<p>只是删除了令牌，更新token的记录还会保留。</p>
+<p>代码地址： <a href="https://gitee.com/blueses/spring-boot-security" class="uri">https://gitee.com/blueses/spring-boot-security</a> 23 24</p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn">OpenWrite</a> 发布！</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

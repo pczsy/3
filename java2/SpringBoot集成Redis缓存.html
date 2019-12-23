@@ -1,0 +1,371 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot集成Redis缓存' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot集成Redis缓存</center></div><div class='banquan'>原文出处:本文由博客园博主noneplus提供。<br/>
+原文连接:https://www.cnblogs.com/noneplus/p/11539570.html</div><br>
+    <h2 id="关于redis缓存">关于Redis缓存</h2>
+<ul>
+<li><p>为什么使用缓存？</p>
+<p>提升重复访问数据的访问效率。</p></li>
+<li><p>Redis的三个用途</p>
+<p>数据库，<strong>缓存</strong>，消息中间件</p></li>
+</ul>
+<h2 id="redis的应用场景针对被重复访问的数据">Redis的应用场景（针对被重复访问的数据）</h2>
+<ul>
+<li>页面缓存（图片，CSS，html等静态数据）——热点数据</li>
+<li>最新列表</li>
+<li>排行榜</li>
+<li>计数器</li>
+<li>session存储</li>
+</ul>
+<h2 id="使用建议">使用建议</h2>
+<ul>
+<li>Redis 速度快是建立在内存数据库基础上的，但是一台服务器的内存要比磁盘金贵许多，所以在项目初期不要想什么都往 Redis 里放，这样当数据量上来后很快内存就会不够用，反而得不偿失。合理的利用有限的内存，将读（写）频繁的热数据放在 Redis 中才能更好感受到它带来的性能提升。</li>
+<li>Redis 虽然提供了 <code>RDB</code> 和 <code>AOF</code> 两种持久化方式，但是普遍还是认为 Redis 的持久化并不是很靠谱。非常重要的数据不要依赖 Redis 来开发，或者最起码不要只在 Redis 中持久化</li>
+<li>MySQL 经过不断优化性能已经非常好，所以 MySQL 提供的数据结构和访问效率能满足的需求的情况下不要引入 Redis，多引入一个组件就多一个可能的故障节点，尤其在保持数据一致性的场景中数据（比如用户余额）应该只放在数据库中，除非你知道怎么解决考系统的分布式事务。</li>
+</ul>
+<h2 id="redis数据类型">Redis数据类型</h2>
+<p>文档参考：http://doc.redisfans.com/</p>
+<ul>
+<li><p>string（一个键最大能存储 512MB）</p>
+<p><img src="./images/SpringBoot集成Redis缓存0.png" alt="1568704206239" /></p></li>
+<li><p>hash（适合存储对象）每个 hash 可以存储 2的32次方 -1个 键值对</p>
+<p><img src="./images/SpringBoot集成Redis缓存1.png" alt="1568704443581" /></p>
+<p><img src="./images/SpringBoot集成Redis缓存2.png" alt="1568704548679" /></p></li>
+<li><p>list</p>
+<p>list是一个从左至右的队列</p>
+<p>lpush从左往右插入元素，最后插入的3在最左边</p>
+<p><img src="./images/SpringBoot集成Redis缓存3.png" alt="1568704894516" /></p>
+<p>rpush从右往左插入元素，最后插入的元素c在最右边</p>
+<p><img src="./images/SpringBoot集成Redis缓存4.png" alt="1568705030797" /></p>
+<p>lpop和rpop分别是从左边和右边取出元素并移除</p>
+<p><img src="./images/SpringBoot集成Redis缓存5.png" alt="1568705075387" /></p></li>
+</ul>
+<p>​ lrange返回指定范围内的元素</p>
+<p><img src="./images/SpringBoot集成Redis缓存6.png" alt="1568705168052" /></p>
+<ul>
+<li><p>set（无序集合，不允许重复）</p>
+<p><img src="./images/SpringBoot集成Redis缓存7.png" alt="1568705519023" /></p>
+<p>返回集合中元素的个数</p>
+<p><img src="./images/SpringBoot集成Redis缓存8.png" alt="1568705566959" /></p></li>
+<li><p>zset</p>
+<p>Redis zset 和 set 一样也是string类型元素的集合,且不允许重复的成员。</p>
+<p>不同的是每个元素都会关联一个double类型的分数。redis正是通过分数来为集合中的成员进行从小到大的排序。</p>
+<p>zset的成员是唯一的,但分数(score)却可以重复。</p>
+<p><img src="./images/SpringBoot集成Redis缓存9.png" alt="1568706112953" /></p></li>
+</ul>
+<p>zrange按照score从小到大排列</p>
+<h2 id="服务器安装redis">服务器安装Redis</h2>
+<p>测试环境：阿里云 CentOS 7.6</p>
+<ul>
+<li><p>官网：</p>
+<p>https://redis.io/</p></li>
+</ul>
+<h3 id="安装redis">安装Redis</h3>
+<pre><code><code>wget http://download.redis.io/releases/redis-5.0.5.tar.gz
+tar xzf redis-5.0.5.tar.gz
+cd redis-5.0.5
+make</code></code></pre>
+<p><img src="./images/SpringBoot集成Redis缓存10.png" alt="1568691680940" /></p>
+<p><img src="./images/SpringBoot集成Redis缓存11.png" alt="1568691699926" /></p>
+<h3 id="启动关闭redis">启动关闭Redis</h3>
+<p>打开src文件夹</p>
+<pre><code><code>./redis-server
+./redis-cli shutdown</code></code></pre>
+<h3 id="配置redis远程连接">配置Redis远程连接</h3>
+<p>在redis-5.0.5目录下的redis.conf</p>
+<p><img src="./images/SpringBoot集成Redis缓存12.png" alt="1568703345002" /></p>
+<ul>
+<li><p>远程连接（注释该行）开启阿里云安全组6379端口</p>
+<p><img src="./images/SpringBoot集成Redis缓存13.png" alt="1568692478446" /></p></li>
+</ul>
+<p><img src="./images/SpringBoot集成Redis缓存14.png" alt="1568692631640" /></p>
+<ul>
+<li><p>设置密码</p>
+<p><img src="./images/SpringBoot集成Redis缓存15.png" alt="1568692956448" /></p></li>
+<li><p>开启允许公网访问</p>
+<p><img src="./images/SpringBoot集成Redis缓存16.png" alt="1568693057211" /></p></li>
+<li><p>重新启动redis，并加载配置文件</p>
+<pre><code><code>./redis-server ../redis.conf</code></code></pre></li>
+<li><p>查看配置是否生效</p>
+<p>打开src目录</p>
+<pre><code><code>./redis-cli
+
+auth &quot;123456&quot;
+
+config get *</code></code></pre>
+<p><img src="./images/SpringBoot集成Redis缓存17.png" alt="1568703746147" /></p>
+<p><img src="./images/SpringBoot集成Redis缓存18.png" alt="1568703769811" /></p></li>
+<li><p>在win10本地用可视化工具连接</p>
+<p><img src="./images/SpringBoot集成Redis缓存19.png" alt="1568703562655" /></p></li>
+</ul>
+<p><img src="./images/SpringBoot集成Redis缓存20.png" alt="1568703598507" /></p>
+<h2 id="集成redis">集成Redis</h2>
+<p>在上次集成Druid的基础上集成Redis</p>
+<p>https://www.cnblogs.com/noneplus/p/11532065.html</p>
+<ul>
+<li><p>添加Redis缓存依赖</p>
+<pre><code><code>      &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-data-redis&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-start-cache&lt;/artifactId&gt;&lt;/dependency&gt;
+        &lt;/dependency&gt;</code></code></pre></li>
+<li><p>配置yaml</p>
+<pre><code><code>spring:
+  datasource:
+    #   数据源基本配置
+    username: noneplus
+    password: MEMMpYHaOUFVuaR37bMbUmGW76WVSLAD7pnFLrbup5H4Q6sZvWMDsYAcnZvAL2hY2Man1rc6SCJMYwrse1xPKw==   # 1.配置生成的password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://47.103.6.247:3306/user?serverTimezone=UTC
+    type: com.alibaba.druid.pool.DruidDataSource
+    #   Druid数据源配置
+    initialSize: 5
+    minIdle: 5
+    maxActive: 20
+    maxWait: 60000
+    timeBetweenEvictionRunsMillis: 60000
+    minEvictableIdleTimeMillis: 300000
+    validationQuery: SELECT 1 FROM DUAL
+    testWhileIdle: true
+    testOnBorrow: false
+    testOnReturn: false
+    poolPreparedStatements: true
+    #   配置监控统计拦截的filters，去掉后监控界面sql无法统计，&#39;wall&#39;用于防火墙
+    filters: stat,wall,log4j,config  # 3.添加config
+    maxPoolPreparedStatementPerConnectionSize: 20
+    useGlobalDataSourceStat: true
+    # 2.开启加密，配置公钥
+    connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=500;config.decrypt=true;config.decrypt.key=MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIIl9Pp9nYiIsVgEgOuNqqyPIU6NsYNSyLX3gxcBhIPRtcL5WqxevYKvsAwaT4WOtww268vHdyP7zWTGhtGxscMCAwEAAQ==
+  thymeleaf:
+    cache: false
+  redis:
+    host: 47.103.6.247
+    port: 6379
+    password: 123456
+pagehelper:
+  helperDialect: mysql
+  reasonable: true
+  supportMethodsArguments: true
+  pageSizeZero: false #pageSize=0</code></code></pre>
+<ul>
+<li><p>测试是否可以正常连接到redis</p>
+<pre><code><code>@Autowired
+StringRedisTemplate stringRedisTemplate;
+
+@Test
+public void testRedis()
+{
+    stringRedisTemplate.opsForValue().append(&quot;ms&quot;,&quot;hello&quot;);
+
+}
+</code></code></pre>
+<p><img src="./images/SpringBoot集成Redis缓存21.png" alt="1568707227492" /></p></li>
+</ul></li>
+</ul>
+<h2 id="单条数据缓存">单条数据缓存</h2>
+<ul>
+<li><p>主程序类添加@EnableCaching注解</p></li>
+<li><p>配置Redis序列化</p>
+<pre><code><code>package zkrun.top.web.config;
+
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.RedisSerializationContext;
+import org.springframework.data.redis.serializer.RedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+import java.time.Duration;
+
+@Configuration
+@EnableCaching
+public class RedisConfig {
+    @Bean
+    public RedisTemplate&lt;String, Object&gt; redisTemplate(RedisConnectionFactory factory) {
+        RedisTemplate&lt;String, Object&gt; redisTemplate = new RedisTemplate&lt;&gt;();
+        redisTemplate.setConnectionFactory(factory);
+
+        // 使用Jackson2JsonRedisSerialize 替换默认序列化
+        Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        objectMapper.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+
+        jackson2JsonRedisSerializer.setObjectMapper(objectMapper);
+
+        // 设置value的序列化规则和 key的序列化规则
+        redisTemplate.setKeySerializer(new StringRedisSerializer());
+        redisTemplate.setValueSerializer(jackson2JsonRedisSerializer);
+        redisTemplate.setHashKeySerializer(new StringRedisSerializer());
+        redisTemplate.setHashValueSerializer(jackson2JsonRedisSerializer);
+        redisTemplate.afterPropertiesSet();
+
+        return redisTemplate;
+    }
+
+    @Bean
+    public CacheManager cacheManager(RedisConnectionFactory factory) {
+        RedisSerializer&lt;String&gt; redisSerializer = new StringRedisSerializer();
+        Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
+
+        //解决查询缓存转换异常的问题
+        ObjectMapper om = new ObjectMapper();
+        om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
+        jackson2JsonRedisSerializer.setObjectMapper(om);
+
+        // 配置序列化（解决乱码的问题）,过期时间30秒
+        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+                .entryTtl(Duration.ofSeconds(1800000))
+                .serializeKeysWith(RedisSerializationContext.SerializationPair.fromSerializer(redisSerializer))
+                .serializeValuesWith(RedisSerializationContext.SerializationPair.fromSerializer(jackson2JsonRedisSerializer))
+                .disableCachingNullValues();
+
+        RedisCacheManager cacheManager = RedisCacheManager.builder(factory)
+                .cacheDefaults(config)
+                .build();
+        return cacheManager;
+    }
+}
+</code></code></pre></li>
+<li><p>创建RedisController类</p>
+<pre><code><code>  @Autowired
+   RedisService redisService;
+
+
+    @RequestMapping(&quot;/get&quot;)
+    @ResponseBody
+
+    public String get(Integer id) {
+        return redisService.getUserById(id);
+    }
+
+    @RequestMapping(&quot;/update&quot;)
+    @ResponseBody
+    public UserInfo update(UserInfo userInfo)
+    {
+        return redisService.updateUser(userInfo);
+    }
+
+    @RequestMapping(&quot;/deleteCache&quot;)
+    @ResponseBody
+    public String delete(Integer id)
+    {
+        return redisService.deleteUser(id);
+    }
+
+</code></code></pre></li>
+<li><p>RedisService(其中，缓存注解放在Service层)</p>
+<p>@Cacheable产生缓存</p>
+<p>@CachePut更新缓存</p>
+<p>@CacheEvict删除缓存</p>
+<pre><code><code>package zkrun.top.web.service;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+import zkrun.top.web.bean.UserInfo;
+import zkrun.top.web.mapper.UserInfoMapper;
+
+@Service
+public class RedisService {
+    @Autowired
+    UserInfoMapper userInfoMapper;
+
+
+
+    /**将方法运行结果进行缓存，当方法被再次调用时，直接返回缓存中的结果。
+     * 参数：
+     * value：指定缓存组件的名字
+     * key：缓存的key。可以使用SpEl表达式
+     * condition：缓存条件。（为true时缓存），使用EL表达式
+     * unless：否定缓存。（为true时不缓存）unless在方法执行之后判断，所以unless可以用结    果作为判断条件。
+     * @param id
+     * @return
+     */
+
+    @Cacheable(value = &quot;test&quot;, key = &quot;#id&quot;)
+    public String getUserById(Integer id) {
+        UserInfo userInfo=userInfoMapper.getUserById(id);
+        return userInfo.toString();
+    }
+
+    //修改了数据库的数据，同时更新缓存。先调用目标方法，然后缓存方法结果。
+    @CachePut(value = &quot;test&quot;,key=&quot;#result.id&quot;)  //只能是result.id
+    public UserInfo updateUser(UserInfo userInfo) {
+        userInfoMapper.updateUser(userInfo);
+        return userInfo;
+    }
+
+    //删除数据之后，清除缓存
+    @CacheEvict(value = &quot;test&quot;, key = &quot;#id&quot;)
+    public String deleteUser(Integer id) {
+        userInfoMapper.deleteUserById(id);
+        return &quot;已删除&quot;;
+    }
+}
+</code></code></pre></li>
+</ul>
+<h2 id="测试">测试</h2>
+<ul>
+<li><p>查询id=60的数据</p>
+<p>http://localhost:8080/get?id=60</p>
+<p><img src="./images/SpringBoot集成Redis缓存22.png" alt="1568768376208" /></p>
+<p>缓存已生成</p></li>
+</ul>
+<p><img src="./images/SpringBoot集成Redis缓存23.png" alt="1568768393507" /></p>
+<ul>
+<li><p>更新id=60的数据</p>
+<p>http://localhost:8080/update?id=60&amp;username=60</p>
+<p><img src="./images/SpringBoot集成Redis缓存24.png" alt="1568768474042" /></p></li>
+</ul>
+<p>缓存已更新</p>
+<p><img src="./images/SpringBoot集成Redis缓存25.png" alt="1568768495694" /></p>
+<p>数据库已更新</p>
+<p><img src="./images/SpringBoot集成Redis缓存26.png" alt="1568768530184" /></p>
+<ul>
+<li><p>删除id=60的数据</p>
+<p>http://localhost:8080/deleteCache?id=60</p>
+<p><img src="./images/SpringBoot集成Redis缓存27.png" alt="1568768564853" /></p></li>
+</ul>
+<p>緩存已清空</p>
+<p><img src="./images/SpringBoot集成Redis缓存28.png" alt="1568768585868" /></p>
+<p>数据库已删除</p>
+<p><img src="./images/SpringBoot集成Redis缓存29.png" alt="1568768607050" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

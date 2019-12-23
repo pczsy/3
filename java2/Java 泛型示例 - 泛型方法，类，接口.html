@@ -1,0 +1,311 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java 泛型示例 - 泛型方法，类，接口' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java 泛型示例 - 泛型方法，类，接口</center></div><div class='banquan'>原文出处:本文由博客园博主Java知己提供。<br/>
+原文连接:https://www.cnblogs.com/java-friend/p/11737569.html</div><br>
+    <p><strong>Java Genrics</strong> 是 Java 5 中引入的最重要的功能之一。</p>
+<p>如果您一直在使用Java Collections并使用版本 5 或更高版本，那么我确定您已经使用过它。</p>
+<p><strong>Java 中</strong>具有集合类的<strong>泛型</strong>非常容易，但是它提供了比仅创建集合类型更多的功能。</p>
+<p>我们将在本文中尝试学习泛型的功能。如果我们使用专业术语，对泛型的理解有时会变得混乱，因此，我将尽量保持其简单易懂。</p>
+<h3 id="java-中的泛型">1. Java 中的泛型</h3>
+<p>Java 5 中添加了泛型，以提供<strong>编译时类型检查，</strong>并消除了<code>ClassCastException</code>使用集合类时常见的风险。整个收集框架都进行了重写，以使用泛型进行类型安全。让我们看看泛型如何帮助我们安全地使用集合类。</p>
+<pre><code><code>List list = new ArrayList();
+list.add(&quot;abc&quot;);
+list.add(new Integer(5)); 
+
+for(Object obj : list){
+    
+    String str=(String) obj; 
+}
+
+</code></code></pre>
+<p>上面的代码可以很好地编译，但是在运行时会引发ClassCastException，因为我们试图将列表中的对象强制转换为String，而其中一个元素是Integer类型。在Java 5之后，我们使用如下收集类。</p>
+<pre><code><code>List&lt;String&gt; list1 = new ArrayList&lt;String&gt;(); // java 7 ? List&lt;String&gt; list1 = new ArrayList&lt;&gt;(); 
+list1.add(&quot;abc&quot;);
+//list1.add(new Integer(5)); //编译错误
+
+for(String str : list1){
+     //no type casting needed, avoids ClassCastException
+}
+</code></code></pre>
+<p>请注意，在创建列表时，我们已指定列表中元素的类型为String。因此，如果我们尝试在列表中添加任何其他类型的对象，则该程序将引发编译时错误。还要注意，在循环中中，我们不需要列表中元素的类型转换，因此在运行时删除了ClassCastException。</p>
+<h2 id="java通用类">2. Java通用类</h2>
+<p>我们可以使用泛型类型定义自己的类。泛型类型是通过类型进行参数化的类或接口。我们使用尖括号（&lt;&gt;）来指定类型参数。</p>
+<p>为了了解其好处，我们假设有一个简单的类：</p>
+<pre><code><code>
+package com.journaldev.generics;
+
+public class GenericsTypeOld {
+
+    private Object t;
+
+    public Object get() {
+        return t;
+    }
+
+    public void set(Object t) {
+        this.t = t;
+    }
+
+        public static void main(String args[]){
+        GenericsTypeOld type = new GenericsTypeOld();
+        type.set(&quot;Pankaj&quot;); 
+        String str = (String) type.get(); //type casting, error prone and can cause ClassCastException
+    }
+}
+
+
+</code></code></pre>
+<p>请注意，在使用此类时，我们必须使用类型转换，并且它可以在运行时产生ClassCastException。现在，我们将使用Java通用类替换如下所示的相同类。</p>
+<pre><code><code>
+package com.journaldev.generics;
+
+public class GenericsType&lt;T&gt; {
+
+    private T t;
+    
+    public T get(){
+        return this.t;
+    }
+    
+    public void set(T t1){
+        this.t=t1;
+    }
+    
+    public static void main(String args[]){
+        GenericsType&lt;String&gt; type = new GenericsType&lt;&gt;();
+        type.set(&quot;Pankaj&quot;); //valid
+        
+        GenericsType type1 = new GenericsType(); //raw type
+        type1.set(&quot;Pankaj&quot;); //valid
+        type1.set(10); //valid and autoboxing support
+    }
+}
+
+
+</code></code></pre>
+<p>注意main方法中GenericsType类的使用。我们不需要进行类型转换，并且可以在运行时删除ClassCastException。如果我们在创建时未提供类型，则编译器将发出警告，“ GenericsType是原始类型。</p>
+<p>泛型类型GenericsType <T>的引用应参数化”。当我们不提供类型时，该类型就变成了类型<code>Object</code>，因此它允许String和Integer对象。但是，我们应始终尝试避免这种情况，因为在处理可能产生运行时错误的原始类型时，我们必须使用类型转换。</p>
+<p>还要注意，它支持Java自动装箱。</p>
+<h3 id="java通用接口">3. Java通用接口</h3>
+<p>Comparable接口是接口中泛型的一个很好的例子，它写为：</p>
+<pre><code><code>
+package java.lang;
+import java.util.*;
+
+public interface Comparable&lt;T&gt; {
+    public int compareTo(T o);
+}
+
+
+</code></code></pre>
+<p>以类似的方式，我们可以在Java中创建通用接口。我们也可以像Map界面具有多个类型参数。同样，我们也可以为参数化类型提供参数化值，例如<code>new HashMap&lt;String, List&lt;String&gt;&gt;();</code>有效。</p>
+<h2 id="java通用类型">4. Java通用类型</h2>
+<p>Java通用类型命名约定可以帮助我们轻松理解代码，并且具有命名约定是Java编程语言的最佳实践之一。因此，泛型也带有自己的命名约定。通常，类型参数名称是单个大写字母，以可以实现与Java变量区分开。最常用的类型参数名称为：</p>
+<ul>
+<li>E –元素由Java Collections Framework广泛使用，例如ArrayList，Set等</li>
+<li>K –键（在Map中使用）</li>
+<li>N –数字</li>
+<li>T –类型</li>
+<li>V –值（在Map中使用）</li>
+<li>S，U，V等–第二，第三，第四类型</li>
+</ul>
+<h3 id="java通用方法">5. Java通用方法</h3>
+<p>有时我们不希望整个类都被参数化，在这种情况下，我们可以创建java泛型方法。由于构造函数是一种特殊的方法，因此我们也可以在构造函数中使用泛型类型。</p>
+<p>这是一个显示Java泛型方法示例的类。</p>
+<pre><code><code>
+package com.journaldev.generics;
+
+public class GenericsMethods {
+
+    //Java Generic Method
+    public static &lt;T&gt; boolean isEqual(GenericsType&lt;T&gt; g1, GenericsType&lt;T&gt; g2){
+        return g1.get().equals(g2.get());
+    }
+    
+    public static void main(String args[]){
+        GenericsType&lt;String&gt; g1 = new GenericsType&lt;&gt;();
+        g1.set(&quot;Pankaj&quot;);
+        
+        GenericsType&lt;String&gt; g2 = new GenericsType&lt;&gt;();
+        g2.set(&quot;Pankaj&quot;);
+        
+        boolean isEqual = GenericsMethods.&lt;String&gt;isEqual(g1, g2);
+        //above statement can be written simply as
+        isEqual = GenericsMethods.isEqual(g1, g2);
+        //This feature, known as type inference, allows you to invoke a generic method as an ordinary method, without specifying a type between angle brackets.
+        //Compiler will infer the type that is needed
+    }
+}
+
+
+</code></code></pre>
+<p>注意_的isEqual_方法签名显示了在方法中使用泛型类型的语法。另外，请注意如何在我们的Java的程序中使用这些方法。我们可以在调用这些方法时指定类型，也可以像普通方法一样调用它们。Java编译器足够聪明，可以确定要使用的变量的类型，这种功能称为<strong>类型变量</strong>。</p>
+<h3 id="java泛型绑定类型参数">6. Java泛型绑定类型参数</h3>
+<p>假设我们要限制可以在参数化类型中使用的对象的类型，例如在比较两个对象的方法中，并且我们要确保接受的对象是可比较的。要声明一个有界的类型参数，请列出类型参数的名称，然后列出扩展关键字，再加上其上限，以下下面的方法。</p>
+<pre><code><code>public static &lt;T extends Comparable&lt;T&gt;&gt; int compare(T t1, T t2){
+        return t1.compareTo(t2);
+}
+</code></code></pre>
+<p>这些方法的调用与无界方法类似，不同之处在于，如果我们尝试使用任何非Comparable的类，则引发编译时错误。</p>
+<p>绑定类型参数可以与方法以及类和接口一起使用。</p>
+<p>Java泛型也支持多个范围，即&lt;T扩展A＆B＆C&gt;。在这种情况下，A可以是接口或类。如果A是类，则B和C应该是接口。在多个范围内，我们不能有多个类。</p>
+<h3 id="java泛型和继承">7. Java泛型和继承</h3>
+<p>我们知道，如果A是B的子类，则Java继承允许我们将变量A分配给另一个变量B。因此，我们可能认为可以将A的任何泛型类型分配给B的泛型类型，但事实并非如此。让我们用一个简单的程序看看。</p>
+<pre><code><code>package com.journaldev.generics;
+
+public class GenericsInheritance {
+
+    public static void main(String[] args) {
+        String str = &quot;abc&quot;;
+        Object obj = new Object();
+        obj=str; // works because String is-a Object, inheritance in java
+        
+        MyClass&lt;String&gt; myClass1 = new MyClass&lt;String&gt;();
+        MyClass&lt;Object&gt; myClass2 = new MyClass&lt;Object&gt;();
+        //myClass2=myClass1; // compilation error since MyClass&lt;String&gt; is not a MyClass&lt;Object&gt;
+        obj = myClass1; // MyClass&lt;T&gt; parent is Object
+    }
+    
+    public static class MyClass&lt;T&gt;{}
+
+}</code></code></pre>
+<h3 id="java通用类和子类型">8. Java通用类和子类型</h3>
+<p>我们可以通过扩展或实现来泛型一个通用类或接口。一个类或接口的类型参数与另一类或接口的类型参数之间的关系由extend和实现子句确定。</p>
+<p>例如，ArrayList <E>实现了扩展Collection <E>的List <E>，因此ArrayList <String>是List <String>的子类型，而List <String>是Collection <String>的子类型。</p>
+<p>只要不更改type参数，子类型关系就会保留，下面显示了多个type参数的示例。</p>
+<pre><code><code>interface MyList&lt;E,T&gt; extends List&lt;E&gt;{
+}</code></code></pre>
+<p>List <String>的子类型可以是MyList &lt;String，Object&gt;，MyList &lt;String，Integer&gt;等。</p>
+<h3 id="java通用通配符">9. Java通用通配符</h3>
+<p>问号（？）是泛型中的通配符，表示未知类型。通配符可以用作参数，字段或局部变量的类型，有时还可以用作返回类型。在调用通用方法或实例化通用类时，不能使用通配符。在以下各节中，我们将学习上界通配符，下界通配符和通配符捕获。</p>
+<p>9.1）Java泛型上界通配符</p>
+<p>上限通配符用于在方法中放宽对变量类型的限制。假设我们要编写一个将返回列表中数字总和的方法，那么我们的实现将是这样的。</p>
+<pre><code><code>public static double sum(List&lt;Number&gt; list){
+    double sum = 0;
+    for(Number n : list){
+        sum += n.doubleValue();
+    }
+    return sum;
+}</code></code></pre>
+<p>现在，上述实现的问题在于它不适用于Integers或Doubles，因为我们知道List <Integer>和List <Double>不相关，这在使用高层通配符时很有用。我们将通用通配符与<strong>extends</strong>关键字和<strong>上级</strong>类或接口一起使用，这将允许我们传递上级子类类型的参数。</p>
+<p>可以像下面的程序一样修改上面的实现。</p>
+<pre><code><code>package com.journaldev.generics;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class GenericsWildcards {
+
+    public static void main(String[] args) {
+        List&lt;Integer&gt; ints = new ArrayList&lt;&gt;();
+        ints.add(3); ints.add(5); ints.add(10);
+        double sum = sum(ints);
+        System.out.println(&quot;Sum of ints=&quot;+sum);
+    }
+
+    public static double sum(List&lt;? extends Number&gt; list){
+        double sum = 0;
+        for(Number n : list){
+            sum += n.doubleValue();
+        }
+        return sum;
+    }
+}</code></code></pre>
+<p>就像按照接口编写代码一样，在上述方法中，我们可以使用上限类号码的所有方法。请注意，对于上界列表，除空之外，我们不允许将任何对象添加到列表中。如果我们尝试在sum方法内将元素添加到列表中，则该程序将无法编译。</p>
+<p>9.2）Java泛型无限制通配符</p>
+<p>有时，我们希望通用方法适用于所有类型，在这种情况下，可以使用无界通配符。与使用&lt;？extends Object&gt;。</p>
+<pre><code><code>public static void printData(List&lt;?&gt; list){
+    for(Object obj : list){
+        System.out.print(obj + &quot;::&quot;);
+    }
+}</code></code></pre>
+<p>我们可以为_PrintData_方法提供List <String>或List <Integer>或任何其他类型的Object列表参数。与上限列表类似，我们可以在列表中添加任何内容。</p>
+<p>9.3）Java泛型下界通配符</p>
+<p>假设我们要在方法中将整体添加到整数列表中，我们可以将参数类型保持为List<Integer>，但可以与Integers捆绑在一起，而List <Number>和List <Object>也可以容纳整数，因此我们可以使用下限通配符来实现。我们使用<strong>超级</strong>关键字和下限类的泛型通配符（？）来实现此目的。</p>
+<p>我们可以传递下界或下界的任何超类型作为参数，在这种情况下，java编译器允许将下界对象类型添加到列表中。</p>
+<pre><code><code>public static void addIntegers(List&lt;? super Integer&gt; list){
+    list.add(new Integer(50));
+}</code></code></pre>
+<h3 id="使用泛型通配符进行子类型化">　10.使用泛型通配符进行子类型化</h3>
+<pre><code><code>List&lt;? extends Integer&gt; intList = new ArrayList&lt;&gt;();
+List&lt;? extends Number&gt;  numList = intList;  // OK. List&lt;? extends Integer&gt; is a subtype of List&lt;? extends Number&gt;</code></code></pre>
+<h3 id="java泛型类型重构">11. Java泛型类型重构</h3>
+<p>添加了Java泛型以在编译时提供类型检查，并且在运行时没有使用，因此Java编译器使用<strong>类型更改</strong>功能删除字节码中的所有泛型类型检查代码，并在必要时插入类型转换。类型定义可确保不会为参数化类型创建新的类；因此，泛型不会产生运行时浪费。</p>
+<p>例如，如果我们有如下通用类；</p>
+<pre><code><code>
+public class Test&lt;T extends Comparable&lt;T&gt;&gt; {
+
+    private T data;
+    private Test&lt;T&gt; next;
+
+    public Test(T d, Test&lt;T&gt; n) {
+        this.data = d;
+        this.next = n;
+    }
+
+    public T getData() { return this.data; }
+}
+</code></code></pre>
+<p>Java编译器用第一个绑定接口Comparable替换有界类型参数T，如下代码：</p>
+<pre><code><code>
+public class Test {
+
+    private Comparable data;
+    private Test next;
+
+    public Node(Comparable d, Test n) {
+        this.data = d;
+        this.next = n;
+    }
+
+    public Comparable getData() { return data; }
+}
+</code></code></pre>
+<h3 id="泛型常见问题解答">12.泛型常见问题解答</h3>
+<p>12.1）为什么我们在Java中使用泛型？</p>
+<p>泛型提供了强大的编译时类型检查，并降低了ClassCastException和显式对象转换的风险。</p>
+<p>12.2）泛型中的T是什么？</p>
+<p>我们使用<T>创建通用类，接口和方法。我们在使用T时将其替换为实际类型。</p>
+<p>12.3）泛型如何在Java中工作？</p>
+<p>通用代码可确保类型安全。编译器使用类型预先在编译时删除所有类型参数，以减少运行时的重载。</p>
+<h3 id="java泛型进一步阅读">13. Java泛型–进一步阅读</h3>
+<ul>
+<li>泛型不支持子类型，因此<code>List&lt;Number&gt; numbers = new ArrayList&lt;Integer&gt;();</code>将不进行编译</li>
+<li>我们无法创建通用副本，因此<code>List&lt;Integer&gt;[] array = new ArrayList&lt;Integer&gt;[10]</code>无法编译</li>
+</ul>
+<p>这是所有的<strong>Java泛型</strong>，Java泛型是非常庞大的，需要大量的时间来了解和有效地使用它。本文提供了泛型的基本细节，以及如何使用泛型来扩展程序的类型安全性。</p>
+<hr />
+<blockquote>
+<p>“不积跬步，无以至千里”，希望未来的你能：有梦为马 随处可栖！加油，少年！</p>
+</blockquote>
+<p>关注公众号:<strong>「Java 知己」</strong>，每天更新Java知识哦，期待你的到来！</p>
+<ul>
+<li>发送「<strong>Group</strong>」，与 10 万程序员一起进步。</li>
+<li>发送「<strong>面试</strong>」，领取BATJ面试资料、面试视频攻略。</li>
+<li>发送「<strong>玩转算法</strong>」，领取《玩转算法》系列视频教程。</li>
+<li>千万不要发送「<strong>1024</strong>」...</li>
+</ul>
+<p><img src="./images/Java 泛型示例 - 泛型方法，类，接口0.png" /><br />
+每日福利</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

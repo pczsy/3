@@ -1,0 +1,90 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringMVC 自定义参数解析器.' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringMVC 自定义参数解析器.</center></div><div class='banquan'>原文出处:本文由博客园博主JMCui提供。<br/>
+原文连接:https://www.cnblogs.com/jmcui/p/11909524.html</div><br>
+    <h2 id="一简述">一、简述</h2>
+<p>有没有想过像 @RequestParam、@RequestBody 这些注解的工作原理呢？为什么 form 表单、application/json 的参数能够直接封装进 Bean 对象中呢？这就要说到 HandlerMethodArgumentResolver — 方法参数解析器，该接口有两个方法：</p>
+<pre><code><code>public interface HandlerMethodArgumentResolver {
+
+    boolean supportsParameter(MethodParameter parameter);
+
+
+    Object resolveArgument(MethodParameter parameter, ModelAndViewContainer mavContainer,
+            NativeWebRequest webRequest, WebDataBinderFactory binderFactory) throws Exception;
+
+}</code></code></pre>
+<p>supportsParameter 方法返回 boolean 值，表示是否启用该解析器，true 表示启用，false 表示不启用；resolveArgument 方法表示方法参数的解析过程，就是你把 HTTP 的请求参数转换为方法参数的过程，返回 Object 对象，即参数的转换结果。</p>
+<p>@RequestParam 对应的参数解析器是 RequestParamMethodArgumentResolver；@RequestBody 对应的参数解析器是 RequestResponseBodyMethodProcessor；诸如此类的解析器，读者可自行阅读。</p>
+<h2 id="二自定义参数解析器">二、自定义参数解析器</h2>
+<p>我想在控制器方法参数中得到当前用户的登陆信息，大概是如下这个效果，只要添加了 @CurrentUser 注解，那么 UserParam 参数中就会有当前用户的登陆信息。</p>
+<pre><code><code>    @RequestMapping(value = &quot;/list&quot;, method = RequestMethod.POST)
+    public ResponseData&lt;List&lt;SysWayDto&gt;&gt; list(@CurrentUser UserParam userParam) {
+        Map&lt;String, Object&gt; objectMap = MapUtils.convertObjToMap(userParam);
+        return sysWayService.findWithOriginDest(objectMap);
+    }</code></code></pre>
+<p>怎么实现呢？首先我们需要有一个 @CurrentUser 注解：</p>
+<pre><code><code>@Target(ElementType.PARAMETER)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface CurrentUser {
+}</code></code></pre>
+<p>那么剩下来的工作就是 HandlerMethodArgumentResolver 的事情了：</p>
+<pre><code><code>@Slf4j
+public class CurrentUserHandlerMethodArgumentResolver implements HandlerMethodArgumentResolver {
+
+    /**
+     * 用于判定是否需要处理该参数分解，返回 true 为需要，并会去调用下面的方法resolveArgument。
+     */
+    @Override
+    public boolean supportsParameter(MethodParameter methodParameter) {
+        return methodParameter.getParameterType().isAssignableFrom(UserParam.class)
+                &amp;&amp; methodParameter.hasParameterAnnotation(CurrentUser.class);
+    }
+
+    /**
+     * 真正用于处理参数分解的方法，返回的 Object 就是 controller 方法上的形参对象。
+     */
+    @Override
+    public Object resolveArgument(MethodParameter methodParameter, ModelAndViewContainer modelAndViewContainer, NativeWebRequest nativeWebRequest, WebDataBinderFactory webDataBinderFactory) throws Exception {
+        String accessToken = nativeWebRequest.getHeader(GatewayHeader.accessToken);
+        try {
+            UserParam userParam = JsonUtils.readValue(JwtHelper.parseJWT(accessToken), UserParam.class);
+            return userParam ;
+        } catch (IOException e) {
+            log.error(&quot;CurrentUserHandlerMethodArgumentResolver resolveArgument readValue error.accessToken:{}&quot;, accessToken, e);
+        } catch (Exception e) {
+            log.error(&quot;CurrentUserHandlerMethodArgumentResolver resolveArgument error.accessToken:{}&quot;, accessToken, e);
+        }
+        return null;
+    }
+}</code></code></pre>
+<p>最后，别忘了注册上自定义的参数解析器哦！</p>
+<pre><code><code>@Configuration
+public class WebConfig extends WebMvcConfigurerAdapter {
+
+    @Override
+    public void addArgumentResolvers(List&lt;HandlerMethodArgumentResolver&gt; argumentResolvers) {
+        argumentResolvers.add(new CurrentUserHandlerMethodArgumentResolver());
+    }
+}</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

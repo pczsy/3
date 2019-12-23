@@ -1,0 +1,335 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring MVC的常用注解（一）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring MVC的常用注解（一）</center></div><div class='banquan'>原文出处:本文由博客园博主Dcl_Snow提供。<br/>
+原文连接:https://www.cnblogs.com/Dcl-Snow/p/11496932.html</div><br>
+    <p><strong><font size="4">概述</font></strong><br>
+Spring从2.5版本开始引入注解，虽然版本不断变化，但是注解的特性一直被延续下来并不断进行扩展，这里就来记录一下Spring MVC中常用的注解，本文记录@Controller、@RequestMapping、@RequestParam和@PathVariable四个注解。<br>
+<strong><font size="4">@Controller注解</font></strong><br>
+该注解用来标记类，由其标记的类就是一个Spring MVC Controller的一个对象，即一个控制器类。<br>
+Spring使用扫描机制扫描应用程序中所有使用该注解进行注释的类，分发处理器扫描使用了该注解的类的方法，检测方法是否使用了@RequestMapping注解，使用了@RequestMapping注解的方法才是真正处理请求的处理器。<br>
+Spring能够扫描到控制器，需要在Spring MVC的配置文件（前文例子中的springmvc-servlet.xml文件）中完成两个配置项：<br>
+1.在头文件中引入spring-context。<br>
+2.使用&lt;context:component-scan/&gt;元素，该元素的功能：启动包扫描功能，注册使用了@Controller、@Service、@Repository、@Component等注解的类成为Spring的bean。<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> &lt;context:component-scan base-<span style="color: rgb(0, 0, 255);">package</span>="<span style="color: rgb(139, 0, 0);">com.snow.dcl.controller</span>"/&gt;</code></pre><br>
+base-package属性指定了需要扫描的包，该包以及其子包中的类都会被进行处理，所有的控制器类都应该放在该包路径下，以免扫描其他无关的包。<br><strong><font size="4">
+@RequestMapping</font></strong><br>
+该注解用来标记类或者方法，指示Spring用该类或者方法处理请求动作。<br>
+如果使用该注解注释类，该类所有的方法，都被映射为相对于类级别的请求，表示该控制器处理的所有请求，都被映射都value属性指定的路径下。<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> @Controller
+<span style="color: rgb(0, 128, 128);">  2</span> @RequestMapping(value = "<span style="color: rgb(139, 0, 0);">/user</span>")
+<span style="color: rgb(0, 128, 128);">  3</span> <span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">class</span> UserController {
+<span style="color: rgb(0, 128, 128);">  4</span> 
+<span style="color: rgb(0, 128, 128);">  5</span>     @RequestMapping(value = "<span style="color: rgb(139, 0, 0);">register</span>")
+<span style="color: rgb(0, 128, 128);">  6</span>     <span style="color: rgb(0, 0, 255);">public</span> String register(){
+<span style="color: rgb(0, 128, 128);">  7</span>         <span style="color: rgb(0, 0, 255);">return</span> "<span style="color: rgb(139, 0, 0);">register</span>";
+<span style="color: rgb(0, 128, 128);">  8</span>     }
+<span style="color: rgb(0, 128, 128);">  9</span> 
+<span style="color: rgb(0, 128, 128);"> 10</span>     @RequestMapping(value = "<span style="color: rgb(139, 0, 0);">login</span>")
+<span style="color: rgb(0, 128, 128);"> 11</span>     <span style="color: rgb(0, 0, 255);">public</span> String login(){
+<span style="color: rgb(0, 128, 128);"> 12</span>         <span style="color: rgb(0, 0, 255);">return</span> "<span style="color: rgb(139, 0, 0);">login</span>";
+<span style="color: rgb(0, 128, 128);"> 13</span>     }
+<span style="color: rgb(0, 128, 128);"> 14</span> }
+<span style="color: rgb(0, 128, 128);"> 15</span> </code></pre><p><br>
+因为在该类上使用了@RequestMapping(value = "/user")注解，请求都要加上/user路径：<a href="http://localhost:8080/user/login">http://localhost:8080/user/login</a><br>
+@RequestMapping注解支持的常用属性：</p><strong>
+</strong><strong>
+</strong><table border="0" cellspacing="0" cellpadding="2">
+<tbody>
+<tr>
+<td valign="top"><strong>属性</strong></td><td valign="top"><strong>类型</strong></td><td valign="top"><strong>说明</strong></td>
+</tr>
+<tr>
+<td valign="top">value</td>
+<td valign="top">String[]</td>
+<td valign="top">用于将指定请求映射到方法上</td>
+</tr>
+<tr>
+<td valign="top">method</td>
+<td valign="top">RequestMethod[]</td>
+<td valign="top">映射指定请求的方法类型，包括GET、POST、PUT......</td>
+</tr>
+<tr>
+<td valign="top">consumes</td>
+<td valign="top">String[]</td>
+<td valign="top">指定处理请求的提交内容类型(Content-Type：application/json、text/html等)</td>
+</tr>
+<tr>
+<td valign="top">produces</td>
+<td valign="top">String[]</td>
+<td valign="top">指定返回的内容类型，必须是request请求头(Accept)中包含的类型</td>
+</tr>
+<tr>
+<td valign="top">params</td>
+<td valign="top">String[]</td>
+<td valign="top">指定request中必须包含某些参数，才让该方法处理请求</td>
+</tr>
+<tr>
+<td valign="top">header</td>
+<td valign="top">String[]</td>
+<td valign="top">指定request中必须包指定的header值，才让该方法处理请求</td>
+</tr>
+</tbody>
+</table><p>
+<br><font color="#ff0000">
+注意：由于value是@RequestMapping注解的默认属性，如果该注解使用时只有此一个属性，则可以省略改属性名，若有多个属性，则必须写上value属性名。</font><br>
+<br>
+</p><p><src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> @RequestMapping(value = "<span style="color: rgb(139, 0, 0);">/hello</span>")
+<span style="color: rgb(0, 128, 128);">  2</span> @RequestMapping("<span style="color: rgb(139, 0, 0);">/hello</span>")</code></pre><p><br>
+value属性是String[]类型，所以可以设置多个值：<br>
+<br>
+</p><p><src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> @RequestMapping(value = {"<span style="color: rgb(139, 0, 0);">/hello</span>","<span style="color: rgb(139, 0, 0);">/hello1</span>"})</code></pre><p><br>
+此时请求访问两个路径都可以映射到同一个方法进行处理。<br><strong><font size="4">
+@RequestParam</font></strong><br>
+该注解用来将指定的请求参数赋值给方法中的形参。<br>
+@RequestParam注解支持的常用属性：</p><strong>
+</strong><strong>
+</strong><table border="0" cellspacing="0" cellpadding="2">
+<tbody>
+<tr>
+<td valign="top"><strong>属性</strong></td><td valign="top"><strong>类型</strong></td><td valign="top"><strong>说明</strong></td>
+</tr>
+<tr>
+<td valign="top">name</td>
+<td valign="top">String</td>
+<td valign="top">指定请求头绑定的名称</td>
+</tr>
+<tr>
+<td valign="top">value</td>
+<td valign="top">String</td>
+<td valign="top">name属性的别名</td>
+</tr>
+<tr>
+<td valign="top">required</td>
+<td valign="top">boolean</td>
+<td valign="top">参数是否必须绑定</td>
+</tr>
+<tr>
+<td valign="top">defaultValue</td>
+<td valign="top">String</td>
+<td valign="top">没有传递参数时，参数的默认值</td>
+</tr>
+</tbody>
+</table>
+<br><strong><font size="4">
+注解示例程序</font></strong><br><font size="3"><strong>
+修改springmvc-servlet.xml文件</strong></font><br>
+示例程序在前文项目SpringMVCProject的基础上进行完善编写。<br>
+修改springmvc-servlet.xml文件配置：<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> &lt;?xml version="<span style="color: rgb(139, 0, 0);">1.0</span>" encoding="<span style="color: rgb(139, 0, 0);">UTF-8</span>"?&gt;
+<span style="color: rgb(0, 128, 128);">  2</span> &lt;beans xmlns="<span style="color: rgb(139, 0, 0);">http://www.springframework.org/schema/beans</span>"
+<span style="color: rgb(0, 128, 128);">  3</span>        xmlns:xsi="<span style="color: rgb(139, 0, 0);">http://www.w3.org/2001/XMLSchema-instance</span>"
+<span style="color: rgb(0, 128, 128);">  4</span>        xmlns:context="<span style="color: rgb(139, 0, 0);">http://www.springframework.org/schema/context</span>"
+<span style="color: rgb(0, 128, 128);">  5</span>        xsi:schemaLocation="<span style="color: rgb(139, 0, 0);">http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd</span>"&gt;
+<span style="color: rgb(0, 128, 128);">  6</span> 
+<span style="color: rgb(0, 128, 128);">  7</span>     &lt;!--spring可以自动扫描base-package设置的包或子包下的java类，如果扫描到有spring相关注解的类，则注册为spring的bean--&gt;
+<span style="color: rgb(0, 128, 128);">  8</span>     &lt;context:component-scan base-<span style="color: rgb(0, 0, 255);">package</span>="<span style="color: rgb(139, 0, 0);">com.snow.dcl.controller</span>"/&gt;
+<span style="color: rgb(0, 128, 128);">  9</span> 
+<span style="color: rgb(0, 128, 128);"> 10</span>     &lt;!--视图解析器--&gt;
+<span style="color: rgb(0, 128, 128);"> 11</span>     &lt;bean id="<span style="color: rgb(139, 0, 0);">viewResolver</span>" <span style="color: rgb(0, 0, 255);">class</span>="<span style="color: rgb(139, 0, 0);">org.springframework.web.servlet.view.InternalResourceViewResolver</span>"&gt;
+<span style="color: rgb(0, 128, 128);"> 12</span>         &lt;property name="<span style="color: rgb(139, 0, 0);">prefix</span>"&gt;
+<span style="color: rgb(0, 128, 128);"> 13</span>             &lt;value&gt;/WEB-INF/content/&lt;/value&gt;
+<span style="color: rgb(0, 128, 128);"> 14</span>         &lt;/property&gt;
+<span style="color: rgb(0, 128, 128);"> 15</span>         &lt;property name="<span style="color: rgb(139, 0, 0);">suffix</span>"&gt;
+<span style="color: rgb(0, 128, 128);"> 16</span>             &lt;value&gt;.jsp&lt;/value&gt;
+<span style="color: rgb(0, 128, 128);"> 17</span>         &lt;/property&gt;
+<span style="color: rgb(0, 128, 128);"> 18</span>     &lt;/bean&gt;
+<span style="color: rgb(0, 128, 128);"> 19</span> 
+<span style="color: rgb(0, 128, 128);"> 20</span> &lt;/beans&gt;
+<span style="color: rgb(0, 128, 128);"> 21</span> </code></pre><p><br>
+1.现在使用了注解类型，所以不需要在XML文件中描述Bean。<br>
+2.&lt;context:component-scan base-package="com.snow.dcl.controller"/&gt;指定Spring扫描com.snow.dcl.controller包及子包下所有的java文件。<br>
+3.然后配置视图解析器展示，视图解析器中配置的prefix表示视图的前缀，suffix表示视图的后缀。<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> @RequestMapping(value = "<span style="color: rgb(139, 0, 0);">register</span>")
+<span style="color: rgb(0, 128, 128);">  2</span> <span style="color: rgb(0, 0, 255);">public</span> String register(){
+<span style="color: rgb(0, 128, 128);">  3</span>     <span style="color: rgb(0, 0, 255);">return</span> "<span style="color: rgb(139, 0, 0);">register</span>";
+<span style="color: rgb(0, 128, 128);">  4</span> }</code></pre><br>
+如上面程序中，返回的是"register"，经过视图解析器后的完整路径为：/WEB-INF/content/register.jsp。<br><font color="#ff0000">
+注意：此处没有再配置处理映射器和处理适配器，当不进行配置时，Spring会使用默认的进行处理。</font><br><font size="3"><strong>
+创建User类</strong></font><br>
+首先在项目中创建com.snow.dcl.domain包，在该包下创建User类文件，编写如下程序：<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> @Data
+<span style="color: rgb(0, 128, 128);">  2</span> <span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">class</span> User <span style="color: rgb(0, 0, 255);">implements</span> Serializable {
+<span style="color: rgb(0, 128, 128);">  3</span>     <span style="color: rgb(0, 0, 255);">private</span> String loginname;
+<span style="color: rgb(0, 128, 128);">  4</span>     <span style="color: rgb(0, 0, 255);">private</span> String password;
+<span style="color: rgb(0, 128, 128);">  5</span>     <span style="color: rgb(0, 0, 255);">private</span> String username;
+<span style="color: rgb(0, 128, 128);">  6</span> }</code></pre><br>
+这里使用lombok的@Date注解，自动生成Getter、Setter和toString方法，lombok的安装前文有讲述。<br><font size="3"><strong>
+创建UserController类</strong></font><br>
+在com.snow.dcl.controller包下创建UserController类文件，编写如下程序：<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> @Controller
+<span style="color: rgb(0, 128, 128);">  2</span> @RequestMapping(value = "<span style="color: rgb(139, 0, 0);">/user</span>")
+<span style="color: rgb(0, 128, 128);">  3</span> <span style="color: rgb(0, 0, 255);">public</span> <span style="color: rgb(0, 0, 255);">class</span> UserController {
+<span style="color: rgb(0, 128, 128);">  4</span> 
+<span style="color: rgb(0, 128, 128);">  5</span>     <span style="color: rgb(0, 0, 255);">private</span> <span style="color: rgb(0, 0, 255);">static</span> <span style="color: rgb(0, 0, 255);">final</span> Log LOGGER = LogFactory.getLog(UserController.<span style="color: rgb(0, 0, 255);">class</span>);
+<span style="color: rgb(0, 128, 128);">  6</span>     <span style="color: rgb(0, 0, 255);">private</span> <span style="color: rgb(0, 0, 255);">static</span> List&lt;User&gt; userList;
+<span style="color: rgb(0, 128, 128);">  7</span> 
+<span style="color: rgb(0, 128, 128);">  8</span>     <span style="color: rgb(0, 0, 255);">public</span> UserController() {
+<span style="color: rgb(0, 128, 128);">  9</span>         <span style="color: rgb(0, 0, 255);">super</span>();
+<span style="color: rgb(0, 128, 128);"> 10</span>         userList = <span style="color: rgb(0, 0, 255);">new</span> ArrayList&lt;User&gt;();
+<span style="color: rgb(0, 128, 128);"> 11</span>     }
+<span style="color: rgb(0, 128, 128);"> 12</span> 
+<span style="color: rgb(0, 128, 128);"> 13</span>     @RequestMapping(value = "<span style="color: rgb(139, 0, 0);">/register</span>", method = RequestMethod.GET)
+<span style="color: rgb(0, 128, 128);"> 14</span>     <span style="color: rgb(0, 0, 255);">public</span> String registerForm() {
+<span style="color: rgb(0, 128, 128);"> 15</span>         LOGGER.info("<span style="color: rgb(139, 0, 0);">调用registerForm方法</span>");
+<span style="color: rgb(0, 128, 128);"> 16</span>         <span style="color: rgb(0, 0, 255);">return</span> "<span style="color: rgb(139, 0, 0);">register</span>";
+<span style="color: rgb(0, 128, 128);"> 17</span>     }
+<span style="color: rgb(0, 128, 128);"> 18</span> 
+<span style="color: rgb(0, 128, 128);"> 19</span>     @RequestMapping(value = "<span style="color: rgb(139, 0, 0);">/register</span>", method = RequestMethod.POST)
+<span style="color: rgb(0, 128, 128);"> 20</span>     <span style="color: rgb(0, 0, 255);">public</span> String register(@RequestParam("<span style="color: rgb(139, 0, 0);">loginname</span>") String loginname, @RequestParam("<span style="color: rgb(139, 0, 0);">password</span>") String password, @RequestParam("<span style="color: rgb(139, 0, 0);">username</span>") String username) {
+<span style="color: rgb(0, 128, 128);"> 21</span>         LOGGER.info("<span style="color: rgb(139, 0, 0);">调用register方法</span>");
+<span style="color: rgb(0, 128, 128);"> 22</span>         User user = <span style="color: rgb(0, 0, 255);">new</span> User();
+<span style="color: rgb(0, 128, 128);"> 23</span>         user.setLoginname(loginname);
+<span style="color: rgb(0, 128, 128);"> 24</span>         user.setPassword(password);
+<span style="color: rgb(0, 128, 128);"> 25</span>         user.setUsername(username);
+<span style="color: rgb(0, 128, 128);"> 26</span>         userList.add(user);
+<span style="color: rgb(0, 128, 128);"> 27</span>         <span style="color: rgb(0, 0, 255);">return</span> "<span style="color: rgb(139, 0, 0);">login</span>";
+<span style="color: rgb(0, 128, 128);"> 28</span>     }
+<span style="color: rgb(0, 128, 128);"> 29</span> 
+<span style="color: rgb(0, 128, 128);"> 30</span>     @RequestMapping(value = "<span style="color: rgb(139, 0, 0);">/login</span>")
+<span style="color: rgb(0, 128, 128);"> 31</span>     <span style="color: rgb(0, 0, 255);">public</span> String login(@RequestParam("<span style="color: rgb(139, 0, 0);">loginname</span>") String loginname, @RequestParam("<span style="color: rgb(139, 0, 0);">password</span>") String password, Model model) {
+<span style="color: rgb(0, 128, 128);"> 32</span>         LOGGER.info("<span style="color: rgb(139, 0, 0);">登录名：</span>" + loginname + "<span style="color: rgb(139, 0, 0);">密码：</span>" + password);
+<span style="color: rgb(0, 128, 128);"> 33</span>         <span style="color: rgb(0, 0, 255);">for</span> (User user:userList){
+<span style="color: rgb(0, 128, 128);"> 34</span>             <span style="color: rgb(0, 0, 255);">if</span> (user.getLoginname().equals(loginname)&amp;&amp;user.getPassword().equals(password)){
+<span style="color: rgb(0, 128, 128);"> 35</span>                 model.addAttribute("<span style="color: rgb(139, 0, 0);">user</span>",user);
+<span style="color: rgb(0, 128, 128);"> 36</span>                 <span style="color: rgb(0, 0, 255);">return</span> "<span style="color: rgb(139, 0, 0);">information</span>";
+<span style="color: rgb(0, 128, 128);"> 37</span>             }
+<span style="color: rgb(0, 128, 128);"> 38</span>         }
+<span style="color: rgb(0, 128, 128);"> 39</span>         <span style="color: rgb(0, 0, 255);">return</span> "<span style="color: rgb(139, 0, 0);">login</span>";
+<span style="color: rgb(0, 128, 128);"> 40</span>     }
+<span style="color: rgb(0, 128, 128);"> 41</span> }
+<span style="color: rgb(0, 128, 128);"> 42</span> </code></pre><p><br>
+这里使用了本文记录的注解。<br><strong><font size="3">
+创建register.jsp文件</font></strong><br>
+在项目的/WEB-INF/content目录下创建register.jsp文件，编写如下程序：<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> &lt;%@ page language="<span style="color: rgb(139, 0, 0);">java</span>" contentType="<span style="color: rgb(139, 0, 0);">text/html;charset=UTF-8</span>" pageEncoding="<span style="color: rgb(139, 0, 0);">UTF-8</span>"%&gt;
+<span style="color: rgb(0, 128, 128);">  2</span> &lt;html&gt;
+<span style="color: rgb(0, 128, 128);">  3</span> &lt;head&gt;
+<span style="color: rgb(0, 128, 128);">  4</span>     &lt;meta http-equiv="<span style="color: rgb(139, 0, 0);">Content-Type</span>" content="<span style="color: rgb(139, 0, 0);">text/html</span>" charset="<span style="color: rgb(139, 0, 0);">UTF-8</span>"&gt;
+<span style="color: rgb(0, 128, 128);">  5</span>     &lt;title&gt;register&lt;/title&gt;
+<span style="color: rgb(0, 128, 128);">  6</span> &lt;/head&gt;
+<span style="color: rgb(0, 128, 128);">  7</span> &lt;body&gt;
+<span style="color: rgb(0, 128, 128);">  8</span> &lt;h3&gt;注册页面&lt;/h3&gt;
+<span style="color: rgb(0, 128, 128);">  9</span> &lt;br&gt;
+<span style="color: rgb(0, 128, 128);"> 10</span> &lt;form action="<span style="color: rgb(139, 0, 0);">register</span>" method="<span style="color: rgb(139, 0, 0);">post</span>"&gt;
+<span style="color: rgb(0, 128, 128);"> 11</span>     &lt;table&gt;
+<span style="color: rgb(0, 128, 128);"> 12</span>         &lt;tr&gt;
+<span style="color: rgb(0, 128, 128);"> 13</span>             &lt;td&gt;&lt;label&gt;登录名：&lt;/label&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 14</span>             &lt;td&gt;&lt;input type="<span style="color: rgb(139, 0, 0);">text</span>" id="<span style="color: rgb(139, 0, 0);">loginname</span>" name="<span style="color: rgb(139, 0, 0);">loginname</span>"&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 15</span>         &lt;/tr&gt;
+<span style="color: rgb(0, 128, 128);"> 16</span>         &lt;tr&gt;
+<span style="color: rgb(0, 128, 128);"> 17</span>             &lt;td&gt;&lt;label&gt;密码：&lt;/label&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 18</span>             &lt;td&gt;&lt;input type="<span style="color: rgb(139, 0, 0);">password</span>" id="<span style="color: rgb(139, 0, 0);">password</span>" name="<span style="color: rgb(139, 0, 0);">password</span>"&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 19</span>         &lt;/tr&gt;
+<span style="color: rgb(0, 128, 128);"> 20</span>         &lt;tr&gt;
+<span style="color: rgb(0, 128, 128);"> 21</span>             &lt;td&gt;&lt;label&gt;用户名：&lt;/label&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 22</span>             &lt;td&gt;&lt;input type="<span style="color: rgb(139, 0, 0);">text</span>" id="<span style="color: rgb(139, 0, 0);">username</span>" name="<span style="color: rgb(139, 0, 0);">username</span>"&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 23</span>         &lt;/tr&gt;
+<span style="color: rgb(0, 128, 128);"> 24</span>         &lt;tr&gt;
+<span style="color: rgb(0, 128, 128);"> 25</span>             &lt;td&gt;&lt;input type="<span style="color: rgb(139, 0, 0);">submit</span>" id="<span style="color: rgb(139, 0, 0);">submit</span>" value="<span style="color: rgb(139, 0, 0);">注册</span>"&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 26</span>         &lt;/tr&gt;
+<span style="color: rgb(0, 128, 128);"> 27</span>     &lt;/table&gt;
+<span style="color: rgb(0, 128, 128);"> 28</span> &lt;/form&gt;
+<span style="color: rgb(0, 128, 128);"> 29</span> &lt;/body&gt;</code></pre><br>
+用来进行注册信息的输入。<br><strong><font size="3">
+创建login.jsp文件</font></strong><br>
+在项目的/WEB-INF/content目录下创建login.jsp文件，编写如下程序：<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> &lt;%@ page language="<span style="color: rgb(139, 0, 0);">java</span>" contentType="<span style="color: rgb(139, 0, 0);">text/html;charset=UTF-8</span>" pageEncoding="<span style="color: rgb(139, 0, 0);">UTF-8</span>"%&gt;
+<span style="color: rgb(0, 128, 128);">  2</span> &lt;html&gt;
+<span style="color: rgb(0, 128, 128);">  3</span> &lt;head&gt;
+<span style="color: rgb(0, 128, 128);">  4</span>     &lt;meta http-equiv="<span style="color: rgb(139, 0, 0);">Content-Type</span>" content="<span style="color: rgb(139, 0, 0);">text/html</span>" charset="<span style="color: rgb(139, 0, 0);">UTF-8</span>"&gt;
+<span style="color: rgb(0, 128, 128);">  5</span>     &lt;title&gt;login&lt;/title&gt;
+<span style="color: rgb(0, 128, 128);">  6</span> &lt;/head&gt;
+<span style="color: rgb(0, 128, 128);">  7</span> &lt;body&gt;
+<span style="color: rgb(0, 128, 128);">  8</span> &lt;h3&gt;登录页面&lt;/h3&gt;
+<span style="color: rgb(0, 128, 128);">  9</span> &lt;br&gt;
+<span style="color: rgb(0, 128, 128);"> 10</span> &lt;form action="<span style="color: rgb(139, 0, 0);">login</span>" method="<span style="color: rgb(139, 0, 0);">post</span>"&gt;
+<span style="color: rgb(0, 128, 128);"> 11</span>     &lt;table&gt;
+<span style="color: rgb(0, 128, 128);"> 12</span>         &lt;tr&gt;
+<span style="color: rgb(0, 128, 128);"> 13</span>             &lt;td&gt;&lt;label&gt;登录名：&lt;/label&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 14</span>             &lt;td&gt;&lt;input type="<span style="color: rgb(139, 0, 0);">text</span>" id="<span style="color: rgb(139, 0, 0);">loginname</span>" name="<span style="color: rgb(139, 0, 0);">loginname</span>"&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 15</span>         &lt;/tr&gt;
+<span style="color: rgb(0, 128, 128);"> 16</span>         &lt;tr&gt;
+<span style="color: rgb(0, 128, 128);"> 17</span>             &lt;td&gt;&lt;label&gt;密码：&lt;/label&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 18</span>             &lt;td&gt;&lt;input type="<span style="color: rgb(139, 0, 0);">password</span>" id="<span style="color: rgb(139, 0, 0);">password</span>" name="<span style="color: rgb(139, 0, 0);">password</span>"&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 19</span>         &lt;/tr&gt;
+<span style="color: rgb(0, 128, 128);"> 20</span>         &lt;tr&gt;
+<span style="color: rgb(0, 128, 128);"> 21</span>             &lt;td&gt;&lt;input type="<span style="color: rgb(139, 0, 0);">submit</span>" id="<span style="color: rgb(139, 0, 0);">submit</span>" value="<span style="color: rgb(139, 0, 0);">登录</span>"&gt;&lt;/td&gt;
+<span style="color: rgb(0, 128, 128);"> 22</span>         &lt;/tr&gt;
+<span style="color: rgb(0, 128, 128);"> 23</span>     &lt;/table&gt;
+<span style="color: rgb(0, 128, 128);"> 24</span> &lt;/form&gt;
+<span style="color: rgb(0, 128, 128);"> 25</span> &lt;/body&gt;
+<span style="color: rgb(0, 128, 128);"> 26</span> &lt;/html&gt;</code></pre><br>
+用来进行登录信息的输入。<br><strong><font size="3">
+创建information.jsp文件</font></strong><br>
+在项目的/WEB-INF/content目录下创建information.jsp文件，编写如下程序：<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> &lt;%@ page language="<span style="color: rgb(139, 0, 0);">java</span>" contentType="<span style="color: rgb(139, 0, 0);">text/html;charset=UTF-8</span>" pageEncoding="<span style="color: rgb(139, 0, 0);">UTF-8</span>"%&gt;
+<span style="color: rgb(0, 128, 128);">  2</span> &lt;html&gt;
+<span style="color: rgb(0, 128, 128);">  3</span> &lt;head&gt;
+<span style="color: rgb(0, 128, 128);">  4</span>     &lt;meta http-equiv="<span style="color: rgb(139, 0, 0);">Content-Type</span>" content="<span style="color: rgb(139, 0, 0);">text/html</span>" charset="<span style="color: rgb(139, 0, 0);">UTF-8</span>"&gt;
+<span style="color: rgb(0, 128, 128);">  5</span>     &lt;title&gt;information&lt;/title&gt;
+<span style="color: rgb(0, 128, 128);">  6</span> &lt;/head&gt;
+<span style="color: rgb(0, 128, 128);">  7</span> &lt;body&gt;
+<span style="color: rgb(0, 128, 128);">  8</span> &lt;h3&gt;欢迎"<span style="color: rgb(139, 0, 0);">${requestScope.user.loginname}</span>"登录&lt;/h3&gt;
+<span style="color: rgb(0, 128, 128);">  9</span> &lt;h3&gt;用户名为："<span style="color: rgb(139, 0, 0);">${requestScope.user.username}</span>"&lt;/h3&gt;
+<span style="color: rgb(0, 128, 128);"> 10</span> &lt;/body&gt;
+<span style="color: rgb(0, 128, 128);"> 11</span> &lt;/html&gt;</code></pre><br>
+用来进行展示用户名称。<br><strong><font size="3">
+配置字符编码过滤器</font></strong><br>
+打开项目的web.xml文件，添加字符编码过滤器配置：<br>
+<br>
+<src class="cnblogs_code"><pre><code><span style="color: rgb(0, 128, 128);">  1</span> &lt;filter&gt;
+<span style="color: rgb(0, 128, 128);">  2</span>     &lt;filter-name&gt;SetCharacterEncoding&lt;/filter-name&gt;
+<span style="color: rgb(0, 128, 128);">  3</span>     &lt;filter-<span style="color: rgb(0, 0, 255);">class</span>&gt;org.springframework.web.filter.CharacterEncodingFilter&lt;/filter-<span style="color: rgb(0, 0, 255);">class</span>&gt;
+<span style="color: rgb(0, 128, 128);">  4</span>     &lt;init-param&gt;
+<span style="color: rgb(0, 128, 128);">  5</span>         &lt;param-name&gt;encoding&lt;/param-name&gt;
+<span style="color: rgb(0, 128, 128);">  6</span>         &lt;param-value&gt;UTF-8&lt;/param-value&gt;
+<span style="color: rgb(0, 128, 128);">  7</span>     &lt;/init-param&gt;
+<span style="color: rgb(0, 128, 128);">  8</span>     &lt;init-param&gt;
+<span style="color: rgb(0, 128, 128);">  9</span>         &lt;param-name&gt;forceEncoding&lt;/param-name&gt;
+<span style="color: rgb(0, 128, 128);"> 10</span>         &lt;param-value&gt;<span style="color: rgb(0, 0, 255);">true</span>&lt;/param-value&gt;
+<span style="color: rgb(0, 128, 128);"> 11</span>     &lt;/init-param&gt;
+<span style="color: rgb(0, 128, 128);"> 12</span> &lt;/filter&gt;
+<span style="color: rgb(0, 128, 128);"> 13</span> &lt;filter-mapping&gt;
+<span style="color: rgb(0, 128, 128);"> 14</span>     &lt;filter-name&gt;SetCharacterEncoding&lt;/filter-name&gt;
+<span style="color: rgb(0, 128, 128);"> 15</span>     &lt;url-pattern&gt;<span style="color: rgb(0, 128, 0);">/*&lt;/url-pattern&gt;
+<span style="color: rgb(0, 128, 128);"> 16</span> &lt;/filter-mapping&gt;</span></code></pre><p><br>
+否则会出现information.jsp展示的中文信息乱码。<br><strong><font size="4">
+测试</font></strong><br>
+启动TomcatServer，启动完成后，打开浏览器输入：http://localhost:8080/user/register访问成功。<br>
+因为此时是GET请求，调用registerForm方法，返回register.jsp。<br>
+</p><p><a href="https://img2018.cnblogs.com/blog/526027/201909/526027-20190910130441379-1172982360.png"><img width="699" height="399" title="Spring MVC注解01" style="border: 0px currentcolor; border-image: none; margin-right: auto; margin-left: auto; float: none; display: block; background-image: none;" alt="Spring MVC注解01" src="./images/Spring MVC的常用注解（一）0.png" border="0"></a><br>
+填写注册的信息之后，发送POST请求，调用的是register方法，返回login.jsp。<br>
+<a href="https://img2018.cnblogs.com/blog/526027/201909/526027-20190910130441984-392974852.png"><img width="698" height="398" title="Spring MVC注解02" style="border: 0px currentcolor; border-image: none; margin-right: auto; margin-left: auto; float: none; display: block; background-image: none;" alt="Spring MVC注解02" src="./images/Spring MVC的常用注解（一）1.png" border="0"></a><br>
+填写登录名和密码，调用的是login方法，进行登录。<br>
+<a href="https://img2018.cnblogs.com/blog/526027/201909/526027-20190910130442532-1990967030.png"><img width="699" height="399" title="Spring MVC注解03" style="border: 0px currentcolor; border-image: none; margin-right: auto; margin-left: auto; float: none; display: block; background-image: none;" alt="Spring MVC注解03" src="./images/Spring MVC的常用注解（一）2.png" border="0"></a><br>
+登陆成功后，返回information.jsp，展示信息。</p><p><a href="https://img2018.cnblogs.com/blog/526027/201909/526027-20190910130443076-1623445850.png"><img width="699" height="399" title="Spring MVC注解04" style="border: 0px currentcolor; border-image: none; margin-right: auto; margin-left: auto; float: none; display: block; background-image: none;" alt="Spring MVC注解04" src="./images/Spring MVC的常用注解（一）3.png" border="0"></a></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,195 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java并行程序基础。' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java并行程序基础。</center></div><div class='banquan'>原文出处:本文由博客园博主张玉昊提供。<br/>
+原文连接:https://www.cnblogs.com/zhangyuhao/p/11552159.html</div><br>
+    <p style="text-align: center;"><strong>并发，就是用多个执行器（线程）来完成一个任务（大任务）来处理业务（提高效率）的方法。而在这个过程中，会涉及到一些问题，所以学的就是解决这些问题的方法。</strong></p>
+<p><strong>线程的基本操作：</strong></p>
+<p>　　1、创建线程：只需要new一个线程对象即可：Thread myThread=new Thread()。然后 myThread.start() 即可开启线程。那么问题来了，这个线程到底要做些什么呢，所以，Thread有一个run() 方法，方法体则是线程要做的事情。而默认情况下，run（）方法什么不做，所以我们需要重写run（），把你要做的事情填进去。</p>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        Thread t1</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(){
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+                System.out.println(</span>"hello i am t1"<span style="color: #000000;">);
+            }
+        };
+        t1.start();
+    }</span></code></pre>
+
+<p>　　上面使用匿名内部类的方式重写了run方法。</p>
+<p>　　因为Java是单继承的，有时候继承也是一种稀缺的资源，所以可以用Runable接口来实现：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> Runnable{
+        </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">void</span><span style="color: #000000;">  run();
+    }</span></code></pre>
+
+<p>　　Runnable接口就只有一个run方法。</p>
+<p>　　Thread类还有一个重要的构造方法：public Thread (Runnable target) ，所以，可以通过实现了Runnable接口的类的实力来创建线程，同时，Runnable是一个函数式接口，所以还可以使用Lambda表达式：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        Thread t1</span>=<span style="color: #0000ff;">new</span> Thread(()-&gt; System.out.println("hello i am t1"<span style="color: #000000;">));
+        t1.start();
+    }</span></code></pre>
+
+<p>　　2、终止线程：Thread.stop() 可以终止线程，但是它是一个废弃的方法，因为它太过暴力，即使线程正在执行中，也会直接终止，并释放锁。</p>
+<p>　　3、线程中断：线程中断不会使线程立即退出，而是给线程发送一个通知，告诉目标线程：有人希望你退出啦！至于目标线程如何处理，还是又目标线程自己决定。</p>
+<p>　　　　　　　　有关线程中断的三个方法：Thread.interrupt() 中断线程。Thread.isInterruputed() 判断是否被中断了。 Thread.interrupted() 判读是否被中断，并且清除中断状态。</p>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> InterruptedException {
+        Thread t</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(){
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+                </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+                    System.out.println(</span>"t1 is running."<span style="color: #000000;">);
+            }
+        };
+        t.start();
+        Thread.sleep(</span>1000<span style="color: #000000;">);
+        t.interrupt();
+    }</span></code></pre>
+
+<p>　　　　上面代码中，对线程t进行了中断，但并没有作出中断后的操作，所以是没有效果的。改进：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> InterruptedException {
+        Thread t</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(){
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+                </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">){
+                    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Thread.currentThread().isInterrupted())
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    System.out.println(</span>"t1 is running."<span style="color: #000000;">);
+                }
+            }
+        };
+        t.start();
+        Thread.sleep(</span>1000<span style="color: #000000;">);
+        t.interrupt();
+    }</span></code></pre>
+
+<p>　　4、等待（wait）和通知（notify）：为了支持多线程之间的协作，JDK提供了wait（）和notify（），这两个方法并不在Thread类中，而是在Object中，也就是说，任何对象都可以调用这两个方法。</p>
+<p>　　　　当线程A 调用了obj.wait()方法后，线程A就会停止执行，转为等待状态。等待的状态要等到其他线程调用obj.notify()方法为止。</p>
+<p>　　　　当某个线程调用了object.wait()方法后，该线程就会进去object对象的等待队列。这个等待队列中，可能有多个线程。当调用 object.notify()时，会随机在队列中唤醒一个线程。而调用object.notifyAll()时，会唤醒所有线程。</p>
+<p>　　　　注意：wait()和notify（）都必须在synchronized语句中，必须先获得目标对象的监听器，才能调用这两个方法。调用wait后，会释放监听器。</p>
+<p>　　5、挂起（suspend）和继续执行（resume）：suspend可以停止线程执行，直到resume。但suspend停止时，不会释放资源，所以不推荐使用。</p>
+<p>　　6、等待线程结束（join）和谦让（yeild）：线程之间协作时，有时会有先后关系，也就是B线程等到A线程执行完了，再执行。</p>
+<p><strong>volatile：</strong></p>
+<p>　　当用volatile关键字申明变量时，就等于告诉虚拟机，这个变量极有可能会被某些线程修改，虚拟机就会做一些操作，来确保这个变量背修改后，应用程序范围内的所有线程都能看到这个改动。用volatile申明的变量可以保证有序性和可见性，但无法保证原子性。</p>
+<p><strong>守护线程：</strong></p>
+<p>　　守护线程是一种特殊的线程，它是系统的守护者，在后台完成一些系统性的服务，比如垃圾回收线程。与之对应的是用户线程。当一个Java应用只有守护线程时，Java虚拟机就会自然退出。setDaemon（）可以将线程设为守护线程。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> test {
+  </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> DaemonThread <span style="color: #0000ff;">extends</span><span style="color: #000000;"> Thread{
+      @Override
+      </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+          </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">){
+              System.out.println(</span>"i am alive"<span style="color: #000000;">);
+          }
+      }
+  }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> InterruptedException {
+        Thread thread</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> DaemonThread();
+        thread.setDaemon(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+        thread.start();
+        Thread.sleep(</span>2000<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>　　将thread设置为守护线程，所以在主线程休眠2s后，用户线程全部结束，整个程序也就结束了。</p>
+<p><strong>线程优先级：</strong></p>
+<p>　　优先级高的线程在竞争资源时，会更有优势。但是这只是概率问题，运气不好的话，高优先级的线程也可能抢占资源失败。setPriority（）来设置线程优先级。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> test {
+    </span><span style="color: #0000ff;">final</span> <span style="color: #0000ff;">static</span> Object obj=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Object();
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> Low <span style="color: #0000ff;">extends</span><span style="color: #000000;"> Thread{
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> i=0<span style="color: #000000;">;
+        @Override
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+            </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">){
+                </span><span style="color: #0000ff;">synchronized</span><span style="color: #000000;"> (obj){
+                    i</span>++<span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">if</span> (i&gt;100000<span style="color: #000000;">){
+                        System.out.println(</span>"low complete。"<span style="color: #000000;">);
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                }
+            }
+        }
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> High <span style="color: #0000ff;">extends</span><span style="color: #000000;"> Thread{
+        </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> i;
+        @Override
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+            </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">){
+                </span><span style="color: #0000ff;">synchronized</span><span style="color: #000000;"> (obj){
+                    i</span>++<span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">if</span> (i&gt;150000<span style="color: #000000;">){
+                        System.out.println(</span>"high complete."<span style="color: #000000;">);
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                }
+            }
+        }
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        Thread low</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Low();
+        Thread high</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> High();
+        low.setPriority(Thread.MIN_PRIORITY);
+        high.setPriority(Thread.MAX_PRIORITY);
+        low.start();
+        high.start();
+    }
+
+}</span></code></pre>
+
+<p>　　上述代码中，即使high要多加50000次，但是因为优先级高，会更先执行完。</p>
+<p><strong>Synchronized</strong>：</p>
+<p><strong>　　</strong>关键字synchronized的作用是实现线程间的同步。它的工作是对同步的代码加锁，使得每一次只有一个线程进入同步快，从而保证线程间的安全性。</p>
+<p>　　用法：可以给指定对象加锁（上面事例中），也可以作用于实例方法：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> test <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable {
+    </span><span style="color: #0000ff;">static</span> test t=<span style="color: #0000ff;">new</span><span style="color: #000000;"> test();
+    </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> i=0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> add(){
+            i</span>++<span style="color: #000000;">;
+        }
+
+        @Override
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> k=0;k&lt;100000;k++<span style="color: #000000;">)
+                add();
+        }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> InterruptedException {
+        Thread t1</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(t);
+        Thread t2</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(t);
+        t1.start();
+        t2.start();
+        t1.join();t2.join();
+        System.out.println(i);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

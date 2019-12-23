@@ -1,0 +1,139 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JUC——线程同步辅助工具类（Semaphore，CountDownLatch，CyclicBarrier）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JUC——线程同步辅助工具类（Semaphore，CountDownLatch，CyclicBarrier）</center></div><div class='banquan'>原文出处:本文由博客园博主花里胡哨的程序员提供。<br/>
+原文连接:https://www.cnblogs.com/jianjieming/p/11634366.html</div><br>
+    <h2 id="countdownlatch">CountDownLatch</h2>
+<p>CountDownLatch是一个计数器闭锁，通过它可以完成类似于阻塞当前线程的功能，即：一个线程或多个线程一直等待，直到其他线程执行的操作完成。CountDownLatch用一个给定的计数器来初始化，该计数器的操作是原子操作，即同时只能有一个线程去操作该计数器。调用该类await方法的线程会一直处于阻塞状态，直到其他线程调用countDown方法使当前计数器的值变为零，每次调用countDown计数器的值减1。当计数器值减至零时，所有因调用await()方法而处于等待状态的线程就会继续往下执行。这种现象只会出现一次，因为计数器不能被重置，如果业务上需要一个可以重置计数次数的版本，可以考虑使用CycliBarrier。</p>
+<p>在某些业务场景中，程序执行需要等待某个条件完成后才能继续执行后续的操作；下面举个栗子，比如秦国需要灭六国才能一统华夏。</p>
+<p><strong>代码示例：</strong></p>
+<pre><code><code>public class CountDownLatchDemo {
+    public static void main(String[] args) throws InterruptedException {
+        CountDownLatch countDownLatch = new CountDownLatch(6);
+        for (int i = 1; i &lt;= 6; i++) {
+            new Thread(() -&gt; {
+                System.out.println(Thread.currentThread().getName() + &quot;\t国,被灭&quot;);
+                countDownLatch.countDown();
+            }, Objects.requireNonNull(CountryEnum.forEachCountryEnum(i)).getRetMessage()).start();
+        }
+        countDownLatch.await();
+        System.out.println(Thread.currentThread().getName() + &quot;\t秦灭六国,一统华夏&quot;);
+    }
+}</code></code></pre>
+<pre><code><code>public enum CountryEnum {
+
+    ONE(1, &quot;齐&quot;), TWO(2, &quot;楚&quot;), THREE(3, &quot;燕&quot;), FOUR(4, &quot;赵&quot;), FIVE(5, &quot;魏&quot;), SIX(6, &quot;韩&quot;);
+
+    private Integer retCode;
+    private String retMessage;
+
+    CountryEnum(Integer retCode, String retMessage) {
+        this.retCode = retCode;
+        this.retMessage = retMessage;
+    }
+
+    public static CountryEnum forEachCountryEnum(int index) {
+        CountryEnum[] values = CountryEnum.values();
+        for (CountryEnum value : values) {
+            if (index == value.getRetCode()) {
+                return value;
+            }
+        }
+        return null;
+    }
+
+    public Integer getRetCode() {
+        return retCode;
+    }
+
+    public String getRetMessage() {
+        return retMessage;
+    }}</code></code></pre>
+<h2 id="cyclicbarrier">CyclicBarrier</h2>
+<p>CyclicBarrier（可重用屏障/栅栏）类似于CountDownLatch（倒计数闭锁），它能阻塞一组线程直到某个事件的发生。</p>
+<ul>
+<li>与闭锁的关键区别在于，所有的线程必须同时到达屏障位置，才能继续执行。</li>
+<li>闭锁用于等待事件，而屏障用于等待其他线程。</li>
+<li><p>CyclicBarrier 可以使一定数量的线程反复地在屏障位置处汇集。当线程到达屏障位置时将调用 await() 方法，这个方法将阻塞直到所有线程都到达屏障位置。如果所有线程都到达屏障位置，那么屏障将打开，此时所有的线程都将被释放，而屏障将被重置以便下次使用。</p></li>
+<li>所谓 Cyclic 即循环的意思，所谓 Barrier 即屏障的意思。</li>
+<li>CyclicBarrier是一个同步辅助类，它允许一组线程相互等待直到所有线程都到达一个公共的屏障点。</li>
+<li>在程序中有固定数量的线程，这些线程有时候必须等待彼此，这种情况下，使用 CyclicBarrier 很有帮助。</li>
+<li><p>这个屏障之所以用循环修饰，是因为在所有的线程释放彼此之后，这个屏障是可以 重新使用 的。</p></li>
+</ul>
+<p><strong>举个栗子</strong>：</p>
+<pre><code><code>public class CyclicBarrierDemo {
+    public static void main(String[] args) {
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(7, () -&gt; System.out.println(&quot;召唤神龙&quot;));
+        for (int i = 1; i &lt;= 7; i++) {
+            final int tempInt = i;
+            new Thread(() -&gt; {
+                System.out.println(Thread.currentThread().getName() + &quot;\t收集到第: &quot; + tempInt + &quot;龙珠&quot;);
+                try {
+                    cyclicBarrier.await();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }, i + &quot;&quot;).start();
+        }
+    }
+}</code></code></pre>
+<h2 id="semaphore">Semaphore</h2>
+<p>信号量Semaphore是一个控制访问多个共享资源的计数器，和CountDownLatch一样，其本质上是一个“共享锁”。</p>
+<p>Semaphore，在API是这么介绍的：</p>
+<p>一个计数信号量。从概念上讲，信号量维护了一个许可集。如有必要，在许可可用前会阻塞每一个acquire()，然后再获取该许可。每个 release() 添加一个许可，从而可能释放一个正在阻塞的获取者。但是，不使用实际的许可对象，Semaphore只对可用许可的号码进行计数，并采取相应的行动。</p>
+<p>下面我们就一个停车场的简单例子来阐述Semaphore：</p>
+<p>假设停车场仅有5个停车位，一开始停车场没有车辆所有车位全部空着，然后先后到来三辆车，停车场车位够，安排进去停车，然后又来三辆，这个时候由于只有两个停车位，所有只能停两辆，其余一辆必须在外面候着，直到停车场有空车位，当然以后每来一辆都需要在外面候着。当停车场有车开出去，里面有空位了，则安排一辆车进去（至于是哪辆 要看选择的机制是公平还是非公平）。</p>
+<p>从程序角度看，停车场就相当于信号量Semaphore，其中许可数为5，车辆就相对线程。当来一辆车时，许可数就会减 1 ，当停车场没有车位了（许可书 == 0 ），其他来的车辆需要在外面等候着。如果有一辆车开出停车场，许可数 + 1，然后放进来一辆车。</p>
+<p>号量Semaphore是一个非负整数（&gt;=1）。当一个线程想要访问某个共享资源时，它必须要先获取Semaphore，当Semaphore &gt;0时，获取该资源并使Semaphore – 1。如果Semaphore值 = 0，则表示全部的共享资源已经被其他线程全部占用，线程必须要等待其他线程释放资源。当线程释放资源时，Semaphore则+1</p>
+<p><strong>代码演示</strong>：</p>
+<pre><code><code>public class SemaphoreDemo {
+    public static void main(String[] args) {
+        // 模拟5个停车位，10辆车去抢车位
+        // Semaphore内部包含公平锁（FairSync）和非公平锁（NonfairSync）默认为非公平锁
+        Semaphore semaphore = new Semaphore(5);
+        // 模拟六部汽车
+        for (int i = 1; i &lt;= 10; i++) {
+            new Thread(() -&gt; {
+                try {
+                    semaphore.acquire();
+                    System.out.println(Thread.currentThread().getName() + &quot;\t抢到车位&quot;);
+                    Thread.sleep(3000);
+                    System.out.println(Thread.currentThread().getName() + &quot;\t停车3秒后,离开车位&quot;);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } finally {
+                    semaphore.release();
+                }
+            }, i + &quot;&quot;).start();
+        }
+    }
+}</code></code></pre>
+<h3 id="cyclicbarriercountdownlatchsemaphore-的小总结">CyclicBarrier、CountDownLatch、Semaphore 的小总结</h3>
+<ul>
+<li>CountDownLatch 是一个线程(或者多个)，等待另外 N 个线程完成某个事情之后才能执行；CyclicBarrier 是 N 个线程相互等待，任何一个线程完成之前，所有的线程都必须等待。</li>
+<li>CountDownLatch 的计数器只能使用一次。而 CyclicBarrier 的计数器可以使用 reset() 方法重置；CyclicBarrier 能处理更为复杂的业务场景，比如如果计算发生错误，可以重置计数器，并让线程们重新执行一次。</li>
+<li>CountDownLatch 采用减计数方式；CyclicBarrier 采用加计数方式；Semaphore更像是加减法。</li>
+<li>Semaphore 主要用于控制同时访问特定资源的线程数量，它通过协调各个线程，始终保持一定数量内的线程去使用公共资源。</li>
+</ul>
+<p><strong><em>如果觉得对你有帮助，欢迎来访我的博客：<a href="http://jianjieming.com" class="uri">http://jianjieming.com</a></em></strong></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

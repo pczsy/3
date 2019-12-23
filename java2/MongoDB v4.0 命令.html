@@ -1,0 +1,226 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修MongoDB v4.0 命令' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>MongoDB v4.0 命令</center></div><div class='banquan'>原文出处:本文由博客园博主Zzzang提供。<br/>
+原文连接:https://www.cnblogs.com/Zzang/p/11611490.html</div><br>
+    <h1 id="mongodb-v4.0-命令">MongoDB v4.0 命令</h1>
+<h2 id="官方文档-点这里">官方文档 &gt; <a href="https://docs.mongodb.com/manual/crud/">点这里</a> &lt;</h2>
+<h2 id="操作系统库">操作系统库</h2>
+<pre><code><code>#操作管理员库
+use admin
+#鉴权
+db.auth(&quot;root&quot;,&quot;admin&quot;);
+#用户查看(格式美化)
+db.system.users.find().pretty();
+
+#新增用户
+db.createUser({
+    user: &#39;root1&#39;,
+    pwd: &#39;admin1&#39;,
+    roles: [ { role: &quot;dbOwner&quot;, db: &quot;yapi&quot; }]
+});
+  
+#更新用户信息/密码/权限
+db.updateUser(&quot;root1&quot;,{
+    pwd: &quot;admin2&quot;,
+    roles:
+    [{
+        role: &quot;root&quot;,
+        db: &quot;admin&quot;
+      },{
+        role: &quot;userAdminAnyDatabase&quot;,
+        db: &quot;admin&quot;
+      },{
+        role: &quot;readWriteAnyDatabase&quot;,
+        db: &quot;admin&quot;
+      },{
+        role: &quot;dbAdminAnyDatabase&quot;,
+        db: &quot;admin&quot;
+}]})
+
+#删除数据库所属用户
+db.dropUser(&quot;root1&quot;);</code></code></pre>
+<h1 id="操作自定义库">操作自定义库</h1>
+<pre><code><code>#操作自定义库
+use persionalDB
+
+#鉴权
+db.auth(&quot;user&quot;,&quot;pwd&quot;);
+
+#创建数据库所属用户
+db.createUser({
+    user: &#39;username1&#39;,
+    pwd: &#39;password1&#39;,
+    roles: [ { role: &quot;dbOwner&quot;, db: &quot;yapi&quot; }]
+});
+  
+#更新用户信息/密码/权限
+db.updateUser(&quot;username1&quot;,{
+    pwd: &quot;NEW pass&quot;,
+    roles:
+    [{
+        role: &quot;root&quot;,
+        db: &quot;admin&quot;
+      },{
+        role: &quot;userAdminAnyDatabase&quot;,
+        db: &quot;admin&quot;
+      },{
+        role: &quot;readWriteAnyDatabase&quot;,
+        db: &quot;admin&quot;
+      },{
+        role: &quot;dbAdminAnyDatabase&quot;,
+        db: &quot;admin&quot;
+}]});
+
+#删除数据库所属用户
+db.dropUser(&quot;username1&quot;);</code></code></pre>
+<h1 id="基础操作-collection-所查集合名">1.0.0 基础操作 [collection]= 所查集合名</h1>
+<pre><code><code>use [db_name];
+
+db.[collection].insert({[title]:&#39;[value]&#39;});
+eg: 
+    db.hellocollction.insert({name:&#39;hello&#39;});
+
+# 单个插入
+db.inventory.insertOne(
+   { item: &quot;canvas&quot;, 
+     qty: 100, 
+     tags: [&quot;cotton&quot;], 
+     size: { 
+            h: 28, 
+            w: 35.5, 
+            uom: &quot;cm&quot; 
+        } 
+    }
+)
+# 批量插入
+db.inventory.insertMany([
+   { item: &quot;journal&quot;, qty: 25, tags: [&quot;blank&quot;, &quot;red&quot;], size: { h: 14, w: 21, uom: &quot;cm&quot; } },
+   { item: &quot;mat&quot;, qty: 85, tags: [&quot;gray&quot;], size: { h: 27.9, w: 35.5, uom: &quot;cm&quot; } },
+   { item: &quot;mousepad&quot;, qty: 25, tags: [&quot;gel&quot;, &quot;blue&quot;], size: { h: 19, w: 22.85, uom: &quot;cm&quot; } }
+])</code></code></pre>
+<h1 id="增">1.1 ============&gt;增&lt;============</h1>
+<blockquote>
+<ul>
+<li>db.[collection].insertOne()/insertMany()</li>
+</ul>
+</blockquote>
+<p><img src="./images/MongoDB v4.0 命令0.png" alt="title" /></p>
+<h1 id="查">1.2 ============&gt;查&lt;============</h1>
+<blockquote>
+<ul>
+<li>db.[[collection]].find()</li>
+</ul>
+</blockquote>
+<p><img src="./images/MongoDB v4.0 命令1.png" alt="title" /></p>
+<h1 id="改">1.3 ============&gt;改&lt;============</h1>
+<blockquote>
+<ul>
+<li>db.[collection].updateOne()/updateMany()/replaceOne()</li>
+</ul>
+</blockquote>
+<p><img src="./images/MongoDB v4.0 命令2.png" alt="title" /></p>
+<h1 id="删">1.4 ============&gt;删&lt;============</h1>
+<blockquote>
+<ul>
+<li>db.collection.deleteOne()/deleteMany()</li>
+</ul>
+</blockquote>
+<p><img src="./images/MongoDB v4.0 命令3.png" alt="title" /></p>
+<h1 id="高级-联表查询-join">2.0 高级: 联表查询 Join</h1>
+<p>初始数据</p>
+<pre><code><code>db.product.insert({&quot;_id&quot;:1,&quot;productname&quot;:&quot;商品1&quot;,&quot;price&quot;:15});
+db.product.insert({&quot;_id&quot;:2,&quot;productname&quot;:&quot;商品2&quot;,&quot;price&quot;:36});
+ 
+db.order.insert({&quot;_id&quot;:1,&quot;pid&quot;:1,&quot;ordername&quot;:&quot;订单1&quot;,&quot;uid&quot;:1});
+db.order.insert({&quot;_id&quot;:2,&quot;pid&quot;:2,&quot;ordername&quot;:&quot;订单2&quot;,&quot;uid&quot;:2});
+db.order.insert({&quot;_id&quot;:3,&quot;pid&quot;:2,&quot;ordername&quot;:&quot;订单3&quot;,&quot;uid&quot;:2});
+db.order.insert({&quot;_id&quot;:4,&quot;pid&quot;:1,&quot;ordername&quot;:&quot;订单4&quot;,&quot;uid&quot;:1});
+ 
+db.user.insert({&quot;_id&quot;:1,&quot;username&quot;:1});
+db.user.insert({&quot;_id&quot;:2,&quot;username&quot;:2});
+ 
+db.product.find();
+db.order.find();
+db.user.find();</code></code></pre>
+<blockquote>
+<p>2.1 <code>$lookup</code> 两表关联join</p>
+</blockquote>
+<pre class="sql"><code>db.product.aggregate([
+    {
+      $lookup:
+        {
+          from: &quot;order&quot;,
+          localField: &quot;_id&quot;,
+          foreignField: &quot;pid&quot;,
+          as: &quot;inventory_docs&quot;
+        }
+   }
+]);
+#结果:
+{
+    &quot;_id&quot; : 1.0,
+    &quot;productname&quot; : &quot;商品1&quot;,
+    &quot;price&quot; : 15.0,
+    &quot;inventory_docs&quot; : [
+        {
+            &quot;_id&quot; : 1.0,
+            &quot;pid&quot; : 1.0,
+            &quot;ordername&quot; : &quot;订单1&quot;
+        },
+        {
+            &quot;_id&quot; : 4.0,
+            &quot;pid&quot; : 1.0,
+            &quot;ordername&quot; : &quot;订单4&quot;
+        }
+    ]
+}</code></code></pre>
+<p>lookup 就是使用 aggregate 的 $lookup 属性，$lookup 操作需要一个四个参数的对象：</p>
+<ul>
+<li>localField：在输入文档中的查找字段</li>
+<li>from：需要连接的集合</li>
+<li>foreignField：需要在from集合中查找的字段</li>
+<li>as：输出的字段名字</li>
+</ul>
+<blockquote>
+<p>2.2 $lookup 三表关联join</p>
+</blockquote>
+<pre class="sql"><code>db.order.aggregate([
+    {
+        &quot;lookup&quot;: {
+            &quot;from&quot;: &quot;product&quot;,
+            &quot;localField&quot;: &quot;pid&quot;,
+            &quot;foreignField&quot;: &quot;_id&quot;,
+            &quot;as&quot;: &quot;inventory_docs&quot;
+        }
+    },{
+        &quot;lookup&quot;: {
+            &quot;from&quot;: &quot;user&quot;,
+            &quot;localField&quot;: &quot;uid&quot;,
+            &quot;foreignField&quot;: &quot;_id&quot;,
+            &quot;as&quot;: &quot;user_docs&quot;
+        }
+    }
+]);</code></code></pre>
+<h4 id="除了-lookuppopulate-也可以用来进行关联查询">除了 $lookup，populate 也可以用来进行关联查询</h4>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

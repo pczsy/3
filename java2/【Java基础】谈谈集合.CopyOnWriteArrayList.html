@@ -1,0 +1,126 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【Java基础】谈谈集合.CopyOnWriteArrayList' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【Java基础】谈谈集合.CopyOnWriteArrayList</center></div><div class='banquan'>原文出处:本文由博客园博主写代码的木公提供。<br/>
+原文连接:https://www.cnblogs.com/54chensongxia/p/11728837.html</div><br>
+    <src class="toc">
+    <p class="toc-title">目录</p>
+    <src class="toc-list">
+        <ul>
+        <li><a href="#实现原理">实现原理</a></li>
+        <li><a href="#遍历时不用加锁的原因">遍历时不用加锁的原因</a></li>
+        <li><a href="#copyonwritearraylis的缺点">CopyOnWriteArrayLis的缺点</a></li>
+        <li><a href="#使用场景">使用场景</a></li>
+        <li><a href="#总结">总结</a></li>
+        <li><a href="#参考">参考</a></li>
+        </ul>
+    
+
+<hr />
+<p>本篇博客介绍CopyOnWriteArrayList类，读完本博客你将会了解：</p>
+<ul>
+<li>什么是COW机制；</li>
+<li>CopyOnWriteArrayList的实现原理；</li>
+<li>CopyOnWriteArrayList的使用场景。</li>
+</ul>
+<hr />
+<p>经过之前的博客介绍，我们知道ArrayList是线程不安全的。要实现线程安全的List，我们可以使用<strong>Vector</strong>，或者使用Collections工具类将List包装成一个<strong>SynchronizedList</strong>。其实在Java并发包中还有一个CopyOnWriteArrayList可以实现线程安全的List。</p>
+<p>在开始之前先贴一段概念</p>
+<blockquote>
+<p>如果有多个调用者（callers）同时请求相同资源（如内存或磁盘上的数据存储），他们会共同获取相同的指针指向相同的资源，直到某个调用者试图修改资源的内容时，系统才会真正复制一份专用副本（private copy）给该调用者，而其他调用者所见到的最初的资源仍然保持不变。优点是如果调用者没有修改该资源，就不会有副本（private copy）被建立，因此多个调用者只是读取操作时可以共享同一份资源。</p>
+</blockquote>
+<h2 id="实现原理">实现原理</h2>
+<p>Vector这个类是一个非常古老的类了，在JDK1.0的时候便已经存在，其实现安全的手段非常<strong>简单所有的方法都加上synchronized关键字</strong>，这样保证这个实例的方法同一时刻只能有一个线程访问，所以在<strong>高并发场景下性能非常低</strong>。</p>
+<p>SynchronizedList是java.util.Collections中的一个静态内部类，其实现安全的手段稍微有一点优化，就<strong>是把Vector加在方法上的synchronized关键字，移到了方法里面变成了同步块而不是同步方法从而把锁的范围缩小了</strong>，另外，SynchronizedList中的方法不全都是同步的，比如获取迭代器方法listIterator()就不是同步的。</p>
+<p>CopyOnWriteArrayList这个类就比较特殊了，对于写来说是基于重入锁互斥的，对于读操作来说是无锁的。还有一个特殊的地方，这个类的iterator是fail-safe的，也就是说是线程安全List里面的唯一一个不会出现ConcurrentModificationException异常的类。</p>
+<p>看下CopyOnWriteArrayList的成员变量：</p>
+<pre><code><code>//重入锁保写操作互斥
+final transient ReentrantLock lock = new ReentrantLock();
+//volatile保证读可见性
+private transient volatile Object[] array;</code></code></pre>
+<p>下面再看下添加元素的代码逻辑</p>
+<pre><code><code>public boolean add(E e) {
+        final ReentrantLock lock = this.lock;
+        lock.lock();//加锁
+        try {
+            Object[] elements = getArray();//读取原数组
+            int len = elements.length;
+            //构建一个长度为len+1的新数组，然后拷贝旧数据的数据到新数组
+            Object[] newElements = Arrays.copyOf(elements, len + 1);
+            //把新加的数据赋值到最后一位
+            newElements[len] = e;
+            // 替换旧的数组
+            setArray(newElements);
+            return true;
+        } finally {
+            lock.unlock();
+        }
+    }</code></code></pre>
+<p>先获得锁，然后拷贝元素组并将新元素加入(添加的元素可以是null)，再替换掉原来的数组。我们会发现这种实现方式非常不适合频繁修改的操作。CopyOnWriteArrayList的删除和修改的操作的原理也是类似的，这边就不贴代码了。</p>
+<p>最后看下读操作</p>
+<pre><code><code>//直接获取index对应的元素 
+public E get(int index) {return get(getArray(), index);} 
+private E get(Object[] a, int index) {return (E) a[index];}</code></code></pre>
+<p>从以上的增删改查中我们可以发现，增删改都需要获得锁，并且锁只有一把，而读操作不需要获得锁，支持并发。为什么增删改中都需要创建一个新的数组，操作完成之后再赋给原来的引用？这是为了保证get的时候都能获取到元素，如果在增删改过程直接修改原来的数组，可能会造成执行读操作获取不到数据。</p>
+<h2 id="遍历时不用加锁的原因">遍历时不用加锁的原因</h2>
+<p>常用的方法实现我们已经基本了解了，但还是不知道为啥能够在容器遍历的时候对其进行修改而不抛出异常。（其实这是一种fail-safe机制）</p>
+<pre><code><code>    // 1. 返回的迭代器是COWIterator
+    public Iterator&lt;E&gt; iterator() {
+        return new COWIterator&lt;E&gt;(getArray(), 0);
+    }
+    // 2. 迭代器的成员属性
+    private final Object[] snapshot;
+    private int cursor;
+    // 3. 迭代器的构造方法
+    private COWIterator(Object[] elements, int initialCursor) {
+        cursor = initialCursor;
+        snapshot = elements;
+    }
+    // 4. 迭代器的方法...
+    public E next() {
+        if (! hasNext())
+            throw new NoSuchElementException();
+        return (E) snapshot[cursor++];
+    }
+
+    //.... 可以发现的是，迭代器所有的操作都基于snapshot数组，而snapshot是传递进来的array数组</code></code></pre>
+<p>到这里，我们应该就可以想明白了！CopyOnWriteArrayList在使用迭代器遍历的时候，操作的都是原数组！</p>
+<h2 id="copyonwritearraylis的缺点">CopyOnWriteArrayLis的缺点</h2>
+<ul>
+<li>内存占用：如果CopyOnWriteArrayList经常要增删改里面的数据，经常要执行add()、set()、remove()的话，那是比较耗费内存的。因为我们知道每次add()、set()、remove()这些增删改操作都要复制一个数组出来。</li>
+<li>数据一致性：CopyOnWrite容器只能保证数据的最终一致性，不能保证数据的实时一致性。从上面的例子也可以看出来，比如线程A在迭代CopyOnWriteArrayList容器的数据。线程B在线程A迭代的间隙中将CopyOnWriteArrayList部分的数据修改了(已经调用setArray()了)。但是线程A迭代出来的是原有的数据。</li>
+</ul>
+<h2 id="使用场景">使用场景</h2>
+<p>整体来说CopyOnWriteArrayList是另类的线程安全的实现，<strong>但并一定是高效的</strong>，<strong>适合用在读取和遍历多的场景下，并不适合写并发高的场景</strong>，因为数组的拷贝也是非常耗时的，尤其是数据量大的情况下。</p>
+<h2 id="总结">总结</h2>
+<p>稍微总结下：</p>
+<ul>
+<li>CopyOnWriteArrayList基于可重入锁机制，增删改操作需要加锁，读操作不需要加锁；</li>
+<li>CopyOnWriteArrayList适合用在读取和遍历多的场景下，并不适合写并发高的场景；</li>
+<li>基于fail-safe机制，不会抛出CurrentModifyException。</li>
+</ul>
+<h2 id="参考">参考</h2>
+<ul>
+<li><a href="https://yq.aliyun.com/articles/665359" class="uri">https://yq.aliyun.com/articles/665359</a></li>
+<li><a href="https://cloud.tencent.com/developer/article/1350855" class="uri">https://cloud.tencent.com/developer/article/1350855</a></li>
+</ul>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

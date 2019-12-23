@@ -1,0 +1,77 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修windows使用docker运行mysql等工具（二）安装运行mysql' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>windows使用docker运行mysql等工具（二）安装运行mysql</center></div><div class='banquan'>原文出处:本文由博客园博主执偕提供。<br/>
+原文连接:https://www.cnblogs.com/zhixie/p/11854659.html</div><br>
+    <p>今天接着上一篇的内容继续来学习安装运行mysql。建议先阅读第一篇：<a href="https://mp.weixin.qq.com/s/kC6Y12qFUq6BhqPw1kHtPw">windows安装docker</a></p>
+<h2 id="一-查看mysql版本">一 查看mysql版本</h2>
+<p>如果想知道mysql镜像具体有哪几个版本，需要去docker hub查看。</p>
+<p>地址如下： https://hub.docker.com/r/library/</p>
+<h2 id="二-拉取mysql镜像">二 拉取mysql镜像</h2>
+<p>命令如下：</p>
+<pre><code><code>docker pull 镜像名称:版本号</code></code></pre>
+<p>打开命令窗口输入</p>
+<pre><code><code>docker pull mysql:8.0</code></code></pre>
+<p>等待几分钟就完成了，然后输入以下命令查看镜像</p>
+<pre><code><code>docker images</code></code></pre>
+<h2 id="三-启动mysql服务">三 启动mysql服务</h2>
+<p>命令如下：</p>
+<pre><code><code>docker run --name mysql8.0 -e MYSQL_ROOT_PASSWORD=123456 -d -p 23306:3306 mysql:8.0</code></code></pre>
+<p>解释一下上面的命令的具体含义</p>
+<pre><code><code>docker run  // 启动容器 
+--name mysql8.0  // 指定容器名称为mysql8.0
+-e MYSQL_ROOT_PASSWORD=123456  // 配置环境变量，指定root用户的密码为123456
+-d  // 是否后台启动，默认false
+-p 23306:3306  // 将3306端口映射出来为23306进行访问
+mysql:8.0  // 镜像名称</code></code></pre>
+<h2 id="四-允许客户端进行登录">四 允许客户端进行登录</h2>
+<p>第三步完成后一个docker容器就算起来了，我们用客户端连接数据库发现报错了。</p>
+<p><img src="./images/windows使用docker运行mysql等工具（二）安装运行mysql0.png" /></p>
+<p>主要原因是mysql服务器要求的认证插件版本与客户端不一致造成的。</p>
+<p>使用命令 <strong>docker exec -it mysql8.0 /bin/bash </strong>进入容器，然后登录mysql服务，命令如下：<strong>mysql -uroot -p 123456</strong>，登录成功后，<strong>use mysql </strong>，使用sql<strong>select user,plugin from user</strong> 查看认证插件。</p>
+<p>可以看到root用户使用的plugin是caching_sha2_password，mysql官方网站有如下说明：</p>
+<p><img src="./images/windows使用docker运行mysql等工具（二）安装运行mysql1.png" /></p>
+<p>意思是说caching_sha2_password是8.0默认的认证插件，必须使用支持此插件的客户端版本。两种方式一种是升级客户端，另一种是修改插件认证为 <strong>mysql_native_password</strong>，我们看一下第二种。</p>
+<pre><code><code>// 第一:修改root的密码为&#39;root&#39;，摒弃原来的旧密码。第二：使用mysql_native_password对新密码进行编码。
+ALTER USER &#39;root&#39;@&#39;localhost&#39; IDENTIFIED WITH mysql_native_password BY &#39;root&#39;;
+ALTER USER &#39;root&#39;@&#39;%&#39; IDENTIFIED WITH mysql_native_password BY &#39;root&#39;;
+// 刷新权限
+FLUSH PRIVILEGES; </code></code></pre>
+<p>这样就完成了，客户端可以正常登录。</p>
+<h2 id="五-docker常用命令">五 docker常用命令</h2>
+<pre><code><code>1.docker images // 查看镜像
+2.docker run 镜像名称   // 生成一个正在运行的容器实例
+3.docker stop 容器名称   // 停止容器
+4.docker rm 容器名称  // 删除容器
+5.docker start 容器名称  // 启动容器
+6.docker restart 容器名称  //重启容器
+7.docker rmi 镜像名称  // 删除镜像
+8.docker exec -it 容器名称 /bin/bash  // 进入容器
+9.docker ps  // 显示正在运行的所有容器
+10.docker ps -a  // 显示所有容器（包括已经停止的）
+11.docker pull 镜像名称:版本号  // 拉取镜像</code></code></pre>
+<blockquote>
+<p>如果文章对您有帮助，请记得点赞关注哟~<br />
+欢迎大家关注我的公众号<情系IT>，每日技术推送文章供大家学习参考。</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

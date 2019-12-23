@@ -1,0 +1,414 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修手把手带你实战下Spring的七种事务传播行为' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>手把手带你实战下Spring的七种事务传播行为</center></div><div class='banquan'>原文出处:本文由博客园博主Java碎碎念提供。<br/>
+原文连接:https://www.cnblogs.com/haha12/p/11855001.html</div><br>
+    <src class="toc">
+    <p class="toc-title">目录</p>
+    <src class="toc-list">
+        <ul>
+        <li><a href="#一什么是事务传播行为">一、什么是事务传播行为？</a></li>
+        <li><a href="#二事务的7种传播行为">二、事务的7种传播行为</a></li>
+        <li><a href="#三7种传播行为实战">三、7种传播行为实战</a></li>
+        </ul>
+    
+
+<blockquote>
+<p>本文介绍Spring的七种事务传播行为并通过代码演示下。</p>
+</blockquote>
+<h3 id="一什么是事务传播行为">一、什么是事务传播行为？</h3>
+<p>事务传播行为（propagation behavior）指的就是当一个事务方法被另一个事务方法调用时，这个事务方法应该如何运行。</p>
+<p>例如：methodA方法调用methodB方法时，methodB是继续在调用者methodA的事务中运行呢，还是为自己开启一个新事务运行，这就是由methodB的事务传播行为决定的。</p>
+<h3 id="二事务的7种传播行为">二、事务的7种传播行为</h3>
+<p>Spring在TransactionDefinition接口中规定了7种类型的事务传播行为。事务传播行为是Spring框架独有的事务增强特性。这是Spring为我们提供的强大的工具箱，使用事务传播行为可以为我们的开发工作提供许多便利。</p>
+<p>7种事务传播行为如下：</p>
+<p>1.PROPAGATION_REQUIRED</p>
+<p>如果当前没有事务，就创建一个新事务，如果当前存在事务，就加入该事务，这是最常见的选择，也是Spring默认的事务传播行为。</p>
+<p>2.PROPAGATION_SUPPORTS</p>
+<p>支持当前事务，如果当前存在事务，就加入该事务，如果当前不存在事务，就以非事务执行。</p>
+<p>3.PROPAGATION_MANDATORY</p>
+<p>支持当前事务，如果当前存在事务，就加入该事务，如果当前不存在事务，就抛出异常。</p>
+<p>4.PROPAGATION_REQUIRES_NEW</p>
+<p>创建新事务，无论当前存不存在事务，都创建新事务。</p>
+<p>5.PROPAGATION_NOT_SUPPORTED</p>
+<p>以非事务方式执行操作，如果当前存在事务，就把当前事务挂起。</p>
+<p>6.PROPAGATION_NEVER</p>
+<p>以非事务方式执行，如果当前存在事务，则抛出异常。</p>
+<p>7.PROPAGATION_NESTED</p>
+<p>如果当前存在事务，则在嵌套事务内执行。如果当前没有事务，则按REQUIRED属性执行。</p>
+<p>其实这7中我也没看懂，不过不急，咱们接下来直接看效果。</p>
+<h3 id="三7种传播行为实战">三、7种传播行为实战</h3>
+<p>演示前先建两个表，用户表和用户角色表，一开始两个表里没有数据。</p>
+<blockquote>
+<p>需要注意下，为了数据更直观，每次执行代码时 先清空下user和user_role表的数据。</p>
+</blockquote>
+<p>user表：</p>
+<pre><code><code>CREATE TABLE `user` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL,
+  `password` varchar(255) DEFAULT NULL,
+  `sex` int(11) DEFAULT NULL,
+  `des` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;</code></code></pre>
+<p>user_role表：</p>
+<pre><code><code>CREATE TABLE `user_role` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) DEFAULT NULL,
+  `role_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;</code></code></pre>
+<h4 id="propagation_required测试">1.PROPAGATION_REQUIRED测试</h4>
+<p>如果当前没有事务，就创建一个新事务，如果当前存在事务，就加入该事务，这是最常见的选择，也是Spring默认的事务传播行为。</p>
+<p>场景一：</p>
+<p>此场景外围方法没有开启事务。</p>
+<p>1.验证方法</p>
+<p>两个实现类UserServiceImpl和UserRoleServiceImpl制定事物传播行为propagation=Propagation.REQUIRED，然后在测试方法中同时调用两个方法并在调用结束后抛出异常。</p>
+<p>2.主要代码</p>
+<p>外层调用方法代码：</p>
+<pre><code><code>/**
+     * 测试 PROPAGATION_REQUIRED
+     *
+     * @Author: java_suisui
+     */
+    @Test
+    void test_PROPAGATION_REQUIRED() {
+        // 增加用户表
+        User user = new User();
+        user.setName(&quot;Java碎碎念&quot;);
+        user.setPassword(&quot;123456&quot;);
+        userService.add(user);
+        // 增加用户角色表
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(200);
+        userRoleService.add(userRole);
+        //抛异常
+        throw new RuntimeException();
+    }</code></code></pre>
+<p>UserServiceImpl代码：</p>
+<pre><code><code>/**
+     * 增加用户
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public int add(User user) {
+        return userMapper.add(user);
+    }</code></code></pre>
+<p>UserRoleServiceImpl代码：</p>
+<pre><code><code>    /**
+     * 增加用户角色
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    @Override
+    public int add(UserRole userRole) {
+        return userRoleMapper.add(userRole);
+    }</code></code></pre>
+<p>3.代码执行后数据库截图</p>
+<p>两张表数据都新增成功，截图如下：</p>
+<p><img src="./images/手把手带你实战下Spring的七种事务传播行为0.png" alt="新增成功截图" /></p>
+<p>4.结果分析</p>
+<p>外围方法未开启事务，插入用户表和用户角色表的方法在自己的事务中独立运行，外围方法异常不影响内部插入，所以两条记录都新增成功。</p>
+<p>场景二：</p>
+<p>此场景外围方法开启事务。</p>
+<p>1.主要代码</p>
+<p>测试方法代码如下：</p>
+<pre><code><code>/**
+     * 测试 PROPAGATION_REQUIRED
+     *
+     * @Author: java_suisui
+     */
+    @Transactional
+    @Test
+    void test_PROPAGATION_REQUIRED() {
+        // 增加用户表
+        User user = new User();
+        user.setName(&quot;Java碎碎念&quot;);
+        user.setPassword(&quot;123456&quot;);
+        userService.add(user);
+        // 增加用户角色表
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(200);
+        userRoleService.add(userRole);
+        //抛异常
+        throw new RuntimeException();
+    }</code></code></pre>
+<p>2.代码执行后数据库截图</p>
+<p>两张表数据都为空，截图如下：</p>
+<p><img src="./images/手把手带你实战下Spring的七种事务传播行为1.png" alt="数据为空截图" /></p>
+<p>3.结果分析</p>
+<p>外围方法开启事务，内部方法加入外围方法事务，外围方法回滚，内部方法也要回滚，所以两个记录都插入失败。</p>
+<p>结论：以上结果证明在外围方法开启事务的情况下Propagation.REQUIRED修饰的内部方法会加入到外围方法的事务中，所以Propagation.REQUIRED修饰的内部方法和外围方法均属于同一事务，只要一个方法回滚，整个事务均回滚。</p>
+<h4 id="propagation_supports测试">2.PROPAGATION_SUPPORTS测试</h4>
+<p>支持当前事务，如果当前存在事务，就加入该事务，如果当前不存在事务，就以非事务执行。</p>
+<p>场景一：</p>
+<p>此场景外围方法没有开启事务。</p>
+<p>1.验证方法</p>
+<p>两个实现类UserServiceImpl和UserRoleServiceImpl制定事物传播行为propagation=Propagation.SUPPORTS，然后在测试方法中同时调用两个方法并在调用结束后抛出异常。</p>
+<p>2.主要代码</p>
+<p>外层调用方法代码：</p>
+<pre><code><code>    /**
+     * 测试 PROPAGATION_SUPPORTS
+     *
+     * @Author: java_suisui
+     */
+    @Test
+    void test_PROPAGATION_SUPPORTS() {
+        // 增加用户表
+        User user = new User();
+        user.setName(&quot;Java碎碎念&quot;);
+        user.setPassword(&quot;123456&quot;);
+        userService.add(user);
+        // 增加用户角色表
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(200);
+        userRoleService.add(userRole);
+        //抛异常
+        throw new RuntimeException();
+    }</code></code></pre>
+<p>UserServiceImpl代码：</p>
+<pre><code><code>/**
+     * 增加用户
+     */
+    @Transactional(propagation = Propagation.SUPPORTS)
+    @Override
+    public int add(User user) {
+        return userMapper.add(user);
+    }</code></code></pre>
+<p>UserRoleServiceImpl代码：</p>
+<pre><code><code>    /**
+     * 增加用户角色
+     */
+    @Transactional(propagation = Propagation.SUPPORTS)
+    @Override
+    public int add(UserRole userRole) {
+        return userRoleMapper.add(userRole);
+    }</code></code></pre>
+<p>3.代码执行后数据库截图</p>
+<p>两张表数据都新增成功，截图如下：</p>
+<p><img src="./images/手把手带你实战下Spring的七种事务传播行为0.png" alt="新增成功截图" /></p>
+<p>4.结果分析</p>
+<p>外围方法未开启事务，插入用户表和用户角色表的方法以非事务的方式独立运行，外围方法异常不影响内部插入，所以两条记录都新增成功。</p>
+<p>场景二：</p>
+<p>此场景外围方法开启事务。</p>
+<p>1.主要代码</p>
+<p>test_PROPAGATION_SUPPORTS方法添加注解@Transactional即可。</p>
+<p>2.代码执行后数据库截图</p>
+<p>两张表数据都为空，截图如下：</p>
+<p><img src="./images/手把手带你实战下Spring的七种事务传播行为1.png" alt="数据为空截图" /></p>
+<p>3.结果分析</p>
+<p>外围方法开启事务，内部方法加入外围方法事务，外围方法回滚，内部方法也要回滚，所以两个记录都插入失败。</p>
+<p>结论：以上结果证明在外围方法开启事务的情况下Propagation.SUPPORTS修饰的内部方法会加入到外围方法的事务中，所以Propagation.SUPPORTS修饰的内部方法和外围方法均属于同一事务，只要一个方法回滚，整个事务均回滚。</p>
+<h4 id="propagation_mandatory测试">3.PROPAGATION_MANDATORY测试</h4>
+<p>支持当前事务，如果当前存在事务，就加入该事务，如果当前不存在事务，就抛出异常。</p>
+<p>通过上面的测试，“支持当前事务，如果当前存在事务，就加入该事务”，这句话已经验证了，外层添加@Transactional注解后两条记录都新增失败，所以这个传播行为只测试下外层没有开始事务的场景。</p>
+<p>场景一：</p>
+<p>此场景外围方法没有开启事务。</p>
+<p>1.验证方法</p>
+<p>两个实现类UserServiceImpl和UserRoleServiceImpl制定事物传播行为propagation = Propagation.MANDATORY，主要代码如下。</p>
+<p>2.主要代码</p>
+<p>外层调用方法代码：</p>
+<pre><code><code>    /**
+     * 测试 PROPAGATION_MANDATORY
+     *
+     * @Author: java_suisui
+     */
+    @Test
+    void test_PROPAGATION_MANDATORY() {
+        // 增加用户表
+        User user = new User();
+        user.setName(&quot;Java碎碎念&quot;);
+        user.setPassword(&quot;123456&quot;);
+        userService.add(user);
+        // 增加用户角色表
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(200);
+        userRoleService.add(userRole);
+        //抛异常
+        throw new RuntimeException();
+    }</code></code></pre>
+<p>UserServiceImpl代码：</p>
+<pre><code><code>/**
+     * 增加用户
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    @Override
+    public int add(User user) {
+        return userMapper.add(user);
+    }</code></code></pre>
+<p>UserRoleServiceImpl代码：</p>
+<pre><code><code>    /**
+     * 增加用户角色
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    @Override
+    public int add(UserRole userRole) {
+        return userRoleMapper.add(userRole);
+    }</code></code></pre>
+<p>3.代码执行后数据库截图</p>
+<p>两张表数据都为空，截图如下：</p>
+<p><img src="./images/手把手带你实战下Spring的七种事务传播行为1.png" alt="数据为空截图" /></p>
+<p>4.结果分析</p>
+<p>运行日志如下，可以发现在调用userService.add()时候已经报错了，所以两个表都没有新增数据，验证了“如果当前不存在事务，就抛出异常”。</p>
+<pre><code><code>at com.example.springboot.mybatisannotation.service.impl.UserServiceImpl$$EnhancerBySpringCGLIB$$50090f18.add(&lt;generated&gt;)
+    at com.example.springboot.mybatisannotation.SpringBootMybatisAnnotationApplicationTests.test_PROPAGATION_MANDATORY(SpringBootMybatisAnnotationApplicationTests.java:78)
+    at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+    at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+    at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+    at java.lang.reflect.Method.invoke(Method.java:498)</code></code></pre>
+<h4 id="propagation_requires_new测试">4.PROPAGATION_REQUIRES_NEW测试</h4>
+<p>创建新事务，无论当前存不存在事务，都创建新事务。</p>
+<p>这种情况每次都创建事务，所以我们验证一种情况即可。</p>
+<p>场景一：</p>
+<p>此场景外围方法开启事务。</p>
+<p>1.验证方法</p>
+<p>两个实现类UserServiceImpl和UserRoleServiceImpl制定事物传播行为propagation = Propagation.REQUIRES_NEW，主要代码如下。</p>
+<p>2.主要代码</p>
+<p>外层调用方法代码：</p>
+<pre><code><code>    /**
+     * 测试 REQUIRES_NEW
+     *
+     * @Author: java_suisui
+     */
+    @Test
+    @Transactional
+    void test_REQUIRES_NEW() {
+        // 增加用户表
+        User user = new User();
+        user.setName(&quot;Java碎碎念&quot;);
+        user.setPassword(&quot;123456&quot;);
+        userService.add(user);
+        // 增加用户角色表
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(200);
+        userRoleService.add(userRole);
+        //抛异常
+        throw new RuntimeException();
+    }</code></code></pre>
+<p>UserServiceImpl代码：</p>
+<pre><code><code>/**
+     * 增加用户
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Override
+    public int add(User user) {
+        return userMapper.add(user);
+    }</code></code></pre>
+<p>UserRoleServiceImpl代码：</p>
+<pre><code><code>    /**
+     * 增加用户角色
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Override
+    public int add(UserRole userRole) {
+        return userRoleMapper.add(userRole);
+    }</code></code></pre>
+<p>3.代码执行后数据库截图</p>
+<p>两张表数据都新增成功，截图如下：</p>
+<p><img src="./images/手把手带你实战下Spring的七种事务传播行为0.png" alt="新增成功截图" /></p>
+<p>4.结果分析</p>
+<p>无论当前存不存在事务，都创建新事务，所以两个数据新增成功。</p>
+<h4 id="propagation_not_supported测试">5.PROPAGATION_NOT_SUPPORTED测试</h4>
+<p>以非事务方式执行操作，如果当前存在事务，就把当前事务挂起。</p>
+<p>场景一：</p>
+<p>此场景外围方法不开启事务。</p>
+<p>1.验证方法</p>
+<p>两个实现类UserServiceImpl和UserRoleServiceImpl制定事物传播行为propagation = Propagation.NOT_SUPPORTED，主要代码如下。</p>
+<p>2.主要代码</p>
+<p>外层调用方法代码：</p>
+<pre><code><code>    /**
+     * 测试 PROPAGATION_NOT_SUPPORTED
+     *
+     * @Author: java_suisui
+     */
+    @Test
+    void test_PROPAGATION_NOT_SUPPORTED() {
+        // 增加用户表
+        User user = new User();
+        user.setName(&quot;Java碎碎念&quot;);
+        user.setPassword(&quot;123456&quot;);
+        userService.add(user);
+        // 增加用户角色表
+        UserRole userRole = new UserRole();
+        userRole.setUserId(user.getId());
+        userRole.setRoleId(200);
+        userRoleService.add(userRole);
+        //抛异常
+        throw new RuntimeException();
+    }</code></code></pre>
+<p>UserServiceImpl代码：</p>
+<pre><code><code>/**
+     * 增加用户
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Override
+    public int add(User user) {
+        return userMapper.add(user);
+    }</code></code></pre>
+<p>UserRoleServiceImpl代码：</p>
+<pre><code><code>    /**
+     * 增加用户角色
+     */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    @Override
+    public int add(UserRole userRole) {
+        return userRoleMapper.add(userRole);
+    }</code></code></pre>
+<p>3.代码执行后数据库截图</p>
+<p>两张表数据都新增成功，截图如下：</p>
+<p><img src="./images/手把手带你实战下Spring的七种事务传播行为0.png" alt="新增成功截图" /></p>
+<p>4.结果分析</p>
+<p>以非事务方式执行，所以两个数据新增成功。</p>
+<p>场景二：</p>
+<p>此场景外围方法开启事务。</p>
+<p>1.主要代码</p>
+<p>test_PROPAGATION_NOT_SUPPORTED方法添加注解@Transactional即可。</p>
+<p>2.代码执行后数据库截图</p>
+<p>两张表数据都新增成功，截图如下：</p>
+<p><img src="./images/手把手带你实战下Spring的七种事务传播行为0.png" alt="新增成功截图" /></p>
+<p>3.结果分析</p>
+<p>如果当前存在事务，就把当前事务挂起，相当于以非事务方式执行，所以两个数据新增成功。</p>
+<h4 id="propagation_never测试">6.PROPAGATION_NEVER测试</h4>
+<p>以非事务方式执行，如果当前存在事务，则抛出异常。</p>
+<p>上面已经有类似情况，外层没有事务会以非事务的方式运行，两个表新增成功；有事务则抛出异常，两个表都都没有新增数据。</p>
+<h4 id="propagation_nested测试">7.PROPAGATION_NESTED测试</h4>
+<p>如果当前存在事务，则在嵌套事务内执行。如果当前没有事务，则按REQUIRED属性执行。</p>
+<p>上面已经有类似情况，外层没有事务会以REQUIRED属性的方式运行，两个表新增成功；有事务但是用的是一个事务，方法最后抛出了异常导致回滚，两个表都都没有新增数据。</p>
+<p>到此Spring的7种事务传播行为已经全部介绍完成了，有问题欢迎留言沟通哦！</p>
+<p>完整源码地址： <span style="color: blue; ">https://github.com/suisui2019/springboot-study</span></p>
+<p><strong>推荐阅读</strong></p>
+<p><a href="https://mp.weixin.qq.com/s/toH_rCF5Sf3sPK-NPp5OhQ">1.SpringBoot系列-整合Mybatis（注解方式）</a><br />
+<a href="https://mp.weixin.qq.com/s/Ad8aKvyTgjFlzjOcadO1xQ">2.SpringBoot系列-整合Mybatis（XML配置方式）</a><br />
+<a href="https://mp.weixin.qq.com/s/Y1S_SogYOpY-oxF0KXNZig">3.Java中打印日志，这4点很重要！</a><br />
+<a href="https://mp.weixin.qq.com/s/49JC9pgdfWYd7P2a53wA_g">4.SpringBoot集成JWT实现权限认证</a><br />
+<a href="https://mp.weixin.qq.com/s/4mQsN3cZjYtjmn333thSQg">5.一分钟带你了解JWT认证！</a></p>
+<hr />
+<blockquote>
+<p>限时领取免费Java相关资料，涵盖了Java、Redis、MongoDB、MySQL、Zookeeper、Spring Cloud、Dubbo/Kafka、Hadoop、Hbase、Flink等高并发分布式、大数据、机器学习等技术。<br />
+关注下方公众号即可免费领取：</p>
+</blockquote>
+<p><img src="./images/手把手带你实战下Spring的七种事务传播行为8.png" alt="Java碎碎念公众号" /></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,57 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修redis 获取自增数' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>redis 获取自增数</center></div><div class='banquan'>原文出处:本文由博客园博主紫色水杯提供。<br/>
+原文连接:https://www.cnblogs.com/focusHots/p/11598916.html</div><br>
+    <p>　　　　近期，有一个项目需要用到数字的自增整数，范围是0-199999，但公司数据库是mongodb、同时装有mysql、redis等存储数据的这些数据库，其中redis是集群模式，mongodb是paa（&nbsp;mongo节点是primary&nbsp;arbit&nbsp;arbit），毫无疑问，这需要处理高并发问题。公司的项目同时也是多节点模式。这样就决定了自写高并发自增函数不可以，起初我把方向转向了mongodb上，同时也找到了对应的方法名和调用方式。</p>
+<p>　　　　本来想着可以比较顺利的解决，但事与愿违，mongodb上执行操作，数据显示正常。如下图：</p>
+<p>　　　　<img src="./images/redis 获取自增数0.png" alt="" /></p>
+<p>　　　　但是在java 调用后发现:</p>
+<src class="cnblogs_code">
+<pre><code>MongoTemplate mongoTemplate = <span style="color: #0000ff;">new</span> MongoTemplate(<span style="color: #0000ff;">new</span> Mongo("XXXXIP",27017),"mongodbTest"<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> MongoTemplate mongoTemplate = GetApplicationContextBean.getMongoTemplate();</span>
+Update update = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Update();
+update.inc(</span>"sequence_value",1<span style="color: #000000;">);
+Query query </span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Query();
+query.addCriteria(</span><span style="color: #0000ff;">new</span> Criteria("_id").is("productid"<span style="color: #000000;">));
+FindAndModifyOptions options </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FindAndModifyOptions();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 先查询，如果没有符合条件的，会执行插入，插入的值是查询值 ＋ 更新值</span>
+options.upsert(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回当前最新值</span>
+options.returnNew(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+Mycol advuser </span>= mongoTemplate.findAndModify(query, update, Mycol.<span style="color: #0000ff;">class</span>, "mycol");</code></pre>
+
+<p><img src="./images/redis 获取自增数1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>结果Test后发现执行不了....报超时.....处理了很长时间任然没解决掉。</p>
+<p>毅然决定放弃该方案，寻找新出路，无意间发现redis也可以实现自增序列功能，顿时心里一顿欢喜。那就开始，不多说，全程在集群类中找到这个incr方法</p>
+<p><img src="./images/redis 获取自增数2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/redis 获取自增数3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;然后写Test类测试是否满足并发操作：</p>
+<p>结果：</p>
+<p><img src="./images/redis 获取自增数4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;符合预期。就这样。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

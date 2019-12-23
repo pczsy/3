@@ -1,0 +1,103 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）</center></div><div class='banquan'>原文出处:本文由博客园博主Stars-one提供。<br/>
+原文连接:https://www.cnblogs.com/kexing/p/11785415.html</div><br>
+    <p>最近接外包，需要部署服务器，便是参考了网上的几篇博文，成功在阿里云服务器成功部署了Spring Boot项目，特记下本篇笔记</p>
+<h2 id="spring-boot项目打包">Spring Boot项目打包</h2>
+<p>这里说一下部署的一些问题</p>
+<h3 id="mysql驱动">1.mysql驱动</h3>
+<p>创建spring boot的时候，在界面选择添加了MySql的依赖，但是，实际项目测试的时候，发现驱动错误，所以，得把MySql驱动改为下面的驱动</p>
+<pre><code><code>&lt;!-- mysql驱动 --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;mysql&lt;/groupId&gt;
+    &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+    &lt;version&gt;5.1.6&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<h3 id="打包">2.打包</h3>
+<p>使用spring boot项目，通过maven中的lifecycle中的package进行快速打jar包，这个jar包内置了tomcat服务器，之后就可以直接运行此jar包。</p>
+<p><img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）0.png" /></p>
+<p>之后我们就可以得到一个jar包，把此jar包部署到服务器</p>
+<h2 id="配置宝塔linux系统环境">配置宝塔linux系统环境</h2>
+<h3 id="购买服务器">购买服务器</h3>
+<p>我购买的是学生主机，比较实惠，只要是经过实名验证，24岁以下，就是自动默认的学生身份<br />
+选择轻量级应用服务器和宝塔linux选项，可以快速安装并使用linux宝塔面板，很适合不懂linux命令的人群<br />
+<img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）1.png" /></p>
+<h3 id="安装宝塔系统">安装宝塔系统</h3>
+<p>首先，购买到服务器之后，会要求你设置管理员的密码，之后通过远程连接到服务器，切换到管理员账户，输入下面的安装宝塔linux命令</p>
+<pre><code><code>yum install -y wget &amp;&amp; wget -O install.sh http://download.bt.cn/install/install.sh &amp;&amp; sh install.sh</code></code></pre>
+<p>之后会弹出一个提示，输入y之后就开始安装了</p>
+<p>我们输入下面命令，来查看系统生成的linux宝塔系统的用户名和密码</p>
+<pre><code><code>/etc/init.d/bt default</code></code></pre>
+<p><img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）2.png" /></p>
+<h3 id="登录宝塔linux系统">登录宝塔linux系统</h3>
+<p>宝塔的地址为ip地址:8888，如<code>47.22.22.33:8888</code></p>
+<p>使用上面获得的宝塔系统的账户密码登录宝塔linux系统，之后进行环境的安装（数据库，php，tomcat)</p>
+<p>由于我们是jar包方式部署，所以需要服务器上配置好java环境，我们不想通过命令行类配置java环境，可以选择宝塔系统安装Tomcat环境</p>
+<p><strong>安装Tomcat环境就会默认安装Java环境了，Tomcat环境的话，选择版本8，这样，默认的Java环境就是1.8，如果版本为7，则默认为Java环境为1.7</strong></p>
+<p><img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）3.png" /></p>
+<h2 id="远程连接服务器">远程连接服务器</h2>
+<p>可以使用ssh本地客户端远程连接服务器，我这里使用的是xshell，连接很简单，只需要配置好主机（Ip地址）、用户名和密码即可</p>
+<p><img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）4.png" /></p>
+<p>之后输入linux中的管理员密码即可成功登陆</p>
+<h2 id="服务器配置mysql数据库">服务器配置mysql数据库</h2>
+<h3 id="开启3306接口放行">1.开启3306接口放行</h3>
+<p><img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）5.png" /></p>
+<p><strong>PS：可能还需要在服务器的防火墙添加规则</strong><br />
+<img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）6.png" /></p>
+<h3 id="配置mysql远程连接">2.配置mysql远程连接</h3>
+<p>默认的mysql是不允许远程连接的，所以，我们得配置mysql远程连接</p>
+<p>使用Xshell等ssh客户端，远程连接到服务器上，之后输入命令<code>mysql -u 账户名 -p</code>,输入密码之后即可进入到mysql命令行，输入下面的命令</p>
+<pre><code><code>%使用mysql默认的数据库
+use mysql;
+%设置远程连接
+update user set host =&#39;%&#39; where user = &#39;root&#39; and host=&#39;localhost&#39;;
+%刷新
+flush privileges</code></code></pre>
+<p><strong>参考链接：</strong></p>
+<p><a href="https://www.cnblogs.com/cnblogsfans/archive/2009/09/21/1570942.html">Mysql初始化root密码和允许远程访问</a></p>
+<p><a href="https://www.cnblogs.com/chenhaoyu/p/9964517.html">解决Navicat远程连接MySQL出现 10060 unknow error</a></p>
+<h2 id="部署项目">部署项目</h2>
+<p>服务器部署spring boot项目有两种方式，war（传统tomcat方式），jar</p>
+<p>war的话，直接放在tomcat的webapp的目录即可</p>
+<p>本文使用是jar包部署，使用linux宝塔系统把之前的那个spring boot的jar包上传到服务器上</p>
+<p>由于是服务器，如果关闭了远程连接窗口，就会自动结束进程，所以，得要实现后台运行jar包</p>
+<p>使用命令来开启后台</p>
+<pre><code><code>//远程连接关闭，也会关闭
+java -jar xx.jar
+//后台
+java -jar xx.jar &amp;</code></code></pre>
+<p>新建一个脚本<code>start.sh</code>，然后脚本需要给予权限（宝塔linux中文件选项可以快捷更改）</p>
+<pre><code><code>java -jar xx.jar &gt;nohup.out 2&gt;&amp;1&amp; </code></code></pre>
+<p>上面的脚本，只需要修改为正确的jar包文件，之后执行脚本就会开启后台执行jar包，同时，会将日志输出到nohup.out文件中</p>
+<p>我们在本地建好脚本，之后上传到服务器上，修改权限为777</p>
+<p><img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）7.png" /></p>
+<p>下面的全勾选，权限就会变为777<br />
+<img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）8.png" /></p>
+<p>之后通过ssh客户端远程连接服务器，以管理员的身份来执行脚本</p>
+<pre><code><code>./start.sh</code></code></pre>
+<p>之后项目访问的话就是通过<code>ip地址+端口号+项目名</code>，如<code>44.22.22.22:13888/Demo/hello</code>，这里，我是在spring boot配置文件中自定义了端口13888，默认的话则是8080</p>
+<p>如果有自定义端口，还要放行端口，在宝塔linux系统的安全选项可以修改，详情请参考上面的mysql端口的放行</p>
+<p>如果项目有所更改，再次部署的时候，先通过jps命令查看运行的jar包，之后关闭进程，重新上传新的jar包，并执行脚本即可</p>
+<p><img src="./images/Spring框架学习笔记（6）——阿里云服务器部署Spring Boot项目（jar包）9.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

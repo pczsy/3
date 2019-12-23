@@ -1,0 +1,116 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【Java必修课】好用的Arrays.asList也有这三个坑' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【Java必修课】好用的Arrays.asList也有这三个坑</center></div><div class='banquan'>原文出处:本文由博客园博主南瓜慢说提供。<br/>
+原文连接:https://www.cnblogs.com/larrydpk/p/11709220.html</div><br>
+    <h1 id="好用的aslist">好用的asList</h1>
+<p>在开发或写测试用例的过程中，经常会用到<code>Arrays.asList()</code>这个方法，可以快速方便地将数组转化成一个List。例如：</p>
+<pre><code><code>List&lt;String&gt; list = Arrays.asList(&quot;Book&quot;, &quot;Pen&quot;, &quot;Desk&quot;, &quot;Cup&quot;);</code></code></pre>
+<p>当我们静态引用<code>Arrays.asList()</code>后：</p>
+<pre><code><code>import static java.util.Arrays.asList;</code></code></pre>
+<p>可以直接这样写：</p>
+<pre><code><code>List&lt;String&gt; list = asList(&quot;Book&quot;, &quot;Pen&quot;, &quot;Desk&quot;, &quot;Cup&quot;);</code></code></pre>
+<h1 id="隐藏的坑">隐藏的坑</h1>
+<h2 id="基本类型不可泛型化">基本类型不可泛型化</h2>
+<p>执行下面测试用例：</p>
+<pre><code><code>@Test
+public void size() {
+  int[] nums = {1, 2, 3, 4, 5, 6};
+  List list = asList(nums);
+  assertEquals(nums.length, list.size());
+}</code></code></pre>
+<p>结果为<strong>failed</strong>：</p>
+<pre><code><code>java.lang.AssertionError: 
+Expected :6
+Actual   :1</code></code></pre>
+<p>为什么明明是6个元素的数组，转化为List后便只有一个元素呢？</p>
+<p>源码是不会说谎的，让我们来看看代码：</p>
+<pre><code><code>public static &lt;T&gt; List&lt;T&gt; asList(T... a) {
+  return new ArrayList&lt;&gt;(a);
+}</code></code></pre>
+<p>通过源码可以得知<code>asList()</code>方法的入参为泛型，对<code>int</code>这种基本类型，是无法泛型化的，所以函数把整个数组当成了一个整体（数组为引用类型，可以泛型化）。最终返回的结果是<code>List&lt;int[]&gt;</code>，而不是<code>List&lt;Integer&gt;</code>。</p>
+<p>如果我们需要<code>List&lt;Integer&gt;</code>，可以用下面的两种方法来处理：</p>
+<pre><code><code>@Test
+public void listForInt() {
+  //方法1：初始化为Integer的数组，初始化时自动装箱
+  Integer[] nums = {1, 2, 3, 4, 5, 6};
+  List&lt;Integer&gt; list = asList(nums);
+  assertEquals(nums.length, list.size());
+  //方法2：不传入整体，处理参数时自动装箱
+  list = asList(1, 2, 3, 4, 5, 6);
+  assertEquals(6, list.size());
+}</code></code></pre>
+<p>以上两种方法，返回的结果都是<code>List&lt;Integer&gt;</code>了。</p>
+<h2 id="不可修改">不可修改</h2>
+<p>高高兴兴转化成了<code>List</code>，正准备大干一场，进行<code>List</code>的常规操作了，却发现操作不得：</p>
+<pre><code><code>@Test
+public void listAdd() {
+  List&lt;String&gt; list = asList(&quot;Book&quot;, &quot;Pen&quot;, &quot;Desk&quot;, &quot;Cup&quot;);
+  list.add(&quot;Box&quot;);
+  assertEquals(5, list.size());
+}</code></code></pre>
+<p>结果报错如下：</p>
+<pre><code><code>java.lang.UnsupportedOperationException
+    at java.util.AbstractList.add(AbstractList.java:148)
+    at java.util.AbstractList.add(AbstractList.java:108)
+    at com.larry.basic.AsListTest.listAdd(AsListTest.java:42)</code></code></pre>
+<p>只好再次翻看源码得知，虽然<code>asList()</code>方法返回的结果是<code>ArrayList</code>，但与我们平常用的<code>ArrayList</code>却是不一样的：</p>
+<p>我们平常用的最多的是<code>java.util.ArrayList</code>，底层为可变数组的List。而<code>java.util.Arrays.ArrayList</code>是Arrays的一个静态内部类，底层为<strong>final</strong>的数组的List。他们并不是同一个类。</p>
+<p><code>java.util.Arrays.ArrayList</code>没有重写<code>add/remove/clear</code>等方法，因此会调用父类<code>AbstractList</code>的方法，而父类的方法如下：</p>
+<pre><code><code>public boolean add(E e) {
+  add(size(), e);
+  return true;
+}
+public void add(int index, E element) {
+  throw new UnsupportedOperationException();
+}
+public E remove(int index) {
+  throw new UnsupportedOperationException();
+}</code></code></pre>
+<p>所以，这些方法实际上是不可调用的，会抛异常<code>UnsupportedOperationException</code>。</p>
+<h2 id="修改操作set的副作用">修改操作set的副作用</h2>
+<p>但<code>asList()</code>的结果真的是不可修改的吗？其实也不是。虽然<code>Arrays.ArrayList</code>没有重写<code>add/remove/clear</code>方法，但重写了<code>set()</code>方法：</p>
+<pre><code><code>@Override
+public E set(int index, E element) {
+  E oldValue = a[index];
+  a[index] = element;
+  return oldValue;
+}</code></code></pre>
+<p>我们可以对其中的元素进行替换。这其实很好理解的，底层为<strong>final</strong>的数组，大小不可变，但数组的元素可变。因为有这个功能，可能会引发下面的问题：</p>
+<pre><code><code>@Test
+public void listSet() {
+  String[] arr = {&quot;Book&quot;, &quot;Pen&quot;, &quot;Desk&quot;, &quot;Cup&quot;};
+  List&lt;String&gt; list = asList(arr);
+  list.set(0, &quot;New Book&quot;);
+  assertEquals(&quot;New Book&quot;, list.get(0));
+  assertEquals(&quot;Book&quot;, arr[0]);
+}</code></code></pre>
+<p>代码最后一句报错了，当改变了<code>List</code>的第一个元素，数组的第一个元素也被改了，因为它们都指向了同一个数组地址。稍不注意，就会生产与期待不同的结果。</p>
+<p>如果要新建一个<code>List</code>，可以采用下面的方法：</p>
+<pre><code><code>List&lt;String&gt; list = new ArrayList&lt;String&gt;(asList(arr));</code></code></pre>
+<p>因为<code>new ArrayList()</code>时会用方法<code>Arrays.copyOf()</code>复制一份新的数组出来。</p>
+<h2 id="总结">总结</h2>
+<p>简单常用的东西，也要小心谨慎。</p>
+<hr />
+<p>欢迎关注公众号&lt;<strong>南瓜慢说</strong>&gt;，将为你持续更新...</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

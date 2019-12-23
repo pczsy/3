@@ -1,0 +1,357 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Netty源码分析 （一）----- NioEventLoopGroup' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Netty源码分析 （一）----- NioEventLoopGroup</center></div><div class='banquan'>原文出处:本文由博客园博主chen_hao提供。<br/>
+原文连接:https://www.cnblogs.com/java-chen-hao/p/11453562.html</div><br>
+    <p>提到Netty首当其冲被提起的肯定是支持它承受高并发的线程模型，说到线程模型就不得不提到<code>NioEventLoopGroup</code>这个线程池，接下来进入正题。</p>
+<h2>线程模型</h2>
+<p>首先来看一段Netty的使用示例</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.wrh.server;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.bootstrap.ServerBootstrap;
+</span><span style="color: #0000ff;">import</span> io.netty.channel.*<span style="color: #000000;">;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.nio.NioEventLoopGroup;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.socket.SocketChannel;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> io.netty.channel.socket.nio.NioServerSocketChannel;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SimpleServer {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        <strong>EventLoopGroup bossGroup </strong></span><strong>= <span style="color: #0000ff;">new</span> NioEventLoopGroup(1<span style="color: #000000;">);
+        EventLoopGroup workerGroup </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NioEventLoopGroup();
+
+        </span></strong><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            ServerBootstrap b </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> ServerBootstrap();
+            b.group(bossGroup, workerGroup)
+                    .channel(NioServerSocketChannel.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+                    .handler(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> SimpleServerHandler())
+                    .childHandler(</span><span style="color: #0000ff;">new</span> ChannelInitializer&lt;SocketChannel&gt;<span style="color: #000000;">() {
+                        @Override
+                        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> initChannel(SocketChannel ch) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+                        }
+                    });
+
+            ChannelFuture f </span>= b.bind(8888<span style="color: #000000;">).sync();
+
+            f.channel().closeFuture().sync();
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+            bossGroup.shutdownGracefully();
+            workerGroup.shutdownGracefully();
+        }
+    }
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> SimpleServerHandler <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelInboundHandlerAdapter {
+        @Override
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelActive(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+            System.out.println(</span>"channelActive"<span style="color: #000000;">);
+        }
+
+        @Override
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> channelRegistered(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+            System.out.println(</span>"channelRegistered"<span style="color: #000000;">);
+        }
+
+        @Override
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> handlerAdded(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+            System.out.println(</span>"handlerAdded"<span style="color: #000000;">);
+        }
+    }
+}</span></code></pre>
+
+<p>下面将分析第一、二行代码，看下NioEventLoopGroup类的构造函数干了些什么。其余的部分将在其他博文中分析。</p>
+<src class="cnblogs_code">
+<pre><code>EventLoopGroup bossGroup = <span style="color: #0000ff;">new</span> NioEventLoopGroup(1<span style="color: #000000;">);
+EventLoopGroup workerGroup </span>= <span style="color: #0000ff;">new</span> NioEventLoopGroup();</code></pre>
+
+<p>从代码中可以看到这里使用了两个线程池<code>bossGroup</code>和<code>workerGroup</code>，那么为什么需要定义两个线程池呢？这就要说到Netty的线程模型了。</p>
+<p><img src="./images/Netty源码分析 （一）----- NioEventLoopGroup0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>Netty的线程模型被称为Reactor模型，具体如图所示，图上的mainReactor指的就是<code>bossGroup</code>，这个线程池处理客户端的连接请求，并将accept的连接注册到subReactor的其中一个线程上；图上的subReactor当然指的就是<code>workerGroup</code>，负责处理已建立的客户端通道上的数据读写；图上还有一块ThreadPool是具体的处理业务逻辑的线程池，一般情况下可以复用subReactor，比我的项目中就是这种用法，但官方建议处理一些较为耗时的业务时还是要使用单独的ThreadPool。</p>
+<h2 id="nioeventloopgroup构造函数分析">NioEventLoopGroup构造函数</h2>
+<p>NioEventLoopGroup的构造函数的代码如下</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> NioEventLoopGroup() {
+    </span><span style="color: #0000ff;">this</span>(0<span style="color: #000000;">);
+}
+
+</span><span style="color: #0000ff;">public</span> NioEventLoopGroup(<span style="color: #0000ff;">int</span><span style="color: #000000;"> nThreads) {
+    </span><span style="color: #0000ff;">this</span>(nThreads, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+}
+
+</span><span style="color: #0000ff;">public</span> NioEventLoopGroup(<span style="color: #0000ff;">int</span><span style="color: #000000;"> nThreads, ThreadFactory threadFactory) {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">(nThreads, threadFactory, SelectorProvider.provider());
+}
+
+</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> NioEventLoopGroup(
+        </span><span style="color: #0000ff;">int</span> nThreads, ThreadFactory threadFactory, <span style="color: #0000ff;">final</span><span style="color: #000000;"> SelectorProvider selectorProvider) {
+    </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(nThreads, threadFactory, selectorProvider);
+} </span></code></pre>
+
+<p>NioEventLoopGroup类中的构造函数最终都是调用的父类MultithreadEventLoopGroup如下的构造函数：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> MultithreadEventLoopGroup(<span style="color: #0000ff;">int</span><span style="color: #000000;"> nThreads, ThreadFactory threadFactory, Object... args) {
+    </span><span style="color: #0000ff;">super</span>(nThreads == 0?<span style="color: #000000;"> DEFAULT_EVENT_LOOP_THREADS : nThreads, threadFactory, args);
+}</span></code></pre>
+
+<p>从上面的构造函数可以得到 如果使用<code>EventLoopGroup workerGroup = new NioEventLoopGroup()</code>来创建对象，即不指定线程个数，则netty给我们使用默认的线程个数，如果指定则用我们指定的线程个数。</p>
+<p>默认线程个数相关的代码如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span><span style="color: #000000;"> {
+    DEFAULT_EVENT_LOOP_THREADS </span>= Math.max(1<span style="color: #000000;">, SystemPropertyUtil.getInt(
+            </span>"io.netty.eventLoopThreads", Runtime.getRuntime().availableProcessors() * 2<span style="color: #000000;">));
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (logger.isDebugEnabled()) {
+        logger.debug(</span>"-Dio.netty.eventLoopThreads: {}"<span style="color: #000000;">, DEFAULT_EVENT_LOOP_THREADS);
+    }
+}</span></code></pre>
+
+<p>而SystemPropertyUtil.getInt函数的功能为：得到系统属性中指定key(这里：key＝&rdquo;io.netty.eventLoopThreads&rdquo;)所对应的value，如果获取不到获取失败则返回默认值，这里的默认值为：cpu的核数的２倍。</p>
+<p><span style="color: #ff0000;">结论：如果没有设置程序启动参数（或者说没有指定key=&rdquo;io.netty.eventLoopThreads&rdquo;的属性值），那么默认情况下线程的个数为cpu的核数乘以2。</span></p>
+<p>继续看，由于MultithreadEventLoopGroup的构造函数是调用的是其父类MultithreadEventExecutorGroup的构造函数，因此，看下此类的构造函数</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> MultithreadEventExecutorGroup(<span style="color: #0000ff;">int</span><span style="color: #000000;"> nThreads, ThreadFactory threadFactory, Object... args) {
+    </span><span style="color: #0000ff;">if</span> (nThreads &lt;= 0<span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> IllegalArgumentException(String.format("nThreads: %d (expected: &gt; 0)"<span style="color: #000000;">, nThreads));
+    }
+
+    </span><span style="color: #0000ff;">if</span> (threadFactory == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        threadFactory </span>=<span style="color: #000000;"> newDefaultThreadFactory();
+    }
+
+    children </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> SingleThreadEventExecutor[nThreads];
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">根据线程个数是否为2的幂次方，采用不同策略初始化chooser</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isPowerOfTwo(children.length)) {
+        chooser </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> PowerOfTwoEventExecutorChooser();
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        chooser </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> GenericEventExecutorChooser();
+    }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">产生nTreads个NioEventLoop对象保存在children数组中</span>
+    <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; nThreads; i ++<span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">boolean</span> success = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            children[i] </span>=<span style="color: #000000;"> newChild(threadFactory, args);
+            success </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO: Think about if this is a good exception type</span>
+            <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> IllegalStateException("failed to create a child event loop"<span style="color: #000000;">, e);
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">如果newChild方法执行失败，则对前面执行new成功的几个NioEventLoop进行shutdown处理</span>
+            <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">success) {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = 0; j &lt; i; j ++<span style="color: #000000;">) {
+                    children[j].shutdownGracefully();
+                }
+
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = 0; j &lt; i; j ++<span style="color: #000000;">) {
+                    EventExecutor e </span>=<span style="color: #000000;"> children[j];
+                    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                        </span><span style="color: #0000ff;">while</span> (!<span style="color: #000000;">e.isTerminated()) {
+                            e.awaitTermination(Integer.MAX_VALUE, TimeUnit.SECONDS);
+                        }
+                    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException interrupted) {
+                        Thread.currentThread().interrupt();
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                }
+            }
+        }
+    }
+}</span></code></pre>
+
+<p>该构造函数干了如下三件事：</p>
+<p>１、产生了一个线程工场：threadFactory = newDefaultThreadFactory();</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">MultithreadEventExecutorGroup.java
+</span><span style="color: #0000ff;">protected</span><span style="color: #000000;"> ThreadFactory newDefaultThreadFactory() {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> DefaultThreadFactory(getClass());<span style="color: #008000;">//</span><span style="color: #008000;">getClass()为：NioEventLoopGroup.class</span>
+<span style="color: #000000;">}
+
+DefaultThreadFactory.java    
+</span><span style="color: #0000ff;">public</span> DefaultThreadFactory(Class&lt;?&gt;<span style="color: #000000;"> poolType) {
+    </span><span style="color: #0000ff;">this</span>(poolType, <span style="color: #0000ff;">false</span><span style="color: #000000;">, Thread.NORM_PRIORITY);
+}</span></code></pre>
+
+<p>２、根据线程个数是否为2的幂次方，采用不同策略初始化chooser</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">boolean</span> isPowerOfTwo(<span style="color: #0000ff;">int</span><span style="color: #000000;"> val) {
+    </span><span style="color: #0000ff;">return</span> (val &amp; -val) ==<span style="color: #000000;"> val;
+}</span></code></pre>
+
+<p>3、 产生nTreads个NioEventLoop对象保存在children数组中 ，线程都是通过调用newChild方法来产生的。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">protected</span><span style="color: #000000;"> EventExecutor newChild(
+        ThreadFactory threadFactory, Object... args) </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> NioEventLoop(<span style="color: #0000ff;">this</span>, threadFactory, (SelectorProvider) args[0<span style="color: #000000;">]);
+}</span></code></pre>
+
+<p>这里传给NioEventLoop构造函数的参数为：NioEventLoopGroup、DefaultThreadFactory、SelectorProvider。</p>
+<h2 id="nioeventloop构造函数分析">NioEventLoop构造函数分析</h2>
+<p>既然上面提到来new一个NioEventLoop对象，下面我们就看下这个类以及其父类。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">NioEventLoop(NioEventLoopGroup parent, ThreadFactory threadFactory, SelectorProvider selectorProvider) {
+    </span><span style="color: #0000ff;">super</span>(parent, threadFactory, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">if</span> (selectorProvider == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> NullPointerException("selectorProvider"<span style="color: #000000;">);
+    }
+    provider </span>=<span style="color: #000000;"> selectorProvider;
+    <strong>selector </strong></span><strong>=</strong><span style="color: #000000;"><strong> openSelector();</strong>
+}</span></code></pre>
+
+<p>继续看父类 SingleThreadEventLoop的构造函数</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> SingleThreadEventLoop(EventLoopGroup parent, ThreadFactory threadFactory, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> addTaskWakesUp) {
+    </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(parent, threadFactory, addTaskWakesUp);
+}</span></code></pre>
+
+<p>又是直接调用来父类SingleThreadEventExecutor的构造函数，继续看</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span><span style="color: #000000;"> SingleThreadEventExecutor(
+        EventExecutorGroup parent, ThreadFactory threadFactory, </span><span style="color: #0000ff;">boolean</span><span style="color: #000000;"> addTaskWakesUp) {
+
+    </span><span style="color: #0000ff;">if</span> (threadFactory == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> NullPointerException("threadFactory"<span style="color: #000000;">);
+    }
+
+    </span><span style="color: #0000ff;">this</span>.parent =<span style="color: #000000;"> parent;
+    </span><span style="color: #0000ff;">this</span>.addTaskWakesUp = addTaskWakesUp;<span style="color: #008000;">//</span><span style="color: #008000;">false</span>
+<strong><span style="color: #000000;">
+    thread </span>= threadFactory.newThread(<span style="color: #0000ff;">new</span></strong><span style="color: #000000;"><strong> Runnable() {</strong>
+        @Override
+        </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+            </span><span style="color: #0000ff;">boolean</span> success = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            updateLastExecutionTime();
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">调用NioEventLoop类的run方法</span>
+                <strong>SingleThreadEventExecutor.<span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>.run();</strong>
+                success </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable t) {
+                logger.warn(</span>"Unexpected exception from an event executor: "<span style="color: #000000;">, t);
+            } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (;;) {
+                    </span><span style="color: #0000ff;">int</span> oldState = STATE_UPDATER.get(SingleThreadEventExecutor.<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">if</span> (oldState &gt;= ST_SHUTTING_DOWN ||<span style="color: #000000;"> STATE_UPDATER.compareAndSet(
+                            SingleThreadEventExecutor.</span><span style="color: #0000ff;">this</span><span style="color: #000000;">, oldState, ST_SHUTTING_DOWN)) {
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> Check if confirmShutdown() was called at the end of the loop.</span>
+                <span style="color: #0000ff;">if</span> (success &amp;&amp; gracefulShutdownStartTime == 0<span style="color: #000000;">) {
+                    logger.error(
+                            </span>"Buggy " + EventExecutor.<span style="color: #0000ff;">class</span>.getSimpleName() + " implementation; " +<span style="color: #000000;">
+                            SingleThreadEventExecutor.</span><span style="color: #0000ff;">class</span>.getSimpleName() + ".confirmShutdown() must be called " +
+                            "before run() implementation terminates."<span style="color: #000000;">);
+                }
+
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Run all remaining tasks and shutdown hooks.</span>
+                    <span style="color: #0000ff;">for</span><span style="color: #000000;"> (;;) {
+                        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (confirmShutdown()) {
+                            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                        }
+                    }
+                } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+                    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                        cleanup();
+                    } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+                        STATE_UPDATER.set(SingleThreadEventExecutor.</span><span style="color: #0000ff;">this</span><span style="color: #000000;">, ST_TERMINATED);
+                        threadLock.release();
+                        </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">taskQueue.isEmpty()) {
+                            logger.warn(
+                                    </span>"An event executor terminated with " +
+                                    "non-empty task queue (" + taskQueue.size() + ')'<span style="color: #000000;">);
+                        }
+
+                        terminationFuture.setSuccess(</span><span style="color: #0000ff;">null</span><span style="color: #000000;">);
+                    }
+                }
+            }
+        }
+    });
+
+    taskQueue </span>=<span style="color: #000000;"> newTaskQueue();
+} 
+</span><span style="color: #0000ff;">protected</span> Queue&lt;Runnable&gt;<span style="color: #000000;"> newTaskQueue() {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> LinkedBlockingQueue&lt;Runnable&gt;<span style="color: #000000;">();
+}</span></code></pre>
+
+<p>主要干如下两件事：</p>
+<p>1、利用ThreadFactory创建来一个Thread，传入了一个Runnable对象，该Runnable重写的run代码比较长，不过重点仅仅是调用NioEventLoop类的run方法。</p>
+<p>2、使用LinkedBlockingQueue类初始化taskQueue 。</p>
+<p>其中，newThread方法的代码如下：</p>
+<p>DefaultThreadFactory.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Thread newThread(Runnable r) {
+    Thread t </span>= newThread(<span style="color: #0000ff;">new</span> DefaultRunnableDecorator(r), prefix +<span style="color: #000000;"> nextId.incrementAndGet());
+
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">判断是否是守护线程，并进行设置</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> (t.isDaemon()) {
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">daemon) {
+                t.setDaemon(</span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+            }
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (daemon) {
+                t.setDaemon(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+            }
+        }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置其优先级</span>
+        <span style="color: #0000ff;">if</span> (t.getPriority() !=<span style="color: #000000;"> priority) {
+            t.setPriority(priority);
+        }
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception ignored) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Doesn't matter even if failed to set.</span>
+<span style="color: #000000;">    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> t;
+}
+
+</span><span style="color: #0000ff;">protected</span><span style="color: #000000;"> Thread newThread(Runnable r, String name) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> FastThreadLocalThread(r, name);
+}</span></code></pre>
+
+<p>FastThreadLocalThread.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> FastThreadLocalThread(Runnable target, String name) {
+    </span><span style="color: #0000ff;">super</span>(target, name);<span style="color: #008000;">//</span><span style="color: #008000;"> FastThreadLocalThread extends Thread </span>
+} </code></pre>
+
+<p>到这里，可以看到底层还是借助于类似于Thread thread = new Thread(r)这种方式来创建线程。</p>
+<p>关于NioEventLoop对象可以得到的点有，初始化了如下4个属性。</p>
+<p>1、NioEventLoopGroup　（在父类SingleThreadEventExecutor中）</p>
+<p>2、selector</p>
+<p>3、provider</p>
+<p>4、thread （在父类SingleThreadEventExecutor中）</p>
+<h2 id="总结">总结</h2>
+<p>关于NioEventLoopGroup，总结如下</p>
+<p>１、 如果不指定线程数，则线程数为：CPU的核数*２</p>
+<p>２、根据线程个数是否为2的幂次方，采用不同策略初始化chooser</p>
+<p>３、产生nThreads个NioEventLoop对象保存在children数组中。</p>
+<p>可以理解NioEventLoop就是一个线程，线程NioEventLoop中里面有如下几个属性：</p>
+<p>1、NioEventLoopGroup　（在父类SingleThreadEventExecutor中）</p>
+<p>2、selector</p>
+<p>3、provider</p>
+<p>4、thread （在父类SingleThreadEventExecutor中）</p>
+<p><span style="color: #ff0000;">更通俗点就是：NioEventLoopGroup就是一个线程池，NioEventLoop就是一个线程。NioEventLoopGroup线程池中有N个NioEventLoop线程。</span></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,213 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修记一次事务失效的问题排查记录' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>记一次事务失效的问题排查记录</center></div><div class='banquan'>原文出处:本文由博客园博主夜月归途提供。<br/>
+原文连接:https://www.cnblogs.com/guitu18/p/11770806.html</div><br>
+    <p>昨天遇到一个非常奇怪的问题，在一个Service中使用<code>@Transactional</code>注解的一个方法无论如何都不能开启事务。项目用的是Springboot和Mybatis Plus，权限验证用的是Shiro。Service层的伪代码如下：</p>
+<pre><code><code>@Transactional(rollbackFor = Exception.class)
+public void register(String username, String password) {
+    Member member = new Member();
+    ... ...
+    this.save(member);
+    MemberMessage memberMessage = new MemberMessage();
+    ... ...
+    memberMessageService.save(memberMessage);
+}</code></code></pre>
+<p>当memberMessage插入失败抛异常时，前面保存的member记录不会回滚。打断点发现，只要save(member)这行走完数据就直接插入，此时方法还没执行完，按道理事务应该还没提交，但是通过Navicat已经能够看到新增的记录了。怀疑是事务压根没开启，遂将<code>logging.level.root</code>日志等级改为DEBUG发现压根就没开启事务。</p>
+<!--more-->
+<p>找不到原因，往上层追查，这个方法是在Controller通过<code>@Autowired</code>注入并调用的。之后我在这个Controller中注入其他Service添加测试方法<code>testSave()</code>，Controller伪代码如下：</p>
+<pre><code><code>    @Autowired
+    private MemberService memberService;
+    @Autowired
+    private ConfService confService;
+
+    @RequestMapping(&quot;/register&quot;)
+    public JsonResult register(String username, String password) {
+        confService.testSave();
+        // memberService.register(username, password);
+        return JsonResult.ok();
+    }</code></code></pre>
+<p>测试发现事务是生效的，且如果发生异常是能够回滚的，事务正常提交日志如下：</p>
+<pre><code><code>o.s.j.d.DataSourceTransactionManager     : Creating new transaction with name [com.guitu18.service.base.ConfService$$EnhancerBySpringCGLIB$$82a30421.testSave]: PROPAGATION_REQUIRED,ISOLATION_DEFAULT,-java.lang.Exception
+o.s.j.d.DataSourceTransactionManager     : Acquired Connection [com.mysql.jdbc.JDBC4Connection@10d912c1] for JDBC transaction
+o.s.j.d.DataSourceTransactionManager     : Switching JDBC Connection [com.mysql.jdbc.JDBC4Connection@10d912c1] to manual commit
+o.s.j.d.DataSourceTransactionManager     : Participating in existing transaction
+o.s.j.d.DataSourceTransactionManager     : Participating in existing transaction
+org.mybatis.spring.SqlSessionUtils       : Creating a new SqlSession
+org.mybatis.spring.SqlSessionUtils       : Registering transaction synchronization for SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@734d6117]
+o.m.s.t.SpringManagedTransaction         : JDBC Connection [com.mysql.jdbc.JDBC4Connection@10d912c1] will be managed by Spring
+c.g.mapper.base.ClanPlayerMapper.insert  : ==&gt;  Preparing: INSERT INTO conf ( name, value ... ) VALUES ( ?, ? ) 
+c.g.mapper.base.ClanPlayerMapper.insert  : ==&gt; Parameters: 123(String), 45(String)
+c.g.mapper.base.ClanPlayerMapper.insert  : &lt;==    Updates: 1
+org.mybatis.spring.SqlSessionUtils       : Releasing transactional SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@734d6117]
+org.mybatis.spring.SqlSessionUtils       : Transaction synchronization committing SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@734d6117]
+org.mybatis.spring.SqlSessionUtils       : Transaction synchronization deregistering SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@734d6117]
+org.mybatis.spring.SqlSessionUtils       : Transaction synchronization closing SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@734d6117]
+o.s.j.d.DataSourceTransactionManager     : Initiating transaction commit
+o.s.j.d.DataSourceTransactionManager     : Committing JDBC transaction on Connection [com.mysql.jdbc.JDBC4Connection@10d912c1]
+o.s.j.d.DataSourceTransactionManager     : Releasing JDBC Connection [com.mysql.jdbc.JDBC4Connection@10d912c1] after transaction
+o.s.jdbc.datasource.DataSourceUtils      : Returning JDBC Connection to DataSource</code></code></pre>
+<p>这下子我就纳闷了，肯定是有什么我没留意到的地方有疏漏，继续找。先确认了数据库的表类型是InnoDB能够支持事务没错，接着检查Spring配置，所在包名，以及是否被Spring扫描等等原因，后面我直接将这两个Service挪到同一个包下继续测试，甚至修改了包结构，依然还是ConfService能正常开启事务，MemberService怎么也开启不了事务。</p>
+<p>百度也查了，比如<code>@Transaction</code>注解不生效原因，我每条都确认了没问题。</p>
+<ol>
+<li>只对public修饰方法才起作用</li>
+<li><code>@Transaction</code>默认检测异常为RuntimeException及其子类 如果有其他异常需要回滚事务的需要自己手动配置，例如：<code>@Transactional(rollbackFor = Exception.class)</code></li>
+<li>确保异常没有被try-catch{}，catch以后也不会回滚</li>
+<li>检查下自己的数据库是否支持事务，如mysql的mylsam</li>
+<li>Springboot项目默认已经支持事务，不用配置；其他类型项目需要在xml中配置是否开启事务</li>
+<li>如果在同一个类中，一个非<code>@Transaction</code>的方法调用有<code>@Transaction</code>的方法不会生效，因为代理问题</li>
+</ol>
+<hr />
+<p>然后昨天为了这个问题折腾的太久，人弄疲了就先放着了。今天接着继续研究，一路打断点到<code>TransactionAspectSupport</code>类中，再到<code>ReflectiveMethodInvocation.proceed()</code>，<code>invokeJoinpoint()</code>等方法。</p>
+<pre><code><code>protected Object invokeJoinpoint() throws Throwable {
+            return this.publicMethod ? this.methodProxy.invoke(this.target, this.arguments) : super.invokeJoinpoint();
+        }</code></code></pre>
+<p>我发现事务生效的情况下，都会一路走到上面这个方法上，这里判断如果是public方法，则通过代理对象调用实际业务，至此事务也开启并加入且生效了。然而那个事务始终不能开启的MemberService压根就不会走到这里来。</p>
+<p>这时候我突然想到，该不会是MemberService这个类没有被代理吧，在Controller中打断点查看发现MemberService压根就不是代理对象，<code>@Autowired</code>注入的是原始对象的实例。</p>
+<p><img src="./images/记一次事务失效的问题排查记录0.png" alt="img" /></p>
+<p>检查该Controller中注入的另一个ConfService，确实是代理对象没错了。</p>
+<p><img src="./images/记一次事务失效的问题排查记录1.png" alt="img" /></p>
+<p>那么问题来了，为什么这个MemberService没有被代理。之前已经做过各种检查了，甚至将这两个类放到同一个包下，肯定不是Spring扫描产生的问题。问题出在哪里呢？继续找。</p>
+<p>从MemberService被引用的地方入手，一路找Shiro的授权认证器AuthorizingRealm这里。</p>
+<pre><code><code>@Component
+public class MemberAuthorizingRealm extends AuthorizingRealm {
+    @Autowired
+    private MemberService memberService;
+    
+    @Override
+    protected AuthorizationInfo doGetAuthorizationInfo(PrincipalCollection principalCollection) {
+        ... ...
+    }
+    
+    @Override
+    protected AuthenticationInfo doGetAuthenticationInfo(AuthenticationToken authenticationToken) throws AuthenticationException {
+        Member member = memberService.getById(token.getUsername());
+        ... ...
+    }
+}</code></code></pre>
+<p>这里乍一看也没什么不对是吧，但是经代码过测试问题就出在这里。这里我如果不注入MemberService，那么在其他地方通过<code>@Autowired</code>注入的就是被代理的实例。What？为什么会这样？</p>
+<hr />
+<p>不知道原因，看来还是要向上追溯，那么这个AuthorizingRealm又是在哪里引用的呢，继续顺着线索往上找。这个类在ShiroConfig中以<code>@Bean</code>的方式注入到SecurityManager中了。</p>
+<pre><code><code>@Bean(&quot;securityManager&quot;)
+public SecurityManager securityManager(MemberAuthorizingRealm userRealm) {
+    DefaultWebSecurityManager securityManager = new DefaultWebSecurityManager();
+    securityManager.setRealm(userRealm);
+    securityManager.setRememberMeManager(null);
+    return securityManager;
+}</code></code></pre>
+<p>既然是跟配置有关系，那么我联想可能是跟初始化顺序有关系，配置相关的东西一般都是被优先加载的。找到这里我想到了Spring的生命周期，隐约感觉真相已经呼之欲出了，赶紧去Spring的Bean初始化流程瞧一瞧，答案肯定是在那里。</p>
+<p>Spring的初始化流程很复杂，这里只截取重要的部分记录一下，有兴趣的请自行查看Spring初始化相关源码。首先我们找到代理被创建的地方AbstractAutowireCapableBeanFactory.applyBeanPostProcessorsAfterInitialization()</p>
+<pre><code><code>@Override
+public Object applyBeanPostProcessorsAfterInitialization(Object existingBean, String beanName)
+    throws BeansException {
+    Object result = existingBean;
+    // 这里通过getBeanPostProcessors()拿到所有的Bean后置处理器并执行
+    for (BeanPostProcessor processor : getBeanPostProcessors()) {
+        Object current = processor.postProcessAfterInitialization(result, beanName);
+        if (current == null) {
+            return result;
+        }
+        result = current;
+    }
+    return result;
+}</code></code></pre>
+<p>在这里会拿到并执行所有的Bean后置处理器，先找到那个可以开启事务的ConfService，加个断点看看他的beanPostProcessors中都有些什么。</p>
+<p><img src="./images/记一次事务失效的问题排查记录2.png" alt="img" /></p>
+<p>框起来的这两个DefaultAdvisorAutoProxyCreator就是创建代理对象的处理器，至于为什么会有两个现在还不知道，先解决我眼前的问题先。这里执行完所有的BeanPostProcessor之后，得到的就是代理对象了。</p>
+<p><img src="./images/记一次事务失效的问题排查记录3.png" alt="img" /></p>
+<p>上面创建代理的代码在AbstractAutoProxyCreator中，分别是postProcessAfterInitialization()和wrapIfNecessary()，代码如下：</p>
+<pre><code><code>public Object postProcessAfterInitialization(@Nullable Object bean, String beanName) throws BeansException {
+    if (bean != null) {
+        Object cacheKey = this.getCacheKey(bean.getClass(), beanName);
+        if (!this.earlyProxyReferences.contains(cacheKey)) {
+            return this.wrapIfNecessary(bean, beanName, cacheKey);
+        }
+    }
+    return bean;
+}
+// 代理就是在这个方法中创建的，当然创建之前做了各种if判断
+protected Object wrapIfNecessary(Object bean, String beanName, Object cacheKey) {
+    if (StringUtils.hasLength(beanName) &amp;&amp; this.targetSourcedBeans.contains(beanName)) {
+        return bean;
+    } else if (Boolean.FALSE.equals(this.advisedBeans.get(cacheKey))) {
+        return bean;
+    } else if (!this.isInfrastructureClass(bean.getClass()) &amp;&amp; !this.shouldSkip(bean.getClass(), beanName)) {
+        Object[] specificInterceptors = this.getAdvicesAndAdvisorsForBean(bean.getClass(), beanName, (TargetSource)null);
+        if (specificInterceptors != DO_NOT_PROXY) {
+            this.advisedBeans.put(cacheKey, Boolean.TRUE);
+            // 创建代理对象
+            Object proxy = this.createProxy(bean.getClass(), beanName, specificInterceptors, new SingletonTargetSource(bean));
+            this.proxyTypes.put(cacheKey, proxy.getClass());
+            return proxy;
+        } else {
+            this.advisedBeans.put(cacheKey, Boolean.FALSE);
+            return bean;
+        }
+    } else {
+        this.advisedBeans.put(cacheKey, Boolean.FALSE);
+        return bean;
+    }
+}</code></code></pre>
+<p>再回头找到那个MemberService，他的beanPostProcessors列表中可没有那么多东西，可以看在他的processor列表中创建代理的处理器DefaultAdvisorAutoProxyCreator确实是没有的。</p>
+<p><img src="./images/记一次事务失效的问题排查记录4.png" alt="img" /></p>
+<p>这个方法执行完之后，返回的就普通的对象了。我们都知道<strong>在Spring中，数据库事务都是通过AOP实现的，想要支持事务这个类必须被代理</strong>才行。至此本篇开头提到的MemberService中无法开启事务的真相找到了，因为Controller中注入的MemberService以<code>@Bean</code>的方式配置到Spring中，导致被提前初始化而未能创建代理，所以不能开启事务。</p>
+<hr />
+<p>捋一捋：</p>
+<ol>
+<li>首先我们在项目整合Shiro的时候通过ShiroConfig做了一些配置，其中一项包括Shiro的授权认证器MemberAuthorizingRealm。</li>
+<li>在MemberAuthorizingRealm中我们通过<code>@Autowired</code>注入了本篇的主角MemberService。</li>
+<li>Spring启动的时候，配置相关的都是优先初始化的，在初始化MemberAuthorizingRealm的时候发现需要注入一个MemberService对象，容器里肯定是没有的，那么久优先将其初始化了。此时如果在MemberService还有通过<code>@Autowired</code>注入的其他依赖，那么会一并初始化，依赖中要是还有依赖会继续递归初始化，这样下来会导致一系列的实例都是没有被代理的。</li>
+<li>但是这时候Spring中创建代理的处理器是还没有的，导致MemberService的BeanPostProcessor中没有AbstractAutoProxyCreator，后面整个BeanPostProcessor列表执行的时候没有为其创建代理。</li>
+<li>Spring中的数据库事务都是需要代理支持的，所以MemberService中不能开启事务。</li>
+</ol>
+<hr />
+<p><strong>解决方案</strong>：既然MemberAuthorizingRealm中不能通过<code>@Autowired</code>注入MemberService，那我们变通一下，不用第一时间注入，等需要用到的时候再向Spring索取就好了。</p>
+<p>这里第一个想到的肯定就是ApplicationContext了，这好办，写一个ApplicationContext工具类：</p>
+<pre><code><code>@Component
+public class ApplicationContextUtils implements ApplicationContextAware {
+    public static ApplicationContext applicationContext;
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        ApplicationContextUtils.applicationContext = applicationContext;
+    }
+    public static Object getBean(String beanName) {
+        return applicationContext.getBean(beanName);
+    }
+    public static &lt;T&gt; T getBean(Class&lt;T&gt; type) {
+        return applicationContext.getBean(type);
+    }
+}</code></code></pre>
+<p>通过实现ApplicationContextAware接口拿到ApplicationContext，后面就可以随心所以了，MemberAuthorizingRealm中需要用到MemberService的时候我们可以这么写：</p>
+<pre><code><code>MemberService memberService = ApplicationContextUtils.getBean(MemberService.class);</code></code></pre>
+<p>在其他类似的地方，如果何需要支持事务或者用到代理对象的地方，都可以通过这种方式获取。另外顺带提一下，如果需要用到对象原始的实例（非代理对象），我们可以通过在Bean名称前面加一个<code>&amp;</code>获取，还是以MemberService举栗：</p>
+<pre><code><code>MemberService memberService = ApplicationContextUtils.getBean(&quot;&amp;memberService&quot;);</code></code></pre>
+<p>这样拿到的就是常规实例对象了，相关知识点：FactoryBean，之前写过一篇，请参考：</p>
+<p><a href="https://www.guitu18.com/post/2019/04/28/33.html">Spring中FactoryBean的作用和实现原理 https://www.guitu18.com/post/2019/04/28/33.html</a></p>
+<p>本次排查记录总结：</p>
+<ol>
+<li>在<code>@Configuration</code>注解的配置类中，通过<code>@Bean</code>注册的对象是没有被创建代理的，如果你的业务需要使用到代理，请不要使用这种方式。</li>
+<li>即便没有直接通过<code>@Bean</code>直接注入，在被<code>@Bean</code>注册的对象直接依赖（<code>@Autowired</code>注入等）也会导致该对象提前初始化，没有被创建代理。</li>
+<li>如果必须要在通过<code>@Bean</code>注册的对象中用到代理对象，可以从ApplicationContext中获取到。</li>
+</ol>
+<p>首发地址：<a href="https://www.guitu18.com/post/2019/10/30/56.html" class="uri">https://www.guitu18.com/post/2019/10/30/56.html</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

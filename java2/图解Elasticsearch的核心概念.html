@@ -1,0 +1,118 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修图解Elasticsearch的核心概念' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>图解Elasticsearch的核心概念</center></div><div class='banquan'>原文出处:本文由博客园博主会飞的笨石头提供。<br/>
+原文连接:https://www.cnblogs.com/flyrock/p/11918620.html</div><br>
+    <p>本文讲解大纲，分8个核心概念讲解说明：</p>
+<ul>
+<li>NRT</li>
+<li>Cluster</li>
+<li>Node</li>
+<li>Document&amp;Field</li>
+<li>Index</li>
+<li>Type</li>
+<li>Shard</li>
+<li>Replica</li>
+</ul>
+<h2 id="near-realtimenrt近实时">Near Realtime（NRT）近实时</h2>
+<p>Elasticsearch的核心优势就是（Near Real Time NRT）近乎实时，我们称之为近实时。<br />
+NRT有两个意思，下面举例说明下：</p>
+<ul>
+<li>从写入索引数据到数据可以被搜索到有一个小延迟（大概1秒）；</li>
+</ul>
+<p>举个例子：电商平台新上架一个新商品，1秒后用户就可搜索到这个商品信息，这就是近实时。</p>
+<ul>
+<li>基于Elasticsearch执行搜索和分析可以达到秒级查询</li>
+</ul>
+<p>也举个例子说明，比如我现在想查询我在淘宝，最近一年都买过几件商品，总共花了多少钱，最贵的商品多少钱，哪个月买到东西最多，什么类型的商品买的最多这样的信息，如果淘宝说，你要等待10分钟才能出结果，你是不是很崩溃，这个延迟的时间就不是近实时，如果淘宝可以秒级别返回给你，就是近实时了。</p>
+<p>下面画一个图，解释下三个基本概念的</p>
+<p><img src="./images/图解Elasticsearch的核心概念0.png" /></p>
+<h2 id="cluster集群">Cluster：集群</h2>
+<p>包含多个节点，每个节点属于哪个集群是通过一个配置（集群名称，默认是elasticsearch）来决定的，对于中小型应用来说，刚开始一个集群就一个节点很正常。集群的目的为了提供高可用和海量数据的存储以及更快的跨节点查询能力。</p>
+<h2 id="node节点">Node：节点</h2>
+<p>集群中的一个节点，节点也有一个名称（默认是随机分配的），节点名称很重要（在执行运维管理操作的时候），默认节点会去加入一个名称为“elasticsearch”的集群，如果直接启动一堆节点，那么它们会自动组成一个elasticsearch集群，当然一个节点也可以组成一个elasticsearch集群</p>
+<h2 id="documentfield文档和字段">Document&amp;field：文档和字段</h2>
+<p>document 是es中的最小数据单元，一个document可以是一条客户数据，一条商品分类数据，一条订单数据，通常用JSON数据结构表示，每个index下的type中，都可以去存储多个document。一个document里面有多个field，每个field就是一个数据字段。</p>
+<p>相当于mysql里的行，可以简单这么理解，举个例子。一个商品的文档数据一条如下：</p>
+<pre><code><code>product document
+{
+  &quot;product_id&quot;: &quot;1000&quot;,
+  &quot;product_name&quot;: &quot;mac pro 2019 款笔记本&quot;,
+  &quot;product_desc&quot;: &quot;高性能，高分辨率，编程必备神器&quot;,
+  &quot;category_id&quot;: &quot;2&quot;,
+  &quot;category_name&quot;: &quot;电子产品&quot;
+}
+</code></code></pre>
+<h2 id="index索引">Index：索引</h2>
+<p>包含一堆有相似结构的文档数据，比如可以有一个客户索引，商品分类索引，订单索引，索引有一个名称。<br />
+一个index包含很多document，一个index就代表了一类类似的或者相同的document。比如说建立一个product index，商品索引，里面可能就存放了所有的商品数据，所有的商品document。</p>
+<h2 id="type类型">Type：类型</h2>
+<p>每个索引里都可以有一个或多个type，type是index中的一个逻辑数据分类，一个type下的document，都有相同的field，比如博客系统，有一个索引，可以定义用户数据type，博客数据type，评论数据type。</p>
+<p>商品index，里面存放了所有的商品数据，商品document</p>
+<p>但是商品分很多种类，每个种类的document的field可能不太一样，比如说电器商品，可能还包含一些诸如售后时间范围这样的特殊field；生鲜商品，还包含一些诸如生鲜保质期之类的特殊field</p>
+<p>type，日化商品type，电器商品type，生鲜商品type</p>
+<p>日化商品type：product_id，product_name，product_desc，category_id，category_name<br />
+电器商品type：product_id，product_name，product_desc，category_id，category_name，service_period<br />
+生鲜商品type：product_id，product_name，product_desc，category_id，category_name，eat_period</p>
+<p>每一个type里面，都会包含一堆document</p>
+<p>{<br />
+&quot;product_id&quot;: &quot;2&quot;,<br />
+&quot;product_name&quot;: &quot;长虹电视机&quot;,<br />
+&quot;product_desc&quot;: &quot;4k高清&quot;,<br />
+&quot;category_id&quot;: &quot;3&quot;,<br />
+&quot;category_name&quot;: &quot;电器&quot;,<br />
+&quot;service_period&quot;: &quot;1年&quot;<br />
+}</p>
+<p>{<br />
+&quot;product_id&quot;: &quot;3&quot;,<br />
+&quot;product_name&quot;: &quot;基围虾&quot;,<br />
+&quot;product_desc&quot;: &quot;纯天然，冰岛产&quot;,<br />
+&quot;category_id&quot;: &quot;4&quot;,<br />
+&quot;category_name&quot;: &quot;生鲜&quot;,<br />
+&quot;eat_period&quot;: &quot;7天&quot;<br />
+}</p>
+<h2 id="shard-分片也称-primary-shard">Shard 分片，也称 Primary Shard</h2>
+<p>单台机器无法存储大量数据，es可以将一个索引中的数据切分为多个shard，分布在多台服务器上存储。有了shard就可以横向扩展，存储更多数据，让搜索和分析等操作分布到多台服务器上去执行，提升吞吐量和性能。</p>
+<p>每个shard都是一个lucene index。</p>
+<h2 id="replica-副本也称-replica-shard">Replica 副本,也称 Replica Shard</h2>
+<p>任何一个服务器随时可能故障或宕机，此时shard可能就会丢失，因此可以为每个shard创建多个replica副本。replica可以在shard故障时提供备用服务，保证数据不丢失，多个replica还可以提升搜索操作的吞吐量和性能。</p>
+<p>primary shard（建立索引时一次设置，不能修改，默认5个），</p>
+<p>replica shard（随时修改数量，默认1个），</p>
+<p>默认每个索引10个shard，5个primary shard，5个replica shard，最小的高可用配置，是2台服务器。</p>
+<p><strong>相关索引解释说明：</strong></p>
+<ul>
+<li>index包含多个shard</li>
+<li>每个shard都是一个最小工作单元，承载部分数据，lucene实例，完整的建立索引和处理请求的能力</li>
+<li>增减节点时，shard会自动在nodes中负载均衡</li>
+<li>primary shard和replica shard，每个document肯定只存在于某一个primary shard以及其对应的replica shard中，不可能存在于多个primary shard</li>
+<li>replica shard是primary shard的副本，负责容错，以及承担读请求负载</li>
+<li>primary shard的数量在创建索引的时候就固定了，replica shard的数量可以随时修改</li>
+<li>primary shard的默认数量是5，replica默认是1，默认有10个shard，5个primary shard，5个replica shard</li>
+<li>primary shard不能和自己的replica shard放在同一个节点上（否则节点宕机，primary shard和副本都丢失，起不到容错的作用），但是可以和其他primary shard的replica shard放在同一个节点上</li>
+</ul>
+<p>索引在集群中分配图：</p>
+<p><img src="./images/图解Elasticsearch的核心概念1.png" /></p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn?from=article_bottom">OpenWrite</a> 发布！</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

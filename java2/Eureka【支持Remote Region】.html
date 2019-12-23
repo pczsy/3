@@ -1,0 +1,489 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Eureka【支持Remote Region】' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Eureka【支持Remote Region】</center></div><div class='banquan'>原文出处:本文由博客园博主KingJames、提供。<br/>
+原文连接:https://www.cnblogs.com/idoljames/p/11620971.html</div><br>
+    <h3>工程公共pom依赖</h3>
+<src class="cnblogs_code">
+<pre><code>&lt;properties&gt;
+        &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+        &lt;project.reporting.outputEncoding&gt;UTF-8&lt;/project.reporting.outputEncoding&gt;
+        &lt;java.version&gt;1.8&lt;/java.version&gt;
+        &lt;spring-cloud.version&gt;Finchley.RELEASE&lt;/spring-cloud.version&gt;
+&lt;/properties&gt;
+
+&lt;dependencyManagement&gt;
+        &lt;dependencies&gt;
+            &lt;dependency&gt;
+                &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-cloud-dependencies&lt;/artifactId&gt;
+                &lt;version&gt;${spring-cloud.version}&lt;/version&gt;
+                &lt;type&gt;pom&lt;/type&gt;
+                &lt;scope&gt;<span style="color: #0000ff;">import</span>&lt;/scope&gt;
+            &lt;/dependency&gt;
+        &lt;/dependencies&gt;
+&lt;/dependencyManagement&gt;</code></pre>
+
+<p>&nbsp;</p>
+<h3>1、eureka server工程</h3>
+<p>1.1、eureka server工程pom依赖：</p>
+<src class="cnblogs_code">
+<pre><code>&lt;!--加上文章头部的公共依赖--&gt;<br /><br />&lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-server&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+&lt;/dependencies&gt;
+
+&lt;build&gt;
+      &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+            &lt;/plugin&gt;
+      &lt;/plugins&gt;
+&lt;/build&gt;</code></pre>
+
+<p>&nbsp;</p>
+<p>1.2、项目启动类：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.SpringApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.SpringBootApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+
+@SpringBootApplication
+@EnableEurekaServer
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> EurkeaServerApplication {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        SpringApplication.run(EurkeaServerApplication.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">, args);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>1.3、这里配置4个eureka server实例，路径：eureka-server\src\main\resources\，分4个zone，属于region-east、region-west两个区。</p>
+<p>属于region-east的配置文件为：application-zone1.yml，application-zone2.yml</p>
+<p>application-zone1.yml：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>8761<span style="color: #000000;">
+spring:
+  application:
+    name: eureka</span>-<span style="color: #000000;">server
+eureka:
+  server:
+    waitTimeInMsWhenSyncEmpty: </span>0<span style="color: #000000;">
+    enableSelfPreservation: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+    remoteRegionUrlsWithName:
+      region</span>-west: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8763/eureka/</span>
+<span style="color: #000000;">  client:
+    register</span>-with-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    fetch</span>-registry: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">east
+    service</span>-<span style="color: #000000;">url:
+      zone1: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8761/eureka/</span>
+      zone2: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8762/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-<span style="color: #000000;">east: zone1,zone2
+  instance:
+    hostname: localhost
+    metadataMap.zone: zone1</span></code></pre>
+
+<p>application-zone2.yml：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>8762<span style="color: #000000;">
+spring:
+  application:
+    name: eureka</span>-<span style="color: #000000;">server
+eureka:
+  server:
+    waitTimeInMsWhenSyncEmpty: </span>0<span style="color: #000000;">
+    enableSelfPreservation: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+    remoteRegionUrlsWithName:
+      region</span>-west: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8763/eureka/</span>
+<span style="color: #000000;">  client:
+    register</span>-with-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    fetch</span>-registry: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">east
+    service</span>-<span style="color: #000000;">url:
+      zone1: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8761/eureka/</span>
+      zone2: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8762/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-<span style="color: #000000;">east: zone1,zone2
+  instance:
+    hostname: localhost
+    metadataMap.zone: zone2</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>属于region-west的配置文件为：application-zone3-region-west.yml，application-zone4-region-west.yml</p>
+<p>application-zone3-region-west.yml</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>8763<span style="color: #000000;">
+spring:
+  application:
+    name: eureka</span>-<span style="color: #000000;">server
+eureka:
+  server:
+    waitTimeInMsWhenSyncEmpty: </span>0<span style="color: #000000;">
+    enableSelfPreservation: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+    remoteRegionUrlsWithName:
+      region</span>-east: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8761/eureka/</span>
+<span style="color: #000000;">  client:
+    register</span>-with-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    fetch</span>-registry: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">west
+    service</span>-<span style="color: #000000;">url:
+      zone3: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8763/eureka/</span>
+      zone4: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8764/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-<span style="color: #000000;">west: zone3,zone4
+  instance:
+    hostname: localhost
+    metadataMap.zone: zone3</span></code></pre>
+
+<p>application-zone4-region-west.yml</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>8764<span style="color: #000000;">
+spring:
+  application:
+    name: eureka</span>-<span style="color: #000000;">server
+eureka:
+  server:
+    waitTimeInMsWhenSyncEmpty: </span>0<span style="color: #000000;">
+    enableSelfPreservation: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+    remoteRegionUrlsWithName:
+      region</span>-east: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8761/eureka/</span>
+<span style="color: #000000;">  client:
+    register</span>-with-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    fetch</span>-registry: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">west
+    service</span>-<span style="color: #000000;">url:
+      zone3: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8763/eureka/</span>
+      zone4: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8764/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-<span style="color: #000000;">west: zone3,zone4
+  instance:
+    hostname: localhost
+    metadataMap.zone: zone4</span></code></pre>
+
+<p>&nbsp;</p>
+<p>由于框架中，EurekaServerConfigBean的remoteRegionAppWhitelist默认值是null，而getRemoteRegionAppWhitelist(String regionName)方法又被直接调用，如果工程上不处理，就直接空指针异常了。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">//框架源码<br />package</span><span style="color: #000000;"> org.springframework.cloud.netflix.eureka.server;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> ......</span><span style="color: #000000;">
+
+@ConfigurationProperties(</span>"eureka.server"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> EurekaServerConfigBean <span style="color: #0000ff;">implements</span><span style="color: #000000;"> EurekaServerConfig {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String PREFIX = "eureka.server"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> MINUTES = 60000<span style="color: #000000;">;
+    @Autowired(
+        required </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">
+    )
+    PropertyResolver propertyResolver;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String aWSAccessId;
+    //.....</span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String[] remoteRegionUrls;
+    </span><strong><span style="color: #0000ff;">private</span> Map&lt;String, Set&lt;String&gt;&gt; remoteRegionAppWhitelist;</strong><br />　　//......<br />}</code></pre>
+
+<p>so，在eureka server工程中加入以下配置：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.netflix.discovery.EurekaClientConfig;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.netflix.eureka.EurekaServerConfig;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.AutoConfigureBefore;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.cloud.netflix.eureka.server.EurekaServerAutoConfiguration;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.cloud.netflix.eureka.server.EurekaServerConfigBean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Bean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Configuration;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.HashMap;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 配置类
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Configuration
+@AutoConfigureBefore(EurekaServerAutoConfiguration.</span><span style="color: #0000ff;">class</span>)<span style="color: #008000;">//</span><span style="color: #008000;">当前配置类EurekaServerAutoConfiguration加载完毕后的后续加载操作</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RegionConfig {
+
+    @Bean
+    @ConditionalOnMissingBean
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> EurekaServerConfig eurekaServerConfig(EurekaClientConfig clientConfig) {
+        EurekaServerConfigBean server </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> EurekaServerConfigBean();
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (clientConfig.shouldRegisterWithEureka()) {
+</span>            server.setRegistrySyncRetries(5<span style="color: #000000;">);
+        }
+        server.setRemoteRegionAppWhitelist(</span><span style="color: #0000ff;">new</span> HashMap&lt;&gt;<span style="color: #000000;">());
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> server;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>1.4、启动实例，执行命令：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone1
+</span><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone2
+</span><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone3-region-west
+</span><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone4-region-west</span></code></pre>
+
+<p>&nbsp;</p>
+<h3>2、Eureka Client工程</h3>
+<p>2.1、eureka client工程pom依赖：</p>
+<src class="cnblogs_code">
+<pre><code>&lt;!--加上文章头部公共依赖--&gt;<br /><br />&lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-client&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+&lt;/dependencies&gt;
+
+&lt;build&gt;
+      &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+            &lt;/plugin&gt;
+      &lt;/plugins&gt;
+&lt;/build&gt;</code></pre>
+
+<p>&nbsp;</p>
+<p>2.2、eureka client工程启动类：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.SpringApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.SpringBootApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+
+@SpringBootApplication
+@EnableDiscoveryClient
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> EurekaClientApplication {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        SpringApplication.run(EurekaClientApplication.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">, args);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>2.3、eureka client工程配置文件</p>
+<p>这里配置4个client实例，也是分4个zone，属于region-east、region-west两个区。&nbsp;</p>
+<p>属于region-east的配置文件为：application-zone1.yml，application-zone2.yml</p>
+<p>application-zone1.yml：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>8071<span style="color: #000000;">
+spring:
+  application.name: demo</span>-<span style="color: #000000;">client
+eureka:
+  client:
+    prefer</span>-same-zone-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">east
+    service</span>-<span style="color: #000000;">url:
+      zone1: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8761/eureka/</span>
+      zone2: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8762/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-<span style="color: #000000;">east: zone1,zone2
+  instance:
+    metadataMap.zone: zone1</span></code></pre>
+
+<p>application-zone2.yml</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>8072<span style="color: #000000;">
+spring:
+  application.name: demo</span>-<span style="color: #000000;">client
+eureka:
+  client:
+    prefer</span>-same-zone-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">east
+    service</span>-<span style="color: #000000;">url:
+      zone1: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8761/eureka/</span>
+      zone2: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8762/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-<span style="color: #000000;">east: zone1,zone2
+  instance:
+    metadataMap.zone: zone2</span></code></pre>
+
+<p>&nbsp;</p>
+<p>属于region-west的配置文件为：application-zone3.yml，application-zone4.yml</p>
+<p>application-zone3.yml：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>8073<span style="color: #000000;">
+spring:
+  application.name: demo</span>-<span style="color: #000000;">client
+eureka:
+  client:
+    prefer</span>-same-zone-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">west
+    service</span>-<span style="color: #000000;">url:
+      zone3: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8763/eureka/</span>
+      zone4: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8764/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-<span style="color: #000000;">west: zone3,zone4
+  instance:
+    metadataMap.zone: zone3</span></code></pre>
+
+<p>application-zone4.yml：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>8074<span style="color: #000000;">
+spring:
+  application.name: demo</span>-<span style="color: #000000;">client
+eureka:
+  client:
+    prefer</span>-same-zone-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">west
+    service</span>-<span style="color: #000000;">url:
+      zone3: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8763/eureka/</span>
+      zone4: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8764/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-<span style="color: #000000;">west: zone3,zone4
+  instance:
+    metadataMap.zone: zone4</span></code></pre>
+
+<p>&nbsp;</p>
+<p>application.yml：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">management:
+  endpoints:
+    web:
+      exposure:
+        include: </span>'*'</code></pre>
+
+<p>&nbsp;</p>
+<p>2.4、启动eureka client工程，执行命令：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone1
+</span><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone2
+</span><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone3
+</span><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone4</span></code></pre>
+
+<p>&nbsp;</p>
+<h3>3、Zuul Gateway工程</h3>
+<p>3.1、zuul gateway工程pom依赖：</p>
+<src class="cnblogs_code">
+<pre><code>&lt;!--加上文章头部的公共依赖--&gt; <br /><br />&lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-netflix-zuul&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-client&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+&lt;/dependencies&gt;
+
+&lt;build&gt;
+      &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+            &lt;/plugin&gt;
+      &lt;/plugins&gt;
+&lt;/build&gt;</code></pre>
+
+<p>&nbsp;</p>
+<p>3.2、zuul gateway工程启动类：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.springcloud.book;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.SpringApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.SpringBootApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.cloud.netflix.zuul.EnableZuulProxy;
+
+@SpringBootApplication
+@EnableZuulProxy
+@EnableDiscoveryClient
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ZuulGatewayApplication {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        SpringApplication.run(ZuulGatewayApplication.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">, args);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>3.3、zuul gateway工程配置文件，这里使用2个gateway实例来演示fallback到remote region的应用实例功能，配置文件一个属于region-east，一个属于region-west。</p>
+<p>application.yml：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">spring:
+  application:
+    name: zuul</span>-<span style="color: #000000;">gateway
+management:
+  endpoints:
+    web:
+      exposure:
+        include: </span>'*'</code></pre>
+
+<p>application-zone1.yml：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>10001<span style="color: #000000;">
+eureka:
+  instance:
+    metadataMap.zone: zone1
+  client:
+    register</span>-with-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    fetch</span>-registry: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">east
+    service</span>-<span style="color: #000000;">url:
+      zone1: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8761/eureka/</span>
+      zone2: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8762/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-east: zone1,zone2</code></pre>
+
+<p>application-zone3-region-west.yml：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>10002<span style="color: #000000;">
+eureka:
+  instance:
+    metadataMap.zone: zone3
+  client:
+    register</span>-with-eureka: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    fetch</span>-registry: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    region: region</span>-<span style="color: #000000;">west
+    service</span>-<span style="color: #000000;">url:
+      zone3: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8763/eureka/</span>
+      zone4: http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8764/eureka/</span>
+    availability-<span style="color: #000000;">zones:
+      region</span>-west: zone3,zone4</code></pre>
+
+<p>&nbsp;</p>
+<p>3.4、启动gateway工程，执行命令：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone1
+</span><span style="color: #008000;">mvn spring-boot:run -Dspring.profiles.active=zone3-region-west</span></code></pre>
+
+<p>访问：localhost:10001/demo-client/actuator/env，结果如下：</p>
+<p><img src="./images/Eureka【支持Remote Region】0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;访问：localhost:10002/demo-client/actuator/env，结果如下：</p>
+<p><img src="./images/Eureka【支持Remote Region】1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;可以看到ZoneAffinity特性（<a href="https://www.cnblogs.com/idoljames/p/11620616.html" target="_blank">上一篇文章有讲</a>），zone1的gateway访问的是zone1的demo-client，zone3的gateway访问的是zone3的demo-client。</p>
+<p>接下来，关闭eureka-client的zone1实例，继续访问 localhost:10001/demo-client/actuator/env，可以看到在经过几个错误之后，自动fallback到了remote-region的zone4实例上，实现了类似异地多活自动转移请求的效果。</p>
+<p><img src="./images/Eureka【支持Remote Region】2.png" alt="" /></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

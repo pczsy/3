@@ -1,0 +1,193 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot异常处理统一封装我来做-使用篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot异常处理统一封装我来做-使用篇</center></div><div class='banquan'>原文出处:本文由博客园博主Purgeyao提供。<br/>
+原文连接:https://www.cnblogs.com/Purgeyao/p/11781408.html</div><br>
+    <h1 id="springboot异常处理统一封装我来做-使用篇">SpringBoot异常处理统一封装我来做-使用篇</h1>
+<h2 id="简介">简介</h2>
+<p>重复功能我来写。在 <code>SpringBoot</code> 项目里都有全局异常处理以及返回包装等，返回前端是带上<code>succ</code>、<code>code</code>、<code>msg</code>、<code>data</code>等字段。单个项目情况下很好解决，当微服务模块多的情况下，很多情况开发都是复制原有代码进行构建另外一个项目的，导致这些功能升级需要修改多个服务，在这个基础上，我们封装了一个组件 <code>unified-dispose-springboot-starter</code> 里面包含了一些基础的异常处理以及返回包装功能。</p>
+<h2 id="依赖添加启动功能">依赖添加启动功能</h2>
+<p>添加依赖<br />
+<strong>ps:</strong> 实际version版本请使用最新版<br />
+<strong>最新版本:</strong> <a href="https://search.maven.org/search?q=g:com.purgeteam%20AND%20a:unified-dispose-springboot-starter"><embed src="https://img2018.cnblogs.com/blog/1766679/201911/1766679-20191102125719448-1961011435.svg+xml;charset=utf-8" /></a></p>
+<p><a href="https://search.maven.org/search?q=g:com.purgeteam%20AND%20a:unified-dispose-springboot-starter">点击查看最新新版本</a></p>
+<pre><code><code>&lt;dependency&gt;
+  &lt;groupId&gt;com.purgeteam&lt;/groupId&gt;
+  &lt;artifactId&gt;unified-dispose-springboot-starter&lt;/artifactId&gt;
+  &lt;version&gt;0.1.1.RELEASE&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>启动类添加 <code>@EnableGlobalDispose</code> 注解开启以下功能。</p>
+<pre><code><code>@EnableGlobalDispose
+@SpringBootApplication
+public class GlobalDisposeSpringBootApplication {
+
+  public static void main(String[] args) {
+    SpringApplication.run(GlobalDisposeSpringBootApplication.class, args);
+  }
+
+}</code></code></pre>
+<h2 id="one-异常处理">One 异常处理⚠️</h2>
+<p>在项目中经常出现系统异常的情况，比如<code>NullPointerException</code>等等。如果默认未处理的情况下，<code>springboot</code>会响应默认的错误提示，这样对用户体验不是友好，系统层面的错误，用户不能感知到，即使为<code>500</code>的错误，可以给用户提示一个类似<code>服务器开小差</code>的友好提示等。</p>
+<p>模块里以及包含了一些基本的异常处理方式(及不需要做任何代码编写已经具有基本异常处理)，以及一些常见的异常code，用户只需要关心业务异常处理即可，直接通过 <code>throw new 异常</code> 的方式抛出即可。</p>
+<h3 id="异常处理包含类型">异常处理包含类型</h3>
+<pre><code><code># 通用500异常
+Exception 类捕获 500 异常处理
+
+# Feign 异常
+FeignException 类捕获
+ClientException 类捕获
+
+# 业务自定义
+BusinessException 类捕获 业务通用自定义异常
+
+# 参数校验异常
+HttpMessageNotReadableException 参数错误异常
+BindException 参数错误异常</code></code></pre>
+<h3 id="程序主动抛出异常">程序主动抛出异常</h3>
+<pre><code><code>throw new BusinessException(BusinessErrorCode.BUSINESS_ERROR);
+// 或者
+throw new BusinessException(&quot;CLOUD800&quot;,&quot;没有多余的库存&quot;);</code></code></pre>
+<p>通常不建议直接抛出通用的BusinessException异常，应当在对应的模块里添加对应的领域的异常处理类以及对应的枚举错误类型。</p>
+<p>如会员模块：<br />
+创建<code>UserException</code>异常类、<code>UserErrorCode</code>枚举、以及<code>UserExceptionHandler</code>统一拦截类。</p>
+<p>UserException:</p>
+<pre class="java"><code>@Data
+public class UserException extends RuntimeException {
+
+  private String code;
+  private boolean isShowMsg = true;
+
+  /**
+   * 使用枚举传参
+   *
+   * @param errorCode 异常枚举
+   */
+  public UserException(UserErrorCode errorCode) {
+    super(errorCode.getMessage());
+    this.setCode(errorCode.getCode());
+  }
+
+}</code></code></pre>
+<p>UserErrorCode:</p>
+<pre class="java"><code>@Getter
+public enum UserErrorCode {
+    /**
+     * 权限异常
+     */
+    NOT_PERMISSIONS(&quot;CLOUD401&quot;,&quot;您没有操作权限&quot;),
+    ;
+
+    private String code;
+
+    private String message;
+
+    CommonErrorCode(String code, String message) {
+        this.code = code;
+        this.message = message;
+    }
+}</code></code></pre>
+<p>UserExceptionHandler:</p>
+<pre class="java"><code>@Slf4j
+@RestControllerAdvice
+public class UserExceptionHandler {
+
+  /**
+   * UserException 类捕获
+   */
+  @ExceptionHandler(value = UserException.class)
+  public Result handler(UserException e) {
+    log.error(e.getMessage(), e);
+    return Result.ofFail(e.getCode(), e.getMessage());
+  }
+
+}</code></code></pre>
+<p>最后业务使用如下：</p>
+<pre class="java"><code>// 判断是否有权限抛出异常
+throw new UserException(UserErrorCode.NOT_PERMISSIONS);</code></code></pre>
+<p><strong>上述方式，抛出异常后会被模块处理。前台返回如下</strong>：</p>
+<pre><code><code>{
+  &quot;succ&quot;: false,        // 是否成功
+  &quot;ts&quot;: 1566467628851,  // 时间戳
+  &quot;data&quot;: null,         // 数据
+  &quot;code&quot;: &quot;CLOUD800&quot;,   // 错误类型
+  &quot;msg&quot;: &quot;业务异常&quot;,    // 错误描述
+  &quot;fail&quot;: true
+}</code></code></pre>
+<h2 id="tow-统一返回封">Tow 统一返回封🗳</h2>
+<p>在REST风格的开发中，避免通常会告知前台返回是否成功以及状态码等信息。这里我们通常返回的时候做一次<code>util</code>的包装处理工作，如：<code>Result</code>类似的类，里面包含<code>succ</code>、<code>code</code>、<code>msg</code>、<code>data</code>等字段。</p>
+<p>接口调用处理类似如下:</p>
+<pre><code><code>  @GetMapping(&quot;hello&quot;)
+  public Result list(){
+    return Result.ofSuccess(&quot;hello&quot;);
+  }</code></code></pre>
+<p>结果:</p>
+<pre><code><code>{
+  &quot;succ&quot;: ture,         // 是否成功
+  &quot;ts&quot;: 1566467628851,  // 时间戳
+  &quot;data&quot;: &quot;hello&quot;,      // 数据
+  &quot;code&quot;: null,         // 错误类型
+  &quot;msg&quot;: null,          // 错误描述
+  &quot;fail&quot;: true
+}</code></code></pre>
+<h3 id="功能使用">功能使用</h3>
+<p>默认情况所有的 <code>web controller</code> 都会被封装为一下返回格式。</p>
+<p>接口：</p>
+<pre class="java"><code>@GetMapping(&quot;test&quot;)
+public String test(){
+  return &quot;test&quot;;
+}</code></code></pre>
+<p>返回</p>
+<pre class="json"><code>{
+  &quot;succ&quot;: true,             // 是否成功
+  &quot;ts&quot;: 1566386951005,      // 时间戳
+  &quot;data&quot;: &quot;test&quot;,           // 数据
+  &quot;code&quot;: null,             // 错误类型
+  &quot;msg&quot;: null,              // 错误描述
+  &quot;fail&quot;: false             
+}</code></code></pre>
+<h3 id="忽略封装注解ignorreponseadvice">忽略封装注解:@IgnorReponseAdvice</h3>
+<p><code>@IgnorReponseAdvice</code>允许范围为：<strong>类 + 方法</strong>，标识在类上这个类下的说有方法的返回都将忽略返回封装。</p>
+<p>接口：</p>
+<pre class="java"><code>@IgnorReponseAdvice // 忽略数据包装 可添加到类、方法上
+@GetMapping(&quot;test&quot;)
+public String test(){
+  return &quot;test&quot;;
+}</code></code></pre>
+<p>返回 <code>test</code></p>
+<h2 id="总结">总结</h2>
+<p>项目里很多重复的code，我们可以通过一定的方式去简化，以达到一定目的减少开发量。PurgeTeam 具有一些优秀的开源组件，减少日常的开发量。</p>
+<blockquote>
+<p>示例代码地址:<a href="https://github.com/purgeteam/unified-dispose-springboot">unified-dispose-springboot</a></p>
+</blockquote>
+<blockquote>
+<p>作者GitHub:<br />
+<a href="https://github.com/purgeyao">Purgeyao</a> 欢迎关注</p>
+</blockquote>
+<blockquote>
+<p>qq交流群: <code>812321371</code> 微信交流群: <code>MercyYao</code></p>
+</blockquote>
+<blockquote>
+<p>微信公众号:</p>
+</blockquote>
+<p><img src="./images/SpringBoot异常处理统一封装我来做-使用篇0.png" alt="微信公众号二维码" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

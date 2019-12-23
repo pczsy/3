@@ -1,0 +1,533 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[springboot 开发单体web shop] 7. 多种形式提供商品列表' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[springboot 开发单体web shop] 7. 多种形式提供商品列表</center></div><div class='banquan'>原文出处:本文由博客园博主IsaacZhang提供。<br/>
+原文连接:https://www.cnblogs.com/zhangpan1244/p/11909515.html</div><br>
+    <h1 id="上文回顾">上文回顾</h1>
+<p><a href="https://segmentfault.com/a/1190000021047932">上节</a> 我们实现了仿<code>jd</code>的轮播广告以及商品分类的功能，并且讲解了不同的注入方式，本节我们将继续实现我们的电商主业务，商品信息的展示。</p>
+<h1 id="需求分析">需求分析</h1>
+<p>首先，在我们开始本节编码之前，我们先来分析一下都有哪些地方会对商品进行展示，打开<code>jd</code>首页，鼠标下拉可以看到如下：<br />
+<img src="./images/[springboot 开发单体web shop] 7. 多种形式提供商品列表0.png" alt="首页商品列表示例" /></p>
+<p>可以看到，在大类型下查询了部分商品在首页进行展示（可以是最新的，也可以是网站推荐等等），然后点击任何一个分类，可以看到如下：<br />
+<img src="./images/[springboot 开发单体web shop] 7. 多种形式提供商品列表1.png" alt="分类商品列表示例" /></p>
+<p>我们一般进到电商网站之后，最常用的一个功能就是搜索，<a href="%5Bhttps://search.jd.com/Search?keyword=%E7%94%B5%E9%92%A2%E7%90%B4&amp;enc=utf-8&amp;spm=a.0.0&amp;wq=&amp;pvid=2162c63a5cb942d0aa73b921fb00dca9%5D(https://search.jd.com/Search?keyword=电钢琴&amp;enc=utf-8&amp;spm=a.0.0&amp;wq=&amp;pvid=2162c63a5cb942d0aa73b921fb00dca9)">搜索钢琴</a> 结果如下：<br />
+<img src="./images/[springboot 开发单体web shop] 7. 多种形式提供商品列表2.png" alt="搜索查询结果示例" /></p>
+<p>选择任意一个商品点击，都可以进入到详情页面，这个是单个商品的信息展示。<br />
+综上，我们可以知道，要实现一个电商平台的商品展示，最基本的包含：</p>
+<ul>
+<li>首页推荐/最新上架商品</li>
+<li>分类查询商品</li>
+<li>关键词搜索商品</li>
+<li>商品详情展示</li>
+<li>...</li>
+</ul>
+<p>接下来，我们就可以开始商品相关的业务开发了。</p>
+<h1 id="首页商品列表indexproductlist">首页商品列表|IndexProductList</h1>
+<h2 id="开发梳理">开发梳理</h2>
+<p>我们首先来实现在首页展示的推荐商品列表，来看一下都需要展示哪些信息，以及如何进行展示。</p>
+<ul>
+<li>商品主键(product_id)</li>
+<li>展示图片（image_url）</li>
+<li>商品名称（product_name）</li>
+<li>商品价格(product_price)</li>
+<li>分类说明(description)</li>
+<li>分类名称(category_name)</li>
+<li>分类主键（category_id）</li>
+<li>其他...</li>
+</ul>
+<h2 id="编码实现">编码实现</h2>
+<h3 id="根据一级分类查询">根据一级分类查询</h3>
+<p>遵循开发顺序，自下而上，如果基础mapper解决不了，那么优先编写SQL mapper，因为我们需要在同一张表中根据<code>parent_id</code>递归的实现数据查询，当然我们这里使用的是<code>表链接</code>的方式实现。因此，<code>common mapper</code>无法满足我们的需求，需要自定义mapper实现。</p>
+<h4 id="custom-mapper实现">Custom Mapper实现</h4>
+<p>和<a href="https://segmentfault.com/a/1190000021047932">上节</a>根据一级分类查询子分类一样，在项目<code>mscx-shop-mapper</code>中添加一个自定义实现接口<code>com.liferunner.custom.ProductCustomMapper</code>，然后在<code>resources\mapper\custom</code>路径下同步创建xml文件<code>mapper/custom/ProductCustomMapper.xml</code>，此时，因为我们在上节中已经配置了当前文件夹可以被容器扫描到，所以我们添加的新的mapper就会在启动时被扫描加载，代码如下：</p>
+<pre><code><code>/**
+ * ProductCustomMapper for : 自定义商品Mapper
+ */
+public interface ProductCustomMapper {
+
+    /***
+     * 根据一级分类查询商品
+     *
+     * @param paramMap 传递一级分类（map传递多参数）
+     * @return java.util.List&lt;com.liferunner.dto.IndexProductDTO&gt;
+     */
+    List&lt;IndexProductDTO&gt; getIndexProductDtoList(@Param(&quot;paramMap&quot;) Map&lt;String, Integer&gt; paramMap);
+}</code></code></pre>
+<pre class="xml"><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE mapper PUBLIC &quot;-//mybatis.org//DTD Mapper 3.0//EN&quot; &quot;http://mybatis.org/dtd/mybatis-3-mapper.dtd&quot;&gt;
+&lt;mapper namespace=&quot;com.liferunner.custom.ProductCustomMapper&quot;&gt;
+    &lt;resultMap id=&quot;IndexProductDTO&quot; type=&quot;com.liferunner.dto.IndexProductDTO&quot;&gt;
+        &lt;id column=&quot;rootCategoryId&quot; property=&quot;rootCategoryId&quot;/&gt;
+        &lt;result column=&quot;rootCategoryName&quot; property=&quot;rootCategoryName&quot;/&gt;
+        &lt;result column=&quot;slogan&quot; property=&quot;slogan&quot;/&gt;
+        &lt;result column=&quot;categoryImage&quot; property=&quot;categoryImage&quot;/&gt;
+        &lt;result column=&quot;bgColor&quot; property=&quot;bgColor&quot;/&gt;
+        &lt;collection property=&quot;productItemList&quot; ofType=&quot;com.liferunner.dto.IndexProductItemDTO&quot;&gt;
+            &lt;id column=&quot;productId&quot; property=&quot;productId&quot;/&gt;
+            &lt;result column=&quot;productName&quot; property=&quot;productName&quot;/&gt;
+            &lt;result column=&quot;productMainImageUrl&quot; property=&quot;productMainImageUrl&quot;/&gt;
+            &lt;result column=&quot;productCreateTime&quot; property=&quot;productCreateTime&quot;/&gt;
+        &lt;/collection&gt;
+    &lt;/resultMap&gt;
+    &lt;select id=&quot;getIndexProductDtoList&quot; resultMap=&quot;IndexProductDTO&quot; parameterType=&quot;Map&quot;&gt;
+        SELECT
+        c.id as rootCategoryId,
+        c.name as rootCategoryName,
+        c.slogan as slogan,
+        c.category_image as categoryImage,
+        c.bg_color as bgColor,
+        p.id as productId,
+        p.product_name as productName,
+        pi.url as productMainImageUrl,
+        p.created_time as productCreateTime
+        FROM category c
+        LEFT JOIN products p
+        ON c.id = p.root_category_id
+        LEFT JOIN products_img pi
+        ON p.id = pi.product_id
+        WHERE c.type = 1
+        AND p.root_category_id = #{paramMap.rootCategoryId}
+        AND pi.is_main = 1
+        LIMIT 0,10;
+    &lt;/select&gt;
+&lt;/mapper&gt;</code></code></pre>
+<h4 id="service实现">Service实现</h4>
+<p>在<code>service</code>project 创建<code>com.liferunner.service.IProductService接口</code>以及其实现类<code>com.liferunner.service.impl.ProductServiceImpl</code>,添加查询方法如下：</p>
+<pre><code><code>public interface IProductService {
+
+    /**
+     * 根据一级分类id获取首页推荐的商品list
+     *
+     * @param rootCategoryId 一级分类id
+     * @return 商品list
+     */
+    List&lt;IndexProductDTO&gt; getIndexProductDtoList(Integer rootCategoryId);
+    ...
+}
+
+---
+    
+@Slf4j
+@Service
+@RequiredArgsConstructor(onConstructor = @__(@Autowired))
+public class ProductServiceImpl implements IProductService {
+
+    // RequiredArgsConstructor 构造器注入
+    private final ProductCustomMapper productCustomMapper;
+
+    @Transactional(propagation = Propagation.SUPPORTS)
+    @Override
+    public List&lt;IndexProductDTO&gt; getIndexProductDtoList(Integer rootCategoryId) {
+        log.info(&quot;====== ProductServiceImpl#getIndexProductDtoList(rootCategoryId) : {}=======&quot;, rootCategoryId);
+        Map&lt;String, Integer&gt; map = new HashMap&lt;&gt;();
+        map.put(&quot;rootCategoryId&quot;, rootCategoryId);
+        val indexProductDtoList = this.productCustomMapper.getIndexProductDtoList(map);
+        if (CollectionUtils.isEmpty(indexProductDtoList)) {
+            log.warn(&quot;ProductServiceImpl#getIndexProductDtoList未查询到任何商品信息&quot;);
+        }
+        log.info(&quot;查询结果：{}&quot;, indexProductDtoList);
+        return indexProductDtoList;
+    }
+}</code></code></pre>
+<h4 id="controller实现">Controller实现</h4>
+<p>接着，在<code>com.liferunner.api.controller.IndexController</code>中实现对外暴露的查询接口：</p>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/index&quot;)
+@Api(value = &quot;首页信息controller&quot;, tags = &quot;首页信息接口API&quot;)
+@Slf4j
+public class IndexController {
+    ...
+    @Autowired
+    private IProductService productService;
+
+    @GetMapping(&quot;/rootCategorys&quot;)
+    @ApiOperation(value = &quot;查询一级分类&quot;, notes = &quot;查询一级分类&quot;)
+    public JsonResponse findAllRootCategorys() {
+        log.info(&quot;============查询一级分类==============&quot;);
+        val categoryResponseDTOS = this.categoryService.getAllRootCategorys();
+        if (CollectionUtils.isEmpty(categoryResponseDTOS)) {
+            log.info(&quot;============未查询到任何分类==============&quot;);
+            return JsonResponse.ok(Collections.EMPTY_LIST);
+        }
+        log.info(&quot;============一级分类查询result：{}==============&quot;, categoryResponseDTOS);
+        return JsonResponse.ok(categoryResponseDTOS);
+    }
+    ...
+}</code></code></pre>
+<h4 id="test-api">Test API</h4>
+<p>编写完成之后，我们需要对我们的代码进行测试验证，还是通过使用<code>RestService</code>插件来实现，当然，大家也可以通过Postman来测试，结果如下：<br />
+<img src="./images/[springboot 开发单体web shop] 7. 多种形式提供商品列表3.png" alt="根据一级分类查询商品列表" /></p>
+<h1 id="商品列表productlist">商品列表|ProductList</h1>
+<p>如开文之初我们看到的京东商品列表一样，我们先分析一下在商品列表页面都需要哪些元素信息？</p>
+<h2 id="开发梳理-1">开发梳理</h2>
+<p>商品列表的展示按照我们之前的分析，总共分为2大类:</p>
+<ul>
+<li>选择商品分类之后，展示当前分类下所有商品</li>
+<li>输入搜索关键词后，展示当前搜索到相关的所有商品</li>
+</ul>
+<p>在这两类中展示的商品列表数据，除了数据来源不同以外，其他元素基本都保持一致，那么我们是否可以使用统一的接口来根据参数实现隔离呢？ 理论上不存在问题，完全可以通过传参判断的方式进行数据回传，但是，在我们实现一些可预见的功能需求时，一定要给自己的开发预留后路，也就是我们常说的<code>可拓展性</code>，基于此，我们会分开实现各自的接口，以便于后期的扩展。<br />
+接着来分析在列表页中我们需要展示的元素，首先因为需要分上述两种情况，因此我们需要在我们API设计的时候分别处理，针对于<br />
+1.分类的商品列表展示，需要传入的参数有：</p>
+<ul>
+<li>分类id</li>
+<li>排序（在电商列表我们常见的几种排序（销量，价格等等））</li>
+<li>分页相关（因为我们不可能把数据库中所有的商品都取出来）
+<ul>
+<li>PageNumber（当前第几页）</li>
+<li>PageSize（每页显示多少条数据）</li>
+</ul></li>
+</ul>
+<p>2.关键词查询商品列表，需要传入的参数有：</p>
+<ul>
+<li>关键词</li>
+<li>排序（在电商列表我们常见的几种排序（销量，价格等等））</li>
+<li>分页相关（因为我们不可能把数据库中所有的商品都取出来）
+<ul>
+<li>PageNumber（当前第几页）</li>
+<li>PageSize（每页显示多少条数据）</li>
+</ul></li>
+</ul>
+<p>需要在页面展示的信息有：</p>
+<ul>
+<li>商品id(用于跳转商品详情使用)</li>
+<li>商品名称</li>
+<li>商品价格</li>
+<li>商品销量</li>
+<li>商品图片</li>
+<li>商品优惠</li>
+<li>...</li>
+</ul>
+<h2 id="编码实现-1">编码实现</h2>
+<p>根据上面我们的分析，接下来开始我们的编码：</p>
+<h3 id="根据商品分类查询">根据商品分类查询</h3>
+<p>根据我们的分析，肯定不会在一张表中把所有数据获取全，因此我们需要进行多表联查，故我们需要在自定义mapper中实现我们的功能查询.</p>
+<h4 id="responsedto-实现">ResponseDTO 实现</h4>
+<p>根据我们前面分析的前端需要展示的信息，我们来定义一个用于展示这些信息的对象<code>com.liferunner.dto.SearchProductDTO</code>，代码如下：</p>
+<pre><code><code>@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class SearchProductDTO {
+    private String productId;
+    private String productName;
+    private Integer sellCounts;
+    private String imgUrl;
+    private Integer priceDiscount;
+    //商品优惠，我们直接计算之后返回优惠后价格
+}</code></code></pre>
+<h4 id="custom-mapper-实现">Custom Mapper 实现</h4>
+<p>在<code>com.liferunner.custom.ProductCustomMapper.java</code>中新增一个方法接口：</p>
+<pre><code><code>    List&lt;SearchProductDTO&gt; searchProductListByCategoryId(@Param(&quot;paramMap&quot;) Map&lt;String, Object&gt; paramMap);</code></code></pre>
+<p>同时，在<code>mapper/custom/ProductCustomMapper.xml</code>中实现我们的查询方法：</p>
+<pre class="xml"><code>&lt;select id=&quot;searchProductListByCategoryId&quot; resultType=&quot;com.liferunner.dto.SearchProductDTO&quot; parameterType=&quot;Map&quot;&gt;
+        SELECT
+        p.id as productId,
+        p.product_name as productName,
+        p.sell_counts as sellCounts,
+        pi.url as imgUrl,
+        tp.priceDiscount
+        FROM products p
+        LEFT JOIN products_img pi
+        ON p.id = pi.product_id
+        LEFT JOIN
+        (
+        SELECT product_id, MIN(price_discount) as priceDiscount
+        FROM products_spec
+        GROUP BY product_id
+        ) tp
+        ON tp.product_id = p.id
+        WHERE pi.is_main = 1
+        AND p.category_id = #{paramMap.categoryId}
+        ORDER BY
+        &lt;choose&gt;
+            &lt;when test=&quot;paramMap.sortby != null and paramMap.sortby == &#39;sell&#39;&quot;&gt;
+                p.sell_counts DESC
+            &lt;/when&gt;
+            &lt;when test=&quot;paramMap.sortby != null and paramMap.sortby == &#39;price&#39;&quot;&gt;
+                tp.priceDiscount ASC
+            &lt;/when&gt;
+            &lt;otherwise&gt;
+                p.created_time DESC
+            &lt;/otherwise&gt;
+        &lt;/choose&gt;
+    &lt;/select&gt;</code></code></pre>
+<p>主要来说明一下这里的<code>&lt;choose&gt;</code>模块，以及为什么不使用<code>if</code>标签。<br />
+在有的时候，我们并不希望所有的条件都同时生效，而只是想从多个选项中选择一个，但是在使用<code>IF</code>标签时，只要<code>test</code>中的表达式为 <code>true</code>，就会执行<code>IF</code> 标签中的条件。MyBatis 提供了 <code>choose</code> 元素。<code>IF</code>标签是<code>与(and)</code>的关系，而 choose 是<code>或(or)</code>的关系。<br />
+它的选择是按照顺序自上而下，一旦有任何一个满足条件，则选择退出。</p>
+<h4 id="service-实现">Service 实现</h4>
+<p>然后在service<code>com.liferunner.service.IProductService</code>中添加方法接口：</p>
+<pre><code><code>    /**
+     * 根据商品分类查询商品列表
+     *
+     * @param categoryId 分类id
+     * @param sortby     排序方式
+     * @param pageNumber 当前页码
+     * @param pageSize   每页展示多少条数据
+     * @return 通用分页结果视图
+     */
+    CommonPagedResult searchProductList(Integer categoryId, String sortby, Integer pageNumber, Integer pageSize);</code></code></pre>
+<p>在实现类<code>com.liferunner.service.impl.ProductServiceImpl</code>中，实现上述方法：</p>
+<pre><code><code>    // 方法重载
+    @Override
+    public CommonPagedResult searchProductList(Integer categoryId, String sortby, Integer pageNumber, Integer pageSize) {
+        Map&lt;String, Object&gt; paramMap = new HashMap&lt;&gt;();
+        paramMap.put(&quot;categoryId&quot;, categoryId);
+        paramMap.put(&quot;sortby&quot;, sortby);
+        // mybatis-pagehelper
+        PageHelper.startPage(pageNumber, pageSize);
+        val searchProductDTOS = this.productCustomMapper.searchProductListByCategoryId(paramMap);
+        // 获取mybatis插件中获取到信息
+        PageInfo&lt;?&gt; pageInfo = new PageInfo&lt;&gt;(searchProductDTOS);
+        // 封装为返回到前端分页组件可识别的视图
+        val commonPagedResult = CommonPagedResult.builder()
+                .pageNumber(pageNumber)
+                .rows(searchProductDTOS)
+                .totalPage(pageInfo.getPages())
+                .records(pageInfo.getTotal())
+                .build();
+        return commonPagedResult;
+    }</code></code></pre>
+<p>在这里，我们使用到了一个<code>mybatis-pagehelper</code>插件，会在下面的福利讲解中分解。</p>
+<h4 id="controller-实现">Controller 实现</h4>
+<p>继续在<code>com.liferunner.api.controller.ProductController</code>中添加对外暴露的接口API：</p>
+<pre><code><code>@GetMapping(&quot;/searchByCategoryId&quot;)
+    @ApiOperation(value = &quot;查询商品信息列表&quot;, notes = &quot;根据商品分类查询商品列表&quot;)
+    public JsonResponse searchProductListByCategoryId(
+        @ApiParam(name = &quot;categoryId&quot;, value = &quot;商品分类id&quot;, required = true, example = &quot;0&quot;)
+        @RequestParam Integer categoryId,
+        @ApiParam(name = &quot;sortby&quot;, value = &quot;排序方式&quot;, required = false)
+        @RequestParam String sortby,
+        @ApiParam(name = &quot;pageNumber&quot;, value = &quot;当前页码&quot;, required = false, example = &quot;1&quot;)
+        @RequestParam Integer pageNumber,
+        @ApiParam(name = &quot;pageSize&quot;, value = &quot;每页展示记录数&quot;, required = false, example = &quot;10&quot;)
+        @RequestParam Integer pageSize
+    ) {
+        if (null == categoryId || categoryId == 0) {
+            return JsonResponse.errorMsg(&quot;分类id错误！&quot;);
+        }
+        if (null == pageNumber || 0 == pageNumber) {
+            pageNumber = DEFAULT_PAGE_NUMBER;
+        }
+        if (null == pageSize || 0 == pageSize) {
+            pageSize = DEFAULT_PAGE_SIZE;
+        }
+        log.info(&quot;============根据分类:{} 搜索列表==============&quot;, categoryId);
+
+        val searchResult = this.productService.searchProductList(categoryId, sortby, pageNumber, pageSize);
+        return JsonResponse.ok(searchResult);
+    }</code></code></pre>
+<p>因为我们的请求中，只会要求商品分类id是必填项，其余的调用方都可以不提供，但是如果不提供的话，我们系统就需要给定一些默认的参数来保证我们的系统正常稳定的运行，因此，我定义了<code>com.liferunner.api.controller.BaseController</code>,用于存储一些公共的配置信息。</p>
+<pre><code><code>/**
+ * BaseController for : controller 基类
+ */
+@Controller
+public class BaseController {
+    /**
+     * 默认展示第1页
+     */
+    public final Integer DEFAULT_PAGE_NUMBER = 1;
+    /**
+     * 默认每页展示10条数据
+     */
+    public final Integer DEFAULT_PAGE_SIZE = 10;
+}</code></code></pre>
+<h4 id="test-api-1">Test API</h4>
+<p>测试的参数分别是：categoryId : 51 ，sortby : price，pageNumber : 1，pageSize : 5</p>
+<p><img src="./images/[springboot 开发单体web shop] 7. 多种形式提供商品列表4.png" alt="根据分类id查询" /></p>
+<p>可以看到，我们查询到7条数据，总页数<code>totalPage</code>为2，并且根据价格从小到大进行了排序，证明我们的编码是正确的。接下来，通过相同的代码逻辑，我们继续实现根据搜索关键词进行查询。</p>
+<h3 id="根据关键词查询">根据关键词查询</h3>
+<h4 id="response-dto-实现">Response DTO 实现</h4>
+<p>使用上面实现的<code>com.liferunner.dto.SearchProductDTO</code>.</p>
+<h4 id="custom-mapper-实现-1">Custom Mapper 实现</h4>
+<p>在<code>com.liferunner.custom.ProductCustomMapper</code>中新增方法：</p>
+<pre><code><code>List&lt;SearchProductDTO&gt; searchProductList(@Param(&quot;paramMap&quot;) Map&lt;String, Object&gt; paramMap);</code></code></pre>
+<p>在<code>mapper/custom/ProductCustomMapper.xml</code>中添加查询SQL：</p>
+<pre class="xml"><code>&lt;select id=&quot;searchProductList&quot; resultType=&quot;com.liferunner.dto.SearchProductDTO&quot; parameterType=&quot;Map&quot;&gt;
+        SELECT
+        p.id as productId,
+        p.product_name as productName,
+        p.sell_counts as sellCounts,
+        pi.url as imgUrl,
+        tp.priceDiscount
+        FROM products p
+        LEFT JOIN products_img pi
+        ON p.id = pi.product_id
+        LEFT JOIN
+        (
+        SELECT product_id, MIN(price_discount) as priceDiscount
+        FROM products_spec
+        GROUP BY product_id
+        ) tp
+        ON tp.product_id = p.id
+        WHERE pi.is_main = 1
+        &lt;if test=&quot;paramMap.keyword != null and paramMap.keyword != &#39;&#39;&quot;&gt;
+            AND p.item_name LIKE &quot;%${paramMap.keyword}%&quot;
+        &lt;/if&gt;
+        ORDER BY
+        &lt;choose&gt;
+            &lt;when test=&quot;paramMap.sortby != null and paramMap.sortby == &#39;sell&#39;&quot;&gt;
+                p.sell_counts DESC
+            &lt;/when&gt;
+            &lt;when test=&quot;paramMap.sortby != null and paramMap.sortby == &#39;price&#39;&quot;&gt;
+                tp.priceDiscount ASC
+            &lt;/when&gt;
+            &lt;otherwise&gt;
+                p.created_time DESC
+            &lt;/otherwise&gt;
+        &lt;/choose&gt;
+    &lt;/select&gt;</code></code></pre>
+<h4 id="service-实现-1">Service 实现</h4>
+<p>在<code>com.liferunner.service.IProductService</code>中新增查询接口：</p>
+<pre><code><code>    /**
+     * 查询商品列表
+     *
+     * @param keyword    查询关键词
+     * @param sortby     排序方式
+     * @param pageNumber 当前页码
+     * @param pageSize   每页展示多少条数据
+     * @return 通用分页结果视图
+     */
+    CommonPagedResult searchProductList(String keyword, String sortby, Integer pageNumber, Integer pageSize);</code></code></pre>
+<p>在<code>com.liferunner.service.impl.ProductServiceImpl</code>实现上述接口方法：</p>
+<pre><code><code>    @Override
+    public CommonPagedResult searchProductList(String keyword, String sortby, Integer pageNumber, Integer pageSize) {
+        Map&lt;String, Object&gt; paramMap = new HashMap&lt;&gt;();
+        paramMap.put(&quot;keyword&quot;, keyword);
+        paramMap.put(&quot;sortby&quot;, sortby);
+        // mybatis-pagehelper
+        PageHelper.startPage(pageNumber, pageSize);
+        val searchProductDTOS = this.productCustomMapper.searchProductList(paramMap);
+        // 获取mybatis插件中获取到信息
+        PageInfo&lt;?&gt; pageInfo = new PageInfo&lt;&gt;(searchProductDTOS);
+        // 封装为返回到前端分页组件可识别的视图
+        val commonPagedResult = CommonPagedResult.builder()
+                .pageNumber(pageNumber)
+                .rows(searchProductDTOS)
+                .totalPage(pageInfo.getPages())
+                .records(pageInfo.getTotal())
+                .build();
+        return commonPagedResult;
+    }</code></code></pre>
+<p>上述方法和之前<code>searchProductList(Integer categoryId, String sortby, Integer pageNumber, Integer pageSize)</code>唯一的区别就是它是肯定搜索关键词来进行数据查询，使用重载的目的是为了我们后续不同类型的业务扩展而考虑的。</p>
+<h4 id="controller-实现-1">Controller 实现</h4>
+<p>在<code>com.liferunner.api.controller.ProductController</code>中添加关键词搜索API：</p>
+<pre><code><code>    @GetMapping(&quot;/search&quot;)
+    @ApiOperation(value = &quot;查询商品信息列表&quot;, notes = &quot;查询商品信息列表&quot;)
+    public JsonResponse searchProductList(
+        @ApiParam(name = &quot;keyword&quot;, value = &quot;搜索关键词&quot;, required = true)
+        @RequestParam String keyword,
+        @ApiParam(name = &quot;sortby&quot;, value = &quot;排序方式&quot;, required = false)
+        @RequestParam String sortby,
+        @ApiParam(name = &quot;pageNumber&quot;, value = &quot;当前页码&quot;, required = false, example = &quot;1&quot;)
+        @RequestParam Integer pageNumber,
+        @ApiParam(name = &quot;pageSize&quot;, value = &quot;每页展示记录数&quot;, required = false, example = &quot;10&quot;)
+        @RequestParam Integer pageSize
+    ) {
+        if (StringUtils.isBlank(keyword)) {
+            return JsonResponse.errorMsg(&quot;搜索关键词不能为空！&quot;);
+        }
+        if (null == pageNumber || 0 == pageNumber) {
+            pageNumber = DEFAULT_PAGE_NUMBER;
+        }
+        if (null == pageSize || 0 == pageSize) {
+            pageSize = DEFAULT_PAGE_SIZE;
+        }
+        log.info(&quot;============根据关键词:{} 搜索列表==============&quot;, keyword);
+
+        val searchResult = this.productService.searchProductList(keyword, sortby, pageNumber, pageSize);
+        return JsonResponse.ok(searchResult);
+    }</code></code></pre>
+<h4 id="test-api-2">Test API</h4>
+<p>测试参数：keyword : 西凤，sortby : sell，pageNumber : 1，pageSize : 10<br />
+<img src="./images/[springboot 开发单体web shop] 7. 多种形式提供商品列表5.png" alt="测试关键词结果" /><br />
+根据销量排序正常，查询关键词正常，总条数32，每页10条，总共3页正常。</p>
+<h1 id="福利讲解">福利讲解</h1>
+<p>在本节编码实现中，我们使用到了一个通用的mybatis分页插件<code>mybatis-pagehelper</code>,接下来，我们来了解一下这个插件的基本情况。</p>
+<h2 id="mybatis-pagehelper"><code>mybatis-pagehelper</code></h2>
+<p>如果各位小伙伴使用过：<a href="https://pagehelper.github.io/">MyBatis 分页插件 PageHelper</a>, 那么对于这个就很容易理解了，它其实就是基于<a href="https://pagehelper.github.io/docs/interceptor/">Executor 拦截器</a>来实现的，当拦截到原始SQL之后，对SQL进行一次改造处理。<br />
+我们来看看我们自己代码中的实现，根据springboot编码三部曲：</p>
+<p>1.添加依赖</p>
+<pre class="xml"><code>        &lt;!-- 引入mybatis-pagehelper 插件--&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.github.pagehelper&lt;/groupId&gt;
+            &lt;artifactId&gt;pagehelper-spring-boot-starter&lt;/artifactId&gt;
+            &lt;version&gt;1.2.12&lt;/version&gt;
+        &lt;/dependency&gt;</code></code></pre>
+<p>有同学就要问了，为什么引入的这个依赖和我原来使用的不同？以前使用的是：</p>
+<pre class="xml"><code>&lt;dependency&gt;
+    &lt;groupId&gt;com.github.pagehelper&lt;/groupId&gt;
+    &lt;artifactId&gt;pagehelper&lt;/artifactId&gt;
+    &lt;version&gt;5.1.10&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>答案就在这里：<a href="https://github.com/pagehelper">依赖传送门</a><br />
+<img src="./images/[springboot 开发单体web shop] 7. 多种形式提供商品列表6.png" alt="spring-boot-pagehelper" /><br />
+我们使用的是springboot进行的项目开发，既然使用的是springboot,那我们完全可以用到它的<code>自动装配</code>特性,作者帮我们实现了这么一个<a href="https://github.com/pagehelper/pagehelper-spring-boot">自动装配的jar</a>,我们只需要参考示例来编写就ok了。</p>
+<p>2.改配置</p>
+<pre class="yaml"><code># mybatis 分页组件配置
+pagehelper:
+  helperDialect: mysql #插件支持12种数据库，选择类型
+  supportMethodsArguments: true</code></code></pre>
+<p>3.改代码</p>
+<p>如下示例代码：</p>
+<pre><code><code>    @Override
+    public CommonPagedResult searchProductList(String keyword, String sortby, Integer pageNumber, Integer pageSize) {
+        Map&lt;String, Object&gt; paramMap = new HashMap&lt;&gt;();
+        paramMap.put(&quot;keyword&quot;, keyword);
+        paramMap.put(&quot;sortby&quot;, sortby);
+        // mybatis-pagehelper
+        PageHelper.startPage(pageNumber, pageSize);
+        val searchProductDTOS = this.productCustomMapper.searchProductList(paramMap);
+        // 获取mybatis插件中获取到信息
+        PageInfo&lt;?&gt; pageInfo = new PageInfo&lt;&gt;(searchProductDTOS);
+        // 封装为返回到前端分页组件可识别的视图
+        val commonPagedResult = CommonPagedResult.builder()
+                .pageNumber(pageNumber)
+                .rows(searchProductDTOS)
+                .totalPage(pageInfo.getPages())
+                .records(pageInfo.getTotal())
+                .build();
+        return commonPagedResult;
+    }</code></code></pre>
+<p>在我们查询数据库之前，我们引入了一句<code>PageHelper.startPage(pageNumber, pageSize);</code>,告诉mybatis我们要对查询进行分页处理，这个时候插件会启动一个拦截器<code>com.github.pagehelper.PageInterceptor</code>,针对所有的<code>query</code>进行拦截，添加自定义参数和添加查询数据总数。（后续我们会打印sql来证明。）</p>
+<p>当查询到结果之后，我们需要将我们查询到的结果通知给插件，也就是<code>PageInfo&lt;?&gt; pageInfo = new PageInfo&lt;&gt;(searchProductDTOS);</code>（<code>com.github.pagehelper.PageInfo</code>是对插件针对分页做的一个属性包装，具体可以查看<a href="http://bbs.csdn.net/topics/360010907">属性传送门</a>）。</p>
+<p>至此，我们的插件使用就已经结束了。但是为什么我们在后面又封装了一个对象来对外进行返回，而不是使用查询到的<code>PageInfo</code>呢？这是因为我们实际开发过程中，为了数据结构的一致性做的一次结构封装，你也可不实现该步骤，都是对结果没有任何影响的。</p>
+<h2 id="sql打印对比">SQL打印对比</h2>
+<pre class="shell"><code>2019-11-21 12:04:21 INFO  ProductController:134 - ============根据关键词:西凤 搜索列表==============
+Creating a new SqlSession
+SqlSession [org.apache.ibatis.session.defaults.DefaultSqlSession@4ff449ba] was not registered for synchronization because synchronization is not active
+JDBC Connection [HikariProxyConnection@1980420239 wrapping com.mysql.cj.jdbc.ConnectionImpl@563b22b1] will not be managed by Spring
+==&gt;  Preparing: SELECT count(0) FROM products p LEFT JOIN products_img pi ON p.id = pi.product_id LEFT JOIN (SELECT product_id, MIN(price_discount) AS priceDiscount FROM products_spec GROUP BY product_id) tp ON tp.product_id = p.id WHERE pi.is_main = 1 AND p.product_name LIKE &quot;%西凤%&quot; 
+==&gt; Parameters: 
+&lt;==    Columns: count(0)
+&lt;==        Row: 32
+&lt;==      Total: 1
+==&gt;  Preparing: SELECT p.id as productId, p.product_name as productName, p.sell_counts as sellCounts, pi.url as imgUrl, tp.priceDiscount FROM product p LEFT JOIN products_img pi ON p.id = pi.product_id LEFT JOIN ( SELECT product_id, MIN(price_discount) as priceDiscount FROM products_spec GROUP BY product_id ) tp ON tp.product_id = p.id WHERE pi.is_main = 1 AND p.product_name LIKE &quot;%西凤%&quot; ORDER BY p.sell_counts DESC LIMIT ? 
+==&gt; Parameters: 10(Integer)</code></code></pre>
+<p>我们可以看到，我们的SQL中多了一个<code>SELECT count(0)</code>，第二条SQL多了一个<code>LIMIT</code>参数，在代码中，我们很明确的知道，我们并没有显示的去搜索总数和查询条数，可以确定它就是插件帮我们实现的。</p>
+<h1 id="源码下载">源码下载</h1>
+<p><a href="https://github.com/Isaac-Zhang/expensive-shop">Github 传送门</a><br />
+<a href="https://gitee.com/IsaacZhang/expensive-shop">Gitee 传送门</a></p>
+<h1 id="下节预告">下节预告</h1>
+<p>下一节我们将继续开发商品详情展示以及商品评价业务，在过程中使用到的任何开发组件，我都会通过专门的一节来进行介绍的，兄弟们末慌！</p>
+<p>gogogo！</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,59 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修@EnableTransactionalManager 发生了什么' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>@EnableTransactionalManager 发生了什么</center></div><div class='banquan'>原文出处:本文由博客园博主_我在清水河边提供。<br/>
+原文连接:https://www.cnblogs.com/wzqshb/p/11771499.html</div><br>
+    <h3 id="enabletransactionalmanager">@EnableTransactionalManager</h3>
+<ol>
+<li>利用TransactionManagementConfigurationSelector 给容器中注入bean，导入2个组件:
+<ul>
+<li>AutoProxyRegistrar</li>
+<li>ProxyTransactionManagementConfiguration</li>
+</ul></li>
+<li><p>AutoProxyRegistrar<br />
+<code>InfrastructureAdvisorAutoProxyCreator</code> 给容器中注册一个这个组件</p>
+<blockquote>
+<p>类uml图中可以看出,这个组件和aop中的实现很类似</p>
+</blockquote>
+<p><img src="./images/@EnableTransactionalManager 发生了什么0.png" alt="file" /></p>
+该组件利用后置处理器在对象创建之后，返回一个代理对象，代理对象执行方法利用拦截器链进行调用</li>
+<li>ProxyTransactionManagementConfiguration
+<ol>
+<li>给容器中添加事务增强器
+<ul>
+<li>事务增强器要用到事务的注解信息,用AnnotationTransactionAttributeSource，解析事务的注解参数</li>
+<li><p>事务拦截器 TransactionInterceptor ,保存了事务属性，事务管理器，是一个 <code>MethodInterceptor</code> ，在目标方法执行的时候执行拦截器链。</p>
+<pre><code><code>TransactionAttribute txAttr = tas != null ? tas.getTransactionAttribute(method, targetClass) : null;
+PlatformTransactionManager tm = this.determineTransactionManager(txAttr);</code></code></pre>
+<ol>
+<li>先获取事务的属性</li>
+<li>获取<code>PlatformTransactionManager</code>，如果事先没有添加，则从ioc中获取PlatformTransactionManager,</li>
+<li><p>执行目标方法,如果异常，获取到事务管理器，利用事务管理器回滚这次操作。如果正常，利用事务管理器，提交事务。</p>
+<blockquote>
+<p>https://github.com/fulln</p>
+</blockquote></li>
+</ol></li>
+</ul></li>
+</ol></li>
+</ol>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,1307 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修java使用face++简单实现人脸识别注册登录' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>java使用face++简单实现人脸识别注册登录</center></div><div class='banquan'>原文出处:本文由博客园博主爱华顿g提供。<br/>
+原文连接:https://www.cnblogs.com/aihuadung/p/11592967.html</div><br>
+    <p>&nbsp;</p>
+<p>java使用face++简单实现人脸识别注册登录</p>
+<h2>前言</h2>
+<p>人脸识别,好高大上!!!</p>
+<p>理解之后很简单。</p>
+<p>&nbsp;</p>
+<p>支付宝使用的就是face++,</p>
+<p>&nbsp;</p>
+<p><strong>至于face++</strong><strong>账号信息,apikey&hellip;..,</strong><strong>本文不做讲述,</strong><strong>网上很多.</strong></p>
+<p>&nbsp;</p>
+<h2>一.设计思想</h2>
+<h3>1.&nbsp;&nbsp;&nbsp; 先想一想,如果让你实现人脸识别,你会怎么做?</h3>
+<p>寻找图片上的关键点,制作一套算法,分析脸部信息,将得到的数据存入数据库,</p>
+<p>&nbsp;</p>
+<p>登录的时候,通过同样的算法,分析数据,和数据库中存入的信息进行比对&hellip;&hellip;</p>
+<p>&nbsp;</p>
+<p>工作量好大!!!</p>
+<p>&nbsp;</p>
+<p>face++有着它独有的非常优秀的算法,我们可以将我们的图片上传到face++服务器来获取对应的图片数据,剩下的事情就很简单了</p>
+<h3>2.&nbsp;&nbsp;&nbsp; 四个face++&nbsp; api简介:</h3>
+<p>这里只介绍用到的api,</p>
+<h4>2.1 使用api肯定需要先注册一下信息,获取api_key和api_secret,可以注册试用的进行获取</h4>
+<p>&nbsp;<img src="./images/java使用face++简单实现人脸识别注册登录0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h4>2.2 create</h4>
+<p><strong>作用: </strong>创建一个FaceSet,创建一个脸部信息集合,引用官网的描述:</p>
+<p>&nbsp;<img src="./images/java使用face++简单实现人脸识别注册登录1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>url:</strong><a href="https://api-cn.faceplusplus.com/facepp/v3/faceset/create">https://api-cn.faceplusplus.com/facepp/v3/faceset/create</a></p>
+<p><strong>参数</strong>:api_key,api_secret,&hellip;&hellip;</p>
+<p>&nbsp;<img src="./images/java使用face++简单实现人脸识别注册登录2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>返回值</strong><strong>: </strong>faceset_token, outer_id&hellip;&hellip;,这里写的两个返回值需要记住,是这个脸部信息集合的唯一标识,具体返回值信息如下图:</p>
+<p>&nbsp;<img src="./images/java使用face++简单实现人脸识别注册登录3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h4>2.3&nbsp;&nbsp; addFace</h4>
+<p><strong>作用:</strong>向脸部信息集合faceSet添加一条或多条脸部信息,便于后期搜索</p>
+<p><strong>url: </strong>https://api-cn.faceplusplus.com/facepp/v3/faceset/addface</p>
+<p><strong>参数: </strong>不用说,肯定需要,api_key,api_secret,faceSet_token或outer_id(脸部信息唯一标识),还有图片信息,官网截图:</p>
+<p>&nbsp;<img src="./images/java使用face++简单实现人脸识别注册登录4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>返回值:</strong>可以获取插入的结果信息</p>
+<p>&nbsp;<img src="./images/java使用face++简单实现人脸识别注册登录5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>.</p>
+<p><img src="./images/java使用face++简单实现人脸识别注册登录6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h4>2.4 Search</h4>
+<p><strong>作用: </strong>传入一张图片信息到face++服务器,会返回最相似的face_token</p>
+<p><strong>url:</strong> https://api-cn.faceplusplus.com/facepp/v3/search</p>
+<p><strong>参数:</strong>api_key,api_secret,image_url或image_file或image_base64或face_token,详细参数列表如下</p>
+<table border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top">
+<p align="left"><strong>是否必选</strong></p>
+</td>
+<td valign="top">
+<p align="left"><strong>参数名</strong></p>
+</td>
+<td valign="top">
+<p align="left"><strong>类型</strong></p>
+</td>
+<td valign="top">
+<p align="left"><strong>参数说明</strong></p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">必选</p>
+</td>
+<td valign="top">
+<p align="left">api_key</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">调用此 API 的 API Key</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">必选</p>
+</td>
+<td valign="top">
+<p align="left">api_secret</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">调用此 API 的 API Secret</p>
+</td>
+</tr>
+<tr>
+<td rowspan="4" valign="top">
+<p align="left">必选（四选一）</p>
+</td>
+<td valign="top">
+<p align="left">face_token</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">进行搜索的目标人脸的 face_token，优先使用该参数</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">image_url</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">目标人脸所在的图片的 URL</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">image_file</p>
+</td>
+<td valign="top">
+<p align="left">File</p>
+</td>
+<td valign="top">
+<p align="left">目标人脸所在的图片，二进制文件，需要用 post multipart/form-data 的方式上传。</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">image_base64</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">base64 编码的二进制图片数据</p>
+<p align="left">如果同时传入了 image_url、image_file 和 image_base64 参数，本 API 使用顺序为 image_file 优先，image_url 最低。</p>
+</td>
+</tr>
+<tr>
+<td rowspan="2" valign="top">
+<p align="left">必选（二选一）</p>
+</td>
+<td valign="top">
+<p align="left">faceset_token</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">用来搜索的 FaceSet 的标识</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">outer_id</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">用户自定义的 FaceSet 标识</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">可选</p>
+</td>
+<td valign="top">
+<p align="left">return_result_count</p>
+</td>
+<td valign="top">
+<p align="left">Int</p>
+</td>
+<td valign="top">
+<p align="left">控制返回比对置信度最高的结果的数量。合法值为一个范围 [1,5] 的整数。默认值为 1</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">可选（仅正式 API Key 可以使用）</p>
+</td>
+<td valign="top">
+<p align="left">face_rectangle</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">当传入图片进行人脸检测时，是否指定人脸框位置进行检测。</p>
+<p align="left">如果此参数传入值为空，或不传入此参数，则不使用此功能。本 API 会自动检测图片内所有区域的所有人脸。</p>
+<p align="left">如果使用正式 API Key 对此参数传入符合格式要求的值，则使用此功能。需要传入一个字符串代表人脸框位置，系统会根据此坐标对框内的图像进行人脸检测，以及人脸关键点和人脸属性等后续操作。系统返回的人脸矩形框位置会与传入的 face_rectangle 完全一致。对于此人脸框之外的区域，系统不会进行人脸检测，也不会返回任何其他的人脸信息。</p>
+<p align="left">参数规格：四个正整数，用逗号分隔，依次代表人脸框左上角纵坐标（top），左上角横坐标（left），人脸框宽度（width），人脸框高度（height）。例如：70,80,100,100</p>
+<p align="left">注：只有在传入 image_url、image_file 和 image_base64 三个参数中任意一个时，本参数才生效。</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p><strong>返回值:</strong>返回值包含和你传入图片信息最像的图片的face_token,(可以再和数据库中对应的信息进行比较)</p>
+<p>&nbsp;<img src="./images/java使用face++简单实现人脸识别注册登录7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h4>2.4&nbsp;&nbsp; Detect</h4>
+<p><strong>作用: </strong></p>
+<p>传入一张图片信息,获取这张图片的face_token,注意,一张相同图片获取多次的face_token不同</p>
+<p>&nbsp;</p>
+<p>url: <a href="https://api-cn.faceplusplus.com/facepp/v3/detect">https://api-cn.faceplusplus.com/facepp/v3/detect</a></p>
+<p>参数:api_key,api_secret, image_url或image_file或image_base64,</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top">
+<p align="left"><strong>是否必选</strong></p>
+</td>
+<td valign="top">
+<p align="left"><strong>参数名</strong></p>
+</td>
+<td valign="top">
+<p align="left"><strong>类型</strong></p>
+</td>
+<td valign="top">
+<p align="left"><strong>参数说明</strong></p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">必选</p>
+</td>
+<td valign="top">
+<p align="left">api_key</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">调用此API的API Key</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">必选</p>
+</td>
+<td valign="top">
+<p align="left">api_secret</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">调用此API的API Secret</p>
+</td>
+</tr>
+<tr>
+<td rowspan="3" valign="top">
+<p align="left">必选（三选一）</p>
+</td>
+<td valign="top">
+<p align="left">image_url</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">图片的 URL。</p>
+<p align="left">注：在下载图片时可能由于网络等原因导致下载图片时间过长，建议使用 image_file 或 image_base64 参数直接上传图片。</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">image_file</p>
+</td>
+<td valign="top">
+<p align="left">File</p>
+</td>
+<td valign="top">
+<p align="left">一个图片，二进制文件，需要用post multipart/form-data的方式上传。</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">image_base64</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">base64 编码的二进制图片数据</p>
+<p align="left">如果同时传入了 image_url、image_file 和 image_base64 参数，本API使用顺序为 image_file 优先，image_url 最低。</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">可选</p>
+</td>
+<td valign="top">
+<p align="left">return_landmark</p>
+</td>
+<td valign="top">
+<p align="left">Int</p>
+</td>
+<td valign="top">
+<p align="left">是否检测并返回人脸关键点。合法值为：</p>
+<table border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top">
+<p align="left">2&nbsp;</p>
+</td>
+<td valign="top">
+<p align="left">检测。返回 106 个人脸关键点。</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">1</p>
+</td>
+<td valign="top">
+<p align="left">检测。返回 83 个人脸关键点。</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">0</p>
+</td>
+<td valign="top">
+<p align="left">不检测</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p align="left">注：本参数默认值为 0</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">可选</p>
+</td>
+<td valign="top">
+<p align="left">return_attributes</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">是否检测并返回根据人脸特征判断出的年龄、性别、情绪等属性。合法值为：</p>
+<table border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top">
+<p align="left">none</p>
+</td>
+<td valign="top">
+<p align="left">不检测属性</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<ul>
+<li>gender</li>
+<li>age</li>
+<li>smiling</li>
+<li>headpose</li>
+<li>facequality</li>
+<li>blur</li>
+<li>eyestatus</li>
+<li>emotion</li>
+<li>ethnicity</li>
+<li>beauty</li>
+<li>mouthstatus</li>
+<li>eyegaze</li>
+<li>skinstatus</li>
+</ul>
+</td>
+<td valign="top">
+<p align="left">希望检测并返回的属性。</p>
+<p align="left">需要将属性组成一个用逗号分隔的字符串，属性之间的顺序没有要求。</p>
+<p align="left">关于各属性的详细描述，参见下文&ldquo;返回值&rdquo;说明的 "attributes" 部分。</p>
+<p align="left">注：在此参数中的传入参数smiling，对应在返回值的attributes中参数名为smile。在使用时请注意。</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p align="left">注：本参数默认值为 none</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">可选（仅正式 API Key 可以使用）</p>
+</td>
+<td valign="top">
+<p align="left">calculate_all</p>
+</td>
+<td valign="top">
+<p align="left">Int</p>
+</td>
+<td valign="top">
+<p align="left">是否检测并返回所有人脸的人脸关键点和人脸属性。如果不使用此功能，则本 API 只会对人脸面积最大的五个人脸分析人脸关键点和人脸属性。合法值为：</p>
+<table border="0" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top">
+<p align="left">1</p>
+</td>
+<td valign="top">
+<p align="left">是</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">0</p>
+</td>
+<td valign="top">
+<p align="left">否</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p align="left">注：本参数默认值为 0</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">可选（仅正式 API Key 可以使用）</p>
+</td>
+<td valign="top">
+<p align="left">face_rectangle</p>
+</td>
+<td valign="top">
+<p align="left">String</p>
+</td>
+<td valign="top">
+<p align="left">是否指定人脸框位置进行人脸检测。</p>
+<p align="left">如果此参数传入值为空，或不传入此参数，则不使用此功能。本 API 会自动检测图片内所有区域的所有人脸。</p>
+<p align="left">如果使用正式 API Key 对此参数传入符合格式要求的值，则使用此功能。需要传入一个字符串代表人脸框位置，系统会根据此坐标对框内的图像进行人脸检测，以及人脸关键点和人脸属性等后续操作。系统返回的人脸矩形框位置会与传入的 face_rectangle 完全一致。对于此人脸框之外的区域，系统不会进行人脸检测，也不会返回任何其他的人脸信息。</p>
+<p align="left">参数规格：四个正整数，用逗号分隔，依次代表人脸框左上角纵坐标（top），左上角横坐标（left），人脸框宽度（width），人脸框高度（height）。例如：70,80,100,100</p>
+</td>
+</tr>
+<tr>
+<td valign="top">
+<p align="left">可选</p>
+</td>
+<td valign="top">
+<p align="left">beauty_score_min</p>
+</td>
+<td valign="top">
+<p align="left">Int</p>
+</td>
+<td valign="top">
+<p align="left">颜值评分分数区间的最小值。默认为0</p>
+<p align="left">注：默认颜值评分分数区间为0-100.可通过beauty_score_min和beauty_score_max来调节分数区间，满足您的场景需求。<br />
+  <br />
+  </p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+<tr>
+<td valign="top">
+<p align="left">可选</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">beauty_score_max</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">Int</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">颜值评分分数区间的最大值。默认为100</p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+
+
+
+
+
+</tbody>
+
+
+
+
+</table>
+<p>&nbsp;</p>
+<p><strong>返回值:</strong>图片对应的face_token</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top">
+<p align="left"><strong>字段</strong></p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left"><strong>类型</strong></p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left"><strong>说明</strong></p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+<tr>
+<td valign="top">
+<p align="left">request_id</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">String</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">用于区分每一次请求的唯一的字符串。</p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+<tr>
+<td valign="top">
+<p align="left">faces</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">Array</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">被检测出的人脸数组，具体包含内容见下文。</p>
+<p align="left">注：如果没有检测出人脸则为空数组</p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+<tr>
+<td valign="top">
+<p align="left">image_id</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">String</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">被检测的图片在系统中的标识。</p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+<tr>
+<td valign="top">
+<p align="left">time_used</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">Int</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">整个请求所花费的时间，单位为毫秒。</p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+<tr>
+<td valign="top">
+<p align="left">error_message</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">String</p>
+
+
+
+
+
+  </td>
+<td valign="top">
+<p align="left">当请求失败时才会返回此字符串，具体返回内容见后续错误信息章节。否则此字段不存在。</p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+
+
+
+
+
+</tbody>
+
+
+
+
+</table>
+<p>&nbsp;</p>
+<p>在faces中包含face_token</p>
+<h3>3.&nbsp;&nbsp;&nbsp;
+设计分析</h3>
+<ol>
+<li>创建调用create api创建faceSet,取得faceSet_token,对应你的一张用户信息表</li>
+<li>注册时:调用detect api传入用户注册的图片信息,获取face_token,</li>
+
+
+
+
+</ol>
+<p>将face_token存入faceSet,(调用addFace api存入)</p>
+<p>将face_token存入数据库</p>
+<ol>
+<li>登录: 从前端获取用户图片,将图片编码为base64作为参数image_base64调用search api</li>
+
+
+
+
+</ol>
+<p>返回值为在faceSet中,和传入图片相似度高的face_token</p>
+<p>通过返回的face_token,在数据库中进行查询,实现登陆</p>
+<h2>二.用到的技术</h2>
+<p>有了上面的分析,即使使用javaweb也能实现了</p>
+<p>&nbsp;</p>
+<p>本案例使用</p>
+<p>maven</p>
+<p>java的ssm框架</p>
+<p>配上Druid连接池</p>
+<p>&nbsp;</p>
+<p>前端使用了jquery,(不懂前端,通过参考和自己设计写的很low)</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>三.实现</h2>
+<h3>3.1前端界面:</h3>
+<p>实体类:</p>
+<p>User{</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String
+username;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String
+password;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String
+other;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; //在本案例中没有作用</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String
+faceToken;</p>
+<p>}</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 技术不高,自己写的一个简单的界面</p>
+<p>注册界面:register.html</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<p align="left">&lt;!DOCTYPE <strong>html</strong>&gt;<br />
+  &lt;<strong>html </strong><strong>lang=</strong><strong>"en"</strong>&gt;<br />
+  &lt;<strong>head</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; &lt;<strong>meta </strong><strong>charset=</strong><strong>"UTF-8"</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; &lt;<strong>title</strong>&gt;Title&lt;/<strong>title</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; &lt;<strong>script </strong><strong>src=</strong><strong>"js/jquery-3.3.1.js"</strong>&gt;&lt;/<strong>script</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; &lt;<strong>style</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>* </strong>{<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>margin</strong>: 0;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>padding</strong>: 0;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>html</strong>, <strong>body </strong>{<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>width</strong>: 100%;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>height</strong>: 100%;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>body </strong>{<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>background</strong>: <strong>url</strong>(<strong>img/bg.jpg</strong>) <strong>no-repeat center</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>h1 </strong>{<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>color</strong>: <strong>#fff</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>text-align</strong>: <strong>center</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>line-height</strong>: 80<strong>px</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .<strong>media </strong>{<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>width</strong>: 534<strong>px</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>height</strong>: 400<strong>px</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>margin</strong>: 40<strong>px auto </strong>0;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>transform-style</strong>: <strong>preserve-3d</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>transform</strong>: <strong>perspective</strong>(600<strong>px</strong>) <strong>rotateY</strong>(25<strong>deg</strong>);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>#register </strong>{<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>width</strong>: 200<strong>px</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>height</strong>: 50<strong>px</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>background</strong>: <strong>#0089ff</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>margin</strong>: 60<strong>px auto </strong>0;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>text-align</strong>: <strong>center</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>line-height</strong>: 50<strong>px</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>color</strong>: <strong>#fff</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>/*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  color: red;*/<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong>border-radius</strong>: 16<strong>px</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>transform-style</strong>: <strong>preserve-3d</strong>;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>transform</strong>: <strong>perspective</strong>(600<strong>px</strong>) <strong>rotateY</strong>(25<strong>deg</strong>) <strong>rotateZ</strong>(-10<strong>deg</strong>);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>cursor</strong>: <strong>pointer</strong>;<br />
+  <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  &nbsp;&nbsp;&nbsp; &lt;/<strong>style</strong>&gt;<br />
+  &lt;/<strong>head</strong>&gt;<br />
+  &lt;<strong>body</strong>&gt;<br />
+  <em>&lt;!--autoplay="true"--&gt;<br />
+  </em>&lt;<strong>div </strong><strong>class=</strong><strong>"media"</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; &lt;<strong>video </strong><strong>id=</strong><strong>"myVideo" </strong><strong>height=</strong><strong>"534" </strong><strong>width=</strong><strong>"400" </strong><strong>src=</strong><strong>"" </strong><strong>autoplay</strong>&gt;&lt;/<strong>video</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; &lt;<strong>canvas </strong><strong>id=</strong><strong>"myCanvas" </strong><strong>height=</strong><strong>"534" </strong><strong>width=</strong><strong>"400"</strong>&gt;&lt;/<strong>canvas</strong>&gt;<br />
+  &lt;/<strong>div</strong>&gt;<br />
+  <br />
+  <em>&lt;!--</em><em>创建一个注册的按钮--&gt;<br />
+  </em>&lt;<strong>form </strong><strong>action=</strong><strong>"register.do" </strong><strong>id=</strong><strong>"registerForm"</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; 用户名: &lt;<strong>input </strong><strong>type=</strong><strong>"text" </strong><strong>name=</strong><strong>"username"</strong>&gt;&lt;<strong>br</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; 密码 :&lt;<strong>input </strong><strong>type=</strong><strong>"text" </strong><strong>name=</strong><strong>"password"</strong>&gt;&lt;<strong>br</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; &lt;<strong>input </strong><strong>type=</strong><strong>"hidden" </strong><strong>name=</strong><strong>"faceToken" </strong><strong>id=</strong><strong>"faceToken" </strong><strong>value=</strong><strong>""</strong>&gt;&lt;<strong>br</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; 备注字段:&lt;<strong>input </strong><strong>type=</strong><strong>"text" </strong><strong>name=</strong><strong>"other"</strong>&gt;&lt;<strong>br</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; &lt;<strong>input </strong><strong>type=</strong><strong>"button" </strong><strong>id=</strong><strong>"toUpPic" </strong><strong>value=</strong><strong>"</strong><strong>上传图片"</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; &lt;<strong>input </strong><strong>type=</strong><strong>"button" </strong><strong>id=</strong><strong>"register" </strong><strong>value=</strong><strong>"</strong><strong>注册"</strong>&gt;<br />
+  &lt;/<strong>form</strong>&gt;<br />
+  <em>&lt;!--&lt;div
+  id="login"&gt;</em><em>注册&lt;/div&gt;--&gt;<br />
+  </em>&lt;<strong>script</strong>&gt;<br />
+  &nbsp;&nbsp;&nbsp; <em>//</em><em>这里写的是网页脚本<br />
+  &nbsp;&nbsp;&nbsp; //调用摄像头获取媒体视频流<br />
+  &nbsp;&nbsp;&nbsp; /***<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; * 默认的写法:navigator.getUserMedia<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; * 火狐:navigator.mozGetUserMedia<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; * 微软:navigator.msGetUserMedia<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; * 谷歌:navigator.webkitGetUserMedia<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; *<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; * <strong>@type </strong>{((constraints:
+  MediaStreamConstraints, successCallback: NavigatorUserMediaSuccessCallback,
+  errorCallback: NavigatorUserMediaErrorCallback) =&gt; void) | *}<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; */<br />
+  &nbsp;&nbsp;&nbsp; </em><strong>var </strong><strong><em>getUserMedia </em></strong>= (<strong><em>navigator</em></strong>.getUserMedia || <strong><em>navigator</em></strong>.webkitGetUserMedia
+  || <strong><em>navigator</em></strong>.mozGetUserMedia || <strong><em>navigator</em></strong>.msGetUserMedia);<br />
+  <br />
+  &nbsp;&nbsp;&nbsp; <strong>var </strong><strong><em>video </em></strong>= <strong><em>document</em></strong>.getElementById(<strong>"myVideo"</strong>);<br />
+  &nbsp;&nbsp;&nbsp; <em>/***<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; * </em><em>四个参数
+  getUserMedia.call(navigator,{video:true,audio:false},function(){},function(){});<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;
+  1.要调用的对象<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;
+  2.约束对象:eg:只调用视频<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;
+  3.调用成功的方法<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; *&nbsp;
+  4.调用失败的方法<br />
+  &nbsp;&nbsp;&nbsp;&nbsp; */<br />
+  &nbsp;&nbsp;&nbsp; </em><strong><em>getUserMedia</em></strong>.call(<strong><em>navigator</em></strong>, {<strong>video</strong>: <strong>true</strong>, <strong>audio</strong>: <strong>false</strong>}, <strong>function </strong>(localMediaStream)
+  {<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>//</em><em>这里是调用成功的方法,如果调用成功,将视频流对象传到myVideo,localMediaStream是传入的视频流对象<br />
+  <br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  /*document.getElementById("myVideo").src=
+  window.URL.createObjectURL(localMediaStream);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * 上一行的代码已经过时了<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * */<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong>try </strong>{<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong><em>video</em></strong>.<strong>src </strong>= <strong><em>window</em></strong>.URL.<strong>createObjectURL</strong>(localMediaStream);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } <strong>catch </strong>(e) {<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>//</em><em>执行的是这段代码<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong><em>video</em></strong>.<strong>srcObject </strong>=
+  localMediaStream;<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>/***<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * </em><em>下面三行代码可以代替了video的autoplay属性<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; video.onloadedmetadata = function ()
+  {<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; video.play();<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }*/<br />
+  <br />
+  &nbsp;&nbsp;&nbsp; </em>}, <strong>function </strong>(e) {<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong><em>console</em></strong>.log(<strong>"</strong><strong>获取摄像头失败"</strong>, e);<em>//</em><em>通过控制台将我们的错误信息打印<br />
+  &nbsp;&nbsp;&nbsp; </em>});<br />
+  <br />
+  &nbsp;&nbsp;&nbsp; <em>//</em><em>获取登陆按钮<br />
+  &nbsp;&nbsp;&nbsp; </em><strong>var </strong><strong><em>btn_register </em></strong>= <strong><em>document</em></strong>.getElementById(<strong>"register"</strong>);<br />
+  &nbsp;&nbsp;&nbsp; <strong>var </strong><strong><em>toUpPic </em></strong>= <strong><em>document</em></strong>.getElementById(<strong>"toUpPic"</strong>);<br />
+  &nbsp;&nbsp;&nbsp; <em>//</em><em>获取canvas对象<br />
+  &nbsp;&nbsp;&nbsp; </em><strong>var </strong><strong><em>canvas </em></strong>= <strong><em>document</em></strong>.getElementById(<strong>"myCanvas"</strong>);<br />
+  &nbsp;&nbsp;&nbsp; <em>//</em><em>获取上下文对象<br />
+  &nbsp;&nbsp;&nbsp; </em><strong>var </strong><strong><em>context </em></strong>= <strong><em>canvas</em></strong>.getContext(<strong>"2d"</strong>);<br />
+  &nbsp;&nbsp;&nbsp; <em>//</em><em>登陆按钮绑定点击事件<br />
+  &nbsp;&nbsp;&nbsp; </em><strong><em>toUpPic</em></strong>.onclick = <strong>function </strong>() {<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>//</em><em>点击登录按钮获取面部信息,(点击登录按钮的时候将图像画到)<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // context.drawImage(video,x轴开始位置,y轴开始位置,x轴结束位置,y轴结束位置);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong><em>context</em></strong>.drawImage(<strong><em>video</em></strong>, 0, 0, 534, 400);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>//image/png </em><em>表示画成什么格式<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong>var </strong>imgSrc = <strong><em>document</em></strong>.getElementById(<strong>"myCanvas"</strong>).toDataURL(<strong>"image/png"</strong>);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>alert</em>(imgSrc);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>// var
+  Baseimg=imgSrc.split(",")[1];<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong>$</strong>.post(<strong>"getFaceToken.do"</strong>, {<strong>imgSrc</strong>: imgSrc}, <strong>function </strong>(faceToken) {<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>alert</em>(faceToken);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>if </strong>(faceToken) {<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>$</strong>(<strong>"#faceToken"</strong>).val(faceToken);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } <strong>else </strong>{<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>alert</em>(<strong>"</strong><strong>登录失败,请重新扫描"</strong>);<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; });<br />
+  <br />
+  <br />
+  &nbsp;&nbsp;&nbsp; }<br />
+  &nbsp;&nbsp;&nbsp; <strong><em>btn_register</em></strong>.onclick=<strong>function </strong>() {<br />
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>$</strong>(<strong>"#registerForm"</strong>).submit();<br />
+  &nbsp;&nbsp;&nbsp; }<br />
+  <br />
+  &lt;/<strong>script</strong>&gt;<br />
+  &lt;/<strong>body</strong>&gt;<br />
+  &lt;/<strong>html</strong>&gt;</p>
+<p>&nbsp;</p>
+
+
+
+
+
+  </td>
+
+
+
+
+
+ </tr>
+
+
+
+
+
+</tbody>
+
+
+
+
+</table>
+<p>&nbsp;</p>
+<p>登录界面:login.html</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<pre><code>&lt;!DOCTYPE <strong>html</strong>&gt;<br />
+  &lt;<strong>html </strong><strong>lang=</strong><strong>"en"</strong>&gt;<br />
+  &lt;<strong>head</strong>&gt;<br />
+&nbsp;&nbsp;&nbsp; &lt;<strong>meta </strong><strong>charset=</strong><strong>"UTF-8"</strong>&gt;<br />
+&nbsp;&nbsp;&nbsp; &lt;<strong>title</strong>&gt;Title&lt;/<strong>title</strong>&gt;<br />
+&nbsp;&nbsp;&nbsp; &lt;<strong>script </strong><strong>src=</strong><strong>"js/jquery-3.3.1.js"</strong>&gt;&lt;/<strong>script</strong>&gt;<br />
+&nbsp;&nbsp;&nbsp; &lt;<strong>style</strong>&gt;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>* </strong>{<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>margin</strong>: 0;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>padding</strong>: 0;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>html</strong>, <strong>body </strong>{<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>width</strong>: 100%;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>height</strong>: 100%;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>body </strong>{<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>background</strong>: <strong>url</strong>(<strong>img/bg.jpg</strong>) <strong>no-repeat center</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>h1 </strong>{<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>color</strong>: <strong>#fff</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>text-align</strong>: <strong>center</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>line-height</strong>: 80<strong>px</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; .<strong>media </strong>{<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>width</strong>: 534<strong>px</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>height</strong>: 400<strong>px</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>margin</strong>: 40<strong>px auto </strong>0;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>transform-style</strong>: <strong>preserve-3d</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>transform</strong>: <strong>perspective</strong>(600<strong>px</strong>) <strong>rotateY</strong>(25<strong>deg</strong>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>#login </strong>{<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>width</strong>: 200<strong>px</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>height</strong>: 50<strong>px</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>background</strong>: <strong>#0089ff</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>margin</strong>: 60<strong>px auto </strong>0;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>text-align</strong>: <strong>center</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>line-height</strong>: 50<strong>px</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>color</strong>: <strong>#fff</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>/*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; color: red;*/<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong>border-radius</strong>: 16<strong>px</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>transform-style</strong>: <strong>preserve-3d</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>transform</strong>: <strong>perspective</strong>(600<strong>px</strong>) <strong>rotateY</strong>(25<strong>deg</strong>) <strong>rotateZ</strong>(-10<strong>deg</strong>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>cursor</strong>: <strong>pointer</strong>;<br />
+  <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+&nbsp;&nbsp;&nbsp; &lt;/<strong>style</strong>&gt;<br />
+  &lt;/<strong>head</strong>&gt;<br />
+  &lt;<strong>body</strong>&gt;<br />
+  <em>&lt;!--autoplay="true"--&gt;<br />
+  </em>&lt;<strong>div </strong><strong>class=</strong><strong>"media"</strong>&gt;<br />
+&nbsp;&nbsp;&nbsp; &lt;<strong>video </strong><strong>id=</strong><strong>"myVideo" </strong><strong>height=</strong><strong>"534" </strong><strong>width=</strong><strong>"400" </strong><strong>src=</strong><strong>"" </strong><strong>autoplay</strong>&gt;&lt;/<strong>video</strong>&gt;<br />
+&nbsp;&nbsp;&nbsp; &lt;<strong>canvas </strong><strong>id=</strong><strong>"myCanvas" </strong><strong>height=</strong><strong>"534" </strong><strong>width=</strong><strong>"400"</strong>&gt;&lt;/<strong>canvas</strong>&gt;<br />
+  &lt;/<strong>div</strong>&gt;<br />
+  <br />
+  <em>&lt;!--</em><em>创建一个登陆的按钮--&gt;<br />
+  </em>&lt;<strong>div </strong><strong>id=</strong><strong>"login"</strong>&gt;登陆&lt;/<strong>div</strong>&gt;<br />
+  &lt;<strong>script</strong>&gt;<br />
+&nbsp;&nbsp;&nbsp; <em>//</em><em>这里写的是网页脚本<br />
+&nbsp;&nbsp;&nbsp; //调用摄像头获取媒体视频流<br />
+&nbsp;&nbsp;&nbsp; /***<br />
+&nbsp;&nbsp;&nbsp;&nbsp; * 默认的写法:navigator.getUserMedia<br />
+&nbsp;&nbsp;&nbsp;&nbsp; * 火狐:navigator.mozGetUserMedia<br />
+&nbsp;&nbsp;&nbsp;&nbsp; * 微软:navigator.msGetUserMedia<br />
+&nbsp;&nbsp;&nbsp;&nbsp; * 谷歌:navigator.webkitGetUserMedia<br />
+&nbsp;&nbsp;&nbsp;&nbsp; *<br />
+&nbsp;&nbsp;&nbsp;&nbsp; * <strong>@type </strong>{((constraints: MediaStreamConstraints, successCallback: NavigatorUserMediaSuccessCallback, errorCallback: NavigatorUserMediaErrorCallback) =&gt; void) | *}<br />
+&nbsp;&nbsp;&nbsp;&nbsp; */<br />
+&nbsp;&nbsp;&nbsp; </em><strong>var </strong><strong><em>getUserMedia </em></strong>= (<strong><em>navigator</em></strong>.getUserMedia || <strong><em>navigator</em></strong>.webkitGetUserMedia || <strong><em>navigator</em></strong>.mozGetUserMedia || <strong><em>navigator</em></strong>.msGetUserMedia);<br />
+  <br />
+&nbsp;&nbsp;&nbsp; <strong>var </strong><strong><em>video </em></strong>= <strong><em>document</em></strong>.getElementById(<strong>"myVideo"</strong>);<br />
+&nbsp;&nbsp;&nbsp; <em>/***<br />
+&nbsp;&nbsp;&nbsp;&nbsp; * </em><em>四个参数 getUserMedia.call(navigator,{video:true,audio:false},function(){},function(){});<br />
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; 1.要调用的对象<br />
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; 2.约束对象:eg:只调用视频<br />
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; 3.调用成功的方法<br />
+&nbsp;&nbsp;&nbsp;&nbsp; *&nbsp; 4.调用失败的方法<br />
+&nbsp;&nbsp;&nbsp;&nbsp; */<br />
+&nbsp;&nbsp;&nbsp; </em><strong><em>getUserMedia</em></strong>.call(<strong><em>navigator</em></strong>, {<strong>video</strong>: <strong>true</strong>, <strong>audio</strong>: <strong>false</strong>}, <strong>function </strong>(localMediaStream) {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>//</em><em>这里是调用成功的方法,如果调用成功,将视频流对象传到myVideo,localMediaStream是传入的视频流对象<br />
+  <br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*document.getElementById("myVideo").src= window.URL.createObjectURL(localMediaStream);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * 上一行的代码已经过时了<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * */<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong>try </strong>{<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong><em>video</em></strong>.<strong>src </strong>= <strong><em>window</em></strong>.URL.<strong>createObjectURL</strong>(localMediaStream);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } <strong>catch </strong>(e) {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>//</em><em>执行的是这段代码<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong><em>video</em></strong>.<strong>srcObject </strong>= localMediaStream;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>/***<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * </em><em>下面三行代码可以代替了video的autoplay属性<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; */<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; /*&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; video.onloadedmetadata = function () {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; video.play();<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }*/<br />
+  <br />
+&nbsp;&nbsp;&nbsp; </em>}, <strong>function </strong>(e) {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong><em>console</em></strong>.log(<strong>"</strong><strong>获取摄像头失败"</strong>, e);<em>//</em><em>通过控制台将我们的错误信息打印<br />
+&nbsp;&nbsp;&nbsp; </em>});<br />
+  <br />
+&nbsp;&nbsp;&nbsp; <em>//</em><em>获取登陆按钮<br />
+&nbsp;&nbsp;&nbsp; </em><strong>var </strong><strong><em>btn_login </em></strong>= <strong><em>document</em></strong>.getElementById(<strong>"login"</strong>);<br />
+&nbsp;&nbsp;&nbsp; <em>//</em><em>获取canvas对象<br />
+&nbsp;&nbsp;&nbsp; </em><strong>var </strong><strong><em>canvas</em></strong>=<strong><em>document</em></strong>.getElementById(<strong>"myCanvas"</strong>);<br />
+&nbsp;&nbsp;&nbsp; <em>//</em><em>获取上下文对象<br />
+&nbsp;&nbsp;&nbsp; </em><strong>var </strong><strong><em>context </em></strong>= <strong><em>canvas</em></strong>.getContext(<strong>"2d"</strong>);<br />
+&nbsp;&nbsp;&nbsp; <em>//</em><em>登陆按钮绑定点击事件<br />
+&nbsp;&nbsp;&nbsp; </em><strong><em>btn_login</em></strong>.onclick = <strong>function </strong>() {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>//</em><em>点击登录按钮获取面部信息,(点击登录按钮的时候将图像画到)<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; // context.drawImage(video,x轴开始位置,y轴开始位置,x轴结束位置,y轴结束位置);<br />
+&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</em><strong><em>context</em></strong>.drawImage(<strong><em>video</em></strong>, 0, 0, 534, 400);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>//image/png </em><em>表示画成什么格式<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong>var </strong>imgSrc = <strong><em>document</em></strong>.getElementById(<strong>"myCanvas"</strong>).toDataURL(<strong>"image/png"</strong>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>alert</em>(imgSrc);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>// var Baseimg=imgSrc.split(",")[1];<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </em><strong>$</strong>.post(<strong>"login.do"</strong>,{<strong>imgSrc</strong>:imgSrc},<strong>function </strong>(result) {<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>if</strong>(result){<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong><em>location</em></strong>.href=<strong>"success.jsp"</strong>;<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<strong>else</strong>{<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>alert</em>(<strong>"</strong><strong>登录失败,请重新扫描"</strong>);<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; })<br />
+  <br />
+&nbsp;&nbsp;&nbsp; }<br />
+  <br />
+  &lt;/<strong>script</strong>&gt;<br />
+  &lt;/<strong>body</strong>&gt;<br />
+  &lt;/<strong>html</strong>&gt;</code></pre>
+<p>&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>3.2后端界面</h3>
+<p>face相关类,通过face++官网查到一个demo,本案例修改demo并封装了自己的信息,打成实现功能</p>
+<p>&nbsp;<img src="./images/java使用face++简单实现人脸识别注册登录8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>获取到的demo:</p>
+<table border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td valign="top" width="568">
+<src>
+<pre><code>import java.io.ByteArrayOutputStream;</code></pre>
+<pre><code>import java.io.DataOutputStream;</code></pre>
+<pre><code>import java.io.File;</code></pre>
+<pre><code>import java.io.FileInputStream;</code></pre>
+<pre><code>import java.io.IOException;</code></pre>
+<pre><code>import java.io.InputStream;</code></pre>
+<pre><code>import java.net.HttpURLConnection;</code></pre>
+<pre><code>import java.net.URL;</code></pre>
+<pre><code>import java.net.URLDecoder;</code></pre>
+<pre><code>import java.net.URLEncoder;</code></pre>
+<pre><code>import java.util.HashMap;</code></pre>
+<pre><code>import java.util.Iterator;</code></pre>
+<pre><code>import java.util.Map;</code></pre>
+<pre><code>import java.util.Random;</code></pre>
+<pre><code>import javax.net.ssl.SSLException;</code></pre>
+<pre><code>public class FaceTest {</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; public static void main(String[] args) throws Exception{</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; File file = new File("你的本地图片路径");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte[] buff = getBytesFromFile(file);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String url = "https://api-cn.faceplusplus.com/facepp/v3/detect";</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HashMap&lt;String, String&gt; map = new HashMap&lt;&gt;();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HashMap&lt;String, byte[]&gt; byteMap = new HashMap&lt;&gt;();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; map.put("api_key", "你的KEY");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; map.put("api_secret", "你的SECRET");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; map.put("return_landmark", "1");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; map.put("return_attributes", "gender,age,smiling,headpose,facequality,blur,eyestatus,emotion,ethnicity,beauty,mouthstatus,eyegaze,skinstatus");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byteMap.put("image_file", buff);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try{</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte[] bacd = post(url, map, byteMap);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String str = new String(bacd);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; System.out.println(str);</code></pre>
+<pre><code> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}catch (Exception e) {</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; e.printStackTrace();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; private final static int CONNECT_TIME_OUT = 30000;</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; private final static int READ_OUT_TIME = 50000;</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; private static String boundaryString = getBoundary();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; protected static byte[] post(String url, HashMap&lt;String, String&gt; map, HashMap&lt;String, byte[]&gt; fileMap) throws Exception {</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; HttpURLConnection conne;</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; URL url1 = new URL(url);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conne = (HttpURLConnection) url1.openConnection();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;conne.setDoOutput(true);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conne.setUseCaches(false);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conne.setRequestMethod("POST");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conne.setConnectTimeout(CONNECT_TIME_OUT);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conne.setReadTimeout(READ_OUT_TIME);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conne.setRequestProperty("accept", "*/*");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;conne.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundaryString);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conne.setRequestProperty("connection", "Keep-Alive");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; conne.setRequestProperty("user-agent", "Mozilla/4.0 (compatible;MSIE 6.0;Windows NT 5.1;SV1)");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DataOutputStream obos = new DataOutputStream(conne.getOutputStream());</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Iterator iter = map.entrySet().iterator();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(iter.hasNext()){</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Map.Entry&lt;String, String&gt; entry = (Map.Entry) iter.next();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String key = entry.getKey();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String value = entry.getValue();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes("--" + boundaryString + "\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes("Content-Disposition: form-data; name=\"" + key</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; + "\"\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes("\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes(value + "\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(fileMap != null &amp;&amp; fileMap.size() &gt; 0){</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Iterator fileIter = fileMap.entrySet().iterator();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while(fileIter.hasNext()){</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Map.Entry&lt;String, byte[]&gt; fileEntry = (Map.Entry&lt;String, byte[]&gt;) fileIter.next();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes("--" + boundaryString + "\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes("Content-Disposition: form-data; name=\"" + fileEntry.getKey()</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;+ "\"; filename=\"" + encode(" ") + "\"\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes("\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.write(fileEntry.getValue());</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes("\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes("--" + boundaryString + "--" + "\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.writeBytes("\r\n");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.flush();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; obos.close();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; InputStream ins = null;</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int code = conne.getResponseCode();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try{</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(code == 200){</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ins = conne.getInputStream();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }else{</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ins = conne.getErrorStream();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }catch (SSLException e){</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; e.printStackTrace();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return new byte[0];</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ByteArrayOutputStream baos = new ByteArrayOutputStream();</code></pre>
+<pre><code>&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;byte[] buff = new byte[4096];</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int len;</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while((len = ins.read(buff)) != -1){</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; baos.write(buff, 0, len);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte[] bytes = baos.toByteArray();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ins.close();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return bytes;</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; private static String getBoundary() {</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; StringBuilder sb = new StringBuilder();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Random random = new Random();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; for(int i = 0; i &lt; 32; ++i) {</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; sb.append("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-".charAt(random.nextInt("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_".length())));</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return sb.toString();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; private static String encode(String value) throws Exception{</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return URLEncoder.encode(value, "UTF-8");</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; </code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;public static byte[] getBytesFromFile(File f) {</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if (f == null) {</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return null;</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; try {</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; FileInputStream stream = new FileInputStream(f);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ByteArrayOutputStream out = new ByteArrayOutputStream(1000);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; byte[] b = new byte[1000];</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; int n;</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; while ((n = stream.read(b)) != -1)</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; out.write(b, 0, n);</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stream.close();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; out.close();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return out.toByteArray();</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; } catch (IOException e) {</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return null;</code></pre>
+<pre><code>&nbsp;&nbsp;&nbsp; }</code></pre>
+<pre><code>}</code></pre>
+
+<p>&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<h3>哪里需要改?</h3>
+<p>&nbsp;<img src="./images/java使用face++简单实现人脸识别注册登录9.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>四.总结</h2>
+<p>&nbsp;</p>
+<p>人无我有,人有我优</p>
+<p>&nbsp;</p>
+<p>思路很清晰,具体实现很难!!!</p>
+<p>&nbsp;</p>
+<p>实现后感觉很简单</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

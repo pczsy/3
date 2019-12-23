@@ -1,0 +1,151 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot 源码解析 （十）----- Spring Boot 精髓：集成AOP' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot 源码解析 （十）----- Spring Boot 精髓：集成AOP</center></div><div class='banquan'>原文出处:本文由博客园博主chen_hao提供。<br/>
+原文连接:https://www.cnblogs.com/java-chen-hao/p/11850862.html</div><br>
+    <p>本篇主要集成Sping一个重要功能AOP</p>
+<p>我们还是先回顾一下以前Spring中是如何使用AOP的，大家可以看看我这篇文章<a class="entry" href="https://www.cnblogs.com/java-chen-hao/p/11589531.html" target="_blank">spring5 源码深度解析----- AOP的使用及AOP自定义标签</a></p>
+<h2>Spring中使用AOP</h2>
+<h3>引入Aspect</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span><strong>org.aspectj</strong><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span><strong>aspectjweaver</strong><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>${aspectj.version}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<h3 id="1-创建用于拦截的bean">创建用于拦截的bean</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestBean {
+    </span><span style="color: #0000ff;">private</span> String message = "test bean"<span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getMessage() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> message;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setMessage(String message) {
+        </span><span style="color: #0000ff;">this</span>.message =<span style="color: #000000;"> message;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test(){
+        System.out.println(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.message);
+    }
+}</span></code></pre>
+
+<h3 id="2-创建advisor">创建Advisor</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Aspect
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AspectJTest {
+    @Pointcut(</span>"execution(* *.test(..))"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test(){
+    }
+    
+    @Before(</span>"test()"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> beforeTest(){
+        System.out.println(</span>"beforeTest"<span style="color: #000000;">);
+    }
+    
+    @Around(</span>"test()"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Object aroundTest(ProceedingJoinPoint p){
+        System.out.println(</span>"around.....before"<span style="color: #000000;">);
+        Object o </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;">{
+            o </span>=<span style="color: #000000;"> p.proceed();
+        }</span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(Throwable e){
+            e.printStackTrace();
+        }
+        System.out.println(</span>"around.....after"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> o;
+    }
+    
+    @After(</span>"test()"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> afterTest()
+    {
+        System.out.println(</span>"afterTest"<span style="color: #000000;">);
+    }
+ }</span></code></pre>
+
+<h3 id="3-创建配置文件">创建配置文件</h3>
+<p>要在Spring中开启AOP功能，还需要在配置文件中作如下声明，开启AOP：</p>
+<src class="cnblogs_code">
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8" ?&gt;
+&lt;beans xmlns="http://www.springframework.org/schema/beans"<span style="color: #000000;">
+       xmlns:xsi</span>="http://www.w3.org/2001/XMLSchema-instance"<span style="color: #000000;">
+       xmlns:context</span>="http://www.springframework.org/schema/context"<span style="color: #000000;">
+       xmlns:aop</span>="http://www.springframework.org/schema/aop"<span style="color: #000000;">
+       xsi:schemaLocation</span>="http://www.springframework.org/schema/beans
+        http:<span style="color: #008000;">//</span><span style="color: #008000;">www.springframework.org/schema/beans/spring-beans.xsd </span><span style="color: #008000; text-decoration: underline;">http://www.springframework.org/schema/context</span> <span style="color: #008000; text-decoration: underline;">http://www.springframework.org/schema/context/spring-context.xsd</span> <span style="color: #008000; text-decoration: underline;">http://www.springframework.org/schema/aop</span> <span style="color: #008000; text-decoration: underline;">http://www.springframework.org/schema/aop/spring-aop.xsd</span><span style="color: #008000;">"&gt;</span>
+
+<strong>    &lt;aop:aspectj-autoproxy/&gt;</strong>
+    &lt;bean id="test" <span style="color: #0000ff;">class</span>="com.yhl.myspring.demo.aop.TestBean"&gt;
+        &lt;property name="message" value="这是一个苦逼的程序员"/&gt;
+    &lt;/bean&gt;
+    &lt;bean id="aspect" <span style="color: #0000ff;">class</span>="com.yhl.myspring.demo.aop.AspectJTest"/&gt;
+&lt;/beans&gt;</code></pre>
+
+<h3>注解开启AOP</h3>
+<p>开启AOP&lt;aop:aspectj-autoproxy/&gt;也可以使用注解的方式，如下，使用<strong>@EnableAspectJAutoProxy</strong>配置在任何一个@Configratrion或者@Component上</p>
+<p><strong><img src="./images/SpringBoot 源码解析 （十）----- Spring Boot 精髓：集成AOP0.png" alt="" /></strong></p>
+<h2>SpringBoot集成AOP</h2>
+<h3>添加pom依赖</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span><strong>spring-boot-starter-aop</strong><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>引入了AOP的场景启动器，我们点击去看看</p>
+<p><img src="./images/SpringBoot 源码解析 （十）----- Spring Boot 精髓：集成AOP1.png" alt="" /></p>
+<p>还是引入了spring-aop和aspectj的依赖，和我们Spring集成AOP是引入了相同的包，接着我们直接就可以创建Advisor了，如上AspectJTest这个类，但是我们并没有通过<strong>@EnableAspectJAutoProxy开启AOP呢？那是因为AOP的自动配置类帮我们开启了</strong></p>
+<h3>AopAutoConfiguration</h3>
+<p>一旦导入了spring-boot-starter-aop依赖后，SpringBoot就会启动AOP的自动配置类AopAutoConfiguration：</p>
+<p><img src="./images/SpringBoot 源码解析 （十）----- Spring Boot 精髓：集成AOP2.png" alt="" /></p>
+<p>我们来看看AopAutoConfiguration这个自动配置类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Configuration
+@ConditionalOnClass({ EnableAspectJAutoProxy.</span><span style="color: #0000ff;">class</span>, Aspect.<span style="color: #0000ff;">class</span>, Advice.<span style="color: #0000ff;">class</span><span style="color: #000000;"> })
+@ConditionalOnProperty(prefix </span>= "spring.aop", name = "auto", havingValue = "true", matchIfMissing = <span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> AopAutoConfiguration {
+
+    @Configuration
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">使用注解开启AOP功能</span>
+    @EnableAspectJAutoProxy(proxyTargetClass = <span style="color: #0000ff;">false</span></strong><span style="color: #000000;"><strong>)</strong>
+    @ConditionalOnProperty(prefix </span>= "spring.aop", name = "proxy-target-class", havingValue = "false", matchIfMissing = <span style="color: #0000ff;">true</span><span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JdkDynamicAutoProxyConfiguration {
+
+    }
+
+    @Configuration
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">使用注解开启AOP功能</span>
+    @EnableAspectJAutoProxy(proxyTargetClass = <span style="color: #0000ff;">true</span></strong><span style="color: #000000;"><strong>)</strong>
+    @ConditionalOnProperty(prefix </span>= "spring.aop", name = "proxy-target-class", havingValue = "true", matchIfMissing = <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CglibAutoProxyConfiguration {
+
+    }
+
+}</span></code></pre>
+
+<p>不管使用jdk代理还是cglib代理，都有@EnableAspectJAutoProxy注解，所以只要导入spring-boot-starter-aop依赖后，就自动帮我们开启了AOP，我们可以直接添加切面使用AOP了</p>
+<p>@EnableAspectJAutoProxy这个注解是整个AOP的灵魂，其作用和&lt;aop:aspectj-autoproxy/&gt;是一样的，大家可以看看其源码分析<a class="entry" href="https://www.cnblogs.com/java-chen-hao/p/11589531.html" target="_blank">spring5 源码深度解析----- AOP的使用及AOP自定义标签</a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,153 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修你还没用过“约定式提交”吗？那你赶紧来补补知识吧' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>你还没用过“约定式提交”吗？那你赶紧来补补知识吧</center></div><div class='banquan'>原文出处:本文由博客园博主larscheng提供。<br/>
+原文连接:https://www.cnblogs.com/larscheng/p/11839745.html</div><br>
+    <h1 id="前言">前言</h1>
+<p>本文为介绍约定式提交，主要从以下几点展开：</p>
+<ul>
+<li><a href="">现状分析</a></li>
+<li><a href="">约定式提交</a>
+<ul>
+<li><a href="">优点</a></li>
+<li><a href="">规范</a></li>
+</ul></li>
+<li><a href="">commitizen</a></li>
+<li><a href="">standard-version</a></li>
+</ul>
+<p>本文对应的github项目地址：<a href="https://github.com/larscheng/Conventional-Commits-Demo" class="uri">https://github.com/larscheng/Conventional-Commits-Demo</a></p>
+<h1 id="现状分析">现状分析</h1>
+<p>目前我们的项目在commit时基本上五花八门，各领风骚。虽然不如网上的那些恶搞commit记录，但是这一现象严重影响我们在阅读记录和查找bug原因时的效率。</p>
+<p>我们可以感受下：</p>
+<p><img src="./images/你还没用过“约定式提交”吗？那你赶紧来补补知识吧0.png" alt="真实项目commit记录" /></p>
+<p>可以对比看看同样按照规范式提交的项目的commit记录</p>
+<p><img src="./images/你还没用过“约定式提交”吗？那你赶紧来补补知识吧1.png" /></p>
+<blockquote>
+<p>两种commit message的对比很明显说明了情况，统一的提交信息，不仅看起来舒服，而且读起来更舒服</p>
+</blockquote>
+<p>其实已经越来越多的人开始意识到规范化提交的重要性，据我在公司实地采访了一圈，前端团队早已经开始<code>约定式提交</code>，这也可能是因为目前社区中主流的提交规范都是由<a href="https://github.com/angular/angular.js/blob/master/CONTRIBUTING.md">Angular提交准则</a>形成。</p>
+<blockquote>
+<p><strong>为了提高开发效率，减少在处理问题时耗费的时间，推荐大家在写完代码，提交时能够使用以下规范：</strong></p>
+</blockquote>
+<ul>
+<li><strong>规范化提交</strong>(不一定是文中提到的方式,但无论哪种方式，要做到<code>统一</code>、<code>简明</code>)</li>
+<li><strong>一处变更一次commit</strong>(谨防多处、多次修改堆积成一次commit提交，这对后期bug分析将是灾难)</li>
+</ul>
+<h1 id="约定式提交">约定式提交</h1>
+<p>约定式提交：每次使用<code>git commit</code> 的时候都需要写commit message,如果message的 style是<code>按照固定的模版格式书写</code>，对于后期的维护和编写changelog都有巨大的好处。</p>
+<p>而且现在的很多自动生成changelog的工具，都是建立在约定式提交的基础之上。</p>
+<h2 id="优点">优点</h2>
+<ul>
+<li>可读性好，清晰，不必深入看代码即可了解当前commit的作用。</li>
+<li>为 Code Reviewing做准备</li>
+<li>方便跟踪工程历史</li>
+<li>让其他的开发者在运行 git blame 的时候想跪谢</li>
+<li>提高项目的整体质量，提高个人工程素质</li>
+</ul>
+<h2 id="约定式提交规范">约定式提交规范</h2>
+<p><a href="https://conventionalcommits.org/lang/zh-Hans">约定式提交规范</a>是基于<a href="https://github.com/angular/angular.js/blob/master/CONTRIBUTING.md">Angular提交准则</a>形成，提交说明的结构如下：</p>
+<pre><code><code>&lt;类型&gt;([可选的作用域]): &lt;描述&gt;
+// 空一行
+[可选的正文]
+// 空一行
+[可选的脚注]</code></code></pre>
+<p>其中，<code>&lt;类型&gt;</code>是为了向类库使用者表明其意图，其可选值为：</p>
+<ul>
+<li>feat: 表示新增了一个功能</li>
+<li>fix: 表示修复了一个 bug</li>
+<li>docs: 表示只修改了文档</li>
+<li>style: 表示修改格式、书写错误、空格等不影响代码逻辑的操作</li>
+<li>refactor: 表示修改的代码不是新增功能也不是修改 bug，比如代码重构</li>
+<li>perf: 表示修改了提升性能的代码</li>
+<li>test: 表示修改了测试代码</li>
+<li>build: 表示修改了编译配置文件</li>
+<li>chore: 无 src 或 test 的操作</li>
+<li>revert: 回滚操作</li>
+</ul>
+<p><code>[可选的作用域]</code>: 是为了描述 此次 commit 影响的范围，比如: route, component, utils, build, api, website, docs</p>
+<p><code>&lt;描述&gt;</code>: 此次提交的简短描述</p>
+<p><code>[可选的正文]</code>: 此次提交的详细描述，描述为什么修改，做了什么样的修改，以及开发的思路等等，输入 <code>\n</code> 换行</p>
+<p><code>[可选的页脚]</code>: 主要写下面2种</p>
+<ul>
+<li>Breaking changes: 在可选的正文或脚注的起始位置带有 BREAKING CHANGE: 的提交，表示引入了破坏性变更（这和语义化版本中的 MAJOR 相对应）。</li>
+<li>Closed issues: 罗列此次提交修复的 bug，如 fixes issue #110</li>
+</ul>
+<h1 id="commitizen">Commitizen</h1>
+<p><a href="https://github.com/commitizen/cz-cli">Commitizen</a>是一个撰写合格 Commit message 的工具。</p>
+<h2 id="安装">安装</h2>
+<p>安装命令如下：任选其一</p>
+<blockquote>
+<pre class="bash"><code>$ npm install -g commitizen       (全局安装)
+$ npm install -d commitizen       (项目安装)</code></code></pre>
+</blockquote>
+<p>然后，在项目目录里，运行下面的命令，使其支持 Angular 的 Commit message 格式。</p>
+<blockquote>
+<pre class="bash"><code>$ commitizen init cz-conventional-changelog --save --save-exact</code></code></pre>
+</blockquote>
+<p>ps: 对于<code>非Node项目</code>(java、php...)在执行上一条命令前,需要手动创建<a href="">package.json</a>文件</p>
+<blockquote>
+<pre class="bash"><code>$ npm init --yes</code></code></pre>
+</blockquote>
+<p>通过如上命令生成<a href="">package.json</a>文件基本格式如下：</p>
+<pre class="json"><code>{
+  &quot;name&quot;: &quot;demo&quot;,
+  &quot;version&quot;: &quot;0.0.0&quot;,
+  &quot;private&quot;: true,
+  &quot;scripts&quot;: {
+    &quot;start&quot;: &quot;node ./bin/www&quot;
+  }
+}</code></code></pre>
+<p>以后，凡是用到<code>git commit</code>命令，一律改为使用<code>git cz</code>。这时，就会出现选项，用来生成符合格式的 Commit message。如图：</p>
+<p><img src="./images/你还没用过“约定式提交”吗？那你赶紧来补补知识吧2.png" alt="git-cz" /></p>
+<h2 id="standard-version">standard-version</h2>
+<p>如果你的所有 Commit 都符合 Angular 格式，那么发布新版本时， Change log 就可以用脚本自动生成</p>
+<p><a href="https://github.com/conventional-changelog/standard-version">standard-version</a>就是生成 Change log 的工具</p>
+<h2 id="安装使用">安装使用</h2>
+<p>安装命令如下：任选其一</p>
+<blockquote>
+<pre class="bash"><code>$ npm i -g standard-version       (全局安装)
+$ npm i -S standard-version       (项目安装)</code></code></pre>
+</blockquote>
+<p>生成CHANGELOG：</p>
+<p>在<a href="">package.json</a>中的<code>script</code>中 加入配置:</p>
+<blockquote>
+<p>&quot;scirpt&quot;:{&quot;release&quot;:&quot;standard-version&quot;}</p>
+</blockquote>
+<p>直接执行，即可生成CHANGELOG文件</p>
+<blockquote>
+<pre class="bash"><code>$ npm run release</code></code></pre>
+</blockquote>
+<p>备注：</p>
+<blockquote>
+<p>生成CHANGELOG的工具很多，<a href="https://github.com/conventional-changelog/conventional-changelog/tree/master/packages/conventional-changelog-cli">conventional-changelog-cli</a>也可以用来生成CHANGELOG，安装使用方法和<code>standard-version</code>类似</p>
+</blockquote>
+<p>本项目的CHANGELOG生成实例：<a href="https://github.com/larscheng/Conventional-Commits-Demo/blob/master/CHANGELOG.md">CHANGELOG查看</a></p>
+<hr />
+<ul>
+<li>文章作者: <a href="https://www.larscheng.com/">LarsCheng</a></li>
+<li>文章链接: 本文首发于个人博客：<a href="https://www.larscheng.com/" class="uri">https://www.larscheng.com/</a></li>
+<li>发布方式：<a href="https://www.openwrite.cn/">OpenWrite 最懂你的科技自媒体管理平台</a></li>
+<li>版权声明: 本博客所有文章除特别声明外，均采用 CC BY-NC-SA 4.0 许可协议。转载请注明来自 LarsCheng's Blog！</li>
+</ul>
+<hr />
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,530 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修最佳内存缓存框架Caffeine' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>最佳内存缓存框架Caffeine</center></div><div class='banquan'>原文出处:本文由博客园博主废物大师兄提供。<br/>
+原文连接:https://www.cnblogs.com/cjsblog/p/11517761.html</div><br>
+    <p><span style="font-size: 15px;">Caffeine是一种高性能的缓存库，是基于Java 8的最佳（最优）缓存框架。</span></p>
+<p><span style="font-size: 15px;"><span style="color: #b52c23;">Cache（缓存）</span>，基于Google Guava，Caffeine提供一个内存缓存，大大改善了设计Guava's cache 和 ConcurrentLinkedHashMap 的体验。</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> <span style="color: #ff0000;">LoadingCache</span><span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">maximumSize</span><span style="color: #666666;">(10</span>_000<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">expireAfterWrite</span><span style="color: #666666;">(5,</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">MINUTES</span><span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">refreshAfterWrite</span><span style="color: #666666;">(1,</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">MINUTES</span><span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">5</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+</span></code></pre>
+
+<p><span style="font-size: 15px;">缓存类似于ConcurrentMap，但二者并不完全相同。最基本的区别是，ConcurrentMap保存添加到其中的所有元素，直到显式地删除它们。另一方面，缓存通常配置为自动删除条目，以限制其内存占用。在某些情况下，LoadingCache或AsyncLoadingCache可能很有用，因为它是自动缓存加载的。</span></p>
+<p><span style="font-size: 15px;">Caffeine提供了灵活的结构来创建缓存，并且有以下特性：</span></p>
+<ul>
+<li><span style="font-size: 15px;"><span style="color: #b52c23;">自动加载</span>条目到缓存中，可选异步方式</span></li>
+<li><span style="font-size: 15px;">可以<span style="color: #b52c23;">基于大小剔除</span></span></li>
+<li><span style="font-size: 15px;">可以<span style="color: #b52c23;">设置过期时间</span>，时间可以从上次访问或上次写入开始计算</span></li>
+<li><span style="color: #b52c23; font-size: 15px;">异步刷新</span></li>
+<li><span style="font-size: 15px;">keys自动包装在弱引用中</span></li>
+<li><span style="font-size: 15px;">values自动包装在弱引用或软引用中</span></li>
+<li><span style="font-size: 15px;">条目剔除<span style="color: #b52c23;">通知</span></span></li>
+<li><span style="font-size: 15px;">缓存访问<span style="color: #b52c23;">统计</span></span></li>
+</ul>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt; color: #c3453b;">1.&nbsp; 加载/填充</span></p>
+<p><span style="font-size: 15px;">Caffeine提供以下四种类型的加载策略：</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">1.1.&nbsp; Manual</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 1</span> <span style="color: #ff0000;">Cache</span><span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> cache <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 2</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">expireAfterWrite</span><span style="color: #666666;">(10,</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">MINUTES</span><span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">maximumSize</span><span style="color: #666666;">(10</span>_000<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">();</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 5</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 6</span> <span style="color: #008800; font-style: italic;">// Lookup an entry, or null if not found</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 7</span> Graph graph <span style="color: #666666;">=</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">getIfPresent</span><span style="color: #666666;">(</span>key<span style="color: #666666;">);</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 8</span> <span style="color: #008800; font-style: italic;">// Lookup and compute an entry if absent, or null if not computable</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 9</span> graph <span style="color: #666666;">=</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">get</span><span style="color: #666666;">(</span>key<span style="color: #666666;">,</span> k <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">10</span> <span style="color: #008800; font-style: italic;">// Insert or update an entry</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">11</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">put</span><span style="color: #666666;">(</span>key<span style="color: #666666;">,</span> graph<span style="color: #666666;">);</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">12</span> <span style="color: #008800; font-style: italic;">// Remove an entry</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">13</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">invalidate</span><span style="color: #666666;">(</span>key<span style="color: #666666;">);</span>
+</span></code></pre>
+
+<p><span style="font-size: 15px;">Cache接口可以显式地控制检索、更新和删除条目。&nbsp;</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">1.2.&nbsp; Loading</span>&nbsp;</p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> <span style="color: #ff0000;">LoadingCache</span><span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> cache <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">maximumSize</span><span style="color: #666666;">(10</span>_000<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">expireAfterWrite</span><span style="color: #666666;">(10,</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">MINUTES</span><span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">5</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">6</span> <span style="color: #008800; font-style: italic;">// Lookup and compute an entry if absent, or null if not computable</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">7</span> Graph graph <span style="color: #666666;">=</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">get</span><span style="color: #666666;">(</span>key<span style="color: #666666;">);</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">8</span> <span style="color: #008800; font-style: italic;">// Lookup and compute entries that are absent</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">9</span> Map<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">getAll</span><span style="color: #666666;">(</span>keys<span style="color: #666666;">);</span>
+</span></code></pre>
+
+<p><span style="font-size: 15px;">LoadingCache通过关联一个CacheLoader来构建Cache</span></p>
+<p><span style="font-size: 15px;">通过LoadingCache的getAll方法，可以批量查询&nbsp;</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">1.3.&nbsp; Asynchronous (Manual)&nbsp;</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> <span style="color: #ff0000;">AsyncCache</span><span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> cache <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">expireAfterWrite</span><span style="color: #666666;">(10,</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">MINUTES</span><span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">maximumSize</span><span style="color: #666666;">(10</span>_000<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">buildAsync</span><span style="color: #666666;">();</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">5</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">6</span> <span style="color: #008800; font-style: italic;">// Lookup and asynchronously compute an entry if absent</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">7</span> <span style="color: #ff0000;">CompletableFuture</span><span style="color: #666666;">&lt;</span>Graph<span style="color: #666666;">&gt;</span> graph <span style="color: #666666;">=</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">get</span><span style="color: #666666;">(</span>key<span style="color: #666666;">,</span> k <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+</span></code></pre>
+
+<p><span style="font-size: 15px;">AsyncCache是另一种Cache，它基于Executor计算条目，并返回一个CompletableFuture。&nbsp;</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">1.4.&nbsp; Asynchronously Loading<strong>&nbsp;</strong></span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 1</span> <span style="color: #ff0000;">AsyncLoadingCache</span><span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> cache <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 2</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">maximumSize</span><span style="color: #666666;">(10</span>_000<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">expireAfterWrite</span><span style="color: #666666;">(10,</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">MINUTES</span><span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 4</span>     <span style="color: #008800; font-style: italic;">// Either: Build with a synchronous computation that is wrapped as asynchronous </span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 5</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">buildAsync</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 6</span>     <span style="color: #008800; font-style: italic;">// Or: Build with a asynchronous computation that returns a future</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 7</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">buildAsync</span><span style="color: #666666;">((</span>key<span style="color: #666666;">,</span> executor<span style="color: #666666;">)</span> <span style="color: #666666;">-&gt;</span> createExpensiveGraphAsync<span style="color: #666666;">(</span>key<span style="color: #666666;">,</span> executor<span style="color: #666666;">));</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 8</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 9</span> <span style="color: #008800; font-style: italic;">// Lookup and asynchronously compute an entry if absent</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">10</span> CompletableFuture<span style="color: #666666;">&lt;</span>Graph<span style="color: #666666;">&gt;</span> graph <span style="color: #666666;">=</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">get</span><span style="color: #666666;">(</span>key<span style="color: #666666;">);</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">11</span> <span style="color: #008800; font-style: italic;">// Lookup and asynchronously compute entries that are absent</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">12</span> CompletableFuture<span style="color: #666666;">&lt;</span>Map<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;&gt;</span> graphs <span style="color: #666666;">=</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">getAll</span><span style="color: #666666;">(</span>keys<span style="color: #666666;">);</span>
+</span></code></pre>
+
+<p><span style="font-size: 15px;">AsyncLoadingCache 是关联了 AsyncCacheLoader 的 AsyncCache</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt; color: #c3453b;">2.&nbsp; 剔除</span></p>
+<p><span style="font-size: 15px;">Caffeine提供三种剔除方式：基于大小、基于时间、基于引用</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">2.1.&nbsp; Size-based</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 1</span> <span style="color: #008800; font-style: italic;">// Evict based on the number of entries in the cache</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 2</span> LoadingCache<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">maximumSize</span><span style="color: #666666;">(10</span>_000<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 5</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 6</span> <span style="color: #008800; font-style: italic;">// Evict based on the number of vertices in the cache</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 7</span> LoadingCache<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 8</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">maximumWeight</span><span style="color: #666666;">(10</span>_000<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 9</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">weigher</span><span style="color: #666666;">((</span>Key key<span style="color: #666666;">,</span> Graph graph<span style="color: #666666;">)</span> <span style="color: #666666;">-&gt;</span> graph<span style="color: #666666;">.</span><span style="color: #bb4444;">vertices</span><span style="color: #666666;">().</span><span style="color: #bb4444;">size</span><span style="color: #666666;">())</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">10</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+</span></code></pre>
+
+<p><span style="font-size: 15px;">如果缓存的条目数量不应该超过某个值，那么可以使用<span style="color: #b52c23;">Caffeine.maximumSize(long)</span>。如果超过这个值，则会剔除很久没有被访问过或者不经常使用的那个条目。</span></p>
+<p><span style="font-size: 15px;">如果，不同的条目有不同的权重值的话，那么你可以用<span style="color: #b52c23;">Caffeine.weigher(Weigher)</span>来指定一个权重函数，并且使用<span style="color: #b52c23;">Caffeine.maximumWeight(long)</span>来设定最大的权重值。</span></p>
+<p><span style="font-size: 15px;">简单的来说，要么限制缓存条目的数量，要么限制缓存条目的权重值，二者取其一。限制数量很好理解，限制权重的话首先你得提供一个函数来设定每个条目的权重值是多少，然后才能显示最大的权重是多少。</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">2.2.&nbsp;&nbsp;Time-based</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 1</span> <span style="color: #008800; font-style: italic;">// Evict based on a fixed expiration policy</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 2</span> LoadingCache<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">expireAfterAccess</span><span style="color: #666666;">(5,</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">MINUTES</span><span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 5</span> LoadingCache<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 6</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">expireAfterWrite</span><span style="color: #666666;">(10,</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">MINUTES</span><span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 7</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 8</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 9</span> <span style="color: #008800; font-style: italic;">// Evict based on a varying expiration policy</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">10</span> LoadingCache<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">11</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">expireAfter</span><span style="color: #666666;">(</span><span style="color: #aa22ff; font-weight: bold;">new</span> Expiry<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;()</span> <span style="color: #666666;">{</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">12</span>       <span style="color: #aa22ff; font-weight: bold;">public</span> <span style="color: #00bb00; font-weight: bold;">long</span> <span style="color: #00a000;">expireAfterCreate</span><span style="color: #666666;">(</span>Key key<span style="color: #666666;">,</span> Graph graph<span style="color: #666666;">,</span> <span style="color: #00bb00; font-weight: bold;">long</span> currentTime<span style="color: #666666;">)</span> <span style="color: #666666;">{</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">13</span>         <span style="color: #008800; font-style: italic;">// Use wall clock time, rather than nanotime, if from an external resource</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">14</span>         <span style="color: #00bb00; font-weight: bold;">long</span> seconds <span style="color: #666666;">=</span> graph<span style="color: #666666;">.</span><span style="color: #bb4444;">creationDate</span><span style="color: #666666;">().</span><span style="color: #bb4444;">plusHours</span><span style="color: #666666;">(5)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">15</span>             <span style="color: #666666;">.</span><span style="color: #bb4444;">minus</span><span style="color: #666666;">(</span>System<span style="color: #666666;">.</span><span style="color: #bb4444;">currentTimeMillis</span><span style="color: #666666;">(),</span> MILLIS<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">16</span>             <span style="color: #666666;">.</span><span style="color: #bb4444;">toEpochSecond</span><span style="color: #666666;">();</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">17</span>         <span style="color: #aa22ff; font-weight: bold;">return</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">SECONDS</span><span style="color: #666666;">.</span><span style="color: #bb4444;">toNanos</span><span style="color: #666666;">(</span>seconds<span style="color: #666666;">);</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">18</span>       <span style="color: #666666;">}</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">19</span>       <span style="color: #aa22ff; font-weight: bold;">public</span> <span style="color: #00bb00; font-weight: bold;">long</span> <span style="color: #00a000;">expireAfterUpdate</span><span style="color: #666666;">(</span>Key key<span style="color: #666666;">,</span> Graph graph<span style="color: #666666;">,</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">20</span>           <span style="color: #00bb00; font-weight: bold;">long</span> currentTime<span style="color: #666666;">,</span> <span style="color: #00bb00; font-weight: bold;">long</span> currentDuration<span style="color: #666666;">)</span> <span style="color: #666666;">{</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">21</span>         <span style="color: #aa22ff; font-weight: bold;">return</span> currentDuration<span style="color: #666666;">;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">22</span>       <span style="color: #666666;">}</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">23</span>       <span style="color: #aa22ff; font-weight: bold;">public</span> <span style="color: #00bb00; font-weight: bold;">long</span> <span style="color: #00a000;">expireAfterRead</span><span style="color: #666666;">(</span>Key key<span style="color: #666666;">,</span> Graph graph<span style="color: #666666;">,</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">24</span>           <span style="color: #00bb00; font-weight: bold;">long</span> currentTime<span style="color: #666666;">,</span> <span style="color: #00bb00; font-weight: bold;">long</span> currentDuration<span style="color: #666666;">)</span> <span style="color: #666666;">{</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">25</span>         <span style="color: #aa22ff; font-weight: bold;">return</span> currentDuration<span style="color: #666666;">;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">26</span>       <span style="color: #666666;">}</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">27</span>     <span style="color: #666666;">})</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">28</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+</span></code></pre>
+
+<ul>
+<li><span style="font-size: 15px;"><span style="color: #b52c23;">expireAfterAccess(long, TimeUnit):</span> 最后一次被访问（读或者写）后多久失效</span></li>
+<li><span style="font-size: 15px;"><span style="color: #b52c23;">expireAfterWrite(long, TimeUnit):</span> 最后一次被创建或修改后多久失效</span></li>
+<li><span style="font-size: 15px;"><span style="color: #b52c23;">expireAfter(Expiry):</span> 创建后多久失效&nbsp;</span></li>
+</ul>
+<p><span style="font-size: 15px;">建议，主动维护缓存中条目，而不是等到访问的时候发现缓存条目已经失效了才去重新加载。意思就是，提前加载，定期维护。</span></p>
+<p><span style="font-size: 15px;">可以在构建的时候<span style="color: #b52c23;">Caffeine.scheduler(Scheduler)</span>来指定调度线程</span></p>
+<p><span style="font-size: 14pt;"><span style="color: #53a451;">2.3.&nbsp; Reference-based</span>&nbsp;</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 1</span> <span style="color: #008800; font-style: italic;">// Evict when neither the key nor value are strongly reachable</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 2</span> LoadingCache<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">weakKeys</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">weakValues</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 5</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 6</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 7</span> <span style="color: #008800; font-style: italic;">// Evict when the garbage collector needs to free memory</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 8</span> LoadingCache<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 9</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">softValues</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">10</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span>
+</span></code></pre>
+
+<p><span style="font-size: 15px;">Caffeine.weakKeys() 使用弱引用存储key。如果没有强引用这个key，则允许垃圾回收器回收该条目。注意，这是使用==判断key的。</span></p>
+<p><span style="font-size: 15px;">Caffeine.weakValues() 使用弱引用存储value。如果没有强引用这个value，则允许垃圾回收器回收该条目。注意，这是使用==判断key的。</span></p>
+<p><span style="font-size: 15px;">Caffeine.softValues() 使用软引用存储value。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt; color: #c3453b;">3.&nbsp; 删除&nbsp;</span></p>
+<p><span style="font-size: 15px;">术语：</span></p>
+<ul>
+<li><span style="font-size: 15px;">eviction&nbsp; 指受策略影响而被删除</span></li>
+<li><span style="font-size: 15px;">invalidation&nbsp; 值被调用者手动删除</span></li>
+<li><span style="font-size: 15px;">removal&nbsp; 值因eviction或invalidation而发生的一种行为&nbsp; &nbsp;</span></li>
+</ul>
+<p><span style="font-size: 14pt; color: #53a451;">3.1.&nbsp; 明确地删除</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> <span style="color: #008800; font-style: italic;">// individual key</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">invalidate</span><span style="color: #666666;">(</span>key<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span> <span style="color: #008800; font-style: italic;">// bulk keys</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">4</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">invalidateAll</span><span style="color: #666666;">(</span>keys<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">5</span> <span style="color: #008800; font-style: italic;">// all keys</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">6</span> cache<span style="color: #666666;">.</span><span style="color: #bb4444;">invalidateAll</span><span style="color: #666666;">()</span>
+</span></code></pre>
+
+<p><span style="font-size: 14pt; color: #53a451;">3.2.&nbsp; 监听器</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> Cache<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">removalListener</span><span style="color: #666666;">((</span>Key key<span style="color: #666666;">,</span> Graph graph<span style="color: #666666;">,</span> RemovalCause cause<span style="color: #666666;">)</span> <span style="color: #666666;">-&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span>         System<span style="color: #666666;">.</span><span style="color: #bb4444;">out</span><span style="color: #666666;">.</span><span style="color: #bb4444;">printf</span><span style="color: #666666;">(</span><span style="color: #bb4444;">"Key %s was removed (%s)%n"</span><span style="color: #666666;">,</span> key<span style="color: #666666;">,</span> cause<span style="color: #666666;">))</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">();</span>
+</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt; color: #c3453b;">4.&nbsp; 刷新</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> <span style="color: #ff0000;">LoadingCache</span><span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">maximumSize</span><span style="color: #666666;">(10</span>_000<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">refreshAfterWrite</span><span style="color: #666666;">(1,</span> TimeUnit<span style="color: #666666;">.</span><span style="color: #bb4444;">MINUTES</span><span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">(</span>key <span style="color: #666666;">-&gt;</span> createExpensiveGraph<span style="color: #666666;">(</span>key<span style="color: #666666;">));</span></span>&nbsp;</code></pre>
+
+<p><span style="font-size: 15px;">通过<span style="color: #b52c23;">LoadingCache.refresh(K)</span>进行异步刷新，通过覆盖<span style="color: #b52c23;">CacheLoader.reload(K, V)</span>可以自定义刷新逻辑</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt; color: #c3453b;">5.&nbsp; 统计</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> Cache<span style="color: #666666;">&lt;</span>Key<span style="color: #666666;">,</span> Graph<span style="color: #666666;">&gt;</span> graphs <span style="color: #666666;">=</span> Caffeine<span style="color: #666666;">.</span><span style="color: #bb4444;">newBuilder</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">maximumSize</span><span style="color: #666666;">(10</span>_000<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">recordStats</span><span style="color: #666666;">()</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">4</span>     <span style="color: #666666;">.</span><span style="color: #bb4444;">build</span><span style="color: #666666;">();</span>&nbsp;</span></code></pre>
+
+<p><span style="font-size: 15px;">使用Caffeine.recordStats()，你可以打开统计功能。Cache.stats()方法会返回一个CacheStats对象，该对象提供以下统计信息：</span></p>
+<ul>
+<li><span style="font-size: 15px;">hitRate(): 命中率</span></li>
+<li><span style="font-size: 15px;">evictionCount(): 被剔除的条目数量</span></li>
+<li><span style="font-size: 15px;">averageLoadPenalty(): 加载新值所花费的平均时间</span></li>
+</ul>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt; color: #c3453b;">6.&nbsp; 示例</span></p>
+<p><span style="font-size: 15px;">终于要说到重点了</span></p>
+<p><span style="font-size: 15px;">一般来讲，用Redis作为一级话缓存，Caffeine作为二级缓存</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">6.1.&nbsp; 示例一：单独使用</span></p>
+<p><strong><span style="font-size: 16px;">pom.xml</span></strong></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>com.github.ben-manes.caffeine<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span>     <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>caffeine<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span>     <span style="color: #008000; font-weight: bold;">&lt;version&gt;</span>2.8.0<span style="color: #008000; font-weight: bold;">&lt;/version&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">4</span> <span style="color: #008000; font-weight: bold;">&lt;/dependency&gt;</span>
+</span></code></pre>
+
+<p><span style="font-size: 16px;"><strong>config</strong></span></p>
+<src class="highlight" style="background: #272822;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #272822; padding: 0 5px 0 5px;"> 1</span> <span style="color: #f92672;">package</span> <span style="color: #f8f8f2;">com</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">cjs</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">example</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">config</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 2</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 3</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.alibaba.fastjson.JSON</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 4</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.cjs.example.model.Student</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 5</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.github.benmanes.caffeine.cache.CacheLoader</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 6</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.github.benmanes.caffeine.cache.Caffeine</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 7</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.github.benmanes.caffeine.cache.LoadingCache</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 8</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.github.benmanes.caffeine.cache.Scheduler</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 9</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">lombok.extern.slf4j.Slf4j</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">10</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.checkerframework.checker.nullness.qual.NonNull</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">11</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.checkerframework.checker.nullness.qual.Nullable</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">12</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.beans.factory.annotation.Autowired</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">13</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.context.annotation.Bean</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">14</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.context.annotation.Configuration</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">15</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.data.redis.core.HashOperations</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">16</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.data.redis.core.StringRedisTemplate</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">17</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.util.StringUtils</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">18</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">19</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">java.util.concurrent.TimeUnit</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">20</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">21</span> <span style="color: #75715e;">/**</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">22</span> <span style="color: #75715e;"> * @author ChengJianSheng</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">23</span> <span style="color: #75715e;"> * @date 2019-09-15</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">24</span> <span style="color: #75715e;"> */</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">25</span> <span style="color: #a6e22e;">@Slf4j</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">26</span> <span style="color: #a6e22e;">@Configuration</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">27</span> <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">CacheConfig</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">28</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">29</span>     <span style="color: #a6e22e;">@Autowired</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">30</span>     <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">StringRedisTemplate</span> <span style="color: #f8f8f2;">stringRedisTemplate</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">31</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">32</span>     <span style="color: #a6e22e;">@Bean</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"studentCache"</span><span style="color: #f92672;">)</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">33</span>     <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">LoadingCache</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">Integer</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">Student</span><span style="color: #f92672;">&gt;</span> <span style="color: #f8f8f2;">studentCache</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">34</span>           <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">Caffeine</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">newBuilder</span><span style="color: #f92672;">()</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">35</span>                   <span style="color: #f92672;">.</span><span style="color: #a6e22e;">maximumSize</span><span style="color: #f92672;">(</span><span style="color: #ae81ff;">10</span><span style="color: #f92672;">).</span><span style="color: #a6e22e;">recordStats</span><span style="color: #f92672;">()</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">36</span>                   <span style="color: #f92672;">.</span><span style="color: #a6e22e;">expireAfterWrite</span><span style="color: #f92672;">(</span><span style="color: #ae81ff;">1</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">TimeUnit</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">HOURS</span><span style="color: #f92672;">)</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">37</span> <span style="color: #75715e;">//                  .scheduler(Scheduler.systemScheduler())  // 需要自定义调度器，用定时任务去主动提前刷新</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">38</span>                   <span style="color: #f92672;">.</span><span style="color: #a6e22e;">build</span><span style="color: #f92672;">(</span><span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">CacheLoader</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">Integer</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">Student</span><span style="color: #f92672;">&gt;()</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">39</span>                       <span style="color: #a6e22e;">@Nullable</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">40</span>                       <span style="color: #a6e22e;">@Override</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">41</span>                       <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">Student</span> <span style="color: #a6e22e;">load</span><span style="color: #f92672;">(</span><span style="color: #a6e22e;">@NonNull</span> <span style="color: #f8f8f2;">Integer</span> <span style="color: #f8f8f2;">key</span><span style="color: #f92672;">)</span> <span style="color: #66d9ef;">throws</span> <span style="color: #f8f8f2;">Exception</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">42</span>                           <span style="color: #f8f8f2;">log</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">info</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"从缓存中加载...key={}"</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">key</span><span style="color: #f92672;">);</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">43</span>                           <span style="color: #f8f8f2;">HashOperations</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">String</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">String</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">String</span><span style="color: #f92672;">&gt;</span> <span style="color: #f8f8f2;">hashOperations</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">stringRedisTemplate</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">opsForHash</span><span style="color: #f92672;">();</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">44</span>                           <span style="color: #f8f8f2;">String</span> <span style="color: #f8f8f2;">value</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">hashOperations</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">get</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"STU_HS"</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">String</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">valueOf</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">key</span><span style="color: #f92672;">));</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">45</span>                           <span style="color: #66d9ef;">if</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">StringUtils</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">isEmpty</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">value</span><span style="color: #f92672;">))</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">46</span>                               <span style="color: #66d9ef;">return</span> <span style="color: #66d9ef;">null</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">47</span>                           <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">48</span>                           <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">JSON</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">parseObject</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">value</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">Student</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">class</span><span style="color: #f92672;">);</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">49</span>                       <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">50</span>                   <span style="color: #f92672;">});</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">51</span>     <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">52</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">53</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">54</span> <span style="color: #f92672;">}</span>
+</span></code></pre>
+
+<p><span style="font-size: 16px;"><strong>service</strong></span>&nbsp;</p>
+<src class="highlight" style="background: #272822;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #272822; padding: 0 5px 0 5px;"> 1</span> <span style="color: #f92672;">package</span> <span style="color: #f8f8f2;">com</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">cjs</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">example</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">service</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 2</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 3</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.cjs.example.model.Student</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 4</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.github.benmanes.caffeine.cache.LoadingCache</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 5</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.stereotype.Service</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 6</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 7</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">javax.annotation.Resource</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 8</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">java.util.Comparator</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 9</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">java.util.List</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">10</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">java.util.Map</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">11</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">java.util.stream.Collectors</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">12</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">13</span> <span style="color: #75715e;">/**</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">14</span> <span style="color: #75715e;"> * @author ChengJianSheng</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">15</span> <span style="color: #75715e;"> * @date 2019-09-15</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">16</span> <span style="color: #75715e;"> */</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">17</span> <span style="color: #a6e22e;">@Service</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">18</span> <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">StudentService</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">19</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">20</span>     <span style="color: #a6e22e;">@Resource</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">name</span> <span style="color: #f92672;">=</span> <span style="color: #e6db74;">"studentCache"</span><span style="color: #f92672;">)</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">21</span>     <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">LoadingCache</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">Integer</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">Student</span><span style="color: #f92672;">&gt;</span> <span style="color: #f8f8f2;">studentCache</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">22</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">23</span>     <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">Student</span> <span style="color: #a6e22e;">getById</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Integer</span> <span style="color: #f8f8f2;">id</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">24</span>         <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">studentCache</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">get</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">id</span><span style="color: #f92672;">);</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">25</span>     <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">26</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">27</span>     <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">List</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">Student</span><span style="color: #f92672;">&gt;</span> <span style="color: #a6e22e;">getAll</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">List</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">Integer</span><span style="color: #f92672;">&gt;</span> <span style="color: #f8f8f2;">idList</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">28</span>         <span style="color: #f8f8f2;">Map</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">Integer</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">Student</span><span style="color: #f92672;">&gt;</span> <span style="color: #f8f8f2;">studentMap</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">studentCache</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">getAll</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">idList</span><span style="color: #f92672;">);</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">29</span>         <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">studentMap</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">values</span><span style="color: #f92672;">().</span><span style="color: #a6e22e;">parallelStream</span><span style="color: #f92672;">().</span><span style="color: #a6e22e;">sorted</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Comparator</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">comparing</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Student:</span><span style="color: #f92672;">:</span><span style="color: #f8f8f2;">getId</span><span style="color: #f92672;">)).</span><span style="color: #a6e22e;">collect</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Collectors</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">toList</span><span style="color: #f92672;">());</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">30</span>     <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">31</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">32</span>     <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">Double</span> <span style="color: #a6e22e;">hitRate</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">33</span>         <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">studentCache</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">stats</span><span style="color: #f92672;">().</span><span style="color: #a6e22e;">hitRate</span><span style="color: #f92672;">();</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">34</span>     <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">35</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">36</span>     <span style="color: #75715e;">/**</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">37</span> <span style="color: #75715e;">     * 不直接写到本地缓存，而是先写到Redis，然后从Redis中读到本地</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">38</span> <span style="color: #75715e;">     */</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">39</span> <span style="color: #f92672;">}</span></span></code></pre>
+
+<p><span style="font-size: 15px;">补充一点：你都用本地缓存了，必定已经用了一级缓存了。一级缓存无法达到预期的性能，才会选择用本地缓存。</span></p>
+<p><span style="font-size: 15px;"><span style="font-size: 16px;"><strong>controller</strong></span>&nbsp;</span></p>
+<src class="highlight" style="background: #272822;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #272822; padding: 0 5px 0 5px;"> 1</span> <span style="color: #f92672;">package</span> <span style="color: #f8f8f2;">com</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">cjs</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">example</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">controller</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 2</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 3</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.cjs.example.model.Student</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 4</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.cjs.example.service.StudentService</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 5</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.beans.factory.annotation.Autowired</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 6</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.web.bind.annotation.GetMapping</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 7</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.web.bind.annotation.PathVariable</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 8</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.web.bind.annotation.RequestMapping</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 9</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.web.bind.annotation.RestController</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">10</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">11</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">java.util.Arrays</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">12</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">java.util.List</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">13</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">14</span> <span style="color: #75715e;">/**</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">15</span> <span style="color: #75715e;"> * @author ChengJianSheng</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">16</span> <span style="color: #75715e;"> * @date 2019-09-15</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">17</span> <span style="color: #75715e;"> */</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">18</span> <span style="color: #a6e22e;">@RestController</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">19</span> <span style="color: #a6e22e;">@RequestMapping</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"/student"</span><span style="color: #f92672;">)</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">20</span> <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">StudentController</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">21</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">22</span>     <span style="color: #a6e22e;">@Autowired</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">23</span>     <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">StudentService</span> <span style="color: #f8f8f2;">studentService</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">24</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">25</span>     <span style="color: #a6e22e;">@GetMapping</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"/info/{studentId}"</span><span style="color: #f92672;">)</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">26</span>     <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">Student</span> <span style="color: #a6e22e;">info</span><span style="color: #f92672;">(</span><span style="color: #a6e22e;">@PathVariable</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"studentId"</span><span style="color: #f92672;">)</span> <span style="color: #f8f8f2;">Integer</span> <span style="color: #f8f8f2;">studentId</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">27</span>         <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">studentService</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">getById</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">studentId</span><span style="color: #f92672;">);</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">28</span>     <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">29</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">30</span>     <span style="color: #a6e22e;">@GetMapping</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"/getAll"</span><span style="color: #f92672;">)</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">31</span>     <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">List</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">Student</span><span style="color: #f92672;">&gt;</span> <span style="color: #a6e22e;">getAll</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">32</span>         <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">studentService</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">getAll</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Arrays</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">asList</span><span style="color: #f92672;">(</span><span style="color: #ae81ff;">101</span><span style="color: #f92672;">,</span> <span style="color: #ae81ff;">102</span><span style="color: #f92672;">,</span> <span style="color: #ae81ff;">103</span><span style="color: #f92672;">,</span> <span style="color: #ae81ff;">104</span><span style="color: #f92672;">,</span> <span style="color: #ae81ff;">105</span><span style="color: #f92672;">));</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">33</span>     <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">34</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">35</span>     <span style="color: #a6e22e;">@GetMapping</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"/hitRate"</span><span style="color: #f92672;">)</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">36</span>     <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">Double</span> <span style="color: #a6e22e;">hitRate</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">37</span>         <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">studentService</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">hitRate</span><span style="color: #f92672;">();</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">38</span>     <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">39</span> <span style="color: #f92672;">}</span>
+</span></code></pre>
+
+<p><img src="./images/最佳内存缓存框架Caffeine0.png" alt="" />&nbsp;</p>
+<p><span style="font-size: 14pt; color: #53a451;">6.2.&nbsp; 示例二：和SpringBoot一起用</span></p>
+<p><span style="font-size: 15px;">SpringBoot支持Caffeine，可以简化一些步骤，但同时也有诸多限制</span></p>
+<blockquote>
+<p><img src="./images/最佳内存缓存框架Caffeine1.png" alt="" /></p>
+</blockquote>
+<p><span style="font-size: 16px;"><strong>application.yml</strong></span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 1</span> <span style="color: #a0a000;">spring:</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 2</span>   <span style="color: #a0a000;">redis:</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 3</span>     <span style="color: #a0a000;">host:</span> <span style="color: #666666;">127.0.0.1</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 4</span>     <span style="color: #a0a000;">password:</span> <span style="color: #666666;">123456</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 5</span>     <span style="color: #a0a000;">port:</span> <span style="color: #666666;">6379</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 6</span>   <span style="color: #a0a000;">cache:</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 7</span>     <span style="color: #a0a000;">type:</span> caffeine
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 8</span>     <span style="color: #a0a000;">cache-names:</span> teacher
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 9</span>     <span style="color: #a0a000;">caffeine:</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">10</span>       <span style="color: #a0a000;">spec:</span> maximumSize<span style="color: #666666;">=500,</span>expireAfterAccess<span style="color: #666666;">=600</span>s
+</span></code></pre>
+
+<p><strong><span style="font-size: 16px;">service</span></strong></p>
+<src class="highlight" style="background: #272822;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #272822; padding: 0 5px 0 5px;"> 1</span> <span style="color: #f92672;">package</span> <span style="color: #f8f8f2;">com</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">cjs</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">example</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">service</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 2</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 3</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.alibaba.fastjson.JSON</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 4</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.cjs.example.model.Teacher</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 5</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">lombok.extern.slf4j.Slf4j</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 6</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.beans.factory.annotation.Autowired</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 7</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.cache.annotation.Cacheable</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 8</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.data.redis.core.HashOperations</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;"> 9</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.data.redis.core.StringRedisTemplate</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">10</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.stereotype.Service</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">11</span> <span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">org.springframework.util.StringUtils</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">12</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">13</span> <span style="color: #75715e;">/**</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">14</span> <span style="color: #75715e;"> * @author ChengJianSheng</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">15</span> <span style="color: #75715e;"> * @date 2019-09-15</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">16</span> <span style="color: #75715e;"> */</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">17</span> <span style="color: #a6e22e;">@Slf4j</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">18</span> <span style="color: #a6e22e;">@Service</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">19</span> <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">TeacherService</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">20</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">21</span>     <span style="color: #a6e22e;">@Autowired</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">22</span>     <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">StringRedisTemplate</span> <span style="color: #f8f8f2;">stringRedisTemplate</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">23</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">24</span>     <span style="color: #a6e22e;">@Cacheable</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">cacheNames</span> <span style="color: #f92672;">=</span> <span style="color: #e6db74;">"teacher"</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">key</span> <span style="color: #f92672;">=</span> <span style="color: #e6db74;">"#teacherId"</span><span style="color: #f92672;">)</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">25</span>     <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">Teacher</span> <span style="color: #a6e22e;">getById</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Integer</span> <span style="color: #f8f8f2;">teacherId</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">26</span>         <span style="color: #f8f8f2;">log</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">info</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"从缓存中读取...Key={}"</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">teacherId</span><span style="color: #f92672;">);</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">27</span>         <span style="color: #f8f8f2;">HashOperations</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">String</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">String</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">String</span><span style="color: #f92672;">&gt;</span> <span style="color: #f8f8f2;">hashOperations</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">stringRedisTemplate</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">opsForHash</span><span style="color: #f92672;">();</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">28</span>         <span style="color: #f8f8f2;">String</span> <span style="color: #f8f8f2;">value</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">hashOperations</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">get</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"TEA_HS"</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">String</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">valueOf</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">teacherId</span><span style="color: #f92672;">));</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">29</span>         <span style="color: #66d9ef;">if</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">StringUtils</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">isEmpty</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">value</span><span style="color: #f92672;">))</span> <span style="color: #f92672;">{</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">30</span>             <span style="color: #66d9ef;">return</span> <span style="color: #66d9ef;">null</span><span style="color: #f92672;">;</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">31</span>         <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">32</span>         <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">JSON</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">parseObject</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">value</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">Teacher</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">class</span><span style="color: #f92672;">);</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">33</span>     <span style="color: #f92672;">}</span>
+<span style="background-color: #272822; padding: 0 5px 0 5px;">34</span> 
+<span style="background-color: #272822; padding: 0 5px 0 5px;">35</span> <span style="color: #f92672;">}</span>
+</span></code></pre>
+
+<p><img src="./images/最佳内存缓存框架Caffeine2.png" alt="" /></p>
+<p><span style="font-size: 15px;">用注解方便是方便，但是不好控制，还是自定义的好</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt; color: #c3453b;">7.&nbsp; 工程结构</span></p>
+<p><img src="./images/最佳内存缓存框架Caffeine3.png" alt="" /></p>
+<p><span style="font-size: 16px;">完整的pom.xml</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 1</span> <span style="color: #008800;">&lt;?xml version="1.0" encoding="UTF-8"?&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 2</span> <span style="color: #008000; font-weight: bold;">&lt;project</span> <span style="color: #bb4444;">xmlns="http://maven.apache.org/POM/4.0.0"</span> <span style="color: #bb4444;">xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 3</span>          <span style="color: #bb4444;">xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span style="color: #008000; font-weight: bold;">&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 4</span>     <span style="color: #008000; font-weight: bold;">&lt;modelVersion&gt;</span>4.0.0<span style="color: #008000; font-weight: bold;">&lt;/modelVersion&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 5</span>     <span style="color: #008000; font-weight: bold;">&lt;parent&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 6</span>         <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>org.springframework.boot<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 7</span>         <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>spring-boot-starter-parent<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 8</span>         <span style="color: #008000; font-weight: bold;">&lt;version&gt;</span>2.1.8.RELEASE<span style="color: #008000; font-weight: bold;">&lt;/version&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 9</span>         <span style="color: #008000; font-weight: bold;">&lt;relativePath/&gt;</span> <span style="color: #008800; font-style: italic;">&lt;!-- lookup parent from repository --&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">10</span>     <span style="color: #008000; font-weight: bold;">&lt;/parent&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">11</span>     <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>com.cjs.example<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">12</span>     <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>cjs-caffeine-example<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">13</span>     <span style="color: #008000; font-weight: bold;">&lt;version&gt;</span>0.0.1-SNAPSHOT<span style="color: #008000; font-weight: bold;">&lt;/version&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">14</span>     <span style="color: #008000; font-weight: bold;">&lt;name&gt;</span>cjs-caffeine-example<span style="color: #008000; font-weight: bold;">&lt;/name&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">15</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">16</span>     <span style="color: #008000; font-weight: bold;">&lt;properties&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">17</span>         <span style="color: #008000; font-weight: bold;">&lt;java.version&gt;</span>1.8<span style="color: #008000; font-weight: bold;">&lt;/java.version&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">18</span>     <span style="color: #008000; font-weight: bold;">&lt;/properties&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">19</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">20</span>     <span style="color: #008000; font-weight: bold;">&lt;dependencies&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">21</span>         <span style="color: #008000; font-weight: bold;">&lt;dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">22</span>             <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>org.springframework.boot<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">23</span>             <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>spring-boot-starter-cache<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">24</span>         <span style="color: #008000; font-weight: bold;">&lt;/dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">25</span>         <span style="color: #008000; font-weight: bold;">&lt;dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">26</span>             <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>org.springframework.boot<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">27</span>             <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>spring-boot-starter-data-redis<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">28</span>         <span style="color: #008000; font-weight: bold;">&lt;/dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">29</span>         <span style="color: #008000; font-weight: bold;">&lt;dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">30</span>             <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>org.springframework.boot<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">31</span>             <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>spring-boot-starter-web<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">32</span>         <span style="color: #008000; font-weight: bold;">&lt;/dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">33</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">34</span>         <span style="color: #008000; font-weight: bold;">&lt;dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">35</span>             <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>com.github.ben-manes.caffeine<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">36</span>             <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>caffeine<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">37</span>             <span style="color: #008000; font-weight: bold;">&lt;version&gt;</span>2.8.0<span style="color: #008000; font-weight: bold;">&lt;/version&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">38</span>         <span style="color: #008000; font-weight: bold;">&lt;/dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">39</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">40</span>         <span style="color: #008000; font-weight: bold;">&lt;dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">41</span>             <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>org.projectlombok<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">42</span>             <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>lombok<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">43</span>             <span style="color: #008000; font-weight: bold;">&lt;optional&gt;</span>true<span style="color: #008000; font-weight: bold;">&lt;/optional&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">44</span>         <span style="color: #008000; font-weight: bold;">&lt;/dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">45</span>         <span style="color: #008000; font-weight: bold;">&lt;dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">46</span>             <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>com.alibaba<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">47</span>             <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>fastjson<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">48</span>             <span style="color: #008000; font-weight: bold;">&lt;version&gt;</span>1.2.60<span style="color: #008000; font-weight: bold;">&lt;/version&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">49</span>         <span style="color: #008000; font-weight: bold;">&lt;/dependency&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">50</span>     <span style="color: #008000; font-weight: bold;">&lt;/dependencies&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">51</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">52</span>     <span style="color: #008000; font-weight: bold;">&lt;build&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">53</span>         <span style="color: #008000; font-weight: bold;">&lt;plugins&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">54</span>             <span style="color: #008000; font-weight: bold;">&lt;plugin&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">55</span>                 <span style="color: #008000; font-weight: bold;">&lt;groupId&gt;</span>org.springframework.boot<span style="color: #008000; font-weight: bold;">&lt;/groupId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">56</span>                 <span style="color: #008000; font-weight: bold;">&lt;artifactId&gt;</span>spring-boot-maven-plugin<span style="color: #008000; font-weight: bold;">&lt;/artifactId&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">57</span>             <span style="color: #008000; font-weight: bold;">&lt;/plugin&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">58</span>         <span style="color: #008000; font-weight: bold;">&lt;/plugins&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">59</span>     <span style="color: #008000; font-weight: bold;">&lt;/build&gt;</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">60</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">61</span> <span style="color: #008000; font-weight: bold;">&lt;/project&gt;</span>
+</span></code></pre>
+
+<p><span style="font-size: 15px;"><a href="https://github.com/chengjiansheng/cjs-caffeine-example" target="_blank">https://github.com/chengjiansheng/cjs-caffeine-example</a></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt; color: #c3453b;">8.&nbsp; 文档</span></p>
+<p><span style="font-size: 15px;"><a href="https://github.com/ben-manes/caffeine/wiki" target="_blank">https://github.com/ben-manes/caffeine/wiki</a>&nbsp;</span></p>
+<p><span style="font-size: 15px;"><a href="https://github.com/ben-manes/caffeine" target="_blank">https://github.com/ben-manes/caffeine</a></span></p>
+<p><span style="font-size: 15px;"><a href="https://www.itcodemonkey.com/article/9498.html" target="_blank">https://www.itcodemonkey.com/article/9498.html</a>&nbsp;</span></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,76 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SparkStreaming整合Flume的pull方式之启动报错解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SparkStreaming整合Flume的pull方式之启动报错解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主彪悍大蓝猫提供。<br/>
+原文连接:https://www.cnblogs.com/skywp/p/11684598.html</div><br>
+    <p>Flume配置文件：</p>
+<pre><code><code>simple-agent.sources = netcat-source
+simple-agent.sinks = spark-sink
+simple-agent.channels = memory-channel
+
+#Describe/configure the source
+simple-agent.sources.netcat-source.type = netcat
+simple-agent.sources.netcat-source.bind = centos
+simple-agent.sources.netcat-source.port= 44444
+
+# Describe the sink
+simple-agent.sinks.spark-sink.type=org.apache.spark.streaming.flume.sink.SparkSink
+simple-agent.sinks.spark-sink.hostname= centos 
+simple-agent.sinks.spark-sink.port= 41414
+
+simple-agent.channels.memory-channel.type = memory
+simple-agent.channels.memory-channel.capacity = 1000
+simple-agent.channels.memory-channel.transactionCapacity = 100
+
+simple-agent.sources.netcat-source.channels = memory-channel
+simple-agent.sinks.spark-sink.channel = memory-channel</code></code></pre>
+<p>但是在启动Flume时，报以下错误：</p>
+<pre><code><code>2019-10-16 11:35:14,559 (conf-file-poller-0) [ERROR - org.apache.flume.node.PollingPropertiesFileConfigurationProvider$FileWatcherRunnable.run(PollingPropertiesFileConfigurationProvider.java:142)] Failed to load configuration data. Exception follows.
+org.apache.flume.FlumeException: Unable to load sink type: org.apache.spark.streaming.flume.sink.SparkSink, class: org.apache.spark.streaming.flume.sink.SparkSink
+    at org.apache.flume.sink.DefaultSinkFactory.getClass(DefaultSinkFactory.java:71)
+    at org.apache.flume.sink.DefaultSinkFactory.create(DefaultSinkFactory.java:43)
+    at org.apache.flume.node.AbstractConfigurationProvider.loadSinks(AbstractConfigurationProvider.java:410)
+    at org.apache.flume.node.AbstractConfigurationProvider.getConfiguration(AbstractConfigurationProvider.java:98)
+    at org.apache.flume.node.PollingPropertiesFileConfigurationProvider$FileWatcherRunnable.run(PollingPropertiesFileConfigurationProvider.java:140)
+    at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+    at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:308)
+    at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$301(ScheduledThreadPoolExecutor.java:180)
+    at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:294)
+    at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+    at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+    at java.lang.Thread.run(Thread.java:748)
+Caused by: java.lang.ClassNotFoundException: org.apache.spark.streaming.flume.sink.SparkSink
+    at java.net.URLClassLoader.findClass(URLClassLoader.java:381)
+    at java.lang.ClassLoader.loadClass(ClassLoader.java:424)
+    at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:349)
+    at java.lang.ClassLoader.loadClass(ClassLoader.java:357)
+    at java.lang.Class.forName0(Native Method)
+    at java.lang.Class.forName(Class.java:264)
+    at org.apache.flume.sink.DefaultSinkFactory.getClass(DefaultSinkFactory.java:69)
+    ... 11 more</code></code></pre>
+<h4 id="解决方案">解决方案：</h4>
+<p>由于用到了agent的sink是 org.apache.spark.streaming.flume.sink.SparkSink类型，需要把spark-streaming-flume-sink_2.11-2.4.3.jar复制到flume的lib目录，否则，会报找不到org.apache.spark.streaming.flume.sink.SparkSink类的错误。</p>
+<blockquote>
+<p>欢迎关注我的公号：彪悍大蓝猫，持续分享大数据、Java、安全干货~</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

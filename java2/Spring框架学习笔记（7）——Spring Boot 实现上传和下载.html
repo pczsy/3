@@ -1,0 +1,143 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring框架学习笔记（7）——Spring Boot 实现上传和下载' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring框架学习笔记（7）——Spring Boot 实现上传和下载</center></div><div class='banquan'>原文出处:本文由博客园博主Stars-one提供。<br/>
+原文连接:https://www.cnblogs.com/kexing/p/11899194.html</div><br>
+    <p>最近忙着都没时间写博客了，做了个项目，实现了下载功能，没用到上传，写这篇文章也是顺便参考学习了如何实现上传，上传和下载做一篇笔记吧</p>
+<h2 id="下载">下载</h2>
+<p>主要有下面的两种方式：</p>
+<ul>
+<li>通过ResponseEntity<InputStreamResource>实现</li>
+<li>通过写HttpServletResponse的OutputStream实现</li>
+</ul>
+<p>我只测试了<code>ResponseEntity&lt;InputStreamResource&gt;</code>这种方法可行，另外一种方法请各位搜索资料。</p>
+<p>我们在controller层中，让某个方法返回ResponseEntity，之后，用户打开这个url，就会直接开始下载文件</p>
+<p>这里，封装了一个方法<code>export</code>，负责把File对象转为ResponseEntity</p>
+<pre><code><code>public ResponseEntity&lt;FileSystemResource&gt; export(File file) {
+    if (file == null) {
+        return null;
+    }
+    HttpHeaders headers = new HttpHeaders();
+    headers.add(&quot;Cache-Control&quot;, &quot;no-cache, no-store, must-revalidate&quot;);
+    headers.add(&quot;Content-Disposition&quot;, &quot;attachment; filename=&quot; + System.currentTimeMillis() + &quot;.xls&quot;);//以时间命名文件，防止出现文件存在的情况，根据实际情况修改，我这里是返回一个xls文件
+    headers.add(&quot;Pragma&quot;, &quot;no-cache&quot;);
+    headers.add(&quot;Expires&quot;, &quot;0&quot;);
+    headers.add(&quot;Last-Modified&quot;, new Date().toString());
+    headers.add(&quot;ETag&quot;, String.valueOf(System.currentTimeMillis()));
+
+    return ResponseEntity
+            .ok()
+            .headers(headers)
+            .contentLength(file.length())
+            .contentType(MediaType.parseMediaType(&quot;application/octet-stream&quot;))
+            .body(new FileSystemResource(file));
+}</code></code></pre>
+<p><strong>Controller</strong></p>
+<pre><code><code>@RequestMapping(&quot;download&quot;)
+public ResponseEntity&lt;FileSystemResource&gt; downloadFile() {
+    return export(new FIle());//这里返回调用export的结果
+}</code></code></pre>
+<h2 id="上传">上传</h2>
+<h3 id="配置">1.配置</h3>
+<p>spring boot使用上传功能，得先进行配置，spring boot配置方式有两种，一种是资源文件properties配置，另外一种方式则是yml配置</p>
+<p><strong>properties配置：</strong></p>
+<pre><code><code>## MULTIPART (MultipartProperties)
+# 开启 multipart 上传功能
+spring.servlet.multipart.enabled=true
+# 文件写入磁盘的阈值
+spring.servlet.multipart.file-size-threshold=2KB
+# 最大文件大小
+spring.servlet.multipart.max-file-size=200MB
+# 最大请求大小
+spring.servlet.multipart.max-request-size=215MB</code></code></pre>
+<p><strong>yml配置：</strong></p>
+<pre class="yml"><code>spring:
+    servlet:
+        multipart:
+          enabled: true # 开启 multipart 上传功能
+          max-file-size: 200MB # 最大文件大小
+          max-request-size: 215MB # 最大文件请求大小
+          file-size-threshold: 2KB # 文件写入磁盘的阈值</code></code></pre>
+<h3 id="编写url请求">2.编写url请求</h3>
+<p><strong>controller</strong></p>
+<pre><code><code>@PostMapping(&quot;/upload&quot;)
+@ResponseBody
+public String upload(@RequestParam(&quot;file&quot;) MultipartFile file) {
+    if (file.isEmpty()) {
+        return &quot;上传失败，请选择文件&quot;;
+    }
+
+    String fileName = file.getOriginalFilename();
+    String filePath = &quot;/Users/itinypocket/workspace/temp/&quot;;//文件上传到服务器的路径，根据实际情况修改
+    File dest = new File(filePath + fileName);
+    try {
+        file.transferTo(dest);
+        LOGGER.info(&quot;上传成功&quot;);
+        return &quot;上传成功&quot;;
+    } catch (IOException e) {
+        LOGGER.error(e.toString(), e);
+    }
+    return &quot;上传失败！&quot;;
+}</code></code></pre>
+<h3 id="web页面上传文件">3.Web页面上传文件</h3>
+<p>注意，input标签的name与url的请求参数名相同，上传只能使用post请求<br />
+<strong>单个文件上传：</strong></p>
+<pre><code><code>&lt;form method=&quot;post&quot; action=&quot;/upload&quot; enctype=&quot;multipart/form-data&quot;&gt;
+    &lt;input type=&quot;file&quot; name=&quot;file&quot;&gt;&lt;br&gt;
+    &lt;input type=&quot;submit&quot; value=&quot;提交&quot;&gt;
+&lt;/form&gt;</code></code></pre>
+<p><strong>多个文件上传：</strong></p>
+<p>input标签加上<code>multiple</code>属性，即可一次选择多个文件</p>
+<pre><code><code>&lt;form method=&quot;post&quot;  action=&quot;/upload&quot; enctype=&quot;multipart/form-data&quot;&gt;
+    &lt;input type=&quot;file&quot; multiple name=&quot;file&quot;&gt;&lt;br&gt;
+    &lt;input type=&quot;submit&quot; value=&quot;提交&quot;&gt;
+&lt;/form&gt;</code></code></pre>
+<h3 id="android端上传文件">4.Android端上传文件</h3>
+<p>使用okhttp上传文件</p>
+<pre><code><code>RequestBody filebody = RequestBody.create(MediaType.parse(&quot;application/octet-stream&quot;), file);
+RequestBody body = new MultipartBody.Builder()
+        .addFormDataPart(&quot;file&quot;, file.getName(), filebody)
+        .build();
+Request request = new Request.Builder()
+        .url(&quot;http://192.168.1.106:8080/webapp/fileUploadPage&quot;)
+        .post(body)
+        .build();
+
+Call call = okHttpClient.newCall(request);
+call.enqueue(new Callback() {
+    @Override
+    public void onFailure(Call call, IOException e) {
+        Log.e(TAG, &quot;请求失败:&quot; + e.getMessage());
+    }
+
+    @Override
+    public void onResponse(Call call, Response response) throws IOException {
+        Log.e(TAG, &quot;请求成功!&quot;);
+    }
+});</code></code></pre>
+<p>参考链接：<br />
+<a href="https://www.cnblogs.com/yaowen/p/8918678.html">spring boot文件下载</a><br />
+<a href="https://www.jianshu.com/p/e25b3c542553">Spring Boot 文件上传与下载</a><br />
+<a href="https://blog.csdn.net/gnail_oug/article/details/80324120">Spring Boot教程(十三)：Spring Boot文件上传</a><br />
+<a href="https://www.runoob.com/jsp/jsp-file-uploading.html">jsp 实现上传 菜鸟教程</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

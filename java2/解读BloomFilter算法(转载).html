@@ -1,0 +1,74 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修解读BloomFilter算法(转载)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>解读BloomFilter算法(转载)</center></div><div class='banquan'>原文出处:本文由博客园博主wenbochang提供。<br/>
+原文连接:https://www.cnblogs.com/wenbochang/p/11414687.html</div><br>
+    <h1 id="介绍">1.介绍</h1>
+<p>BloomFilter（布隆过滤器）是一种可以高效地判断元素是否在某个集合中的算法。</p>
+<p>在很多日常场景中，都大量存在着布隆过滤器的应用。例如：检查单词是否拼写正确、网络爬虫的URL去重、黑名单检验，微博中昵称不能重复的检测。在工业界中，Google著名的分布式数据库BigTable也用</p>
+<p>了布隆过滤器来查找不存在的行或列，以减少磁盘查找的IO次数；Google Chrome浏览器使用BloomFilter来判断一个网站是否为恶意网站。</p>
+<p>对于以上场景，可能很多人会说，用HashSet甚至简单的链表、数组做存储，然后判断是否存在不就可以了吗？</p>
+<p>当然，对于少量数据来说，HashSet是很好的选择。但是对于海量数据来说，BloomFilter相比于其他数据结构在空间效率和时间效率方面都有着明显的优势。</p>
+<p>但是，布隆过滤器具有一定的误判率，有可能会将本不存在的元素判定为存在。因此，对于那些需要&ldquo;零错误&rdquo;的应用场景，布隆过滤器将不太适用。具体的原因将会在第二部分中介绍。</p>
+<p>在本文的第二部分，本文将会介绍BloomFilter的基本算法思想；第三部分将会基于Google开源库Guava来讲解BloomFilter的具体实现；在第四部分中，将会介绍一些开源的BloomFilter的扩展，以解决目前BloomFilter的不足。</p>
+<h1 id="算法讲述">2.算法讲述</h1>
+<p>布隆过滤器是基于Hash来实现的，在学习BloomFilter之前，也需要对Hash的原理有基本的了解。个人认为，BloomFilter的总体思想实际上和bitmap很像，但是比bitmap更节省空间，误判率也更低。</p>
+<p>BloomFilter的整体思想并不复杂，主要是使用k个Hash函数将元素映射到位向量的k个位置上面，并将这k个位置全部置为1。当查找某元素是否存在时，查找该元素所对应的k位是否全部为1即可说明该元素是否存在。</p>
+<h2 id="算法流程">2.1算法流程</h2>
+<p>BloomFilter的整体算法流程可总结为如下步骤：</p>
+<ol>
+<li>BloomFilter初始化为m位长度的位向量，每一位均初始化为0<br /><a class="fancybox fancybox.image" href="./images/解读BloomFilter算法(转载)0.png" rel="group"><img src="./images/解读BloomFilter算法(转载)0.png" alt="step-1" /></a></li>
+<li>使用k个相互独立的Hash函数，每个Hash函数将元素映射到{1..m}的范围内，并将对应的位置为1。<br /><a class="fancybox fancybox.image" href="./images/解读BloomFilter算法(转载)1.png" rel="group"><img src="./images/解读BloomFilter算法(转载)1.png" alt="step-2" /></a><br />如上图所示，元素x分别被三个Hash函数映射到了三个位置8、1、14，并将这三个位置从0变为1。</li>
+<li>若检查一个元素y是否存在，首先第一步使用k个Hash函数将元素y映射到k位。分别检测每一位是否为0。若某一位为0，则元素y一定不存在，若全部为1，则有可能存在。</li>
+
+
+
+</ol>
+<h2 class=" has-jax has-jax">&nbsp;</h2>
+<h2 class=" has-jax has-jax"><strong>2.2空间复杂度</strong></h2>
+<p class=" has-jax has-jax">BloomFilter 使用位向量来表示元素，而不存储本身，这样极大压缩了元素的存储空间。其空间复杂度为O(m)，m是位向量的长度。而m与插入总数量n的关系如公式<span id="MathJax-Element-1-Frame" class="MathJax" data-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mrow class=&quot;MathJax_ref&quot; href=&quot;#mjx-eqn-eqmn&quot;&gt;&lt;mtext&gt;(1)&lt;/mtext&gt;&lt;/mrow&gt;&lt;/math&gt;"><span class="MJX_Assistive_MathML"><br /></span></span></p>
+<p class=" has-jax has-jax">&nbsp;</p>
+<p class=" has-jax has-jax"><img src="./images/解读BloomFilter算法(转载)2.png" alt="" /></p>
+<p class=" has-jax has-jax">&nbsp;</p>
+<p>我们可以利用这个公式来算一下需要抓取100万个URL时BloomFilter所占据的空间。</p>
+<p class=" has-jax has-jax"><strong>假设要求误判率为1%，</strong>因此该公式可转化为<span id="MathJax-Element-3-Frame" class="MathJax" data-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;9.6&lt;/mn&gt;&lt;mo&gt;&amp;#x2217;&lt;/mo&gt;&lt;mi&gt;n&lt;/mi&gt;&lt;/math&gt;"><span style="color: #ff0000;"><strong><span id="MathJax-Span-34" class="math"><span id="MathJax-Span-35" class="mrow"><span id="MathJax-Span-36" class="mi">m<span id="MathJax-Span-37" class="mo">=<span id="MathJax-Span-38" class="mn">9.6<span id="MathJax-Span-39" class="mo">&lowast;<span id="MathJax-Span-40" class="mi">n</span></span></span></span></span></span></span></strong></span><span class="MJX_Assistive_MathML">。故此时BloomFilter位向量的大小为<span id="MathJax-Element-4-Frame" class="MathJax" data-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mn&gt;100&lt;/mn&gt;&lt;mi&gt;w&lt;/mi&gt;&lt;mo&gt;&amp;#x2217;&lt;/mo&gt;&lt;mn&gt;9.6&lt;/mn&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;960&lt;/mn&gt;&lt;mi&gt;w&lt;/mi&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;mi&gt;t&lt;/mi&gt;&lt;/math&gt;"><strong><span id="MathJax-Span-41" class="math" style="color: #ff0000;"><span id="MathJax-Span-42" class="mrow"><span id="MathJax-Span-43" class="mn">100<span id="MathJax-Span-44" class="mi">w<span id="MathJax-Span-45" class="mo">&lowast;<span id="MathJax-Span-46" class="mn">9.6<span id="MathJax-Span-47" class="mo">=<span id="MathJax-Span-48" class="mn">960<span id="MathJax-Span-49" class="mi">w<span id="MathJax-Span-50" class="mi">b<span id="MathJax-Span-51" class="mi">i<span id="MathJax-Span-52" class="mi">t</span></span></span></span></span></span></span></span></span></span></span></span></strong><span class="MJX_Assistive_MathML"><strong><span style="color: #ff0000;">，约1.1M内存空间。</span></strong></span></span></span></span></p>
+<p class=" has-jax has-jax"><span id="MathJax-Element-3-Frame" class="MathJax" data-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;9.6&lt;/mn&gt;&lt;mo&gt;&amp;#x2217;&lt;/mo&gt;&lt;mi&gt;n&lt;/mi&gt;&lt;/math&gt;"><span class="MJX_Assistive_MathML"><span id="MathJax-Element-4-Frame" class="MathJax" data-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mn&gt;100&lt;/mn&gt;&lt;mi&gt;w&lt;/mi&gt;&lt;mo&gt;&amp;#x2217;&lt;/mo&gt;&lt;mn&gt;9.6&lt;/mn&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;960&lt;/mn&gt;&lt;mi&gt;w&lt;/mi&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;mi&gt;t&lt;/mi&gt;&lt;/math&gt;"><span class="MJX_Assistive_MathML">只需要1.1M的内存空间，就可满足100万个url的去重需求，这个空间复杂度之低不可谓不惊人。</span></span></span></span></p>
+<p class=" has-jax has-jax"><span id="MathJax-Element-3-Frame" class="MathJax" data-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mi&gt;m&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;9.6&lt;/mn&gt;&lt;mo&gt;&amp;#x2217;&lt;/mo&gt;&lt;mi&gt;n&lt;/mi&gt;&lt;/math&gt;"><span class="MJX_Assistive_MathML"><span id="MathJax-Element-4-Frame" class="MathJax" data-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot;&gt;&lt;mn&gt;100&lt;/mn&gt;&lt;mi&gt;w&lt;/mi&gt;&lt;mo&gt;&amp;#x2217;&lt;/mo&gt;&lt;mn&gt;9.6&lt;/mn&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;960&lt;/mn&gt;&lt;mi&gt;w&lt;/mi&gt;&lt;mi&gt;b&lt;/mi&gt;&lt;mi&gt;i&lt;/mi&gt;&lt;mi&gt;t&lt;/mi&gt;&lt;/math&gt;"><span class="MJX_Assistive_MathML">实际上，哪怕是1亿个URL，也仅需100M左右的内存空间即可满足BloomFilter的空间需求，这对于绝大部分爬虫的体量来说，是完全可行的。</span></span></span></span></p>
+<p class=" has-jax has-jax"><strong>1MB&nbsp;<span class="ask-title">&asymp; 10^3KB&nbsp;<span class="ask-title">&asymp; 10^6Byte&nbsp;&nbsp;<span class="ask-title">&asymp; 8 * 10^6b = 800Wbit</span></span></span></strong></p>
+<p class=" has-jax has-jax">&nbsp;</p>
+<h2><strong>2.3时间复杂度</strong></h2>
+<p>时间复杂度方面 BloomFilter的时间复杂度仅与Hash函数的个数k有关，即<strong>O(k)</strong></p>
+<p>&nbsp;</p>
+<h2 id="缺点">2.4缺点</h2>
+<h3 id="删除元素">删除元素</h3>
+<p>BloomFilter 由于并不存储元素，而是用位的01来表示元素是否存在，并且很有可能一个位时被多个元素同时使用。所以无法通过将某元素对应的位置为0来删除元素。</p>
+<p>幸运的是，目前学术界和工业界都有很多方法扩展已解决以上问题。</p>
+<p>&nbsp;</p>
+<p><strong>强烈建议</strong>读取下面两篇文章，并且把其中的公式推导一遍：</p>
+<p>转载大部分来自：<a href="http://cyhone.com/2017/02/07/Introduce-to-BloomFilter/">http://cyhone.com/2017/02/07/Introduce-to-BloomFilter/</a></p>
+<p>同时推荐：<a href="http://llimllib.github.io/bloomfilter-tutorial/zh_CN/">http://llimllib.github.io/bloomfilter-tutorial/zh_CN/</a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2 id="源码解读">&nbsp;</h2>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

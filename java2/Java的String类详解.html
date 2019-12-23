@@ -1,0 +1,477 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java的String类详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java的String类详解</center></div><div class='banquan'>原文出处:本文由博客园博主xiezc提供。<br/>
+原文连接:https://www.cnblogs.com/xiezc/p/11913818.html</div><br>
+    <h2 id="java的string类">Java的String类</h2>
+<p><strong>String类是除了Java的基本类型之外用的最多的类, 甚至用的比基本类型还多. 同样jdk中对Java类也有很多的优化</strong></p>
+<h3 id="类的定义">类的定义</h3>
+<pre><code><code>public final class String
+    implements java.io.Serializable, Comparable&lt;String&gt;, CharSequence{
+   /** The value is used for character storage. */
+    private final char value[];
+
+    /** Cache the hash code for the string */
+    private int hash; // Default to 0
+
+    /** use serialVersionUID from JDK 1.0.2 for interoperability */
+    private static final long serialVersionUID = -6849794470754667710L;
+
+    /**
+     * Class String is special cased within the Serialization Stream Protocol.
+     *
+     * A String instance is written into an ObjectOutputStream according to
+     * &lt;a href=&quot;{@docRoot}/../platform/serialization/spec/output.html&quot;&gt;
+     * Object Serialization Specification, Section 6.2, &quot;Stream Elements&quot;&lt;/a&gt;
+     */
+    private static final ObjectStreamField[] serialPersistentFields =
+        new ObjectStreamField[0];
+
+    /**
+     * Initializes a newly created {@code String} object so that it represents
+     * an empty character sequence.  Note that use of this constructor is
+     * unnecessary since Strings are immutable.
+     */
+    public String() {
+        this.value = &quot;&quot;.value;
+    }
+
+    /**
+     * Initializes a newly created {@code String} object so that it represents
+     * the same sequence of characters as the argument; in other words, the
+     * newly created string is a copy of the argument string. Unless an
+     * explicit copy of {@code original} is needed, use of this constructor is
+     * unnecessary since Strings are immutable.
+     *
+     * @param  original
+     *         A {@code String}
+     */
+    public String(String original) {
+        this.value = original.value;
+        this.hash = original.hash;
+    }</code></code></pre>
+<ul>
+<li><p>Final 标识不允许集成重载. jdk中还多重要类都是final 标识, 防止应用程序继承重载以影响jdk的安全</p></li>
+<li><p>继承Serializable 接口, 可以放心的序列化</p></li>
+<li><p>Comparable 接口, 可以根据自然序排序.</p></li>
+<li><p>CharSequence 字符串的重要接口</p></li>
+<li><p>char数组 value . Final 修饰.</p></li>
+<li><p>hash字段 int, 表示当前的hashCode值, 避免每次重复计算hash值</p></li>
+</ul>
+<h3 id="comparable-接口的compareto方法实现">Comparable 接口的compareTo方法实现</h3>
+<pre><code><code>public int compareTo(String anotherString) {
+    int len1 = value.length;
+    int len2 = anotherString.value.length;
+    int lim = Math.min(len1, len2); 
+    char v1[] = value;
+    char v2[] = anotherString.value;
+
+    int k = 0;
+    while (k &lt; lim) {  //也只是循环比较到长度短的那个字符串
+        char c1 = v1[k];
+        char c2 = v2[k];
+        if (c1 != c2) {
+            return c1 - c2;
+        }
+        k++;
+    }
+    return len1 - len2;  //如果前面的长度字符串都一样, 则长度长的大
+}</code></code></pre>
+<ul>
+<li><p>从左往右逐个char字符比较大小, 从代码可以看出 &quot;S&quot; &gt; &quot;ASSSSSSSSSSSSSSS&quot;</p></li>
+<li><p>也只是循环比较到长度短的那个字符串</p></li>
+<li><p>如果前面的长度字符串都一样, 则长度长的大</p>
+<h3 id="构造方法">构造方法</h3></li>
+</ul>
+<pre><code><code>/**
+ * Initializes a newly created {@code String} object so that it represents
+ * an empty character sequence.  Note that use of this constructor is
+ * unnecessary since Strings are immutable.
+ */
+public String() {
+    this.value = &quot;&quot;.value;
+}
+
+/**
+ * Initializes a newly created {@code String} object so that it represents
+ * the same sequence of characters as the argument; in other words, the
+ * newly created string is a copy of the argument string. Unless an
+ * explicit copy of {@code original} is needed, use of this constructor is
+ * unnecessary since Strings are immutable.
+ *
+ * @param  original
+ *         A {@code String}
+ */
+public String(String original) {
+    this.value = original.value;
+    this.hash = original.hash;
+}
+/**
+*
+*/
+ public String(byte bytes[], int offset, int length, Charset charset) {
+        if (charset == null)
+            throw new NullPointerException(&quot;charset&quot;);
+        checkBounds(bytes, offset, length);
+        this.value =  StringCoding.decode(charset, bytes, offset, length);
+    }
+</code></code></pre>
+<ul>
+<li><p>空白构造方法其实是生成 &quot;&quot; 字符串</p></li>
+<li><p>传入其他字符串的构造方式其实只是把其他字符串的value 和hash 值的引用复制一份, 不用担心两个字符串的value和hash 互相干扰. 因为String类中没有修改这两个值的方法, 并且这两个值是private final修饰的, 已经无法修改了</p></li>
+<li><p>空白构造方法中没有设置hash的值, 则使用 hash的默认值 // Default to 0</p></li>
+<li><p>传入字节数组的构造方法, 怎么将字节转成字符串是使用<code>StringCoding.decode(charset, bytes, offset, length);</code>方法</p>
+<blockquote>
+<p>StringCoding类的修饰符是default 并且里面都是default static 修饰的方法, 很遗憾, 我们无法直接使用其中的方法</p>
+</blockquote></li>
+</ul>
+<h4 id="stringcoding.decode-方法">StringCoding.decode 方法</h4>
+<pre><code><code>static char[] decode(Charset cs, byte[] ba, int off, int len) {
+    // (1)We never cache the &quot;external&quot; cs, the only benefit of creating
+    // an additional StringDe/Encoder object to wrap it is to share the
+    // de/encode() method. These SD/E objects are short-lifed, the young-gen
+    // gc should be able to take care of them well. But the best approash
+    // is still not to generate them if not really necessary.
+    // (2)The defensive copy of the input byte/char[] has a big performance
+    // impact, as well as the outgoing result byte/char[]. Need to do the
+    // optimization check of (sm==null &amp;&amp; classLoader0==null) for both.
+    // (3)getClass().getClassLoader0() is expensive
+    // (4)There might be a timing gap in isTrusted setting. getClassLoader0()
+    // is only chcked (and then isTrusted gets set) when (SM==null). It is
+    // possible that the SM==null for now but then SM is NOT null later
+    // when safeTrim() is invoked...the &quot;safe&quot; way to do is to redundant
+    // check (... &amp;&amp; (isTrusted || SM == null || getClassLoader0())) in trim
+    // but it then can be argued that the SM is null when the opertaion
+    // is started...
+    CharsetDecoder cd = cs.newDecoder();
+    int en = scale(len, cd.maxCharsPerByte());
+    char[] ca = new char[en];
+    if (len == 0)
+        return ca;
+    boolean isTrusted = false;
+    if (System.getSecurityManager() != null) {
+        if (!(isTrusted = (cs.getClass().getClassLoader0() == null))) {
+            ba =  Arrays.copyOfRange(ba, off, off + len);
+            off = 0;
+        }
+    }
+    cd.onMalformedInput(CodingErrorAction.REPLACE)
+      .onUnmappableCharacter(CodingErrorAction.REPLACE)
+      .reset();
+    if (cd instanceof ArrayDecoder) {
+        int clen = ((ArrayDecoder)cd).decode(ba, off, len, ca);
+        return safeTrim(ca, clen, cs, isTrusted);
+    } else {
+        ByteBuffer bb = ByteBuffer.wrap(ba, off, len);
+        CharBuffer cb = CharBuffer.wrap(ca);
+        try {
+            CoderResult cr = cd.decode(bb, cb, true);
+            if (!cr.isUnderflow())
+                cr.throwException();
+            cr = cd.flush(cb);
+            if (!cr.isUnderflow())
+                cr.throwException();
+        } catch (CharacterCodingException x) {
+            // Substitution is always enabled,
+            // so this shouldn&#39;t happen
+            throw new Error(x);
+        }
+        return safeTrim(ca, cb.position(), cs, isTrusted);
+    }
+}</code></code></pre>
+<ul>
+<li><p>真正的byte[] 转成char[] 是使用CharsetDecoder虚拟类, 而这个类的对象是你传入的Charset字符编码类中生成的.</p>
+<p>看下UTF8的CharsetDecoder实现类.</p>
+<p>UTF8的CharsetDecoder 类是内部静态类, 实现了CharsetDecoder 和ArrayDecoder 接口, 接口中的方法很长,都是字节转字符的一些换算, 如果要看懂, 需要一些编码的知识. 追到这里结束</p>
+<pre><code><code>private static class Decoder extends CharsetDecoder implements ArrayDecoder {
+    private Decoder(Charset var1) {
+        super(var1, 1.0F, 1.0F);
+    }
+     // 此处省略无关方法.......
+      /**
+      * 真正的字节转字符的方法
+      */
+      public int decode(byte[] var1, int var2, int var3, char[] var4) {
+            int var5 = var2 + var3;
+            int var6 = 0;
+            int var7 = Math.min(var3, var4.length);
+
+            ByteBuffer var8;
+            for(var8 = null; var6 &lt; var7 &amp;&amp; var1[var2] &gt;= 0; var4[var6++] = (char)var1[var2++]) {
+            }
+
+            while(true) {
+                while(true) {
+                    while(var2 &lt; var5) {
+                        byte var9 = var1[var2++];
+                        if (var9 &lt; 0) {
+                            byte var10;
+                            if (var9 &gt;&gt; 5 != -2 || (var9 &amp; 30) == 0) {
+                                byte var11;
+                                if (var9 &gt;&gt; 4 == -2) {
+                                    if (var2 + 1 &lt; var5) {
+                                        var10 = var1[var2++];
+                                        var11 = var1[var2++];
+                                        if (isMalformed3(var9, var10, var11)) {
+                                            if (this.malformedInputAction() != CodingErrorAction.REPLACE) {
+                                                return -1;
+                                            }
+
+                                            var4[var6++] = this.replacement().charAt(0);
+                                            var2 -= 3;
+                                            var8 = getByteBuffer(var8, var1, var2);
+                                            var2 += malformedN(var8, 3).length();
+                                        } else {
+                                            char var15 = (char)(var9 &lt;&lt; 12 ^ var10 &lt;&lt; 6 ^ var11 ^ -123008);
+                                            if (Character.isSurrogate(var15)) {
+                                                if (this.malformedInputAction() != CodingErrorAction.REPLACE) {
+                                                    return -1;
+                                                }
+
+                                                var4[var6++] = this.replacement().charAt(0);
+                                            } else {
+                                                var4[var6++] = var15;
+                                            }
+                                        }
+                                    } else {
+                                        if (this.malformedInputAction() != CodingErrorAction.REPLACE) {
+                                            return -1;
+                                        }
+
+                                        if (var2 &gt;= var5 || !isMalformed3_2(var9, var1[var2])) {
+                                            var4[var6++] = this.replacement().charAt(0);
+                                            return var6;
+                                        }
+
+                                        var4[var6++] = this.replacement().charAt(0);
+                                    }
+                                } else if (var9 &gt;&gt; 3 != -2) {
+                                    if (this.malformedInputAction() != CodingErrorAction.REPLACE) {
+                                        return -1;
+                                    }
+
+                                    var4[var6++] = this.replacement().charAt(0);
+                                } else if (var2 + 2 &lt; var5) {
+                                    var10 = var1[var2++];
+                                    var11 = var1[var2++];
+                                    byte var12 = var1[var2++];
+                                    int var13 = var9 &lt;&lt; 18 ^ var10 &lt;&lt; 12 ^ var11 &lt;&lt; 6 ^ var12 ^ 3678080;
+                                    if (!isMalformed4(var10, var11, var12) &amp;&amp; Character.isSupplementaryCodePoint(var13)) {
+                                        var4[var6++] = Character.highSurrogate(var13);
+                                        var4[var6++] = Character.lowSurrogate(var13);
+                                    } else {
+                                        if (this.malformedInputAction() != CodingErrorAction.REPLACE) {
+                                            return -1;
+                                        }
+
+                                        var4[var6++] = this.replacement().charAt(0);
+                                        var2 -= 4;
+                                        var8 = getByteBuffer(var8, var1, var2);
+                                        var2 += malformedN(var8, 4).length();
+                                    }
+                                } else {
+                                    if (this.malformedInputAction() != CodingErrorAction.REPLACE) {
+                                        return -1;
+                                    }
+
+                                    int var14 = var9 &amp; 255;
+                                    if (var14 &lt;= 244 &amp;&amp; (var2 &gt;= var5 || !isMalformed4_2(var14, var1[var2] &amp; 255))) {
+                                        ++var2;
+                                        if (var2 &gt;= var5 || !isMalformed4_3(var1[var2])) {
+                                            var4[var6++] = this.replacement().charAt(0);
+                                            return var6;
+                                        }
+
+                                        var4[var6++] = this.replacement().charAt(0);
+                                    } else {
+                                        var4[var6++] = this.replacement().charAt(0);
+                                    }
+                                }
+                            } else {
+                                if (var2 &gt;= var5) {
+                                    if (this.malformedInputAction() != CodingErrorAction.REPLACE) {
+                                        return -1;
+                                    }
+
+                                    var4[var6++] = this.replacement().charAt(0);
+                                    return var6;
+                                }
+
+                                var10 = var1[var2++];
+                                if (isNotContinuation(var10)) {
+                                    if (this.malformedInputAction() != CodingErrorAction.REPLACE) {
+                                        return -1;
+                                    }
+
+                                    var4[var6++] = this.replacement().charAt(0);
+                                    --var2;
+                                } else {
+                                    var4[var6++] = (char)(var9 &lt;&lt; 6 ^ var10 ^ 3968);
+                                }
+                            }
+                        } else {
+                            var4[var6++] = (char)var9;
+                        }
+                    }
+
+                    return var6;
+                }
+            }
+        }</code></code></pre></li>
+</ul>
+<p><strong>结论: 字节转换成字符串需要使用到工具类StringCoding 类的decode方法,此方法会依赖传入的Charset 编码类中的内部静态类StringDecode的decode方法来真正的把字节转成字符串. Java通过接口的定义很好的把具体的实现转移到具体的编码类中, 而String只要面向接口编程就可以了, 这样也方便扩展不同的编码 </strong></p>
+<p><strong>同样的String的getBytes方法也是把主要的工作转移到具体Charset 编码类的StringEncode 来完成</strong></p>
+<h3 id="hashcode方法">hashCode方法</h3>
+<p>重写了此方法, 并且值和每个字符有关</p>
+<pre class="java "><code>public int hashCode() {
+    int h = hash;
+    if (h == 0 &amp;&amp; value.length &gt; 0) {
+        char val[] = value;
+        for (int i = 0; i &lt; value.length; i++) {
+            h = 31 * h + val[i];   //为何旧值要乘以31
+        }
+        hash = h;
+        }
+        return h;
+}</code></code></pre>
+<h3 id="字符串的拼接concat方法和join静态方法">字符串的拼接concat方法和join静态方法</h3>
+<p><strong>concat方法</strong></p>
+<pre><code><code>public String concat(String str) {
+    int otherLen = str.length();
+    if (otherLen == 0) {
+        return this;
+    }
+    int len = value.length;
+    char buf[] = Arrays.copyOf(value, len + otherLen);
+    str.getChars(buf, len);
+    return new String(buf, true);
+}</code></code></pre>
+<ul>
+<li><p>直接在内存中复制一份新的数组, 在new 一个String对象. 线程安全. 性能较低.</p></li>
+<li><p>也可以直接是用 + 拼接.</p>
+<blockquote>
+<p>参考 https://blog.csdn.net/youanyyou/article/details/78992978这个链接了解到. + 链接再编译成字节码后还是使用的StringBuiler 来拼接, 而concat 还是使用数组复制加上 new 新对象来拼接, 综合得出 还是使用 + 来拼接吧, 性能更好</p>
+</blockquote></li>
+</ul>
+<p><strong>join静态方法</strong></p>
+<pre><code><code>public static String join(CharSequence delimiter, CharSequence... elements) {
+    Objects.requireNonNull(delimiter);
+    Objects.requireNonNull(elements);
+    // Number of elements not likely worth Arrays.stream overhead.
+    StringJoiner joiner = new StringJoiner(delimiter);
+    for (CharSequence cs: elements) {
+        joiner.add(cs);
+    }
+    return joiner.toString();
+}</code></code></pre>
+<p>具体的代码需要追到StringJoiner类中</p>
+<pre><code><code>public final class StringJoiner {
+    private final String prefix;
+    private final String delimiter;
+    private final String suffix;
+
+    /*
+     * StringBuilder value -- at any time, the characters constructed from the
+     * prefix, the added element separated by the delimiter, but without the
+     * suffix, so that we can more easily add elements without having to jigger
+     * the suffix each time.
+     */
+    private StringBuilder value;
+  
+  /**
+     * Adds a copy of the given {@code CharSequence} value as the next
+     * element of the {@code StringJoiner} value. If {@code newElement} is
+     * {@code null}, then {@code &quot;null&quot;} is added.
+     *
+     * @param  newElement The element to add
+     * @return a reference to this {@code StringJoiner}
+     */
+    public StringJoiner add(CharSequence newElement) {
+        prepareBuilder().append(newElement);
+        return this;
+    }
+
+    private StringBuilder prepareBuilder() {
+        if (value != null) {
+            value.append(delimiter);
+        } else {
+            value = new StringBuilder().append(prefix);
+        }
+        return value;
+    }
+
+</code></code></pre>
+<ul>
+<li>内部发现还是使用StringBuilder来实现, join 完全就是一个为了使用方便的一个工具方法</li>
+</ul>
+<h3 id="replace方法">replace方法</h3>
+<pre><code><code>public String replace(char oldChar, char newChar) 
+</code></code></pre>
+<ul>
+<li>使用数组遍历替换</li>
+</ul>
+<pre><code><code>public String replace(CharSequence target, CharSequence replacement)
+</code></code></pre>
+<ul>
+<li>使用正则表达式进行替换, 正则的源码在 接下来的文章分析</li>
+</ul>
+<h3 id="format-静态方法-可以格式换字符串-主要用于字符串的国际化">Format 静态方法, 可以格式换字符串, 主要用于字符串的国际化,</h3>
+<p>内部使用了Formatter类, 而Formatter 中也是使用了正则表达式,</p>
+<h3 id="tolowercase方法">toLowerCase方法</h3>
+<pre><code><code>public String toLowerCase(Locale locale) 
+</code></code></pre>
+<ul>
+<li>遍历char 数组, 每个字符使用Character.toLowerCase 来小写</li>
+</ul>
+<h3 id="trim-方法">trim 方法</h3>
+<p>从前后遍历空白字符, 判断空白字符是使用的 <code>char &lt;=' '</code> 来判断的(学到一点), 后面在使用substring来截取非空白字符</p>
+<h3 id="substring方法">substring方法</h3>
+<p>内部使用<code>public String(char value[], int offset, int count)</code> 构造方法来生成新的字符串, 在这个构造方法内部会有数组的赋值</p>
+<h3 id="valueof方法">valueOf方法</h3>
+<pre><code><code>public static String valueOf(Object obj) {
+    return (obj == null) ? &quot;null&quot; : obj.toString();
+}
+// 内部使用传入对象的自己的toString方法, 传入对象如果没有重载toString方法, 就使用默认的toString方法. 
+</code></code></pre>
+<pre><code><code>public static String valueOf(char data[]) {
+    return new String(data);
+}
+// 根据传入的数组来选择合适的构造方法来生成String对象
+
+</code></code></pre>
+<pre><code><code>public static String valueOf(boolean b) {
+    return b ? &quot;true&quot; : &quot;false&quot;;
+}
+// 根据传入布尔值
+</code></code></pre>
+<h3 id="static-copyvalueof方法">static copyValueOf方法</h3>
+<pre><code><code>public static String copyValueOf(char data[], int offset, int count) {
+        return new String(data, offset, count);
+    }
+// 静态工具方法, 默认使用合适构造方法来截取和生成新新的字符串
+</code></code></pre>
+<h3 id="native-intern方法">native intern方法</h3>
+<p>这个方法涉及到String的内存和常量池, 具体会在其他文章中详解.</p>
+<pre><code><code>public native String intern();
+</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

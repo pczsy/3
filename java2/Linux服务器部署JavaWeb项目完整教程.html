@@ -1,0 +1,176 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Linux服务器部署JavaWeb项目完整教程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Linux服务器部署JavaWeb项目完整教程</center></div><div class='banquan'>原文出处:本文由博客园博主小__伟提供。<br/>
+原文连接:https://www.cnblogs.com/qwlscn/p/11489863.html</div><br>
+    <p>本文大部分参考网上其他教程，是实际操作后回过头来的一些总结，希望可以对正在部署项目的你有所帮助。</p>
+<p>基本环境：Centos7、tomcat8、jdk8，MySQL5.6、nginx</p>
+<p>&nbsp;</p>
+<h1><a name="t0"></a>安装JDK</h1>
+<src class="cnblogs_code">
+<pre><code>yum install java-1.8.0-openjdk* -y</code></pre>
+
+<p>使用yum安装，无需配置系统环境，执行完这条命令后JDK就安装好了。</p>
+<h1><a name="t1"></a>安装Mysql</h1>
+<p>我们这里使用Mysql，如果使用MariaDB ，一般云服务器有安装，只需要升级就可以。</p>
+<p>安装步骤：</p>
+<src class="cnblogs_code">
+<pre><code># wget http:<span style="color: #008000;">//</span><span style="color: #008000;">dev.mysql.com/get/mysql-community-release-el7-5.noarch.rpm</span>
+# rpm -ivh mysql-community-release-el7-5<span style="color: #000000;">.noarch.rpm
+# yum install mysql</span>-community-<span style="color: #000000;">server
+<br /></span></code></pre>
+
+<p>重启Mysql服务：</p>
+<src class="cnblogs_code">
+<pre><code># service mysqld restart</code></pre>
+
+<p>重启后，我们使用如下命令进入MySQL，因为MySQL默认没有密码。</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;"># mysql -u root
+</code></pre>
+
+<p>　　进入MySQL后，我们使用如下MySQL</p>
+<src class="cnblogs_code">
+<pre><code>set password <span style="color: #0000ff;">for</span> 'root'@'localhost' =password('password');</code></pre>
+
+<p>至此，MySQL数据库基本安装完成，有时开发过程中，为了方便，希望通过本地的可视化工具远程连接线上的数据库，这时可以运行以下命令来开放数据库的远程连接。</p>
+<src class="cnblogs_code">
+<pre><code>grant all privileges on *.* to root@'%'identified by 'password';</code></pre>
+
+<h1>安装tomcat</h1>
+<p>tomcat的部署最简单了：</p>
+<p>1，直接下载然后拖到linux的/home文件夹下面（下载版本如下）；</p>
+<p><img src="./images/Linux服务器部署JavaWeb项目完整教程0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>2，通过Xftp将打包好的war文件拖拽到webapps文件夹下，这个和在windows下的操作无区别，这部分细节不说；</p>
+<p>&nbsp;</p>
+<p>3，启动tomcat服务器指令：</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">cd /home/apache-tomcat-8.5.23/bin
+ 
+nohup ./startup.sh  &amp;
+</code></pre>
+
+<p>　　停止服务指令：</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">./ shutdown.sh
+</code></pre>
+
+<p>　　执行跟踪日志命令</p>
+<src class="cnblogs_code">
+<pre><code>cd /home/apache-tomcat-8.5.23/<span style="color: #000000;">logs
+ 
+tail </span>-100f catalina.out</code></pre>
+
+<p>进入编辑器进行修改，修改完成后点击 esc，然后输入 :wq 这样就保存退出了。之后重启tomcat，配置就生效了。</p>
+<h1><a name="t3"></a>使用Nginx做代理服务器</h1>
+<p>1、安装gcc g++开发类库</p>
+<p>安装make：</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">yum -y install gcc automake autoconf libtool make
+</code></pre>
+
+<p>　　安装g++:</p>
+<src class="cnblogs_code">
+<pre><code>yum install gcc gcc-c++</code></pre>
+
+<p>2、选定安装文件目录</p>
+<p>可以选择任何目录，本文选择 cd /usr/local/src</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">cd /usr/local/src
+</code></pre>
+
+<p>　　</p>
+<p>3、安装PCRE库</p>
+<p>ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/ 下载最新的 PCRE 源码包，使用下面命令下载编译和安装 PCRE 包：</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">cd /usr/local/src
+wget ftp://ftp.csx.cam.ac.uk/pub/software/programming/pcre/pcre-8.39.tar.gz 
+tar -zxvf pcre-8.37.tar.gz
+cd pcre-8.34
+./configure
+make
+make install
+</code></pre>
+
+<p>　　</p>
+<p>4、安装zlib库</p>
+<p>http://zlib.net/zlib-1.2.11.tar.gz 下载最新的 zlib 源码包，使用下面命令下载编译和安装 zlib包：</p>
+<src class="cnblogs_code">
+<pre><code>cd /usr/local/<span style="color: #000000;">src
+ 
+wget http:</span><span style="color: #008000;">//</span><span style="color: #008000;">zlib.net/zlib-1.2.11.tar.gz</span>
+tar -zxvf zlib-1.2.11<span style="color: #000000;">.tar.gz
+cd zlib</span>-1.2.11<span style="color: #000000;">
+.</span>/<span style="color: #000000;">configure
+make
+make install</span></code></pre>
+
+<p>5、安装openssl（某些vps默认没装ssl)</p>
+<src class="cnblogs_code">
+<pre><code>cd /usr/local/<span style="color: #000000;">src
+wget https:</span><span style="color: #008000;">//</span><span style="color: #008000;">www.openssl.org/source/openssl-1.0.1t.tar.gz</span>
+tar -zxvf openssl-1.0.1t.tar.gz</code></pre>
+
+<p>6、安装nginx</p>
+<p>Nginx 一般有两个版本，分别是稳定版和开发版，您可以根据您的目的来选择这两个版本的其中一个，下面是把 Nginx 安装到 /usr/local/nginx 目录下的详细步骤：</p>
+<src class="cnblogs_code">
+<pre><code>cd /usr/local/<span style="color: #000000;">src
+wget http:</span><span style="color: #008000;">//</span><span style="color: #008000;">nginx.org/download/nginx-1.1.10.tar.gz</span>
+tar -zxvf nginx-1.1.10<span style="color: #000000;">.tar.gz
+cd nginx</span>-1.1.10<span style="color: #000000;">
+.</span>/<span style="color: #000000;">configure
+make
+make install</span></code></pre>
+
+<p>7、配置nginx</p>
+<p>因为可能apeache占用80端口，apeache端口尽量不要修改，我们选择修改nginx端口。</p>
+<p>linux 修改路径/usr/local/nginx/conf/nginx.conf，Windows 下 安装目录\conf\nginx.conf。</p>
+<p>修改端口为8090，localhost修改为你服务器ip地址。<br /><img src="./images/Linux服务器部署JavaWeb项目完整教程1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>8、nginx重启、关闭、启动</p>
+<p>启动</p>
+<p>启动代码格式：nginx安装目录地址 -c nginx配置文件地址</p>
+<p>例如：</p>
+<src class="cnblogs_code">
+<pre><code>[root@LinuxServer sbin]# /usr/local/nginx/sbin/nginx -c /usr/local/nginx/conf/nginx.conf</code></pre>
+
+<p>停止</p>
+<p>1、查看进程号</p>
+<src class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">[root@LinuxServer ~]# ps -ef|grep nginx
+</code></pre>
+
+<p>　　</p>
+<p>找到nginx master端口</p>
+<p>2、杀死进程</p>
+<src class="cnblogs_code">
+<pre><code>[root@LinuxServer ~]# kill -QUIT 2072</code></pre>
+
+<p>重启<br />1、验证nginx配置文件是否正确<br />方法一：进入nginx安装目录sbin下，输入命令./nginx -t<br />看到如下显示nginx.conf syntax is ok</p>
+<p>nginx.conf test is successful</p>
+<p>说明配置文件正确！</p>
+<p>Nginx配置正确，我们可以执行重启Nginx命令了，方法是进入nginx可执行目录sbin下，输入命令./nginx -s reload&nbsp;即可。<br /><br /></p>
+<p>喜欢的可以加群：687942640</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

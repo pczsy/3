@@ -1,0 +1,207 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java的Stream流式操作' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java的Stream流式操作</center></div><div class='banquan'>原文出处:本文由博客园博主Jotal提供。<br/>
+原文连接:https://www.cnblogs.com/Jotal/p/12018904.html</div><br>
+    <h1 id="前言">前言</h1>
+<p>最近在实习，在公司看到前辈的一些代码，发现有很多值得我学习的地方，其中有一部分就是对集合使用Stream流式操作，觉得很优美且方便。所以学习一下Stream流，在这里记录一下。</p>
+<h1 id="stream是什么">Stream是什么</h1>
+<p><strong>Stream</strong>是Java 8中出现的新特性，极大增强了集合对象的功能，专注于对集合对象进行方便、高效的聚合操作。另外可以配合<strong>Lambda</strong>表达式，让代码更加容易理解。另外Stream提供串行和并行两种操作方式，并行操作可以很方便的写出高性能的并发程序。</p>
+<p>Stream像是一个高级版本的Iterator，使用Iterator只能显式地遍历一个个元素对其执行某些操作；使用Stream，我们只需要指定对集合包含的元素执行什么操作，例如“只获取性别为男的用户”、“获取每个用户姓名的姓氏”等，Stream会帮我们完成隐式的遍历操作，并转换数据。</p>
+<p>与Iterator不同的是，Iterator只能串行操作，每次操作完一个元素再去下一个元素。Stream支持串行、并行操作，Stream的并行操作依赖Java 7的Fork/Join框架(JSR166y)来拆分任务和加速处理过程。</p>
+<p>Stream就像是一条流水线，单向，不可回头，只能遍历一次，之后就不能再使用了。</p>
+<p>使用一个Stream流，一般分为三个步骤：1. 获取数据源-&gt; 2. 中间操作(Intermediate)-&gt; 3. 终端操作(Terminal)。</p>
+<p><strong>中间操作：</strong>一个流可以有0或多个中间操作，对数据进行转换、过滤等操作，一个接着一个，这些操作是lazy的，中间操作是还没有开始真正的遍历。</p>
+<p><strong>终端操作：</strong>一个流只能有一个终端操作，使用终端操作之后就会返回结果，不能再使用这个流了。终端操作时，才真正开始遍历。</p>
+<p>在Stream中一个流的多次中间操作不是每一次都进行一次遍历的，中间操作是lazy 的，多个中间操作是最终聚合到终端操作的时候进行的，只进行一次遍历循环。可以理解为每个中间操作被当做一个判断条件加入到终端操作循环中，完成每个元素的数据转换。</p>
+<p>下面是一些Stream流操作方法的分类：</p>
+<p><img src="./images/Java的Stream流式操作0.png" alt="中间操作、终端操作.png" /></p>
+<h1 id="stream流的创建方式">Stream流的创建方式</h1>
+<ul>
+<li><p>数组</p>
+<ol>
+<li>Arrays.stream(T array);<br />
+</li>
+<li>stream.of(array)</li>
+</ol></li>
+<li>Collection
+<ol>
+<li>Collection.stream()</li>
+<li>Collection.parallelStream()</li>
+</ol></li>
+<li>BufferedReader
+<ol>
+<li>java.io.BufferedReader.lines()</li>
+</ol></li>
+<li><p>静态工厂</p>
+<ol>
+<li>java.util.stream.IntStream.range()</li>
+<li>java.nio.file.Files.walk()</li>
+</ol></li>
+<li>自己构建
+<ol>
+<li>java.util.Spliterator</li>
+</ol></li>
+<li>其他
+<ol>
+<li>Random.ints()</li>
+<li>BitSet.stream()</li>
+<li>Pattern.splitAsStream(java.lang.CharSequence)</li>
+<li>JarFile.stream()</li>
+</ol></li>
+</ul>
+<h2 id="创建示例">创建示例</h2>
+<pre><code><code>//数组
+String[] array = new String[]{&quot;1&quot;,&quot;2&quot;,&quot;3&quot;};
+Arrays.stream(array);
+Stream.of(array);
+Stream.of(1, 2, 3);
+//集合
+List&lt;String&gt; list = Arrays.asList(array);
+list.stream();
+list.parallelStream();
+//数值,目前只支持IntStream、LongStream、DoubleStream三种
+IntStream.of(new int[]{1,2,3}).forEach(System.out::println);
+IntStream.range(1,3).forEach(System.out::println);
+IntStream.rangeClosed(1, 3).forEach(System.out::println);</code></code></pre>
+<h2 id="流转换为其它数据结构">流转换为其它数据结构</h2>
+<pre><code><code>Stream stream = Stream.of(&quot;1&quot;,&quot;2&quot;,&quot;3&quot;);
+//Array
+String[] array2=(String[]) stream.toArray(String[]::new);
+//Collection
+List&lt;String&gt; list1=(List)stream.collect(Collectors.toList());
+List&lt;String&gt; list2=(List)stream.collect(Collectors.toCollection(ArrayList::new));
+Set set=(Set)stream.collect(Collectors.toSet());
+Stack stack=(Stack)stream.collect(Collectors.toCollection(Stack::new));
+//String
+String str = stream.collect(Collectors.joining()).toString();</code></code></pre>
+<h1 id="经典用法">经典用法</h1>
+<h2 id="将一个list中元素的某一属性取出来作为一个list并做过滤">1. 将一个List中元素的某一属性取出来作为一个list，并做过滤</h2>
+<pre><code><code>List&lt;Long&gt; names=  users.stream().filter(Objects::nonNull).map(User::getId).collect(Collectors.toList());
+//或者
+List&lt;Long&gt; names1=
+ users.stream().filter(Objects::nonNull).map(u-&gt;u.getId()).collect(Collectors.toList());
+//遍历list
+names.forEach(System.out::println);</code></code></pre>
+<h2 id="将list转换成map">2. 将List转换成Map</h2>
+<pre><code><code>        //key:id value:name
+        Map&lt;Long, String&gt; map = users.stream().collect(Collectors.toMap(p -&gt; p.getId(), p -&gt; p.getName()));
+            //或者,第三个参数表示如果key重复保留k1,舍弃k2。
+        Map&lt;Long, String&gt; map2 = users.stream().collect(Collectors.toMap(User::getId,User::getName,(k1,k2)-&gt;k1));
+        //key:id value:user
+        Map&lt;Long, User&gt; map3 = users.stream().collect(Collectors.toMap(p -&gt; p.getId(), p-&gt;p));
+        //遍历map，包括k,v。map.values.forEach()不能遍历Key
+        map3.forEach((k,v)-&gt; System.out.println(&quot;k:v=&quot;+k+&quot;:&quot;+v));</code></code></pre>
+<h2 id="使用sorted对list排序">3. 使用sorted对List排序</h2>
+<pre><code><code>//降序，默认是升序
+List&lt;User&gt; list=
+    users.stream().sorted(Comparator.comparing(User::getId).reversed()).collect(Collectors.toList());
+//遍历list
+list.forEach(System.out::println);</code></code></pre>
+<p><em>Comparator.comparing(User::getId)表示以id作为排序的数据。</em></p>
+<h2 id="对list分组存入一个map">4. 对List分组存入一个Map</h2>
+<pre><code><code>        //按照性别分组
+        Map&lt;String,List&lt;User&gt;&gt; map=users.stream().collect(Collectors.groupingBy(User::getSex));
+        map.forEach((k,v)-&gt; System.out.println(&quot;k:v=&quot;+k+&quot;:&quot;+v));</code></code></pre>
+<h2 id="使用map转换大写">5. 使用map转换大写</h2>
+<pre><code><code>List&lt;String&gt; list1 = new ArrayList&lt;&gt;();
+        list1.add(&quot;a&quot;);
+        list1.add(&quot;b&quot;);
+        list1.add(&quot;c&quot;);
+        List&lt;String&gt; list2 = list1.stream().map(String::toUpperCase).collect(Collectors.toList());</code></code></pre>
+<h2 id="flatmap和map">6. flatMap和map</h2>
+<pre><code><code>        //map
+        List&lt;String&gt; str = Arrays.asList(&quot;a,b,c&quot;, &quot;d,e&quot;, &quot;f&quot;);
+        List&lt;String[]&gt; list1 = str.stream().map(s -&gt; s.split(&quot;,&quot;)).collect(Collectors.toList());
+        list1.forEach(p-&gt; System.out.print(Arrays.toString(p)+&quot;,&quot;));//[a, b, c],[d, e],[f]
+
+        //flatMap
+        List&lt;String&gt; list2 = str.stream().map(s -&gt; s.split(&quot;,&quot;)).flatMap(Arrays::stream).sorted(Comparator.comparing(p-&gt;p.toString()).reversed()).collect(Collectors.toList());
+System.out.println(list2);//[f, e, d, c, b, a]</code></code></pre>
+<p><em>flatMap与map的区别在于 flatMap是将一个流中的每个元素都转成一个个流，flatMap之后得到的是每个流中元素的总的集合，即对每个流进行了二次遍历取出其中的元素，融合到总的集合中。</em></p>
+<h2 id="reduce">7. reduce</h2>
+<pre><code><code>        //求和 sum=11,第一个参数1为初始值（种子）,第二个参数为运算规则（BinaryOperator）。1+1+2+3+4=11
+        Integer sum = Stream.of(1, 2, 3, 4).reduce(1, Integer::sum);
+        //concat=&quot;ABCD&quot;;
+        String concat = Stream.of(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;).reduce(&quot;&quot;, String::concat);
+        //求和，reduce方法无初始值,返回类型为Optional，需要调用get()方法取值。
+        Integer sum2 = Stream.of(1, 2, 3, 4).reduce(Integer::sum).get();
+        //取最大值,max=2.0。
+        Double max = Stream.of(1.0, 2.0, -1.0, 1.5).reduce(Double.MIN_VALUE, Double::max);</code></code></pre>
+<p><em>optional也是Java 8中的新特性，可以存储null或者实例，有机会再深入讲吧。</em></p>
+<h2 id="limit和skip">8. limit和skip</h2>
+<pre><code><code>List&lt;Long&gt; ids=users.stream().map(User::getId).limit(5).skip(2).collect(Collectors.toList());
+ids.forEach(System.out::println);//0-9 输出了 2 3 4</code></code></pre>
+<p><em>limit(5)限制只要前五条，skip(2)跳过前两条。特别注意如果limit和skip配合sorted使用，需先</em>进行limit和skip。</p>
+<h2 id="anymatch">9. anyMatch</h2>
+<pre><code><code>        Map&lt;Long, String&gt; map = new HashMap&lt;&gt;();
+        map.put(1L, &quot;1号&quot;);
+        map.put(2L, &quot;2号&quot;);
+        map.put(3L, &quot;3号&quot;);
+        List&lt;User&gt; list = Lists.newArrayList();
+        list.add(new User(1L,10,&quot;1号&quot;,&quot;&quot;,&quot;&quot;));
+        list.add(new User(2L,10,&quot;2号&quot;,&quot;&quot;,&quot;&quot;));
+        list.add(new User(3L,10,&quot;3号&quot;,&quot;&quot;,&quot;&quot;));
+        boolean f = false;
+        //所有都匹配的时候才会返回true
+        for(Map.Entry&lt;Long,String&gt; entry:map.entrySet()){
+            f = list.stream().anyMatch(p -&gt;
+                Objects.equals(entry.getKey(), p.getId())
+            );
+        }
+</code></code></pre>
+<hr />
+<p><em>以下，补充于20191211</em></p>
+<p>突然想起来面试的时候有几个关于取两个List的交集、并集问题也可以用Stream来解决。特此记录一下。</p>
+<pre><code><code>                List&lt;String&gt; list1 = Lists.newArrayList();
+        list1.add(&quot;1&quot;);
+        list1.add(&quot;2&quot;);
+        list1.add(&quot;3&quot;);
+        list1.add(&quot;4&quot;);
+        List&lt;String&gt; list2 = Lists.newArrayList();
+        list2.add(&quot;3&quot;);
+        list2.add(&quot;4&quot;);
+        list2.add(&quot;5&quot;);
+        list2.add(&quot;6&quot;);
+
+        //交集,或使用list1.retainAll(list2);
+        List&lt;String&gt; intersection=list1.stream().filter(i-&gt;list2.contains(i)).collect(Collectors.toList());
+        System.out.println(&quot;交集：&quot;);
+        intersection.forEach(System.out::println);
+        //差集，或使用list1.removeAll(list2);
+        List&lt;String&gt; reduce=list1.stream().filter(i-&gt;!list2.contains(i)).collect(Collectors.toList());
+        System.out.println(&quot;差集：&quot;);
+        reduce.forEach(System.out::println);
+        //并集
+        List&lt;String&gt; listAll = list1;
+        listAll.addAll(list2);
+        System.out.println(&quot;并集：&quot;);
+        listAll.forEach(System.out::println);
+        //去重并集，或使用list1.removeAll(list2);list1.addAll(list2);
+        List&lt;String&gt; listAllDistinct = listAll.stream().distinct().collect(Collectors.toList());
+        System.out.println(&quot;去重并集：&quot;);
+        listAllDistinct.forEach(System.out::println);</code></code></pre>
+<p><em>使用Stream和使用ArrayList的removeAll、retainAll方法比较，Stream不会改变原来的List。</em></p>
+<hr />
+<p>生命不息，学习不止。还需继续努力。20191210</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

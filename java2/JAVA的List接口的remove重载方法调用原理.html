@@ -1,0 +1,122 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JAVA的List接口的remove重载方法调用原理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JAVA的List接口的remove重载方法调用原理</center></div><div class='banquan'>原文出处:本文由博客园博主cartoony提供。<br/>
+原文连接:https://www.cnblogs.com/cartooon/p/11645033.html</div><br>
+    <h3 id="前言">前言</h3>
+<p>说真的，平常看源码都是自己看完自己懂，很少有写出来的冲动。<br />
+但是在写算法的时候，经常用到java中各种集合，其中也比较常用到remove方法。<br />
+remove有重载函数，分别传入参数是索引index或者数据Object(指定泛型后自动转换)，如果指定泛型是其他数据类型还好，但是指定的是Integer或者是int的话，或者就有点懵了。<br />
+这曾经也困惑过我，所以我就唯有用实践解惑了。</p>
+<h3 id="测试类设计">测试类设计</h3>
+<ul>
+<li>测试类一</li>
+</ul>
+<pre><code><code>public class Text {
+
+    public void remove(int index){
+        System.out.println(&quot;调用传参为int的remove方法&quot;);
+    }
+
+    public void remove(Integer object){
+        System.out.println(&quot;调用传参为Integer的remove方法&quot;);
+    }
+
+    public void remove(Object object){
+        System.out.println(&quot;调用传参为Object的remove方法&quot;);
+    }
+}</code></code></pre>
+<ul>
+<li>测试类二</li>
+</ul>
+<pre><code><code>public class Text {
+    
+    public void remove(Integer object){
+        System.out.println(&quot;调用传参为Integer的remove方法&quot;);
+    }
+
+    public void remove(Object object){
+        System.out.println(&quot;调用传参为Object的remove方法&quot;);
+    }
+}</code></code></pre>
+<ul>
+<li>测试类三</li>
+</ul>
+<pre><code><code>public class Text {
+
+    public void remove(Object object){
+        System.out.println(&quot;调用传参为Object的remove方法&quot;);
+    }
+}</code></code></pre>
+<h3 id="结果">结果</h3>
+<p>三个测试类分别传入int，Integer，Object型变量，观察效果。</p>
+<ul>
+<li><p>测试类一</p>
+<blockquote>
+<p>传入类型为int：调用传参为int的remove方法<br />
+传入类型为Integer：调用传参为Integer的remove方法<br />
+传入类型为Object：调用传参为Object的remove方法</p>
+</blockquote></li>
+<li><p>测试类二</p>
+<blockquote>
+<p>传入类型为int：调用传参为Integer的remove方法<br />
+传入类型为Integer：调用传参为Integer的remove方法<br />
+传入类型为Object：调用传参为Object的remove方法</p>
+</blockquote></li>
+<li><p>测试类三</p>
+<blockquote>
+<p>传入类型为int：调用传参为Object的remove方法<br />
+传入类型为Integer：调用传参为Object的remove方法<br />
+传入类型为Object：调用传参为Object的remove方法</p>
+</blockquote></li>
+</ul>
+<p>从输出结果可以看出，当方法的传参的类层级逐渐变高时，层级较低的传参会进行向上转型适应传参的需要。</p>
+<h3 id="原因分析">原因分析</h3>
+<p>下面我们先反编译各测试类的源码，结果如下</p>
+<ul>
+<li><p>测试类一</p>
+<blockquote>
+<p>invokevirtual #11 // Method remove:(I)V</p>
+<p>invokevirtual #15 // Method remove:(Ljava/lang/Integer;)V</p>
+<p>invokevirtual #18 // Method remove:(Ljava/lang/Object;)V</p>
+</blockquote></li>
+<li><p>测试类二</p>
+<blockquote>
+<p>invokevirtual #11 // Method remove:(Ljava/lang/Integer;)V</p>
+<p>invokevirtual #11 // Method remove:(Ljava/lang/Integer;)V</p>
+<p>invokevirtual #17 // Method remove:(Ljava/lang/Object;)V</p>
+</blockquote></li>
+<li><p>测试类三</p>
+<blockquote>
+<p>invokevirtual #10 // Method remove:(Ljava/lang/Object;)V</p>
+<p>invokevirtual #10 // Method remove:(Ljava/lang/Object;)V</p>
+<p>invokevirtual #10 // Method remove:(Ljava/lang/Object;)V</p>
+</blockquote></li>
+</ul>
+<p>可以看出，反编译代码中都是调用实例方法的命令，所以结果中自动&quot;向上转型&quot;其实是jvm的功劳。jvm通过在编译时确定调用的传参类型，静态分派到具体方法的。<br />
+所以在前言中的困惑已经解除了，就是由于jvm中静态分派的实现，调用次序是int-&gt;Integer-&gt;Object。</p>
+<h3 id="后记">后记</h3>
+<p>也没什么想说的，感觉在阅读源码的时候必须多想想为什么这样做，为什么要这样实现，同时通过断点或者反编译的手段找出自己的答案。keep going!</p>
+<p><strong>本文首发于<a href="https://cartoonyu.github.io/cartoon-blog/">cartoon的博客</a></strong><br />
+<strong>转载请注明出处:<a href="https://cartoonyu.github.io/cartoon-blog/post/java/java的list接口的remove重载方法调用原理/" class="uri">https://cartoonyu.github.io/cartoon-blog/post/java/java的list接口的remove重载方法调用原理/</a></strong></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,150 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修spring boot 2.x文件路径映射问题汇总' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>spring boot 2.x文件路径映射问题汇总</center></div><div class='banquan'>原文出处:本文由博客园博主执偕提供。<br/>
+原文连接:https://www.cnblogs.com/zhixie/p/11732762.html</div><br>
+    <p>当我们在运行可执行的java jar包的时候，我们肯定改变不了jar里面的内容，因此文件上传路径就成了我们必须考虑的一点问题，我们不能往直接这个jar包里面写文件，那么只能写在jar包外面，但是写到jar包外面的时候要怎么通过内置的tomcat下载文件呢？springboot给我们提供了一种方式，可以将jar包外部路径映射到jar里面。接下来我们看看如何实现。<br />
+1、<strong>springboot2.0以前：</strong>我们通过继承WebMvcConfigurerAdapter来实现文件路径的映射。</p>
+<pre><code><code>@Configuration
+public class FileConfig extends WebMvcConfigurerAdapter {
+
+    private String uploadPath = E://file/;
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler(&quot;/file/**&quot;).addResourceLocations(&quot;file:&quot;+uploadPath);
+        super.addResourceHandlers(registry);
+    }
+}</code></code></pre>
+<p>2、WebMvcConfigurerAdapter的内部实现<br />
+WebMvcConfigurerAdapter实现了WebMvcConfigurer接口的所有空方法。</p>
+<pre><code><code>@Deprecated
+public abstract class WebMvcConfigurerAdapter implements WebMvcConfigurer {
+    public WebMvcConfigurerAdapter() {}
+        
+    public void configurePathMatch(PathMatchConfigurer configurer) {}
+        
+    public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {}
+
+    public void configureAsyncSupport(AsyncSupportConfigurer configurer) {}
+
+    public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {}
+
+    public void addFormatters(FormatterRegistry registry) {}
+
+    public void addInterceptors(InterceptorRegistry registry) {}
+
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {}
+
+    public void addCorsMappings(CorsRegistry registry) {}
+
+    public void addViewControllers(ViewControllerRegistry registry) {}
+
+    public void configureViewResolvers(ViewResolverRegistry registry) {}
+
+    public void addArgumentResolvers(List&lt;HandlerMethodArgumentResolver&gt; argumentResolvers) {}
+
+    public void addReturnValueHandlers(List&lt;HandlerMethodReturnValueHandler&gt; returnValueHandlers) {}
+
+    public void configureMessageConverters(List&lt;HttpMessageConverter&lt;?&gt;&gt; converters) {}
+
+    public void extendMessageConverters(List&lt;HttpMessageConverter&lt;?&gt;&gt; converters) {}
+
+    public void configureHandlerExceptionResolvers(List&lt;HandlerExceptionResolver&gt; exceptionResolvers) {}
+
+    public void extendHandlerExceptionResolvers(List&lt;HandlerExceptionResolver&gt; exceptionResolvers) {}
+    @Nullable
+    public Validator getValidator() {
+        return null;
+    }
+
+    @Nullable
+    public MessageCodesResolver getMessageCodesResolver() {
+        return null;
+    }
+}</code></code></pre>
+<p>3、WebMvcConfigurerAdapter为什么会过时？<br />
+<strong>这是因为由于Java的版本更新，在Java 8中，可以使用default关键词为接口添加默认的方法，Spring在升级的过程中也同步支持了Java 8中这一新特性。</strong><br />
+4、新选择WebMvcConfigurer<br />
+我们看一下它实现的接口<strong>WebMvcConfigurer</strong>，既然WebMvcConfigurer默认有了空实现，我们直接实现WebMvcConfigurer接口即可。</p>
+<pre><code><code>public interface WebMvcConfigurer {
+    default void configurePathMatch(PathMatchConfigurer configurer) {}
+
+    default void configureContentNegotiation(ContentNegotiationConfigurer configurer) {}
+
+    default void configureAsyncSupport(AsyncSupportConfigurer configurer) {}
+
+    default void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {}
+
+    default void addFormatters(FormatterRegistry registry) {}
+
+    default void addInterceptors(InterceptorRegistry registry) {}
+
+    default void addResourceHandlers(ResourceHandlerRegistry registry) {}
+
+    default void addCorsMappings(CorsRegistry registry) {}
+
+    default void addViewControllers(ViewControllerRegistry registry) {}
+
+    default void configureViewResolvers(ViewResolverRegistry registry) {}
+
+    default void addArgumentResolvers(List&lt;HandlerMethodArgumentResolver&gt; resolvers) {}
+
+    default void addReturnValueHandlers(List&lt;HandlerMethodReturnValueHandler&gt; handlers) {}
+
+    default void configureMessageConverters(List&lt;HttpMessageConverter&lt;?&gt;&gt; converters) {}
+
+    default void extendMessageConverters(List&lt;HttpMessageConverter&lt;?&gt;&gt; converters) {}
+
+    default void configureHandlerExceptionResolvers(List&lt;HandlerExceptionResolver&gt; resolvers) {}
+
+    default void extendHandlerExceptionResolvers(List&lt;HandlerExceptionResolver&gt; resolvers) {}
+
+    @Nullable
+    default Validator getValidator() {
+        return null;
+    }
+
+    @Nullable
+    default MessageCodesResolver getMessageCodesResolver() {
+        return null;
+    }
+}</code></code></pre>
+<p>5、更新后的代码如下：</p>
+<pre><code><code>@Configuration
+public class FileConfig implements WebMvcConfigurer {
+
+    private String uploadPath = E://file/;
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        registry.addResourceHandler(&quot;/file/**&quot;).addResourceLocations(&quot;file:&quot;+uploadPath);
+        super.addResourceHandlers(registry);
+    }
+}</code></code></pre>
+<p>如果各位想直接使用，且用的spring boot版本在2以上，则复制第五点到项目中就好了。最后祝广大程序猿1024快乐。多长头发，少些bug。</p>
+<blockquote>
+<p>如果文章对您有帮助，请记得点赞关注哟~<br />
+欢迎大家关注我的公众号<情系IT>，每日技术推送文章供大家学习参考。</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

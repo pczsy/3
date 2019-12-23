@@ -1,0 +1,157 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SSH开发模式——Struts2(第二小节)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SSH开发模式——Struts2(第二小节)</center></div><div class='banquan'>原文出处:本文由博客园博主#Temptation提供。<br/>
+原文连接:https://www.cnblogs.com/blizzawang/p/11411783.html</div><br>
+    <p><strong>上一小节已经学会了如何去搭建Struts2的开发环境，该篇博客我们继续深入Struts2，了解Struts2框架的拦截器。</strong></p>
+<p>首先对我们在web.xml文件配置的过滤器进行一个源码的分析。<br />
+在StrutsPrepareAndExecuteFilter源码中，有一个init()方法，它调用方法获得了一个Dispatcher对象，这就是我们要分析的关键了。进入到它的源码，在其init()方法中调用了init_TraditionalXmlConfigurations()方法，该方法的源码如下：</p>
+<pre><code><code>    private void init_TraditionalXmlConfigurations() {
+        String configPaths = initParams.get(&quot;config&quot;);
+        if (configPaths == null) {
+            configPaths = DEFAULT_CONFIGURATION_PATHS;
+        }
+        String[] files = configPaths.split(&quot;\\s*[,]\\s*&quot;);
+        for (String file : files) {
+            if (file.endsWith(&quot;.xml&quot;)) {
+                if (&quot;xwork.xml&quot;.equals(file)) {
+                    configurationManager.addContainerProvider(createXmlConfigurationProvider(file, false));
+                } else {
+                    configurationManager.addContainerProvider(createStrutsXmlConfigurationProvider(file, false, servletContext));
+                }
+            } else {
+                throw new IllegalArgumentException(&quot;Invalid configuration file name&quot;);
+            }
+        }
+    }</code></code></pre>
+<p>注意了，在这个方法里有这样一句代码，<code>configPaths = DEFAULT_CONFIGURATION_PATHS;</code>，关键就是这个字段，我们继续跟进。</p>
+<pre><code><code>    private static final String DEFAULT_CONFIGURATION_PATHS = &quot;struts-default.xml,struts-plugin.xml,struts.xml&quot;;</code></code></pre>
+<p>看到这里你总该明白了吧，为什么新建的struts2的配置文件名字必须为struts.xml？为什么struts2的配置文件中package标签要继承struts-default？相信应该不用我解释了。</p>
+<p>其实，过滤器的作用有很多，之前也有介绍，但是，如果把所有的任务都交给过滤器处理，那过滤器的负担将会非常重，过滤器的代码会非常多，也不符合我们低耦合，高内聚的设计思想。</p>
+<p>我们假设要实现一个功能，在一个类中将该功能分为几个步骤。</p>
+<pre><code><code>class aa{
+    第一步:
+    第二步:
+    第三步:
+    第四步:
+}</code></code></pre>
+<p>但是我们现在这样设计实现。</p>
+<pre><code><code>class a1{
+    第一步:
+}
+class a2{
+    第二步:
+}
+class a3{
+    第三步:
+}
+class a4{
+    第四步:
+}</code></code></pre>
+<p>每个类只实现一步，然后直接调用四个类的方法即可。<br />
+这样有什么好处呢?这样四个步骤都不会相互影响，想单独调用某个步骤你可以很容易地实现。这就是分离关注的思想。把要处理的问题，分别用一个类来完成，每个类只完成一个功能。这样的一个类就叫 <strong>拦截器</strong>。<br />
+那拦截器和过滤器有什么区别呢？<br />
+相同点：都是起拦截作用的。<br />
+不同点：过滤器是J2EE的标准，任何的一个程序都可以使用。<br />
+              拦截器是struts2框架的标准，不能离开struts2框架，必须依赖struts2框架使用。<br />
+              过滤器拦截的是web.xml配置文件，其它的拦截工作都交给了拦截器。<br />
+              执行顺序为过滤器先执行，拦截器后执行。</p>
+<p>在struts-default.xml文件中，定义了很多的拦截器。</p>
+<pre class="xml"><code>&lt;!-- 
+    interceptors:定义了struts2框架的拦截器
+    *name:拦截器的名称，是唯一的
+    *class:拦截器对应的Action类的完整路径
+ --&gt;
+        &lt;interceptors&gt;
+            &lt;interceptor name=&quot;alias&quot; class=&quot;com.opensymphony.xwork2.interceptor.AliasInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;autowiring&quot; class=&quot;com.opensymphony.xwork2.spring.interceptor.ActionAutowiringInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;chain&quot; class=&quot;com.opensymphony.xwork2.interceptor.ChainingInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;conversionError&quot; class=&quot;org.apache.struts2.interceptor.StrutsConversionErrorInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;cookie&quot; class=&quot;org.apache.struts2.interceptor.CookieInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;clearSession&quot; class=&quot;org.apache.struts2.interceptor.ClearSessionInterceptor&quot; /&gt;
+            &lt;interceptor name=&quot;createSession&quot; class=&quot;org.apache.struts2.interceptor.CreateSessionInterceptor&quot; /&gt;
+            &lt;interceptor name=&quot;debugging&quot; class=&quot;org.apache.struts2.interceptor.debugging.DebuggingInterceptor&quot; /&gt;
+            &lt;interceptor name=&quot;execAndWait&quot; class=&quot;org.apache.struts2.interceptor.ExecuteAndWaitInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;exception&quot; class=&quot;com.opensymphony.xwork2.interceptor.ExceptionMappingInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;fileUpload&quot; class=&quot;org.apache.struts2.interceptor.FileUploadInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;i18n&quot; class=&quot;com.opensymphony.xwork2.interceptor.I18nInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;logger&quot; class=&quot;com.opensymphony.xwork2.interceptor.LoggingInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;modelDriven&quot; class=&quot;com.opensymphony.xwork2.interceptor.ModelDrivenInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;scopedModelDriven&quot; class=&quot;com.opensymphony.xwork2.interceptor.ScopedModelDrivenInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;params&quot; class=&quot;com.opensymphony.xwork2.interceptor.ParametersInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;actionMappingParams&quot; class=&quot;org.apache.struts2.interceptor.ActionMappingParametersInteceptor&quot;/&gt;
+            &lt;interceptor name=&quot;prepare&quot; class=&quot;com.opensymphony.xwork2.interceptor.PrepareInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;staticParams&quot; class=&quot;com.opensymphony.xwork2.interceptor.StaticParametersInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;scope&quot; class=&quot;org.apache.struts2.interceptor.ScopeInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;servletConfig&quot; class=&quot;org.apache.struts2.interceptor.ServletConfigInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;timer&quot; class=&quot;com.opensymphony.xwork2.interceptor.TimerInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;token&quot; class=&quot;org.apache.struts2.interceptor.TokenInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;tokenSession&quot; class=&quot;org.apache.struts2.interceptor.TokenSessionStoreInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;validation&quot; class=&quot;org.apache.struts2.interceptor.validation.AnnotationValidationInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;workflow&quot; class=&quot;com.opensymphony.xwork2.interceptor.DefaultWorkflowInterceptor&quot;/&gt;
+            &lt;interceptor name=&quot;store&quot; class=&quot;org.apache.struts2.interceptor.MessageStoreInterceptor&quot; /&gt;
+            &lt;interceptor name=&quot;checkbox&quot; class=&quot;org.apache.struts2.interceptor.CheckboxInterceptor&quot; /&gt;
+            &lt;interceptor name=&quot;profiling&quot; class=&quot;org.apache.struts2.interceptor.ProfilingActivationInterceptor&quot; /&gt;
+            &lt;interceptor name=&quot;roles&quot; class=&quot;org.apache.struts2.interceptor.RolesInterceptor&quot; /&gt;
+            &lt;interceptor name=&quot;annotationWorkflow&quot; class=&quot;com.opensymphony.xwork2.interceptor.annotations.AnnotationWorkflowInterceptor&quot; /&gt;
+            &lt;interceptor name=&quot;multiselect&quot; class=&quot;org.apache.struts2.interceptor.MultiselectInterceptor&quot; /&gt;
+       &lt;/interceptors&gt;</code></code></pre>
+<p>拦截器非常的多，其中也有很多我们眼熟的关键字吧，cookie、params、i18n等等。<br />
+在拦截器定义的下面，又定义了很多的interceptor-stack标签，这些标签定义的是拦截器栈。它们有什么作用呢？<br />
+这里我只贴出一个默认的拦截器栈作讲解。</p>
+<pre class="xml"><code>&lt;!-- 
+     interceptor-stack:拦截器栈
+        *存放了上面定义的拦截器，拦截器栈相当于list集合，在这里存放的拦截器是有先后顺序的
+        按照声明的顺序先后执行
+--&gt;
+            &lt;interceptor-stack name=&quot;defaultStack&quot;&gt;
+                &lt;interceptor-ref name=&quot;exception&quot;/&gt;
+                &lt;interceptor-ref name=&quot;alias&quot;/&gt;
+                &lt;interceptor-ref name=&quot;servletConfig&quot;/&gt;
+                &lt;interceptor-ref name=&quot;i18n&quot;/&gt;
+                &lt;interceptor-ref name=&quot;prepare&quot;/&gt;
+                &lt;interceptor-ref name=&quot;chain&quot;/&gt;
+                &lt;interceptor-ref name=&quot;scopedModelDriven&quot;/&gt;
+                &lt;interceptor-ref name=&quot;modelDriven&quot;/&gt;
+                &lt;interceptor-ref name=&quot;fileUpload&quot;/&gt;
+                &lt;interceptor-ref name=&quot;checkbox&quot;/&gt;
+                &lt;interceptor-ref name=&quot;multiselect&quot;/&gt;
+                &lt;interceptor-ref name=&quot;staticParams&quot;/&gt;
+                &lt;interceptor-ref name=&quot;actionMappingParams&quot;/&gt;
+                &lt;interceptor-ref name=&quot;params&quot;&gt;
+                    &lt;param name=&quot;excludeParams&quot;&gt;dojo\..*,^struts\..*,^session\..*,^request\..*,^application\..*,^servlet(Request|Response)\..*,parameters\...*&lt;/param&gt;
+                &lt;/interceptor-ref&gt;
+                &lt;interceptor-ref name=&quot;conversionError&quot;/&gt;
+                &lt;interceptor-ref name=&quot;validation&quot;&gt;
+                    &lt;param name=&quot;excludeMethods&quot;&gt;input,back,cancel,browse&lt;/param&gt;
+                &lt;/interceptor-ref&gt;
+                &lt;interceptor-ref name=&quot;workflow&quot;&gt;
+                    &lt;param name=&quot;excludeMethods&quot;&gt;input,back,cancel,browse&lt;/param&gt;
+                &lt;/interceptor-ref&gt;
+                &lt;interceptor-ref name=&quot;debugging&quot;/&gt;
+            &lt;/interceptor-stack&gt;</code></code></pre>
+<p>至于它是否真的有执行顺序呢？我就不带大家验证了，大家可以找几个拦截器，然后在对应的类中打上断点，然后运行验证即可。</p>
+<p>需要注意的是，程序默认执行的是defaultStack拦截器栈，那有没有人想为什么程序默认执行的是该拦截器栈，因为它的名字是defaultStack，所以就会执行它吗?显然，这里面是有原因的。我们往下阅读源码，找到了这样一句配置：<code>&lt;default-interceptor-ref name=&quot;defaultStack&quot;/&gt;</code> ，它就是用来配置默认执行的拦截器栈的。<br />
+拦截器就先介绍到这里。<br />
+之前算是一个对Struts2框架的入门，有很多地方大家可能都不太理解，因为要让大家能够迅速地了解这个框架，所以没有更深层次地去介绍，只是讲述了它的冰山一角。接下来，我们就要对Struts2框架进行一个系统的学习，敬请期待吧。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

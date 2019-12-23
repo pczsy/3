@@ -1,0 +1,48 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修spring boot配置文件application.properties配置JPA以及数据源' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>spring boot配置文件application.properties配置JPA以及数据源</center></div><div class='banquan'>原文出处:本文由博客园博主_ZXP提供。<br/>
+原文连接:https://www.cnblogs.com/z-x-p/p/11491077.html</div><br>
+    <h1>1.application.properties配置jpa模板</h1>
+<p>spring.datasource.url=jdbc:mysql://localhost:3306/springboottest?useUnicode=true&amp;characterEncoding=utf8&amp;serverTimezone=UTC <br />spring.datasource.username=yourname<br />spring.datasource.password=yourpassword<br />spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver</p>
+<p>#jpa setting<br />spring.jpa.database-platform=org.hibernate.dialect.MySQL5InnoDBDialect</p>
+<p>spring.jpa.hibernate.ddl-auto=update</p>
+<p>spring.jpa.show-sql=true</p>
+<p><strong><span style="color: #ff0000;">注意</span>：url上一定要加上时区serverTimezone=UTC&nbsp;，否则会报错。</strong></p>
+<p><strong>当使用JPA访问数据库时，一定要设置数据库方言</strong></p>
+<h1><span style="font-size: 18px;">2.application.properties配置Druid数据源</span></h1>
+<p>springboot数据源配置的默认类型是org.apache.tomcat.jdbc.pool.DateSource，为了使用Druid连接池，可以将数据源类型更改为alibaba.druid.pool.DruidDataSource。</p>
+<p>修改数据源为Druid的配置如下：</p>
+<p><span style="color: #008080;">spring.datasource.type=com.alibaba.druid.pool.DruidDataSource</span></p>
+<p>配置参数设定数据源的工作方式，常用的数据源属性配置如下：</p>
+<p><span style="color: #008080;">spring.datasource.initSize=5</span><br /><span style="color: #008080;">spring.datasource.minIdle=5</span><br /><span style="color: #008080;">spring.datasource.maxActive=20</span><br /><span style="color: #008080;">spring.datasource.maxWait=6000</span></p>
+<p>#配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒<br /><span style="color: #008080;">spring.datasource.timeBetweenEvictionRunsMillis=60000</span></p>
+<p>#配置一个连接在池中最小生存时间，单位是毫秒<br /><span style="color: #008080;">spring.datasource.minEvictableIdleTimeMillis=300000</span></p>
+<h1>&nbsp;3.Druid实现监控功能</h1>
+<p>Druid简介：</p>
+<p>　　Druid是一个关系型数据库连接池，Druid支持所有JDBC兼容的数据库，包括MYSQL，ororacle，Derby，H2，SQL Server等。Druid在监控、可扩展性、稳定性和性能方面有明显优势。通过Druid提供的监控功能可以实时观察数据库连接池和SQL查询的工作情况。使用Druid连接池在一定程度上可以提高数据库的访问性能。</p>
+<p>Druid依赖：</p>
+<p><span style="color: #0000ff;">&lt;dependency&gt;</span><br /><span style="color: #0000ff;">			　　&lt;groupId&gt;com.alibaba&lt;/groupId&gt;</span><br /><span style="color: #0000ff;">			　　&lt;artifactId&gt;druid&lt;/artifactId&gt;</span><br /><span style="color: #0000ff;">			　　&lt;version&gt;1.1.10&lt;/version&gt;</span><br /><span style="color: #0000ff;">		&lt;/dependency&gt;</span></p>
+<p>监控功能的相关配置：</p>
+<p><span style="color: #0000ff;">spring.datasource.filters=stat</span><br /><span style="color: #0000ff;">spring.datasource.validationQuery: SELECT 1 FROM DUAL</span><br /><span style="color: #0000ff;">spring.datasource.testWhileIdle: true</span><br /><span style="color: #0000ff;">spring.datasource.testOnBorrow: false</span><br /><span style="color: #0000ff;">spring.datasource.testOnReturn: false</span><br /><span style="color: #0000ff;">spring.datasource.poolPreparedStatements: true</span><br /><span style="color: #0000ff;">spring.datasource.maxOpenPreparedStatements: 20</span><br /><span style="color: #0000ff;">spring.datasource.filters: stat,wall,log4j</span><br /><span style="color: #0000ff;">spring.datasource.connectionProperties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000</span><br /><span style="color: #0000ff;">#spring.datasource.useGlobalDataSourceStat=true</span><br /> </p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

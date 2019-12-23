@@ -1,0 +1,197 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java描述设计模式(14)：解释器模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java描述设计模式(14)：解释器模式</center></div><div class='banquan'>原文出处:本文由博客园博主知了一笑提供。<br/>
+原文连接:https://www.cnblogs.com/cicada-smile/p/11695393.html</div><br>
+    <p>本文源码：<a href="https://github.com/cicadasmile/model-arithmetic-parent">GitHub·点这里</a> || <a href="https://gitee.com/cicadasmile/model-arithmetic-parent">GitEE·点这里</a></p>
+<h1 id="一解释器模式">一、解释器模式</h1>
+<h2 id="基础概念">1、基础概念</h2>
+<blockquote>
+<p>解释器模式是对象的行为模式。给定一个语言之后，解释器模式可以定义出其文法的一种表示，并同时提供一个解释器。客户端可以使用这个解释器来解释这个语言中的表达式。</p>
+</blockquote>
+<h2 id="模式图解">2、模式图解</h2>
+<p><img src="./images/Java描述设计模式(14)：解释器模式0.png" /></p>
+<h2 id="核心角色">3、核心角色</h2>
+<p><strong>(1)、抽象表达式</strong></p>
+<blockquote>
+<p>Express：声明具体表达式角色需要实现的抽象接口，该接口主要提供一个interpret()方法，称做解释操作。</p>
+</blockquote>
+<p><strong>(2)、终结符表达式</strong></p>
+<blockquote>
+<p>TerminalExpress：实现抽象表达式角色接口，主要是一个interpret()方法；每个终结符都有一个具体终结表达式与之相对应。比如解析c=a+b，a和b是终结符，解析a和b的解释器就是终结符表达式。</p>
+</blockquote>
+<p><strong>(3)、非终结符表达式</strong></p>
+<blockquote>
+<p>NotTerminalExpress：每一条规则都需要一个具体的非终结符表达式用来衔接，一般是指运算符或者逻辑判断，比如c=a+b，“+&quot;就是非终结符，解析“+”的解释器就是一个非终结符表达式。</p>
+</blockquote>
+<p><strong>(4)、环境容器</strong></p>
+<blockquote>
+<p>DataMap：一般是用来存放各个终结符所对应的具体值，比如c=a+b转换为c=1+2。这些信息需要一个存放环境。</p>
+</blockquote>
+<h2 id="源代码实现">4、源代码实现</h2>
+<ul>
+<li>类图结构</li>
+</ul>
+<p><img src="./images/Java描述设计模式(14)：解释器模式1.png" /></p>
+<ul>
+<li>源码实现</li>
+</ul>
+<pre><code><code>public class C01_InScene {
+    public static void main(String[] args) {
+        DataMap dataMap = new DataMap();
+        TerminalExpress terminalExpress1 = new TerminalExpress(&quot;num1&quot;);
+        TerminalExpress terminalExpress2 = new TerminalExpress(&quot;num2&quot;);
+        TerminalExpress terminalExpress3 = new TerminalExpress(&quot;num3&quot;);
+        dataMap.putData(terminalExpress1, 1);
+        dataMap.putData(terminalExpress2, 2);
+        dataMap.putData(terminalExpress3, 3);
+        // 1+2-3 = 0
+        System.out.println(new Minus(
+                           new Add(terminalExpress1,terminalExpress2), terminalExpress3)
+                           .interpret(dataMap));
+    }
+}
+// 解释器接口
+interface Express {
+    Integer interpret(DataMap dataMap) ;
+}
+// 非终结符表达式
+abstract class NotTerminalExpress implements Express {
+    Express express1,express2;
+    public NotTerminalExpress(Express express1, Express express2){
+        this.express1 = express1;
+        this.express2 = express2;
+    }
+}
+// 终结符表达式: 1+2 终结符： 1 和 2
+class TerminalExpress implements Express {
+    public String field ;
+    public TerminalExpress (String field){
+        this.field = field ;
+    }
+    @Override
+    public Integer interpret(DataMap dataMap) {
+        return dataMap.getData(this);
+    }
+}
+// 加法表达式
+class Add extends NotTerminalExpress {
+    public Add (Express e1, Express e2) {
+        super(e1, e2);
+    }
+    // 将两个表达式相减
+    @Override
+    public Integer interpret(DataMap context) {
+        return this.express1.interpret(context) + this.express2.interpret(context);
+    }
+}
+// 减法表达式
+class Minus extends NotTerminalExpress {
+    public Minus (Express e1, Express e2) {
+        super(e1, e2);
+    }
+    // 将两个表达式相减
+    @Override
+    public Integer interpret(DataMap context) {
+        return this.express1.interpret(context) - this.express2.interpret(context);
+    }
+}
+// 数据容器
+class DataMap {
+    private Map&lt;Express,Integer&gt; dataMap = new HashMap&lt;&gt;() ;
+    public void putData (Express key,Integer value){
+        dataMap.put(key,value) ;
+    }
+    public Integer getData (Express key){
+        return dataMap.get(key) ;
+    }
+}</code></code></pre>
+<h1 id="二spring框架应用">二、Spring框架应用</h1>
+<h2 id="源码案例">1、源码案例</h2>
+<pre><code><code>import org.springframework.expression.Expression;
+import org.springframework.expression.spel.standard.SpelExpressionParser;
+public class SpringTest {
+    public static void main(String[] args) {
+        SpelExpressionParser parser = new SpelExpressionParser () ;
+        Expression expression = parser.parseExpression(&quot;(1+3-2)*3&quot;) ;
+        Integer result = (Integer)expression.getValue() ;
+        System.out.println(&quot;result=&quot;+result);
+    }
+}</code></code></pre>
+<h2 id="代码分析">2、代码分析</h2>
+<p><strong>(1)Expression结构</strong></p>
+<p>表达式接口：具有不同的实现类。</p>
+<pre><code><code>interface Expression
+class CompositeStringExpression implements Expression
+class LiteralExpression implements Expression
+class SpelExpression implements Expression</code></code></pre>
+<p>核心方法：</p>
+<pre><code><code>Object getValue() throws EvaluationException;</code></code></pre>
+<p><strong>(2)SpelExpressionParser结构</strong></p>
+<pre><code><code>SpelExpressionParser extends TemplateAwareExpressionParser
+TemplateAwareExpressionParser implements ExpressionParser
+interface ExpressionParser</code></code></pre>
+<p><strong>(3)ExpressionParser接口</strong></p>
+<pre><code><code>public interface ExpressionParser {
+    Expression parseExpression(String var1) ;
+    Expression parseExpression(String var1, ParserContext var2) ;
+}</code></code></pre>
+<p><strong>(4)Expression获取</strong></p>
+<p>根据不同的条件获取不同的Expression对象。这里产生类的依赖关系。</p>
+<p>源码位置：TemplateAwareExpressionParser</p>
+<pre><code><code>public Expression parseExpression(String expressionString, 
+                                  ParserContext context) 
+                                  throws ParseException {
+        if (context == null) {
+            context = NON_TEMPLATE_PARSER_CONTEXT;
+        }
+        return context.isTemplate() ? 
+        this.parseTemplate(expressionString, context) : 
+        this.doParseExpression(expressionString, context);
+    }</code></code></pre>
+<h1 id="三模式总结">三、模式总结</h1>
+<ul>
+<li>场景</li>
+</ul>
+<blockquote>
+<p>编译器、运算符表达式、正则表达式、机器人等。</p>
+</blockquote>
+<ul>
+<li>优点</li>
+</ul>
+<blockquote>
+<p>当有一个表达式或者语言需要解释执行，该场景下的内容可以考虑使用解释器模式，使程序具有良好的扩展性。</p>
+</blockquote>
+<ul>
+<li>缺点</li>
+</ul>
+<blockquote>
+<p>解释器模式会引起类膨胀，会导致程序执行和调试非常复杂，不容易理解。</p>
+</blockquote>
+<h1 id="四源代码地址">四、源代码地址</h1>
+<pre><code><code>GitHub·地址
+https://github.com/cicadasmile/model-arithmetic-parent
+GitEE·地址
+https://gitee.com/cicadasmile/model-arithmetic-parent</code></code></pre>
+<p><img src="./images/Java描述设计模式(14)：解释器模式2.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,118 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修算法思想——分治算法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>算法思想——分治算法</center></div><div class='banquan'>原文出处:本文由博客园博主方块人提供。<br/>
+原文连接:https://www.cnblogs.com/Cubemen/p/11421008.html</div><br>
+    <h2>一、分治策略</h2>
+<p>　　&ldquo;分而治之&rdquo;，大问题能够拆成相似的小问题，记住这些小问题需要具有相似性。而后将小问题的每个解合成为大问题的解。所以说大问题如何拆，小问题如何合并才是这个算法最主要的一个思想。实际上很多算法如贪心算法，动态规划等等都是要求把大问题拆成小问题。而分治算法的重要一点就是要适用于能够重新把小问题的解合并为大问题的解。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/算法思想——分治算法0.png" alt="" /></p>
+<p>&nbsp;</p>
+<h2>二、分治法适用条件</h2>
+<p>　　1、该问题的规模缩小到一定程度就可以很容易解决；</p>
+<p>　　2、该问题可以分解为若干个规模较小的相同问题，这里注意是最优子结构性质；</p>
+<p>　　3、利用该问题分解出的子问题的解可以合并为该问题的解；</p>
+<p>　　4、该问题所分解出的各个子问题是相互独立的，即子问题之间不包含公共子问题；</p>
+<p>　　对于很多算法而言，第一条往往是必要的，因为数据量一旦大起来，问题往往复杂度上升的特别快。这里就需要将这个大问题分解为小问题。小问题处理起来更加方便。第二、三条的才是分治思想的核心，因为很多时候我们会采用递归的方式进行解决，所以在大问题分解为小问题的时候需要保证小问题之间的相同性。单单分解为小问题之后还不能算完成，必须要能够将小问题的解合并为这个问题的最终解才能算真正用到了分治的思想。最后一条也是最关键的，各个子问题之间必须要保证独立性，即不互相影响。如果相互之间有影响，这时候我们采用的是动态规划就更加好一点。</p>
+<h2>三、例题</h2>
+<p>　　其实算法的思想不用讲太多，能够化为几句话是最好的，下面就举几个例子来看看分治算法：</p>
+<p>　　<span style="color: #3366ff;">例题一：</span>二分查找，给定一个按照升序排好的数组array，要在这个数组中找出一个特定的元素x；</p>
+<p>　　当我们遇到一个问题，完全可以在心里问自己下面四个问题：</p>
+<p>　　<span style="color: #3366ff;">1、当前问题能不能切分？</span></p>
+<p>　　答：能切分，因为数组按照升序来排列。所以当x大于某个元素array[mid]时，x一定在array[mid]的右边。以此再来切分。每次切一半</p>
+<p>　　<span style="color: #3366ff;">2、分解出来的子问题相同吗？</span></p>
+<p>　　答：相同，每个子问题的数据集都是父问题的1/2倍。并且每次只比较子问题的中间的数据</p>
+<p>　　<span style="color: #3366ff;">3、子问题的解能合并为父问题的解吗？</span></p>
+<p>　　答：不需要合并，子问题的解即为父问题的解。</p>
+<p>　　<span style="color: #3366ff;">4、子问题之间相互独立吗？</span></p>
+<p>　　答：独立，子问题只是判断，不需要和父问题有很强的关联性（这里可以参考一下动态规划算法，就能理解子问题之间怎么判断是独立的）</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Main{
+  </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> BinarySearch(<span style="color: #0000ff;">int</span>[] array,<span style="color: #0000ff;">int</span> x,<span style="color: #0000ff;">int</span> left,<span style="color: #0000ff;">int</span><span style="color: #000000;"> right){
+
+        </span><span style="color: #0000ff;">while</span>(left&lt;=<span style="color: #000000;">right){
+            </span><span style="color: #0000ff;">int</span> mid=(left+right)/2<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span>(array[mid]==<span style="color: #000000;">x){
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> mid;
+            }
+            </span><span style="color: #0000ff;">if</span>(array[mid]&gt;x)right=mid-1<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">else</span> left=mid+1<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">return</span> -1<span style="color: #000000;">;
+    } 
+}</span></code></pre>
+
+<p>　　<span style="color: #3366ff;">例题二：</span>归并排序，给定一个无序数组array[7]={49,38,65,97,76,13,27}，使其变的有序</p>
+<p>　　同样在自己心里问问4个问题</p>
+<p>　　<span style="color: #3366ff;">1、当前问题能切分吗？</span></p>
+<p>　　答：能，最简单的就是两个数之间的比较，这个数组可以看成多个两个数来比较</p>
+<p>　　<span style="color: #3366ff;">2、分解出来的子问题是否相同？</span></p>
+<p>　　答：相同，都是两个数比较大小。</p>
+<p>　　<span style="color: #3366ff;">3、子问题的解能够合成父问题的解吗？</span></p>
+<p>&nbsp;　　答：每两个有序数组再按照一定顺序合起来就是最终的题解。这里就是有个合并的过程</p>
+<p>　　<span style="color: #3366ff;">4、子问题之间相互独立吗？</span></p>
+<p>　　答：独立，分到最小的时候子问题之间互不影响。</p>
+<p>　　下面是归并排序代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MergeSort {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> merge(<span style="color: #0000ff;">int</span>[] arr,<span style="color: #0000ff;">int</span> l,<span style="color: #0000ff;">int</span> mid,<span style="color: #0000ff;">int</span><span style="color: #000000;"> r){
+        </span><span style="color: #0000ff;">int</span>[] aux= Arrays.copyOfRange(arr,l,r+1<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">int</span> i=l,j=mid+1<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> k=l;k&lt;r;k++<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">if</span>(i&gt;<span style="color: #000000;">mid){
+                arr[k]</span>=aux[j-<span style="color: #000000;">l];
+                j</span>++<span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(j&gt;<span style="color: #000000;">r){
+                arr[k]</span>=aux[i-<span style="color: #000000;">l];
+                i</span>++<span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(aux[i-l]&lt;aux[j-<span style="color: #000000;">l]){
+                arr[k]</span>=aux[i-l];i++<span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                arr[k]</span>=aux[j-l];j++<span style="color: #000000;">;
+            }
+        }
+
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 递归使用归并排序,对arr[l...r]的范围进行排序</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> sort(<span style="color: #0000ff;">int</span>[] arr, <span style="color: #0000ff;">int</span> l, <span style="color: #0000ff;">int</span><span style="color: #000000;"> r) {
+
+        </span><span style="color: #0000ff;">if</span> (l &gt;=<span style="color: #000000;"> r)
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">int</span> mid = (l+r)/2<span style="color: #000000;">;
+        sort(arr, l, mid);
+        sort(arr, mid </span>+ 1<span style="color: #000000;">, r);
+        merge(arr, l, mid, r);
+    }
+}</span></code></pre>
+
+<p>　　归并的示意图如下：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/算法思想——分治算法1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　最后问题来了，快速排序是用了分治算法的思想吗？</p>
+<h2>四、总结</h2>
+<p>　　分治算法只是一种思想，不是一个具体的套路，只能说在碰见具体问题时我们能够从这个思路去思考，切分问题？合并问题？子问题之间影响关联大不大？这些都是具体问题具体考虑。还有很多很多题目是用了分治算法。也可以多刷刷题</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

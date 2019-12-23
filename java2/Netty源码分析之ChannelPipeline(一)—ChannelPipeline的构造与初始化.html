@@ -1,0 +1,259 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Netty源码分析之ChannelPipeline(一)—ChannelPipeline的构造与初始化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Netty源码分析之ChannelPipeline(一)—ChannelPipeline的构造与初始化</center></div><div class='banquan'>原文出处:本文由博客园博主bigfan提供。<br/>
+原文连接:https://www.cnblogs.com/dafanjoy/p/11512304.html</div><br>
+    <p>Netty中ChannelPipeline实际上类似与一条数据管道，负责传递Channel中读取的消息，它本质上是基于责任链模式的设计与实现，无论是IO事件的拦截器，还是用户自定义的ChannelHandler业务逻辑都做为一个个节点被添加到任务链上。</p>
+<h2>一、ChannelPipeline的设计与构成</h2>
+<p>&nbsp;ChannelPipeline中作为Netty中的数据管道，作用就是通过控制与联通不同的ChannelHandler，传递Channel中的消息。每一个Channel，都对应一个ChannelPipeline作为ChannelHandler的容器，而ChannelHandlerContext则把ChannelHandler的封装成每个节点，以双向链表方式在容器中存在；我们可以通过下图简单看下它们之间的关系。</p>
+<p><img src="./images/Netty源码分析之ChannelPipeline(一)—ChannelPipeline的构造与初始化0.png" alt="" /></p>
+<h3>1、ChannelHandler</h3>
+<p>&nbsp;使用过Netty的朋友们都清楚，ChannelHandler就是作为拦截器和业务处理逻辑的存在，它会处理Channel中读写的消息；</p>
+<p>首先看下ChannelHandler接口的定义</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> ChannelHandler {
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当ChannelHandler添加到Pipeline中时调用</span>
+    <span style="color: #0000ff;">void</span> handlerAdded(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当ChannelHandler在Pipeline中被移除时调用</span>
+    <span style="color: #0000ff;">void</span> handlerRemoved(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">在运行过程中 发生异常时调用</span>
+<span style="color: #000000;">    @Deprecated
+    </span><span style="color: #0000ff;">void</span> exceptionCaught(ChannelHandlerContext ctx, Throwable cause) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    @Inherited
+    @Documented
+    @Target(ElementType.TYPE)
+    @Retention(RetentionPolicy.RUNTIME)
+    @</span><span style="color: #0000ff;">interface</span><span style="color: #000000;"> Sharable {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> no value</span>
+<span style="color: #000000;">    }
+}</span></code></pre>
+
+<p>ChannelHandler在处理或拦截IO操作时，分为出站和入站两个方向，对应channelde读写两个操作,所以Netty中又从ChannelHandler中派生出入站ChannelInboundHandler和出站ChannelOutboundHandler两个接口</p>
+<p>ChannelInboundHandler处理入站数据以及各种状态的变化，下面列出了ChannelInboundHandler中数据被接收或者Channel状态发生变化时被调用的方法，这些方法和Channel的生命周期密切相关</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> ChannelInboundHandler <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelHandler {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当Channel注册对应的EventLoop并且能够处理I/O操作时被调用</span>
+    <span style="color: #0000ff;">void</span> channelRegistered(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当Channel从它对应的EventLoop上注销，并且无法处理I/O操作时被调用</span>
+    <span style="color: #0000ff;">void</span> channelUnregistered(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当Channel已经连接时被调用</span>
+    <span style="color: #0000ff;">void</span> channelActive(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当Channel为非活动状态，也就是断开时被调用</span>
+    <span style="color: #0000ff;">void</span> channelInactive(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当从Channel读取数据时被调用</span>
+    <span style="color: #0000ff;">void</span> channelRead(ChannelHandlerContext ctx, Object msg) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当Channel的上一个读数据完成后被调用</span>
+    <span style="color: #0000ff;">void</span> channelReadComplete(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当调用fireUserEventTriggered方法时被调用</span>
+    <span style="color: #0000ff;">void</span> userEventTriggered(ChannelHandlerContext ctx, Object evt) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当Channel的可写状态发生改变时被调用。用户可以确保写操作不会完成太快</span>
+    <span style="color: #0000ff;">void</span> channelWritabilityChanged(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    @Override
+    @SuppressWarnings(</span>"deprecation"<span style="color: #000000;">)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">入站操作发生异常时调用</span>
+    <span style="color: #0000ff;">void</span> exceptionCaught(ChannelHandlerContext ctx, Throwable cause) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+}</span></code></pre>
+
+<p>ChannelOutboundHandler处理出站操作和数据</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> ChannelOutboundHandler <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ChannelHandler {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当请求将Channel绑定到本地地址时被调用</span>
+    <span style="color: #0000ff;">void</span> bind(ChannelHandlerContext ctx, SocketAddress localAddress, ChannelPromise promise) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当请求将Channel连接到远程节点时被调用</span>
+    <span style="color: #0000ff;">void</span><span style="color: #000000;"> connect(
+            ChannelHandlerContext ctx, SocketAddress remoteAddress,
+            SocketAddress localAddress, ChannelPromise promise) </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当请求将Channel从远程节点断开时被调用</span>
+    <span style="color: #0000ff;">void</span> disconnect(ChannelHandlerContext ctx, ChannelPromise promise) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当请求关闭Channel时被调用</span>
+    <span style="color: #0000ff;">void</span> close(ChannelHandlerContext ctx, ChannelPromise promise) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当请求从对应的EventLoop中注销时被调用</span>
+    <span style="color: #0000ff;">void</span> deregister(ChannelHandlerContext ctx, ChannelPromise promise) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当请求从Channel读取数据时被调用</span>
+    <span style="color: #0000ff;">void</span> read(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当请求通过Channel将数据写到远程节点时被调用</span>
+    <span style="color: #0000ff;">void</span> write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当请求通过Channel将入队列数据冲刷到远程节点时被调用</span>
+    <span style="color: #0000ff;">void</span> flush(ChannelHandlerContext ctx) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+}</span></code></pre>
+
+<h3>2、ChannelHandlerContext</h3>
+<p>ChannelHandlerContext可以说是ChannelPipeline的核心，它代表了ChannelHandler和ChannelPipeline之间的关联，我们首先要知道一个ChannelPipeline内部会维护一个双向链表，每当一个ChannelHandler被添加到ChannelPipeline中时，它都会被包装成为一个ChannelHandlerContext，组成链表的各个节点。</p>
+<p>我们看下ChannelHandlerContext接口中定义的API接口</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> ChannelHandlerContext <span style="color: #0000ff;">extends</span><span style="color: #000000;"> AttributeMap, ChannelInboundInvoker, ChannelOutboundInvoker {
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Return the {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> Channel} which is bound to the {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelHandlerContext}.
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;">每个ChannelHandlerContext都会对一个Channel</span>
+<span style="color: #000000;">    Channel channel();
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Returns the {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> EventExecutor} which is used to execute an arbitrary task.
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;">返回用于执行的EventExecutor任务</span>
+<span style="color: #000000;">    EventExecutor executor();
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * The unique name of the {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelHandlerContext}.The name was used when then {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelHandler}
+     * was added to the {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelPipeline}. This name can also be used to access the registered
+     * {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelHandler} from the {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelPipeline}.
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;">返回定义的name名称</span>
+<span style="color: #000000;">    String name();
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * The {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelHandler} that is bound this {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelHandlerContext}.
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    ChannelHandler handler();
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Return {</span><span style="color: #808080;">@code</span><span style="color: #008000;"> true} if the {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelHandler} which belongs to this context was removed
+     * from the {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelPipeline}. Note that this method is only meant to be called from with in the
+     * {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> EventLoop}.
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;">如果绑定到ChannelPipeline的ChannelHandler被删除，返回true</span>
+    <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> isRemoved();
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中fireChannelRegistered方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext fireChannelRegistered();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中fireChannelUnregistered方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext fireChannelUnregistered();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中fireChannelActive方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext fireChannelActive();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中fireChannelInactive方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext fireChannelInactive();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中fireExceptionCaught方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext fireExceptionCaught(Throwable cause);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中fireUserEventTriggered方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext fireUserEventTriggered(Object evt);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中fireChannelRead方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext fireChannelRead(Object msg);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中fireChannelReadComplete方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext fireChannelReadComplete();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中fireChannelWritabilityChanged方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext fireChannelWritabilityChanged();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelInboundHandler中channelRead方法，如果是最后一个ChannelInboundHandler，则读取完成后触发channelReadComplete</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext read();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">触发下一个ChannelOutboundHandler中flush方法</span>
+<span style="color: #000000;">    @Override
+    ChannelHandlerContext flush();
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Return the assigned {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ChannelPipeline}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    ChannelPipeline pipeline();
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * Return the assigned {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ByteBufAllocator} which will be used to allocate {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> ByteBuf}s.
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;">返回绑定该channel 的 ByteBufAllocator</span>
+<span style="color: #000000;">    ByteBufAllocator alloc();
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@deprecated</span><span style="color: #008000;"> Use {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> Channel#attr(AttributeKey)}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Deprecated
+    @Override
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">返回Attribute</span>
+    &lt;T&gt; Attribute&lt;T&gt; attr(AttributeKey&lt;T&gt;<span style="color: #000000;"> key);
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@deprecated</span><span style="color: #008000;"> Use {</span><span style="color: #808080;">@link</span><span style="color: #008000;"> Channel#hasAttr(AttributeKey)}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Deprecated
+    @Override
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">是否包含指定的AttributeKey</span>
+    &lt;T&gt; <span style="color: #0000ff;">boolean</span> hasAttr(AttributeKey&lt;T&gt;<span style="color: #000000;"> key);
+}</span>&nbsp;</code></pre>
+
+<h2>二、ChannelPipeline的初始化</h2>
+<p>在AbstractChannel的构造函数中我们可以看到对ChannelPipeline的初始化</p>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">protected</span><span style="color: #000000;"> AbstractChannel(Channel parent) {
+        </span><span style="color: #0000ff;">this</span>.parent =<span style="color: #000000;"> parent;
+        id </span>=<span style="color: #000000;"> newId();
+        unsafe </span>=<span style="color: #000000;"> newUnsafe();
+        pipeline </span>= newChannelPipeline();<span style="color: #008000;">//</span><span style="color: #008000;">初始化ChannelPipeline</span>
+    }</code></pre>
+
+<p>看下newChannelPipeline()内部的实现</p>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">protected</span><span style="color: #000000;"> DefaultChannelPipeline newChannelPipeline() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> DefaultChannelPipeline(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+    }</span></code></pre>
+
+<p>在这里创建了一个DefaultChannelPipeline 对象，并传入Channel对象。DefaultChannelPipeline 实现了ChannelPipeline的接口</p>
+<p>进入DefaultChannelPipeline类内部，看下其具体构造</p>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">protected</span><span style="color: #000000;"> DefaultChannelPipeline(Channel channel) {
+        </span><span style="color: #0000ff;">this</span>.channel = ObjectUtil.checkNotNull(channel, "channel"<span style="color: #000000;">);
+        succeededFuture </span>= <span style="color: #0000ff;">new</span> SucceededChannelFuture(channel, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+        voidPromise </span>=  <span style="color: #0000ff;">new</span> VoidChannelPromise(channel, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+
+        tail </span>= <span style="color: #0000ff;">new</span> TailContext(<span style="color: #0000ff;">this</span>);<span style="color: #008000;">//</span><span style="color: #008000;">定义一个头部节点</span>
+        head = <span style="color: #0000ff;">new</span> HeadContext(<span style="color: #0000ff;">this</span>);<span style="color: #008000;">//</span><span style="color: #008000;">定义一个尾部节点
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">连接头尾节点，构成双向链表</span>
+        head.next =<span style="color: #000000;"> tail;
+        tail.prev </span>=<span style="color: #000000;"> head;
+    }</span></code></pre>
+
+<p>在这里我们可以看到DefaultChannelPipeline内部通过声明头尾两个Context节点对象，构建了一个双向链表结构我们；其实这里的TailContext与HeadContext都是ChannelHandlerContext接口的具体实现;</p>
+<h2>三、总结</h2>
+<p>通过上面的内容，我们可以看出ChannelPipeline就是一个用于拦截Channel入站和出站事件的ChannelHandler实例链，而ChannelHandlerContext就是这个实例链上的节点，每一个新创建的Channel都会被分配一个新的ChannelPipeline。这篇文章我们对ChannelPipeline的构造和设计进行了大概的总结，其中如有不足与不正确的地方还望指出与海涵。后面我会对ChannelPipeline中ChannelHandler的添加、删除等具体操作与事件如何在管道中流通传递进行具体的分析。</p>
+<p>&nbsp;</p>
+<p><strong>关注微信公众号，查看更多技术文章。</strong></p>
+<p class="p">&nbsp;</p>
+<p><img src="./images/Netty源码分析之ChannelPipeline(一)—ChannelPipeline的构造与初始化1.png" alt="" /></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

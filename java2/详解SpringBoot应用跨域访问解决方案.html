@@ -1,0 +1,145 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修详解SpringBoot应用跨域访问解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>详解SpringBoot应用跨域访问解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主字母哥博客提供。<br/>
+原文连接:https://www.cnblogs.com/zimug/p/11832737.html</div><br>
+    <h2 id="一什么是跨域访问">一、什么是跨域访问</h2>
+<p>说到跨域访问，必须先解释一个名词：同源策略。所谓同源策略就是在浏览器端出于安全考量，向服务端发起请求必须满足：协议相同、Host(ip)相同、端口相同的条件，否则访问将被禁止，该访问也就被称为跨域访问。<br />
+虽然跨域访问被禁止之后，可以在一定程度上提高了应用的安全性，但也为开发带来了一定的麻烦。比如：我们开发一个前后端分离的易用，页面及js部署在一个主机的nginx服务中，后端接口部署在一个tomcat应用容器中，当前端向后端发起请求的时候一定是不符合同源策略的，也就无法访问。那么我们如何解决这个问题？就是本文需要向大家说明的内容。</p>
+<h2 id="二跨域访问的解决方案有哪些">二、跨域访问的解决方案有哪些？</h2>
+<h3 id="第一类方案前端解决方案">2.1.第一类方案：前端解决方案</h3>
+<p>虽然浏览器对于不符合同源策略的访问是禁止的，但是仍然存在例外的情况，如以下资源引用的标签不受同源策略的限制：</p>
+<ul>
+<li>html的script标签</li>
+<li>html的link标签</li>
+<li>html的img标签</li>
+<li>html的iframe标签：对于使用jsp、freemarker开发的项目，这是实现跨域访问最常见的方法，</li>
+</ul>
+<p>除了基于HTML本身的特性实现跨域访问，我们还可以使用jsonp、window的postMessage实现跨域访问。这些都是前端实现跨域访问的方式。</p>
+<h3 id="第二类方案使用代理">2.2.第二类方案：使用代理</h3>
+<p>实际上对跨域访问的支持在服务端实现起来更加容易，最常用的方法就是通过代理的方式，如：</p>
+<ul>
+<li>nginx或haproxy代理跨域</li>
+<li>nodejs中间件代理跨域</li>
+</ul>
+<p>其实实现代理跨域的逻辑非常简单：就是在不同的资源服务：js资源、html资源、css资源、接口数据资源服务的前端搭建一个中间层，所有的浏览器及客户端访问都通过代理转发。所以在浏览器、客户端看来，它们访问的都是同一个ip、同一个端口的资源，从而符合同源策略实现跨域访问。</p>
+<p><img src="./images/详解SpringBoot应用跨域访问解决方案0.png" /></p>
+<h3 id="第三类方案cors">2.3 第三类方案：CORS</h3>
+<p>跨域资源共享（CORS）：通过修改Http协议header的方式，实现跨域。说的简单点就是，通过设置HTTP的响应头信息，告知浏览器哪些情况在不符合同源策略的条件下也可以跨域访问，浏览器通过解析Http协议中的Header执行具体判断。具体的Header如下：</p>
+<p><strong>CROS跨域常用header</strong></p>
+<ul>
+<li>Access-Control-Allow-Origin: 允许哪些ip或域名可以跨域访问</li>
+<li>Access-Control-Max-Age: 表示在多少秒之内不需要重复校验该请求的跨域访问权限</li>
+<li>Access-Control-Allow-Methods: 表示允许跨域请求的HTTP方法，如：GET,POST,PUT,DELETE</li>
+<li>Access-Control-Allow-Headers: 表示访问请求中允许携带哪些Header信息，如：<code>Accept</code>、<code>Accept-Language</code>、<code>Content-Language</code>、<code>Content-Type</code></li>
+</ul>
+<h2 id="三springboot下实现cors的四种方式">三、SpringBoot下实现CORS的四种方式</h2>
+<p>为大家介绍四种实现CORS的方法，两种是全局配置，两种是局部接口生效的配置。一般来说，SpringBoot项目采用其中一种方式实现CORS即可。</p>
+<h3 id="使用corsfilter进行全局跨域配置">3.1.使用CorsFilter进行全局跨域配置</h3>
+<pre><code><code>    @Configuration
+    public class GlobalCorsConfig {
+        @Bean
+        public CorsFilter corsFilter() {
+    
+            CorsConfiguration config = new CorsConfiguration();
+            //开放哪些ip、端口、域名的访问权限，星号表示开放所有域
+            config.addAllowedOrigin(&quot;*&quot;);
+            //是否允许发送Cookie信息
+            config.setAllowCredentials(true);
+            //开放哪些Http方法，允许跨域访问
+            config.addAllowedMethod(&quot;GET&quot;,&quot;POST&quot;, &quot;PUT&quot;, &quot;DELETE&quot;);
+            //允许HTTP请求中的携带哪些Header信息
+            config.addAllowedHeader(&quot;*&quot;);
+            //暴露哪些头部信息（因为跨域访问默认不能获取全部头部信息）
+            config.addExposedHeader(&quot;*&quot;);
+    
+            //添加映射路径，“/**”表示对所有的路径实行全局跨域访问权限的设置
+            UrlBasedCorsConfigurationSource configSource = new UrlBasedCorsConfigurationSource();
+            configSource.registerCorsConfiguration(&quot;/**&quot;, config);
+    
+            return new CorsFilter(configSource);
+        }
+    }</code></code></pre>
+<h3 id="重写webmvcconfigurer的addcorsmappings方法全局跨域配置">3.2. 重写WebMvcConfigurer的addCorsMappings方法（全局跨域配置）</h3>
+<pre><code><code>    @Configuration
+    public class GlobalCorsConfig {
+        @Bean
+        public WebMvcConfigurer corsConfigurer() {
+            return new WebMvcConfigurer() {
+                @Override
+                public void addCorsMappings(CorsRegistry registry) {
+                    registry.addMapping(&quot;/**&quot;)    //添加映射路径，“/**”表示对所有的路径实行全局跨域访问权限的设置
+                            .allowedOrigins(&quot;*&quot;)    //开放哪些ip、端口、域名的访问权限
+                            .allowCredentials(true)  //是否允许发送Cookie信息 
+                            .allowedMethods(&quot;GET&quot;,&quot;POST&quot;, &quot;PUT&quot;, &quot;DELETE&quot;)     //开放哪些Http方法，允许跨域访问
+                            .allowedHeaders(&quot;*&quot;)     //允许HTTP请求中的携带哪些Header信息
+                            .exposedHeaders(&quot;*&quot;);   //暴露哪些头部信息（因为跨域访问默认不能获取全部头部信息）
+                }
+            };
+        }
+    }</code></code></pre>
+<h3 id="使用crossorigin注解局部跨域配置">3.3.使用CrossOrigin注解（局部跨域配置）</h3>
+<ul>
+<li>将CrossOrigin注解加在Controller层的方法上，该方法定义的RequestMapping端点将支持跨域访问</li>
+<li>将CrossOrigin注解加在Controller层的类定义处，整个类所有的方法对应的RequestMapping端点都将支持跨域访问</li>
+</ul>
+<pre><code><code>    @RequestMapping(&quot;/cors&quot;)
+    @ResponseBody
+    @CrossOrigin(origins = &quot;http://localhost:8080&quot;, maxAge = 3600) 
+    public String cors( ){
+        return &quot;cors&quot;;
+    }</code></code></pre>
+<h3 id="使用httpservletresponse设置响应头局部跨域配置">3.4 使用HttpServletResponse设置响应头(局部跨域配置)</h3>
+<p>这种方式略显麻烦，不建议在SpringBoot项目中使用。</p>
+<pre><code><code>    @RequestMapping(&quot;/cors&quot;)
+    @ResponseBody
+    public String cors(HttpServletResponse response){
+        //使用HttpServletResponse定义HTTP请求头，最原始的方法也是最通用的方法
+        response.addHeader(&quot;Access-Control-Allow-Origin&quot;, &quot;http://localhost:8080&quot;);
+        return &quot;cors&quot;;
+    }</code></code></pre>
+<h2 id="四实现与测试">四、实现与测试</h2>
+<p>在SpringBoot<strong>项目外</strong>随便定义一个HTML，并写代码触发如下的ajax代码。（触发过程我就不写了，定义一个按钮加一个监听函数即可）。以下是跨域AJAX请求验证的核心代码：</p>
+<pre><code><code>    $.ajax({
+            url: &#39;http://localhost:8090/cors&#39;,
+            type: &quot;POST&quot;,
+            xhrFields: {
+               withCredentials: true    //允许发送Cookie信息
+            },
+            success: function (data) {
+                alert(&quot;跨域请求配置成功&quot;)
+            },
+            error: function (data) {
+                alert(&quot;跨域请求配置失败&quot;)
+            }
+        })</code></code></pre>
+<ul>
+<li>跨域请求配置成功表示：我们的跨域配置生效，ajax请求可以正确访问服务端接口。</li>
+<li>跨域请求配置失败表示：我们的跨域配置未生效，请参照检查第三节检查各项配置是否正确。</li>
+</ul>
+<h2 id="期待您的关注">期待您的关注</h2>
+<ul>
+<li>博主最近新写了一本书：<a href="http://springboot.zimug.com">《手摸手教您学习SpringBoot系列-16章97节》</a></li>
+<li>本文转载注明出处（必须带连接，不能只转文字）：<a href="http://www.zimug.com">字母哥博客</a>。</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

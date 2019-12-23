@@ -1,0 +1,187 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修从spring boot发邮件聊到开发的友好性' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>从spring boot发邮件聊到开发的友好性</center></div><div class='banquan'>原文出处:本文由博客园博主wphmoon提供。<br/>
+原文连接:https://www.cnblogs.com/wphmoon/p/11644937.html</div><br>
+    <p>&nbsp;&nbsp; 前些天帮一个朋友做网站，全站都是静态页面，唯一需要用到后端开发的是他需要一个留言板。传统的留言板一般都是提交后保存到数据库，然后提供一个后台的留言列表给管理人员看，我嫌麻烦，就决定留言提交到后台直接发邮件出去，这样就不用开发后台页面了，他也不需要登录一个什么后台才能看留言，两全其美，岂不美哉。</p>
+<p><img class="zoom-in-cursor" src="./images/从spring boot发邮件聊到开发的友好性0.png" alt="" width="300" height="188" /></p>
+<h1 id="h1_1">1、最简版spring boot发邮件</h1>
+<p>spring boot发邮件还是挺简单的，首先把发邮件的start加到pom里面：</p>
+<pre><code><code class="hljs xml">        <span class="hljs-tag">&lt;<span class="hljs-name">dependency&gt;
+			<span class="hljs-tag">&lt;<span class="hljs-name">groupId&gt;org.springframework.boot<span class="hljs-tag">&lt;/<span class="hljs-name">groupId&gt;
+			<span class="hljs-tag">&lt;<span class="hljs-name">artifactId&gt;spring-boot-starter-mail<span class="hljs-tag">&lt;/<span class="hljs-name">artifactId&gt;
+		<span class="hljs-tag">&lt;/<span class="hljs-name">dependency&gt;</span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>然后在application.properties里面配置好关于发邮件的参数</p>
+<pre><code><code class="hljs ruby">spring.mail.host=smtp.<span class="hljs-number">163.com
+spring.mail.port=<span class="hljs-number">25
+spring.mail.username=yourmail@163.com
+spring.mail.password=yourpassword</span></span></code></code></pre>
+<p>其中spring.mail.host和spring.mail.username是一一对应的，哪里的邮箱就要用哪里的smtp服务器</p>
+<p>然后我写了一个controller来接收留言板的内容：</p>
+<pre><code><code class="hljs java">    <span class="hljs-meta">@Value(<span class="hljs-string">"${spring.mail.username}")
+	<span class="hljs-keyword">private String fromMail;
+	<span class="hljs-meta">@Autowired
+    <span class="hljs-keyword">private JavaMailSender mailSender;
+
+    <span class="hljs-meta">@RequestMapping(value = <span class="hljs-string">"/getNote", method = RequestMethod.POST)
+	<span class="hljs-function"><span class="hljs-keyword">public String <span class="hljs-title">getNote<span class="hljs-params">(Note note) {
+		MimeMessage mimeMessage = mailSender.createMimeMessage();
+        MimeMessageHelper helper;
+		<span class="hljs-keyword">try {
+			helper = <span class="hljs-keyword">new MimeMessageHelper(mimeMessage, <span class="hljs-keyword">true);
+			<span class="hljs-comment">//发件人
+	        helper.setFrom(fromMail,note.yourName);
+	        <span class="hljs-comment">//收件人（留言内容最终发往的邮箱地址）
+	        helper.setTo(<span class="hljs-string">"recieve@mail.com");
+	        <span class="hljs-comment">//标题
+	        helper.setSubject(note.yourSubject);
+	        <span class="hljs-comment">//文本
+	        helper.setText(<span class="hljs-string">"from email:"+note.yourEmail+<span class="hljs-string">"\n"+note.yourMessage);
+	        mailSender.send(mimeMessage);
+		} <span class="hljs-keyword">catch (MessagingException | UnsupportedEncodingException e) {
+			<span class="hljs-comment">// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+               
+		<span class="hljs-keyword">return <span class="hljs-string">"redirect:return.htm";
+	}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<pre><code><code class="hljs java"><span class="hljs-keyword">public <span class="hljs-class"><span class="hljs-keyword">class <span class="hljs-title">Note {
+	String yourName;
+	String yourEmail;
+	String yourSubject;
+	String yourMessage;
+
+<span class="hljs-comment">//getter,setter省略
+}</span></span></span></span></span></code></code></pre>
+<ul>
+<li>note对象是留言板的内容</li>
+<li>JavaMailSender和MimeMessageHelper是官方推荐的好基友，一般配套使用</li>
+<li>fromMail就是在application.properties里面配置的spring.mail.username属性，也就是发邮件的一方，用helper.setTo(...)配置</li>
+<li>额外说一下，由于填留言板时一般也会留邮件地址，但那个邮件地址和这里的任何一个设置邮件的地方毫无关系，只需要在邮件的文本里面做记录就好了，我之前就弱智了一把，把留言板里面的邮件地址填到helper.setTo(...)，结果浪费了我半个小时查这种bug，真是一言难尽...</li>
+</ul>
+<h1 id="h1_2">2、授权码发邮件</h1>
+<p>&nbsp; &nbsp; &nbsp;很多时候，按照上面的方法发邮件会出现下面的错误：</p>
+<pre><code><code class="hljs css"><span class="hljs-selector-tag">javax<span class="hljs-selector-class">.mail<span class="hljs-selector-class">.AuthenticationFailedException: 535 <span class="hljs-selector-tag">Error: <span class="hljs-selector-tag">authentication <span class="hljs-selector-tag">failed</span></span></span></span></span></span></code></code></pre>
+<p>其中的一个原因是邮件服务器使用了授权码登录方式，也就是第三方登录不能直接使用账号密码，而需要使用一种授权码的方式，比如上面的163.com邮箱，就可以设置授权码登录，设置界面如下：</p>
+<p><img class="zoom-in-cursor" src="./images/从spring boot发邮件聊到开发的友好性1.png" alt="" width="800" height="376" /></p>
+<p>QQ邮箱更是默认就需要用授权码登录，QQ邮箱的授权登录操作文档请看<a href="https://service.mail.qq.com/cgi-bin/help?subtype=1&amp;&amp;id=28&amp;&amp;no=1001256" rel="nofollow">这里</a></p>
+<p>使用授权码登录后，需要把之前application.properties里面spring.mail.password的内容从密码换成授权码，就能够正常发邮件了。</p>
+<h1 id="h1_3">3、简单聊下JavaMailSender和MimeMessageHelper</h1>
+<p>我们查下JavaMailSender的代码就知道，它其实背景比较复杂。首先它继承了org.springframework.mail.MailSender接口。</p>
+<pre><code><code class="hljs java"><span class="hljs-keyword">public <span class="hljs-class"><span class="hljs-keyword">interface <span class="hljs-title">JavaMailSender <span class="hljs-keyword">extends <span class="hljs-title">MailSender {
+...
+}</span></span></span></span></span></span></code></code></pre>
+<p>而它本身也是一个接口，实现类只有一个，JavaMailSenderImpl</p>
+<p><img class="zoom-in-cursor" src="./images/从spring boot发邮件聊到开发的友好性2.png" alt="" width="500" height="92" /></p>
+<p>我们再来翻JavaMailSenderImpl的代码，发现spring并没有自己来做发送邮件的功能，而是直接用了java自身的邮件发送功能，核心是这一段</p>
+<pre><code><code class="hljs java"><span class="hljs-function"><span class="hljs-keyword">protected <span class="hljs-keyword">void <span class="hljs-title">doSend<span class="hljs-params">(MimeMessage[] mimeMessages, @Nullable Object[] originalMessages) <span class="hljs-keyword">throws MailException {
+		Map&lt;Object, Exception&gt; failedMessages = <span class="hljs-keyword">new LinkedHashMap&lt;&gt;();
+		Transport transport = <span class="hljs-keyword">null;
+
+		<span class="hljs-keyword">try {
+			<span class="hljs-keyword">for (<span class="hljs-keyword">int i = <span class="hljs-number">0; i &lt; mimeMessages.length; i++) {
+
+				<span class="hljs-comment">// Check transport connection first...
+				<span class="hljs-keyword">if (transport == <span class="hljs-keyword">null || !transport.isConnected()) {
+					<span class="hljs-keyword">if (transport != <span class="hljs-keyword">null) {
+						<span class="hljs-keyword">try {
+							transport.close();
+						}
+						<span class="hljs-keyword">catch (Exception ex) {
+							<span class="hljs-comment">// Ignore - we're reconnecting anyway
+						}
+						transport = <span class="hljs-keyword">null;
+					}
+					<span class="hljs-keyword">try {
+						transport = connectTransport();
+					}
+					<span class="hljs-keyword">catch (AuthenticationFailedException ex) {
+						<span class="hljs-keyword">throw <span class="hljs-keyword">new MailAuthenticationException(ex);
+					}
+					<span class="hljs-keyword">catch (Exception ex) {
+						<span class="hljs-comment">// Effectively, all remaining messages failed...
+						<span class="hljs-keyword">for (<span class="hljs-keyword">int j = i; j &lt; mimeMessages.length; j++) {
+							Object original = (originalMessages != <span class="hljs-keyword">null ? originalMessages[j] : mimeMessages[j]);
+							failedMessages.put(original, ex);
+						}
+						<span class="hljs-keyword">throw <span class="hljs-keyword">new MailSendException(<span class="hljs-string">"Mail server connection failed", ex, failedMessages);
+					}
+				}
+
+				<span class="hljs-comment">// Send message via current transport...
+				MimeMessage mimeMessage = mimeMessages[i];
+				<span class="hljs-keyword">try {
+					<span class="hljs-keyword">if (mimeMessage.getSentDate() == <span class="hljs-keyword">null) {
+						mimeMessage.setSentDate(<span class="hljs-keyword">new Date());
+					}
+					String messageId = mimeMessage.getMessageID();
+					mimeMessage.saveChanges();
+					<span class="hljs-keyword">if (messageId != <span class="hljs-keyword">null) {
+						<span class="hljs-comment">// Preserve explicitly specified message id...
+						mimeMessage.setHeader(HEADER_MESSAGE_ID, messageId);
+					}
+					Address[] addresses = mimeMessage.getAllRecipients();
+					transport.sendMessage(mimeMessage, (addresses != <span class="hljs-keyword">null ? addresses : <span class="hljs-keyword">new Address[<span class="hljs-number">0]));
+				}
+				<span class="hljs-keyword">catch (Exception ex) {
+					Object original = (originalMessages != <span class="hljs-keyword">null ? originalMessages[i] : mimeMessage);
+					failedMessages.put(original, ex);
+				}
+			}
+		}
+		<span class="hljs-keyword">finally {
+			<span class="hljs-keyword">try {
+				<span class="hljs-keyword">if (transport != <span class="hljs-keyword">null) {
+					transport.close();
+				}
+			}
+			<span class="hljs-keyword">catch (Exception ex) {
+				<span class="hljs-keyword">if (!failedMessages.isEmpty()) {
+					<span class="hljs-keyword">throw <span class="hljs-keyword">new MailSendException(<span class="hljs-string">"Failed to close server connection after message failures", ex,
+							failedMessages);
+				}
+				<span class="hljs-keyword">else {
+					<span class="hljs-keyword">throw <span class="hljs-keyword">new MailSendException(<span class="hljs-string">"Failed to close server connection after message sending", ex);
+				}
+			}
+		}
+
+		<span class="hljs-keyword">if (!failedMessages.isEmpty()) {
+			<span class="hljs-keyword">throw <span class="hljs-keyword">new MailSendException(failedMessages);
+		}
+	}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>doSend方法中调用的核心类就是Transport类，这个类的包名是javax.mail。spring不愧是集成大师，java自带的mail功能经过spring的标准化包装就成了spring自身功能的一部分，再通过spring boot的包装，用starter的方式再次做简化，我们就能够直接通过极简的方式使用了。</p>
+<p>当然，简化的方法多种多样，另外的一种形式的包装就是使用helper类的方法，spring使用的就是MimeMessageHelper。在javax.mail在处理邮件的方式上，使用的是分而治之的办法，不同的类处理不同的问题，所以看到很多的类在处理各种问题和情况。</p>
+<p><img class="zoom-in-cursor" src="./images/从spring boot发邮件聊到开发的友好性3.png" alt="" width="451" height="365" /><img class="zoom-in-cursor" src="./images/从spring boot发邮件聊到开发的友好性4.png" alt="" width="350" height="643" /></p>
+<p>这种做法在实现功能上是很好的，把一个复杂的问题分解成若干个小问题，分别实现。但对使用的开发人员就谈不上友好了，容易出现以下几个问题：</p>
+<ul>
+<li>不直观，调用者不知道从何下手</li>
+<li>查找麻烦，类太多而且功能分散，不容易找到对应的功能类</li>
+<li>关系复杂，经常对要引用哪个类会很没有把握，因为太多处理单一问题的类</li>
+<li>没有统一的入口，上手难，很难脱离文档直接使用</li>
+</ul>
+<p>针对上述情况，spring通过MimeMessageHelper，把几乎所有邮件发送需要处理的问题就集中到了这个类里面，使用方便又好找。下面是这个类所有的方法。</p>
+<p><img class="zoom-in-cursor" src="./images/从spring boot发邮件聊到开发的友好性5.png" alt="" width="300" height="319" /><img class="zoom-in-cursor" src="./images/从spring boot发邮件聊到开发的友好性6.png" alt="" width="300" height="325" /><img class="zoom-in-cursor" src="./images/从spring boot发邮件聊到开发的友好性7.png" alt="" width="300" height="261" /></p>
+<p>这个类不可谓不复杂，基本上涵盖了所有发邮件方面的功能，但因为都集成在一个类里面，非常方便好用，可以说是一个对程序员友好的典范了，值得大家在开发时做借鉴。</p>
+<p>&nbsp;</p>
+<p><audio controls="controls" style="display: none;"></audio></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

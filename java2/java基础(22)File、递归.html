@@ -1,0 +1,355 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修java基础(22)File、递归' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>java基础(22)File、递归</center></div><div class='banquan'>原文出处:本文由博客园博主爱编程的小灰灰提供。<br/>
+原文连接:https://www.cnblogs.com/liuhui0308/p/11654953.html</div><br>
+    <h1>1.&nbsp;<strong>File</strong></h1>
+<h2>1.1&nbsp;<strong>IO<span style="font-family: 宋体;">概述</span></strong></h2>
+<p><span style="font-family: 宋体;">回想之前写过的程序，数据都是在内存中，一旦程序运行结束，这些数据都没有了，等下次再想使用这些数据，可是已经没有了。那怎么办呢？能不能把运算完的数据都保存下来，下次程序启动的时候，再把这些数据读出来继续使用呢？其实要把数据持久化存储，就需要把内存中的数据存储到内存以外的其他持久化设备</span>(<span style="font-family: 宋体;">硬盘、光盘、</span><span style="font-family: Calibri;">U</span><span style="font-family: 宋体;">盘等</span><span style="font-family: Calibri;">)</span><span style="font-family: 宋体;">上。</span></p>
+<p><span style="font-family: 宋体;">当需要把内存中的数据存储到持久化设备上这个动作称为输出（写）</span>Output<span style="font-family: 宋体;">操作。</span></p>
+<p><span style="font-family: 宋体;">当把持久设备上的数据读取到内存中的这个动作称为输入（读）</span>Input<span style="font-family: 宋体;">操作。</span></p>
+<p><span style="font-family: 宋体;">因此我们把这种输入和输出动作称为</span>IO<span style="font-family: 宋体;">操作。</span></p>
+<p><br /><span style="font-family: 宋体;">简单了解</span>IO<span style="font-family: 宋体;">是怎么一回事之后，接下来就要进一步做系统了解。</span></p>
+<p><span style="font-family: 宋体;">在我们操作系统中，数据都保存在文件中，而文件存放相应的文件夹中。那么</span>Java<span style="font-family: 宋体;">中是如何描述这些的呢？</span></p>
+<p>&nbsp;</p>
+<h2>1.2&nbsp;<strong>File<span style="font-family: 华文楷体;">类的出现</span></strong></h2>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">打开</span>API<span style="font-family: 宋体;">，搜索</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">类。阅读其描述：</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">文件和目录路径名的抽象表示形式。即，</span><span style="font-family: Calibri;">Java</span><span style="font-family: 宋体;">中把文件或者目录（文件夹）都封装成</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">对象。也就是说如果我们要去操作硬盘上的文件，或者文件夹只要找到</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">这个类即可。那么我们就要研究研究</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">这个类中都有那些功能可以操作文件或者文件夹呢？</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>1.3&nbsp;<strong>File<span style="font-family: 华文楷体;">类的构造函数</span></strong></h2>
+<p><strong><img src="./images/java基础(22)File、递归0.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/java基础(22)File、递归1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">通过构造方法创建</span>File对象，我们进行演示：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FileDemo {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">File构造函数演示</span>
+        String pathName = "e:\\java_code\\day22e\\hello.java"<span style="color: #000000;">;
+        File f1 </span>= <span style="color: #0000ff;">new</span> File(pathName);<span style="color: #008000;">//</span><span style="color: #008000;">将Test22文件封装成File对象。注意；有可以封装不存在文件或者文件夹，变成对象。</span>
+<span style="color: #000000;">        System.out.println(f1);
+        
+        File f2 </span>= <span style="color: #0000ff;">new</span> File("e:\\java_code\\day22e","hello.java"<span style="color: #000000;">);
+        System.out.println(f2);
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">将parent封装成file对象。</span>
+        File dir = <span style="color: #0000ff;">new</span> File("e:\\java_code\\day22e"<span style="color: #000000;">);
+        File f3 </span>= <span style="color: #0000ff;">new</span> File(dir,"hello.java"<span style="color: #000000;">);
+        System.out.println(f3);
+    }
+}</span></code></pre>
+
+<h2>1.4&nbsp;<strong>File<span style="font-family: 华文楷体;">类的获取</span></strong></h2>
+<p><span style="font-family: 宋体;">创建完了</span>File<span style="font-family: 宋体;">对象之后，那么</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">类中都有如下常用方法，可以获取文件相关信息</span></p>
+<p><strong><img src="./images/java基础(22)File、递归2.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>方法演示如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FileMethodDemo {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建文件对象</span>
+        File file = <span style="color: #0000ff;">new</span> File("Test22.java"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取文件的绝对路径，即全路径</span>
+        String absPath =<span style="color: #000000;"> file.getAbsolutePath();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">File中封装的路径是什么获取到的就是什么。</span>
+        String path =<span style="color: #000000;"> file.getPath();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取文件名称</span>
+        String filename =<span style="color: #000000;"> file.getName();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取文件大小</span>
+        <span style="color: #0000ff;">long</span> size =<span style="color: #000000;"> file.length();
+        
+        System.out.println(</span>"absPath="+<span style="color: #000000;">absPath);
+        System.out.println(</span>"path="+<span style="color: #000000;">path);
+        System.out.println(</span>"filename="+<span style="color: #000000;">filename);
+        System.out.println(</span>"size="+<span style="color: #000000;">size);
+    }
+}</span></code></pre>
+
+<h2>1.5&nbsp;<strong>文件和文件夹的创建删除等</strong></h2>
+<p><span style="font-family: 宋体;">经常上面介绍，我们知道可以通过</span>File<span style="font-family: 宋体;">获取到文件名称，文件路径</span><span style="font-family: Calibri;">(</span><span style="font-family: 宋体;">目录</span><span style="font-family: Calibri;">)</span><span style="font-family: 宋体;">等信息。</span></p>
+<p><span style="font-family: 宋体;">接下来演示使用</span>File<span style="font-family: 宋体;">类创建、删除文件等操作。</span></p>
+<p><strong><img src="./images/java基础(22)File、递归3.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>我们进行方法的演示</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FileMethodDemo2 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 对文件或者文件加进行操作。</span>
+        File file = <span style="color: #0000ff;">new</span> File("e:\\file.txt"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建文件，如果文件不存在，创建 true 如果文件存在，则不创建 false。 如果路径错误，IOException。</span>
+        <span style="color: #0000ff;">boolean</span> b1 =<span style="color: #000000;"> file.createNewFile();
+        System.out.println(</span>"b1=" +<span style="color: #000000;"> b1);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-----------删除文件操作-------注意：不去回收站。慎用------</span>
+         <span style="color: #0000ff;">boolean</span> b2 =<span style="color: #000000;"> file.delete();
+         System.out.println(</span>"b2="+<span style="color: #000000;">b2);
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-----------需要判断文件是否存在------------</span>
+         <span style="color: #0000ff;">boolean</span> b3 =<span style="color: #000000;"> file.exists();
+         System.out.println(</span>"b3="+<span style="color: #000000;">b3);
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-----------对目录操作 创建，删除，判断------------</span>
+        File dir = <span style="color: #0000ff;">new</span> File("e:\\abc"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">mkdir()创建单个目录。</span><span style="color: #008000;">//</span><span style="color: #008000;">dir.mkdirs();创建多级目录</span>
+        <span style="color: #0000ff;">boolean</span> b4 =<span style="color: #000000;"> dir.mkdir();
+        System.out.println(</span>"b4="+<span style="color: #000000;">b4);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">删除目录时，如果目录中有内容，无法直接删除。</span>
+        <span style="color: #0000ff;">boolean</span> b5 =<span style="color: #000000;"> dir.delete();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">只有将目录中的内容都删除后，保证该目录为空。这时这个目录才可以删除。</span>
+        System.out.println("b5=" +<span style="color: #000000;"> b5);
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">-----------判断文件，目录------------</span>
+        File f = <span style="color: #0000ff;">new</span> File("e:\\javahaha");<span style="color: #008000;">//</span><span style="color: #008000;"> 要判断是否是文件还是目录，必须先判断存在。
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> f.mkdir();</span><span style="color: #008000;">//</span><span style="color: #008000;">f.createNewFile();</span>
+<span style="color: #000000;">        System.out.println(f.isFile());
+        System.out.println(f.isDirectory());
+    }
+}</span></code></pre>
+
+<h2>1.6&nbsp;<strong>listFiles()<span style="font-family: 华文楷体;">方法介绍</span></strong></h2>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">文件都存放在目录（文件夹）中，那么如何获取一个目录中的所有文件或者目录中的文件夹呢？那么我们先想想，一个目录中可能有多个文件或者文件夹，那么如果</span>File<span style="font-family: 宋体;">中有功能获取到一个目录中的所有文件和文件夹，那么功能得到的结果要么是数组，要么是集合。我们开始查阅</span><span style="font-family: Calibri;">API</span><span style="font-family: 宋体;">。</span></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 华文楷体;"><img src="./images/java基础(22)File、递归4.png" alt="" /></span></strong></p>
+<p class="16">方法演示如下：</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FileMethodDemo3 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        File dir </span>= <span style="color: #0000ff;">new</span> File("e:\\java_code"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取的是目录下的当前的文件以及文件夹的名称。</span>
+        String[] names =<span style="color: #000000;"> dir.list();
+        </span><span style="color: #0000ff;">for</span><span style="color: #000000;">(String name : names){
+            System.out.println(name);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取目录下当前文件以及文件对象，只要拿到了文件对象，那么就可以获取其中想要的信息</span>
+        File[] files =<span style="color: #000000;"> dir.listFiles();
+        </span><span style="color: #0000ff;">for</span><span style="color: #000000;">(File file : files){
+            System.out.println(file);
+        }
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;">注意：在获取指定目录下的文件或者文件夹时必须满足下面两个条件</span></p>
+<p><span style="color: #ff0000;">1<span style="font-family: 宋体;">，指定的目录必须是存在的，</span></span></p>
+<p><span style="color: #ff0000;">2<span style="font-family: 宋体;">，指定的必须是目录。否则容易引发返回数组为</span><span style="font-family: Calibri;">null</span><span style="font-family: 宋体;">，出现</span><span style="font-family: Calibri;">NullPointerException</span></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2>1.7&nbsp;<strong>文件过滤器</strong></h2>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">通过</span>listFiles()<span style="font-family: 宋体;">方法，我们可以获取到一个目录下的所有文件和文件夹，但能不能对其进行过滤呢？比如我们只想要一个目录下的指定扩展名的文件，或者包含某些关键字的文件夹呢？</span></p>
+<p><span style="font-family: 宋体;">我们是可以先把一个目录下的所有文件和文件夹获取到，并遍历当前获取到所有内容，遍历过程中在进行筛选，但是这个动作有点麻烦，</span>Java<span style="font-family: 宋体;">给我们提供相应的功能来解决这个问题。</span></p>
+<p><span style="font-family: 宋体;">查阅</span>File<span style="font-family: 宋体;">类的</span><span style="font-family: Calibri;">API</span><span style="font-family: 宋体;">，在查阅时发现</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">类中重载的</span><span style="font-family: Calibri;">listFiles</span><span style="font-family: 宋体;">方法，并且接受指定的过滤器。</span></p>
+<p><strong><img src="./images/java基础(22)File、递归5.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/java基础(22)File、递归6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>测试类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FileDemo2 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取扩展名为.java所有文件
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建File对象</span>
+        File file = <span style="color: #0000ff;">new</span> File("E:\\code\\day11_code"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取指定扩展名的文件,由于要对所有文件进行扩展名筛选，因此调用方法需要传递过滤器</span>
+        File[] files = file.listFiles(<span style="color: #0000ff;">new</span><span style="color: #000000;"> MyFileFilter());
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历获取到的所有符合条件的文件</span>
+        <span style="color: #0000ff;">for</span><span style="color: #000000;"> (File f : files) {
+            System.out.println(f);
+        }
+    }
+}</span></code></pre>
+
+<p class="16"><span style="font-family: 宋体;">自定类继承</span>FilenameFilter过滤器接口</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">定义类实现文件名称FilenameFilter过滤器</span>
+<span style="color: #0000ff;">class</span> MyFileFilter <span style="color: #0000ff;">implements</span><span style="color: #000000;"> FilenameFilter{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> accept(File dir, String name) {
+        </span><span style="color: #0000ff;">return</span> name.endsWith(".java"<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p><span style="font-family: 宋体;">在查阅</span>API<span style="font-family: 宋体;">时，我们发现，在</span><span style="font-family: Calibri;">listFiles(FileFilter filter) </span><span style="font-family: 宋体;">也可以接受一个</span><span style="font-family: Calibri;">FileFilter</span><span style="font-family: 宋体;">过滤器，它和我们讲的</span>FilenameFilter有啥区别呢？</p>
+<p><img src="./images/java基础(22)File、递归7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><img src="./images/java基础(22)File、递归8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/java基础(22)File、递归9.png" alt="" /></p>
+<p>FilenameFilter<span style="font-family: 宋体;">过滤器中的</span>accept<span style="font-family: 宋体;">方法接受两个参数，一个当前文件或文件夹所在的路径，一个是当前文件或文件夹对象的名称。</span></p>
+<p>FileFilter <span style="font-family: 宋体;">过滤器中的</span><span style="font-family: Calibri;">accept</span><span style="font-family: 宋体;">方法接受一个参数，这个参数就当前文件或文件夹对象</span></p>
+<p>当我们需要过滤文件名称时就可以使用FilenameFilter<span style="font-family: 宋体;">这个过滤器，当我们想对当前文件或文件夹进行过滤，就可以使用</span>FileFilter <span style="font-family: 宋体;">，比如需要当前目录下的所有文件夹，就可以使用</span><span style="font-family: Calibri;">FileFilter </span><span style="font-family: 宋体;">过滤器。</span></p>
+<p>测试类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FileDemo2 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取扩展名为.java所有文件
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建File对象</span>
+        File file = <span style="color: #0000ff;">new</span> File("E:\\code\\day11_code"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取指定目录下的文件夹</span>
+        File[] files = file.listFiles(<span style="color: #0000ff;">new</span><span style="color: #000000;"> FileFileterByDir());
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历获取到的所有符合条件的文件</span>
+        <span style="color: #0000ff;">for</span><span style="color: #000000;"> (File f : files) {
+            System.out.println(f);
+        }
+    }
+}</span></code></pre>
+
+<p class="16"><span style="font-family: 宋体;">自定义类继承</span>FileFilter过滤器接口</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">文件过滤器</span>
+<span style="color: #0000ff;">class</span> FileFileterByDir <span style="color: #0000ff;">implements</span><span style="color: #000000;"> FileFilter{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> accept(File pathname) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> pathname.isDirectory();
+    }
+}</span></code></pre>
+
+<h1>2.&nbsp;<strong>递归</strong></h1>
+<h2>2.1&nbsp;<strong>递归的概述</strong></h2>
+<p>递归，指在当前方法内调用自己的这种现象</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> method(){
+    System.out.println(&ldquo;递归的演示&rdquo;);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">在当前方法内调用自己</span>
+<span style="color: #000000;">    method();
+}</span></code></pre>
+
+<p>递归分为两种，直接递归和间接递归。</p>
+<p><span style="font-family: 宋体;">直接递归称为方法自身调用自己。间接递归可以</span>A<span style="font-family: 宋体;">方法调用</span><span style="font-family: Calibri;">B</span><span style="font-family: 宋体;">方法，</span><span style="font-family: Calibri;">B</span><span style="font-family: 宋体;">方法调用</span><span style="font-family: Calibri;">C</span><span style="font-family: 宋体;">方法，</span><span style="font-family: Calibri;">C</span><span style="font-family: 宋体;">方法调用</span><span style="font-family: Calibri;">A</span><span style="font-family: 宋体;">方法。</span></p>
+<p class="16">递归的代码演示，<span style="font-family: 宋体;">计算</span>1-n之间的和，使用递归完成</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DiGuiDemo {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">计算1~num的和，使用递归完成</span>
+        <span style="color: #0000ff;">int</span> n = 5<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">int</span> sum =<span style="color: #000000;"> getSum(n);
+        System.out.println(sum);
+        
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> getSum(<span style="color: #0000ff;">int</span><span style="color: #000000;"> n) {
+        </span><span style="color: #0000ff;">if</span>(n == 1<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">return</span> 1<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">return</span> n + getSum(n-1<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p class="16">代码执行流程图解</p>
+<p><img src="./images/java基础(22)File、递归10.png" alt="" width="752" height="484" /></p>
+<p><span style="color: #ff0000;">注意：递归一定要有条件限定，保证递归能够停止下来，否则会发生栈内存溢出。</span></p>
+<p><span style="color: #ff0000;">在递归中虽然有限定条件，但是递归次数不能太多。否则也会发生栈内存溢出。</span></p>
+<h2>2.2&nbsp;<strong>递归打印所有子目录中的文件路径</strong></h2>
+<p>编写一个方法用来打印指定目录中的文件路径，并进行方法的调用</p>
+<p>要求：若指定的目录有子目录，那么把子目录中的文件路径也打印出来</p>
+<p>步骤：</p>
+<blockquote>
+<p>1. <span style="font-family: 宋体;">指定要打印的目录</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">对象</span></p>
+<p>2. <span style="font-family: 宋体;">调用</span><span style="font-family: Calibri;">getFileAll()</span><span style="font-family: 宋体;">方法</span></p>
+<p>　　2.1 <span style="font-family: 宋体;">获取指定目录中的所有</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">对象</span></p>
+<p>　　2.2 <span style="font-family: 宋体;">遍历得到每一个</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">对象</span></p>
+<p>　　2.3 <span style="font-family: 宋体;">判断当前</span><span style="font-family: Calibri;">File </span><span style="font-family: 宋体;">对象是否是目录</span></p>
+<p><span style="font-family: 宋体;">　　　　判断结果为</span>true<span style="font-family: 宋体;">，说明为目录，通过递归，再次调用步骤</span><span style="font-family: Calibri;">2</span><span style="font-family: 宋体;">的</span><span style="font-family: Calibri;">getFileAll()</span><span style="font-family: 宋体;">方法</span></p>
+<p><span style="font-family: 宋体;">　　　　判断结果为</span>false<span style="font-family: 宋体;">，说明是文件，打印文件的路径</span></p>
+</blockquote>
+<p class="16">代码演示</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FileDemo2 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        File file </span>= <span style="color: #0000ff;">new</span> File("d:\\test"<span style="color: #000000;">);
+        getFileAll(file);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取指定目录以及子目录中的所有的文件</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> getFileAll(File file) {
+        File[] files </span>=<span style="color: #000000;"> file.listFiles();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历当前目录下的所有文件和文件夹</span>
+        <span style="color: #0000ff;">for</span><span style="color: #000000;"> (File f : files) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">判断当前遍历到的是否为目录</span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;">(f.isDirectory()){
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">是目录，继续获取这个目录下的所有文件和文件夹</span>
+<span style="color: #000000;">                getFileAll(f);
+            }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">不是目录，说明当前f就是文件，那么就打印出来</span>
+<span style="color: #000000;">                System.out.println(f);
+            }
+        }
+    }
+}</span></code></pre>
+
+<h2>2.3&nbsp;<strong><span style="font-family: 华文楷体;">搜索指定目录中的</span>.java<span style="font-family: 华文楷体;">文件</span><span style="font-family: 'Times New Roman';">(</span><span style="font-family: 华文楷体;">含子目录</span><span style="font-family: 'Times New Roman';">)</span></strong></h2>
+<p class="16"><span style="font-family: 宋体;">需求：打印指定目录即所有子目录中的</span>.java文件的文件路径</p>
+<p><span style="font-family: 宋体;">要求：编写一个方法用来打印指定目录中的</span>.java<span style="font-family: 宋体;">文件路径，并进行方法的调用</span></p>
+<p><span style="font-family: 宋体;">若指定的目录有子目录，那么把子目录中的</span>.java<span style="font-family: 宋体;">文件路径也打印出来</span></p>
+<p>步骤：</p>
+<blockquote>
+<p>1. <span style="font-family: 宋体;">指定要打印的目录</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">对象</span></p>
+<p>2. <span style="font-family: 宋体;">调用</span><span style="font-family: Calibri;">getFileAll()</span><span style="font-family: 宋体;">方法，传入要打印的目录</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">对象</span></p>
+<p>　　2.1 <span style="font-family: 宋体;">通过</span><span style="font-family: Calibri;">FilenameFilter</span><span style="font-family: 宋体;">过滤器获取指定目录中的所有</span><span style="font-family: Calibri;">.java</span><span style="font-family: 宋体;">类型的</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">对象</span></p>
+<p>　　2.2 <span style="font-family: 宋体;">遍历得到每一个</span><span style="font-family: Calibri;">File</span><span style="font-family: 宋体;">对象</span></p>
+<p>　　2.3 <span style="font-family: 宋体;">判断当前</span><span style="font-family: Calibri;">File </span><span style="font-family: 宋体;">对象是否是目录</span></p>
+<p><span style="font-family: 宋体;">　　　　判断结果为</span>true<span style="font-family: 宋体;">，说明为目录，通过递归，再次调用步骤</span><span style="font-family: Calibri;">2</span><span style="font-family: 宋体;">的</span><span style="font-family: Calibri;">getFileAll()</span><span style="font-family: 宋体;">方法</span></p>
+<p><span style="font-family: 宋体;">　　　　判断结果为</span>false<span style="font-family: 宋体;">，说明是文件，打印文件的路径</span></p>
+</blockquote>
+<h2>2.4&nbsp;<strong>实现代码步骤</strong></h2>
+<p class="16">测试类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> FileDemo4 {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        File file </span>= <span style="color: #0000ff;">new</span> File("d:\\test"<span style="color: #000000;">);
+        getFileAll(file);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取指定目录以及子目录中的所有的文件</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> getFileAll(File file) {
+        File[] files </span>=<span style="color: #000000;"> file.listFiles(MyFileFilter());
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历当前目录下的所有文件和文件夹</span>
+        <span style="color: #0000ff;">for</span><span style="color: #000000;"> (File f : files) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">判断当前遍历到的是否为目录</span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;">(f.isDirectory()){
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">是目录，继续获取这个目录下的所有文件和文件夹</span>
+<span style="color: #000000;">                getFileAll(f);
+            }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">不是目录，说明当前f就是文件，那么就打印出来</span>
+<span style="color: #000000;">                System.out.println(f);
+            }
+        }
+    }
+}</span></code></pre>
+
+<p class="16"><span style="font-family: 宋体;">自定类继承</span>FilenameFilter过滤器接口</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">定义类实现文件名称FilenameFilter过滤器</span>
+<span style="color: #0000ff;">class</span> MyFileFilter <span style="color: #0000ff;">implements</span><span style="color: #000000;"> FilenameFilter{
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> accept(File dir, String name) {
+        </span><span style="color: #0000ff;">return</span> name.endsWith(".java"<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

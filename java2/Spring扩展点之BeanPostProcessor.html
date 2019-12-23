@@ -1,0 +1,187 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring扩展点之BeanPostProcessor' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring扩展点之BeanPostProcessor</center></div><div class='banquan'>原文出处:本文由博客园博主石玉军提供。<br/>
+原文连接:https://www.cnblogs.com/zhixiang-org-cn/p/11530911.html</div><br>
+    <h4 id="前言">前言</h4>
+<p><code>BeanPostProcessor</code>接口是Spring中一个非常重要的接口，它的接口定义如下</p>
+<pre><code><code>public interface BeanPostProcessor {
+
+    Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException;
+    
+    Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException;
+}</code></code></pre>
+<p>当你实现了这个接口的时候，Spring会保证在每一个bean对象初始化方法调用之前调用<code>postProcessBeforeInitialization</code>方法，在初始化方法调用之后调用<code>postProcessAfterInitialization</code></p>
+<h4 id="beanpostprocessor的注册"><code>BeanPostProcessor</code>的注册</h4>
+<p>看过我之前写的IOC源码分析系列文章的同学应该对这个都比较有印象<br />
+<embed src="!%5Bfile%5D(https://graph.baidu.com/resource/212565204a10784ec94bd01568603929.png)" /><br />
+Spring在执行到这的时候会把所有实现<code>BeanPostProcessor</code>接口的实现类都注册到<code>BeanFactory</code>中，一起来看一下实现的细节</p>
+<pre><code><code>    protected void registerBeanPostProcessors(ConfigurableListableBeanFactory beanFactory) {
+        PostProcessorRegistrationDelegate.registerBeanPostProcessors(beanFactory, this);
+    }
+public static void registerBeanPostProcessors(
+            ConfigurableListableBeanFactory beanFactory, AbstractApplicationContext applicationContext) {
+        //获取所有BeanPostProcessor的实现类
+        String[] postProcessorNames = beanFactory.getBeanNamesForType(BeanPostProcessor.class, true, false);
+
+
+        int beanProcessorTargetCount = beanFactory.getBeanPostProcessorCount() + 1 + postProcessorNames.length;
+        beanFactory.addBeanPostProcessor(new BeanPostProcessorChecker(beanFactory, beanProcessorTargetCount));
+
+          // 这里把实现PriorityOrdered接口,Ordered 接口的BeanPostProcessors 和其他类型的BeanPostProcessors 区分开
+        List&lt;BeanPostProcessor&gt; priorityOrderedPostProcessors = new ArrayList&lt;&gt;();
+        List&lt;BeanPostProcessor&gt; internalPostProcessors = new ArrayList&lt;&gt;();
+        List&lt;String&gt; orderedPostProcessorNames = new ArrayList&lt;&gt;();
+        List&lt;String&gt; nonOrderedPostProcessorNames = new ArrayList&lt;&gt;();
+        for (String ppName : postProcessorNames) {
+            if (beanFactory.isTypeMatch(ppName, PriorityOrdered.class)) {
+                BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor.class);
+                priorityOrderedPostProcessors.add(pp);
+                if (pp instanceof MergedBeanDefinitionPostProcessor) {
+                    internalPostProcessors.add(pp);
+                }
+            }
+            else if (beanFactory.isTypeMatch(ppName, Ordered.class)) {
+                orderedPostProcessorNames.add(ppName);
+            }
+            else {
+                nonOrderedPostProcessorNames.add(ppName);
+            }
+        }
+
+        //对实现了PriorityOrdered接口的按优先级排序
+        sortPostProcessors(beanFactory, priorityOrderedPostProcessors);
+       //这里就是注册了，下面会说
+        registerBeanPostProcessors(beanFactory, priorityOrderedPostProcessors);
+
+        
+        List&lt;BeanPostProcessor&gt; orderedPostProcessors = new ArrayList&lt;&gt;();
+        for (String ppName : orderedPostProcessorNames) {
+            BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor.class);
+            orderedPostProcessors.add(pp);
+            if (pp instanceof MergedBeanDefinitionPostProcessor) {
+                internalPostProcessors.add(pp);
+            }
+        }
+        sortPostProcessors(beanFactory, orderedPostProcessors);
+       //注册
+        registerBeanPostProcessors(beanFactory, orderedPostProcessors);
+
+        List&lt;BeanPostProcessor&gt; nonOrderedPostProcessors = new ArrayList&lt;&gt;();
+        for (String ppName : nonOrderedPostProcessorNames) {
+            BeanPostProcessor pp = beanFactory.getBean(ppName, BeanPostProcessor.class);
+            nonOrderedPostProcessors.add(pp);
+            if (pp instanceof MergedBeanDefinitionPostProcessor) {
+                internalPostProcessors.add(pp);
+            }
+        }
+        //注册
+        registerBeanPostProcessors(beanFactory, nonOrderedPostProcessors);
+
+        // 最后注册常规的
+        sortPostProcessors(beanFactory, internalPostProcessors);
+        registerBeanPostProcessors(beanFactory, internalPostProcessors);
+
+        beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(applicationContext));
+    }</code></code></pre>
+<p>可以看到上方的代码就是把这些<code>BeanPostProcessor</code>分为了几类，然后分别根据规则排序后注册进BeanFactory中，而BeanFactory中其实就只是维护了一个<code>BeanPostProcessor</code>的列表而已</p>
+<pre><code><code>  private final List&lt;BeanPostProcessor&gt; beanPostProcessors = new ArrayList();
+
+private static void registerBeanPostProcessors(
+            ConfigurableListableBeanFactory beanFactory, List&lt;BeanPostProcessor&gt; postProcessors) {
+
+        for (BeanPostProcessor postProcessor : postProcessors) {
+            beanFactory.addBeanPostProcessor(postProcessor);
+        }
+    }
+
+public void addBeanPostProcessor(BeanPostProcessor beanPostProcessor) {
+        Assert.notNull(beanPostProcessor, &quot;BeanPostProcessor must not be null&quot;);
+        this.beanPostProcessors.remove(beanPostProcessor);
+        this.beanPostProcessors.add(beanPostProcessor);
+        if (beanPostProcessor instanceof InstantiationAwareBeanPostProcessor) {
+            this.hasInstantiationAwareBeanPostProcessors = true;
+        }
+
+        if (beanPostProcessor instanceof DestructionAwareBeanPostProcessor) {
+            this.hasDestructionAwareBeanPostProcessors = true;
+        }
+
+    }</code></code></pre>
+<h4 id="执行原理">执行原理</h4>
+<p>我们知道Bean的初始化是在定义在容器的刷新过程中，而具体的实现则是由<code>AbstractAutowireCapableBeanFactory.initializeBean()</code>方法完成的。在这个方法中就包含了<code>BeanPostProcessor</code>的调用逻辑</p>
+<pre><code><code>protected Object initializeBean(final String beanName, final Object bean, RootBeanDefinition mbd) {
+        if (System.getSecurityManager() != null) {
+            AccessController.doPrivileged(new PrivilegedAction&lt;Object&gt;() {
+                @Override
+                public Object run() {
+                    invokeAwareMethods(beanName, bean);
+                    return null;
+                }
+            }, getAccessControlContext());
+        }
+        else {
+            invokeAwareMethods(beanName, bean);
+        }
+ 
+        Object wrappedBean = bean;
+        if (mbd == null || !mbd.isSynthetic()) {
+            // BeanPostProcessors 的Before 方法
+            wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
+        }
+ 
+        try {
+            // 调用初始化方法
+            invokeInitMethods(beanName, wrappedBean, mbd);
+        }
+        catch (Throwable ex) {
+            throw new BeanCreationException(
+                    (mbd != null ? mbd.getResourceDescription() : null),
+                    beanName, &quot;Invocation of init method failed&quot;, ex);
+        }
+ 
+        if (mbd == null || !mbd.isSynthetic()) {
+            // BeanPostProcessors 的After方法
+            wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
+        }
+        return wrappedBean;
+    }</code></code></pre>
+<p>而这里面的执行逻辑我们也可以猜到，无非就是循环遍历所有的<code>BeanPostProcessor</code>，然后一一执行</p>
+<pre><code><code>
+public Object applyBeanPostProcessorsBeforeInitialization(Object existingBean, String beanName)
+        throws BeansException {
+
+    Object result = existingBean;
+    for (BeanPostProcessor beanProcessor : getBeanPostProcessors()) {
+        result = beanProcessor.postProcessBeforeInitialization(result, beanName);
+        if (result == null) {
+            return result;
+        }
+    }
+    return result;}</code></code></pre>
+<p>其中<code>applyBeanPostProcessorsAfterInitialization</code>的实现内容跟这个是一样的</p>
+<p>但是这里面有一个主意的点，那就是如果具体的实现一但返回null，那么就会跳出for循环，后面的就得不到机会执行了</p>
+<h4 id="常见用例">常见用例</h4>
+<p>查看这个接口的继承体系，可以看到这个接口的实现类是非常多的，各个实现类的功能如果感兴趣大家可以去慢慢挖掘一下<br />
+<img src="./images/Spring扩展点之BeanPostProcessor0.png" alt="2" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

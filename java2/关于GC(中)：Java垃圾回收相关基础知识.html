@@ -1,0 +1,303 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于GC(中)：Java垃圾回收相关基础知识' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于GC(中)：Java垃圾回收相关基础知识</center></div><div class='banquan'>原文出处:本文由博客园博主五岳提供。<br/>
+原文连接:https://www.cnblogs.com/wuyuegb2312/p/11839171.html</div><br>
+    <h1 id="java内存模型">Java内存模型</h1>
+<p><img src="./images/关于GC(中)：Java垃圾回收相关基础知识0.png" /><br />
+(图源: <a href="https://www.jianshu.com/p/76959115d486">深入理解JVM-内存模型（jmm）和GC</a>)</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">区域名</th>
+<th style="text-align: center;">英文名</th>
+<th style="text-align: center;">访问权限</th>
+<th style="text-align: center;">作用</th>
+<th style="text-align: center;">备注</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">程序计数器</td>
+<td style="text-align: center;">Program Counter Register</td>
+<td style="text-align: center;">线程隔离</td>
+<td style="text-align: center;">标记待取的下一条执行的指令</td>
+<td style="text-align: center;">执行Native方法时为空; JVM规范中唯一不会发生OutOfMemoryError的区域</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">虚拟机栈</td>
+<td style="text-align: center;">VM Stack</td>
+<td style="text-align: center;">线程隔离</td>
+<td style="text-align: center;">每个Java方法执行时创建，用于存储局部变量表，操作栈，动态链接，方法出口等信息</td>
+<td style="text-align: center;">方法执行的内存模型</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">本地方法栈</td>
+<td style="text-align: center;">Native Method Stack</td>
+<td style="text-align: center;">线程隔离</td>
+<td style="text-align: center;">Native方法执行时使用</td>
+<td style="text-align: center;">JVM规范没有强制规定，如Hotspot将VM和Native两个方法栈合二为一</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">Java堆</td>
+<td style="text-align: center;">Java Heap</td>
+<td style="text-align: center;">线程共享</td>
+<td style="text-align: center;">存放对象实例</td>
+<td style="text-align: center;">更好的回收内存 vs 更快的分配内存</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">方法区</td>
+<td style="text-align: center;">Method Area</td>
+<td style="text-align: center;">线程共享</td>
+<td style="text-align: center;">存储已被虚拟机加载的类信息、常量、静态变量、即时编译器编译后的代码等数据</td>
+<td style="text-align: center;">JVM规范不强制要求做垃圾收集</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">运行时常量池</td>
+<td style="text-align: center;">Runtime Constant Pool</td>
+<td style="text-align: center;">线程共享</td>
+<td style="text-align: center;">方法区的一部分</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">直接内存</td>
+<td style="text-align: center;">Direct Memory</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">堆外内存，通过堆的DirectByteBuffer访问</td>
+<td style="text-align: center;">不是运行时数据区的一部分，但也可能OutOfMemoryError</td>
+</tr>
+</tbody>
+</table>
+<h1 id="对象的创建new的时候发生了什么">对象的创建——new的时候发生了什么</h1>
+<p>讨论仅限于普通Java对象，不包括数组和Class对象。</p>
+<ol>
+<li>常量池查找类的常量引用，如果没有先做类加载</li>
+<li>分配内存，视堆内存是否是规整（由垃圾回收器是否具有压缩功能而定）而使用“指针碰撞”或“空闲列表”模式</li>
+<li>内存空间初始化为零值，可能提前在线程创建时分配TLAB时做初始化</li>
+<li>设置必要信息，如对象是哪个类的示例、元信息、GC分代年龄等</li>
+<li>调用<code>&lt;init&gt;</code>方法</li>
+</ol>
+<h1 id="垃圾回收器总结">垃圾回收器总结</h1>
+<p><strong>垃圾回收，针对的都是堆。</strong></p>
+<h2 id="分代">分代</h2>
+<ul>
+<li>新生代：适合使用复制算法, 以下三个区一般占比为8:1:1
+<ul>
+<li>Eden 新对象诞生区</li>
+<li>From Survivor 上一次GC的幸存者(见“GC种类-minor GC”)</li>
+<li>To Survivor 本次待存放幸存者的区域</li>
+</ul></li>
+<li>老年代：存活时间较久的，大小较大的对象，因此使用标记-整理或标记-清除算法比较合适</li>
+<li>永久代：存放类信息和元数据等不太可能回收的信息。Java8中被元空间(Metaspace)代替，不再使用堆，而是物理内存。</li>
+</ul>
+<h2 id="分代的原因">分代的原因</h2>
+<ul>
+<li>不同代的对象生命周期不同，可以针对性地使用不同的垃圾回收算法</li>
+<li>不同代可以分开进行回收</li>
+</ul>
+<h2 id="回收算法">回收算法</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">名称</th>
+<th style="text-align: center;">工作原理</th>
+<th style="text-align: center;">优点</th>
+<th style="text-align: center;">缺点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">标记-清除</td>
+<td style="text-align: center;">对可回收对对象做一轮标记，标记完成后统一回收被标记的对象</td>
+<td style="text-align: center;">易于理解，内存利用率高</td>
+<td style="text-align: center;">效率问题;内存碎片;分配大对象但无空间时提前GC</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">复制</td>
+<td style="text-align: center;">内存均分两块，只使用其中一块。回收时将这一块存活对象全部复制到另一块</td>
+<td style="text-align: center;">效率高</td>
+<td style="text-align: center;">可用空间减少; 空间不够时需老年代分配担保</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">标记-整理</td>
+<td style="text-align: center;">对可回收对对象做一轮标记，标记完成后将存活对象统一左移，清理掉边界外内存</td>
+<td style="text-align: center;">内存利用率高</td>
+<td style="text-align: center;">效率问题</td>
+</tr>
+</tbody>
+</table>
+<p>标记-X算法适用于老年代，复制算法适用于新生代。</p>
+<h2 id="gc种类">GC种类</h2>
+<ul>
+<li>Minor GC，只回收新生代，将Eden和From Survivor区的存活对象复制到To Survivor</li>
+<li>Major GC，清理老年代。但因为伴随着新生代的对象生命周期升级到老年代，一般也可认为伴随着FullGC。</li>
+<li>FullGC，整个堆的回收</li>
+<li>Mixed GC，G1特有，可能会发生多次回收，可以参考<a href="https://blog.csdn.net/weixin_42596455/article/details/81228611">关于G1 GC中Mixed GC的分析</a></li>
+</ul>
+<h2 id="垃圾回收器小结">垃圾回收器小结</h2>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">垃圾回收器名称</th>
+<th style="text-align: center;">特性</th>
+<th style="text-align: center;">目前工作分代</th>
+<th style="text-align: center;">回收算法</th>
+<th style="text-align: center;">可否与Serial配合</th>
+<th style="text-align: center;">可否与ParNew配合</th>
+<th style="text-align: center;">可否与ParallelScavenge配合</th>
+<th style="text-align: center;">可否与SerialOld配合</th>
+<th style="text-align: center;">可否与ParallelOld配合</th>
+<th style="text-align: center;">可否与CMS配合</th>
+<th style="text-align: center;">可否与G1配合</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">Serial</td>
+<td style="text-align: center;">单线程</td>
+<td style="text-align: center;">新生代</td>
+<td style="text-align: center;">复制</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">N/A</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">ParNew</td>
+<td style="text-align: center;">多线程</td>
+<td style="text-align: center;">新生代</td>
+<td style="text-align: center;">复制</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">N/A</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">ParallelScavenge</td>
+<td style="text-align: center;">多线程, 更关注吞吐量可调节</td>
+<td style="text-align: center;">新生代</td>
+<td style="text-align: center;">复制</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">N/A</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">SerialOld</td>
+<td style="text-align: center;">单线程</td>
+<td style="text-align: center;">老年代</td>
+<td style="text-align: center;">标记-整理</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">N/A</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">ParallelOld</td>
+<td style="text-align: center;">多线程</td>
+<td style="text-align: center;">老年代</td>
+<td style="text-align: center;">标记-整理</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">N/A</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">CMS</td>
+<td style="text-align: center;">多线程，并发收集，低停顿。但无法处理浮动垃圾，标记-清除会产生内存碎片较多</td>
+<td style="text-align: center;">老年代</td>
+<td style="text-align: center;">标记-清除</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">Y</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">-</td>
+<td style="text-align: center;">N/A</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">G1</td>
+<td style="text-align: center;">并行并发收集，追求可预测但回收时间，整体内存模型有所变化</td>
+<td style="text-align: center;">新生代/老年代</td>
+<td style="text-align: center;">整体是标记-整理，局部(两Region)复制</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">N</td>
+<td style="text-align: center;">-</td>
+</tr>
+</tbody>
+</table>
+<p>在本系列的上一篇文章<a href="https://www.cnblogs.com/wuyuegb2312/p/11799352.html">关于GC(上)：Apache的POI组件导致线上频繁FullGC问题排查及处理全过程</a>中，减少FullGC的方式是使用G1代替CMS，计划在下一篇文章中对比CMS和G1的区别。</p>
+<h2 id="理解gc日志">理解GC日志</h2>
+<p>只举比较简单的例子，具体各项的格式视情况分析，不同回收器也会有差异。</p>
+<pre><code><code>2019-11-22T10:28:32.177+0800: 60188.392: [GC (Allocation Failure) 2019-11-22T10:28:32.178+0800: 60188.392: [ParNew: 1750382K-&gt;2520K(1922432K), 0.0312604 secs] 1945718K-&gt;198045K(4019584K), 0.0315892 secs] [Times: user=0.09 sys=0.01, real=0.03 secs]</code></code></pre>
+<p>开始时间-(方括号[)-发生区域(ParNew，命名和GC回收器有关)-回收前大小-回收后大小-(方括号])-GC前堆已使用容量-GC后堆已使用容量大小-回收时间-使用时间详情(用户态时间-内核时间-墙上时钟时间)</p>
+<p>注意这里没有包括“2019-11-22T10:28:32.177+0800: 60188.392: [GC (Allocation Failure)”这部分的分析。</p>
+<h1 id="可借鉴的编程模式">可借鉴的编程模式</h1>
+<h2 id="对象分配的并发控制">对象分配的并发控制</h2>
+<p>对象创建是很频繁的，在线程共享的堆中会遇到并发的问题。两种解决办法：</p>
+<ol>
+<li>同步锁定：CAS+失败重试，确保原子性</li>
+<li>堆中预先给每个线程划分一小块内存区域——本地线程分配缓冲(TLAB)，TLAB使用完并分配新的TLAB时才做同步锁定。可看作1的优化。</li>
+</ol>
+<p>CAS: Conmpare And Swap，用于实现多线程同步的原子指令。 将内存位置的内容与给定值进行比较，只有在相同的情况下，将该内存位置的内容修改为新的给定值。关于CAS可以参考：<br />
+<a href="https://www.cnblogs.com/javalyy/p/8882172.html">Java中的CAS实现原理</a><br />
+<a href="http://www.threadworld.cn/archives/50.html">CAS系列（3）：CAS无锁自旋和同步锁线程切换使用场景对比</a></p>
+<h2 id="对象访问的定位方式">对象访问的定位方式</h2>
+<p>前提条件：通过<strong>栈</strong>上本地变量表的reference访问<strong>堆</strong>中的对象及它在<strong>方法区</strong>的对象类型数据(类信息)<br />
+主流的两种方式，这两种方式各有优点，可以看出方式2是方式1的优化，但并不是全面超越方式1，无法完全取代。<br />
+这里可以看到要权衡垃圾回收和访问速度两方面。</p>
+<h3 id="方式1-直接指针访问实例数据">方式1: 直接指针访问实例数据</h3>
+<p><img src="./images/关于GC(中)：Java垃圾回收相关基础知识1.png" /><br />
+<a href="https://www.jianshu.com/p/76959115d486">图源:深入理解JVM-内存模型（jmm）和GC</a><br />
+reference直接存放对象实例地址，只需要一次访问即可，执行效率较高。</p>
+<h3 id="方式2-使用句柄池">方式2: 使用句柄池</h3>
+<p><img src="./images/关于GC(中)：Java垃圾回收相关基础知识2.png" /><br />
+<a href="https://www.jianshu.com/p/76959115d486">图源:深入理解JVM-内存模型（jmm）和GC</a><br />
+reference中地址稳定，对象被移动时只需要改句柄池的地址。相对的，访问实例需要两次指针定位。</p>
+<h1 id="参考资料">参考资料</h1>
+<ol>
+<li>周志明.著《深入理解JAVA虚拟机》</li>
+<li><a href="https://www.jianshu.com/p/76959115d486">深入理解JVM-内存模型（jmm）和GC</a></li>
+<li><a href="https://blog.csdn.net/qq_19734597/article/details/80958817">jvm的新生代、老年代、永久代关系</a></li>
+<li><a href="https://blog.csdn.net/ChenjCarryOn/article/details/81807741">JVM垃圾回收——新生代，老年代，永久代，Minor GC，Full GC</a></li>
+</ol>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,170 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot系列-整合Mybatis（XML配置方式）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot系列-整合Mybatis（XML配置方式）</center></div><div class='banquan'>原文出处:本文由博客园博主Java碎碎念提供。<br/>
+原文连接:https://www.cnblogs.com/haha12/p/11839872.html</div><br>
+    <src class="toc">
+    <p class="toc-title">目录</p>
+    <src class="toc-list">
+        <ul>
+        <li><a href="#一什么是-mybatis">一、什么是 MyBatis？</a></li>
+        <li><a href="#二整合方式">二、整合方式</a></li>
+        <li><a href="#三实战">三、实战</a></li>
+        <li><a href="#四测试">四、测试</a></li>
+        </ul>
+    
+
+<blockquote>
+<p>本文介绍下SpringBoot整合Mybatis（XML配置方式）的过程。</p>
+</blockquote>
+<h3 id="一什么是-mybatis">一、什么是 MyBatis？</h3>
+<p>MyBatis 是一款优秀的持久层框架，它支持定制化 SQL、存储过程以及高级映射。MyBatis 避免了几乎所有的 JDBC 代码和手动设置参数以及获取结果集。MyBatis 可以使用简单的 XML 或注解来配置和映射原生类型、接口和 Java 的 POJO（Plain Old Java Objects，普通老式 Java 对象）为数据库中的记录。</p>
+<h3 id="二整合方式">二、整合方式</h3>
+<p>SpringBoot整合Mybatis也有两种方式，分别为XML配置方式和注解方式，主要优势点如下：</p>
+<ol>
+<li>注解方式：代码更加精简，方便。</li>
+<li>XML配置方式：隔离sql和业务代码，清晰表达sql，尤其对于较长的sql。</li>
+</ol>
+<p>XML映射文件也很简单，只有很少的几个顶级元素：</p>
+<ul>
+<li>cache – 对给定命名空间的缓存配置。</li>
+<li>cache-ref – 对其他命名空间缓存配置的引用。</li>
+<li>resultMap – 是最复杂也是最强大的元素，用来描述如何从数据库结果集中来加载对象。</li>
+<li>sql – 可被其他语句引用的可重用语句块。</li>
+<li>insert – 映射插入语句。</li>
+<li>update – 映射更新语句。</li>
+<li>delete – 映射删除语句。</li>
+<li>select – 映射查询语句。</li>
+</ul>
+<p>本文介绍XML配置方式，后续文章再介绍注解方式。</p>
+<h3 id="三实战">三、实战</h3>
+<p>新建一个spring boot项目spring-boot-mybatis-xml，按照下面步骤操作。</p>
+<p>1.pom.xml中引入jar</p>
+<p>整合MyBatis的核心是依赖MyBatis-Spring-Boot-Starter，它提供了：</p>
+<ul>
+<li>自动检测现有的DataSource。</li>
+<li>将创建并注册SqlSessionFactory的实例，该实例使用SqlSessionFactoryBean将该DataSource作为输入进行传递。</li>
+<li>将创建并注册从SqlSessionFactory中获取的SqlSessionTemplate的实例。</li>
+<li>自动扫描您的mappers，将它们链接到SqlSessionTemplate并将其注册到Spring上下文，以便将它们注入到您的bean中。</li>
+</ul>
+<p>pom.xml重要内容如下：</p>
+<pre><code><code>&lt;!-- mybatis-starter  --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.mybatis.spring.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;mybatis-spring-boot-starter&lt;/artifactId&gt;
+    &lt;version&gt;2.1.1&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;!-- MySQL 连接驱动依赖 --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;mysql&lt;/groupId&gt;
+    &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+    &lt;version&gt;5.1.39&lt;/version&gt;
+&lt;/dependency&gt;
+
+&lt;dependency&gt;
+    &lt;groupId&gt;org.projectlombok&lt;/groupId&gt;
+    &lt;artifactId&gt;lombok&lt;/artifactId&gt;
+    &lt;optional&gt;true&lt;/optional&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>2.application.yml中添加配置</p>
+<p>application.yml中添加数据源和mybatis的配置，内容如下：</p>
+<pre><code><code>spring:
+  #数据源
+  datasource:
+    url: jdbc:mysql://localhost:3306/demo?useUnicode=true&amp;characterEncoding=UTF-8&amp;zeroDateTimeBehavior=convertToNull
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.jdbc.Driver
+#mybatis配置
+mybatis:
+  typeAliasesPackage: com.example.springboot.mybatisxml.entity
+  mapperLocations: classpath:mapper/*.xml
+  config-location: classpath:mybatis-config.xml</code></code></pre>
+<p>3.添加User的映射文件</p>
+<p>UserMapper.xml内容如下：</p>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;
+&lt;!DOCTYPE mapper PUBLIC &quot;-//mybatis.org//DTD Mapper 3.0//EN&quot; &quot;http://mybatis.org/dtd/mybatis-3-mapper.dtd&quot; &gt;
+
+&lt;mapper namespace= &quot;com.example.springboot.mybatisxml.dao.mapper.UserMapper&quot; &gt;
+    &lt;resultMap id =&quot;UserMap&quot; type=&quot;com.example.springboot.mybatisxml.entity.User&quot;&gt;
+        &lt;result column=&quot;id&quot; property=&quot;id&quot;/&gt;
+        &lt;result column=&quot;name&quot; property=&quot;name&quot;/&gt;
+        &lt;result column=&quot;sex&quot; property=&quot;sex&quot;/&gt;
+        &lt;result column=&quot;password&quot; property=&quot;password&quot;/&gt;
+        &lt;result column=&quot;des&quot; property=&quot;des&quot;/&gt;
+    &lt;/resultMap&gt;
+
+    &lt;select id = &quot;queryAllUsers&quot; resultType= &quot;com.example.springboot.mybatisxml.entity.User&quot;&gt;
+      select * from user
+    &lt;/select&gt;
+&lt;/mapper&gt;</code></code></pre>
+<p>4.添加dao接口</p>
+<p>接口的名字和映射文件的名字相同，接口中方法的名字和要调用的映射文件中的标签的id相同。</p>
+<p>UserMapper.java代码如下：</p>
+<pre><code><code>public interface UserMapper {
+
+    List&lt;User&gt; queryAllUsers();
+}</code></code></pre>
+<p>5.添加访问控制层</p>
+<p>UserController代码如下：</p>
+<pre><code><code>/**
+ * UserController
+ *
+ * @Author: java_suisui
+ *
+ */
+@Slf4j
+@RestController
+@RequestMapping(&quot;/user&quot;)
+public class UserController {
+    @Autowired
+    private UserService userService;
+
+    /**
+     * 查询 所有用户
+     *
+     */
+    @GetMapping(&quot;/queryAllUsers&quot;)
+    public List&lt;User&gt; queryAllUsers(){
+        return userService.queryAllUsers();
+    }
+}</code></code></pre>
+<h3 id="四测试">四、测试</h3>
+<p>本地打开浏览器，访问http://localhost:8080/user/queryAllUsers,成功后返回如下结果：</p>
+<pre><code><code>[{&quot;id&quot;:1,&quot;name&quot;:&quot;张三&quot;,&quot;password&quot;:&quot;123456&quot;,&quot;sex&quot;:0,&quot;des&quot;:&quot;无备注&quot;},
+{&quot;id&quot;:2,&quot;name&quot;:&quot;李四&quot;,&quot;password&quot;:&quot;123456&quot;,&quot;sex&quot;:0,&quot;des&quot;:&quot;无备注&quot;}]</code></code></pre>
+<p>到此SpringBoot整合Mybatis（XML配置方式）的功能已经全部实现，有问题欢迎留言沟通哦！</p>
+<p>完整源码地址： <a href="https://github.com/suisui2019/springboot-study" class="uri">https://github.com/suisui2019/springboot-study</a></p>
+<p><strong>推荐阅读</strong></p>
+<p><a href="https://mp.weixin.qq.com/s/Y1S_SogYOpY-oxF0KXNZig">1.Java中打印日志，这4点很重要！</a></p>
+<p><a href="https://mp.weixin.qq.com/s/49JC9pgdfWYd7P2a53wA_g">2.SpringBoot集成JWT实现权限认证</a></p>
+<p><a href="https://mp.weixin.qq.com/s/4mQsN3cZjYtjmn333thSQg">3.一分钟带你了解JWT认证！</a></p>
+<p><a href="https://mp.weixin.qq.com/s/ikyLQu3bqzk_OyejE4tGRQ">4.SpringBoot中如何优雅的读取yml配置文件？</a></p>
+<p><a href="https://mp.weixin.qq.com/s/mjCNtTTyGkieERKPP84fVg">5.SpringBoot中如何灵活的实现接口数据的加解密功能？</a></p>
+<hr />
+<blockquote>
+<p>限时领取免费Java相关资料，涵盖了Java、Redis、MongoDB、MySQL、Zookeeper、Spring Cloud、Dubbo/Kafka、Hadoop、Hbase、Flink等高并发分布式、大数据、机器学习等技术。<br />
+关注下方公众号即可免费领取：</p>
+</blockquote>
+<p><img src="./images/SpringBoot系列-整合Mybatis（XML配置方式）0.png" alt="Java碎碎念公众号" /></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,63 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java 并发编程(二)：如何保证共享变量的原子性？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java 并发编程(二)：如何保证共享变量的原子性？</center></div><div class='banquan'>原文出处:本文由博客园博主沉默王二提供。<br/>
+原文连接:https://www.cnblogs.com/qing-gee/p/11525589.html</div><br>
+    <p>线程安全性是我们在进行 Java 并发编程的时候必须要先考虑清楚的一个问题。这个类在单线程环境下是没有问题的，那么我们就能确保它在多线程并发的情况下表现出正确的行为吗？</p>
+<p>我这个人，在没有副业之前，一心扑在工作上面，所以处理的蛮得心应手，心态也一直保持的不错；但有了副业之后，心态就变得像坐过山车一样。副业收入超过主业的时候，人特别亢奋，像打了鸡血一样；副业迟迟打不开局面的时候，人就变得惶惶不可终日。</p>
+<p>仿佛我就只能是个单线程，副业和主业并行开启多线程模式的时候，我就变得特别没有安全感，尽管整体的收入比没有副业之前有了很大的改善。</p>
+<p>怎么让我自己变得有安全感，我还没想清楚（你要是有好的方法，请一定要告诉我）。但怎么让一个类在多线程的环境下是安全的，有 3 条法则，让我来告诉你：</p>
+<p>1、不在线程之间共享状态变量。<br />2、将状态变量改为不可变。<br />3、访问状态变量时使用同步。</p>
+<p>那你可能要问，状态变量是什么？</p>
+<p>我们先来看一个没有状态变量的类吧，代码示例如下。</p>
+<pre><code><code class="java language-java hljs"><span class="hljs-class"><span class="hljs-keyword">class&nbsp;<span class="hljs-title">Chenmo&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-function"><span class="hljs-keyword">public&nbsp;<span class="hljs-keyword">void&nbsp;<span class="hljs-title">write<span class="hljs-params">()&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(<span class="hljs-string">"我寻了半生的春天，你一笑便是了。");<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />}<br /></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>Chenmo 这个类就是无状态变量的，它只有一个方法，既没有成员变量，也没有类变量。任何访问它的线程都不会影响另外一个线程的结果，因为两个线程之间没有共享任何的状态变量。所以可以下这样一个结论：<strong>无状态变量的类一定是线程安全的</strong>。</p>
+<p>然后我们再来看一个有状态变量的类。假设沉默（Chenmo 类）每写一行字（<code>write()</code> 方法），就要做一次统计，这样好找出版社索要稿费。我们为 Chenmo 类增加一个统计的字段，代码示例如下。</p>
+<pre><code><code class="java language-java hljs"><span class="hljs-class"><span class="hljs-keyword">class&nbsp;<span class="hljs-title">Chenmo&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">private&nbsp;<span class="hljs-keyword">long&nbsp;count&nbsp;=&nbsp;<span class="hljs-number">0;<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-function"><span class="hljs-keyword">public&nbsp;<span class="hljs-keyword">void&nbsp;<span class="hljs-title">write<span class="hljs-params">()&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(<span class="hljs-string">"我寻了半生的春天，你一笑便是了。");<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count++;<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />}<br /></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>Chenmo 类在单线程环境下是可以准确统计出行数的，但多线程的环境下就不行了。因为递增运算 <code>count++</code> 可以拆分为三个操作：读取 count，将 count 加 1，将计算结果赋值给 count。多线程的时候，这三个操作发生的时序可能是混乱的，最终统计出来的 count 值就会比预期的值小。</p>
+<p><em>PS：具体的原因可以回顾上一节《<a href="https://mp.weixin.qq.com/s/ksUUHbt6Nfchy1E00ANg_w">Java 并发编程(一)：摩拳擦掌</a>》</em>。</p>
+<p>写作不易，咱不能亏待了沉默，对不对？那就想点办法吧。</p>
+<p>假定线程 A 正在修改 count 变量，这时候就要防止线程 B 或者线程 C 使用这个变量，从而保证线程 B 或者线程 C 在使用 count 的时候是线程 A 修改过后的状态。</p>
+<p>怎么防止呢？可以在 <code>write()</code> 方法上加一个 <code>synchronized</code> 关键字。代码示例如下。</p>
+<pre><code><code class="java language-java hljs"><span class="hljs-class"><span class="hljs-keyword">class&nbsp;<span class="hljs-title">Chenmo&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">private&nbsp;<span class="hljs-keyword">long&nbsp;count&nbsp;=&nbsp;<span class="hljs-number">0;<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-function"><span class="hljs-keyword">public&nbsp;<span class="hljs-keyword">synchronized&nbsp;<span class="hljs-keyword">void&nbsp;<span class="hljs-title">write<span class="hljs-params">()&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(<span class="hljs-string">"我寻了半生的春天，你一笑便是了。");<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count++;<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />}<br /></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>关键字 <code>synchronized</code> 是一种最简单的同步机制，可以确保同一时刻只有一个线程可以执行 <code>write()</code>，也就保证了 <code>count++</code> 在多线程环境下是安全的。</p>
+<p>在编写并发应用程序时，我们必须要保持一种正确的观念，那就是&mdash;&mdash;首先要确保代码能够正确运行，然后再是如何提高代码的性能。</p>
+<p>但众所周知，<code>synchronized</code> 的代价是昂贵的，多个线程之间访问 <code>write()</code> 方法是互斥的，线程 B 访问的时候必须要等待线程 A 访问结束，这无法体现出多线程的核心价值。</p>
+<p><code>java.util.concurrent.atomic.AtomicInteger</code> 是一个提供原子操作的 Integer 类，它提供的加减操作是线程安全的。于是我们可以这样修改 Chenmo 类，代码示例如下。</p>
+<pre><code><code class="java language-java hljs"><span class="hljs-class"><span class="hljs-keyword">class&nbsp;<span class="hljs-title">Chenmo&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">private&nbsp;AtomicInteger&nbsp;count&nbsp;=&nbsp;<span class="hljs-keyword">new&nbsp;AtomicInteger(<span class="hljs-number">0);<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-function"><span class="hljs-keyword">public&nbsp;<span class="hljs-keyword">void&nbsp;<span class="hljs-title">write<span class="hljs-params">()&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(<span class="hljs-string">"我寻了半生的春天，你一笑便是了。");<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;count.incrementAndGet();<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />}<br /></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p><code>write()</code> 方法不再需要 <code>synchronized</code> 关键字保持同步，于是多线程之间就不再需要以互斥的方式来调用该方法，可以在一定程度上提升统计的效率。</p>
+<p>某一天，出版社统计稿费的形式变了，不仅要统计行数，还要统计字数，于是 Chenmo 类就需要再增加一个成员变量了。代码示例如下。</p>
+<pre><code><code class="java language-java hljs"><span class="hljs-class"><span class="hljs-keyword">class&nbsp;<span class="hljs-title">Chenmo&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">private&nbsp;AtomicInteger&nbsp;lineCount&nbsp;=&nbsp;<span class="hljs-keyword">new&nbsp;AtomicInteger(<span class="hljs-number">0);<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">private&nbsp;AtomicInteger&nbsp;wordCount&nbsp;=&nbsp;<span class="hljs-keyword">new&nbsp;AtomicInteger(<span class="hljs-number">0);<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-function"><span class="hljs-keyword">public&nbsp;<span class="hljs-keyword">void&nbsp;<span class="hljs-title">write<span class="hljs-params">()&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;words&nbsp;=&nbsp;<span class="hljs-string">"我这一辈子，走过许多地方的路，行过许多地方的桥，看过许多次的云，喝过许多种类的酒，却只爱过一个正当年龄的人。";<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(words);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lineCount.incrementAndGet();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wordCount.addAndGet(words.length());<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />}<br /></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>你觉得这段代码是线程安全的吗？</p>
+<p>结果显而易见，这段代码不是线程安全的。因为 lineCount 和 wordCount 是两个变量，尽管它们各自是线程安全的，但线程 A 进行 lineCount 加 1 的时候，并不能够保证线程 B 是在线程 A 执行完 wordCount 统计后开始 lineCount 加 1 的。</p>
+<p><img src="./images/Java 并发编程(二)：如何保证共享变量的原子性？0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>该怎么办呢？方法也很简单，代码示例如下。</p>
+<pre><code><code class="java language-java hljs"><span class="hljs-class"><span class="hljs-keyword">class&nbsp;<span class="hljs-title">Chenmo&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">private&nbsp;<span class="hljs-keyword">int&nbsp;lineCount&nbsp;=&nbsp;<span class="hljs-number">0;<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">private&nbsp;<span class="hljs-keyword">int&nbsp;wordCount&nbsp;=&nbsp;<span class="hljs-number">0;<br />&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-function"><span class="hljs-keyword">public&nbsp;<span class="hljs-keyword">void&nbsp;<span class="hljs-title">write<span class="hljs-params">()&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;String&nbsp;words&nbsp;=&nbsp;<span class="hljs-string">"我这一辈子，走过许多地方的路，行过许多地方的桥，看过许多次的云，喝过许多种类的酒，却只爱过一个正当年龄的人。";<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;System.out.println(words);<br /><br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="hljs-keyword">synchronized&nbsp;(<span class="hljs-keyword">this)&nbsp;{<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lineCount++;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;wordCount++;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}<br />&nbsp;&nbsp;&nbsp;&nbsp;}<br />}<br /></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></code></pre>
+<p>对行数统计（lineCount++）和字数统计（wordCount++）的代码进行加锁，保证这两行代码是原子性的。也就是说，线程 B 在进行统计的时候，必须要等待线程 A 统计完之后再开始。</p>
+<p><code>synchronized (lock) {...}</code> 是 Java 提供的一种简单的内置锁机制，用于保证代码块的原子性。线程在进入加锁的代码块之前自动获取锁，并且退出代码块的时候释放锁，可以保证一组语句作为一个不可分割的单元被执行。</p>
+<hr />
+<p>上一篇：<a href="http://www.itwanger.com/java/2019/11/09/java-bingfa-1.html">Java 并发编程(一)：简介</a></p>
+<p>下一篇：<a href="http://www.itwanger.com/java/2019/11/09/java-bingfa-3.html">如何保证共享变量的原子性？</a></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

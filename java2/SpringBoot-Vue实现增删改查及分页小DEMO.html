@@ -1,0 +1,908 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot-Vue实现增删改查及分页小DEMO' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot-Vue实现增删改查及分页小DEMO</center></div><div class='banquan'>原文出处:本文由博客园博主NQDXT提供。<br/>
+原文连接:https://www.cnblogs.com/nqdxt/p/11612977.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>主要通过后端 Spring Boot 技术和前端 Vue 技术来简单开发一个demo，实现增删改查、分页功能以及了解Springboot搭配vue完成前后端分离项目的开发流程。</p>
+<h2 id="开发栈">开发栈</h2>
+<p><strong>前端</strong></p>
+<ul>
+<li>开发工具：WebStorm</li>
+<li>开发框架：vue + axios</li>
+<li>包管理工具: npm</li>
+<li>打包工具：webpack</li>
+</ul>
+<p><strong>后端</strong></p>
+<ul>
+<li>开发工具：IDEA</li>
+<li>开发框架：Springboot + mybatis</li>
+<li>打包工具：maven</li>
+<li>数据库： MySQL</li>
+</ul>
+<p><strong>PS：假设以上的的工具你都安装好啦，写CRUD小DEMO时进坑了，这篇blog参考一下，仅供参考，仅供参考😤，，如有不足请不吝赐教。</strong></p>
+<h2 id="后端开发环境搭建">后端开发环境搭建</h2>
+<p>1、File-&gt;New-&gt;Project...<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO0.png" alt="在这里插入图片描述" /><br />
+2、选择 Spring Initializr ，然后选择默认的 url 点击next<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO1.png" alt="在这里插入图片描述" /><br />
+3、勾选Spring Web、SQL模板，next<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO2.png" alt="在这里插入图片描述" /><br />
+4、点击finish，搭建完成<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO3.png" alt="在这里插入图片描述" /></p>
+<h2 id="后端开发过程">后端开发过程</h2>
+<p>1、更新pom.xml如下：</p>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+         xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+    &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+    &lt;groupId&gt;com.example&lt;/groupId&gt;
+    &lt;artifactId&gt;demo&lt;/artifactId&gt;
+    &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+    &lt;name&gt;springboot-mybatis&lt;/name&gt;
+
+    &lt;!-- Spring Boot 启动父依赖 --&gt;
+    &lt;parent&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+        &lt;version&gt;2.1.3.RELEASE&lt;/version&gt;
+    &lt;/parent&gt;
+
+    &lt;properties&gt;
+        &lt;mybatis-spring-boot&gt;1.2.0&lt;/mybatis-spring-boot&gt;
+        &lt;mysql-connector&gt;5.1.39&lt;/mysql-connector&gt;
+    &lt;/properties&gt;
+
+    &lt;dependencies&gt;
+
+        &lt;!-- Spring Boot Web 依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- Spring Boot Test 依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- Spring Boot Mybatis 依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.mybatis.spring.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;mybatis-spring-boot-starter&lt;/artifactId&gt;
+            &lt;version&gt;${mybatis-spring-boot}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- MySQL 连接驱动依赖 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;mysql&lt;/groupId&gt;
+            &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+            &lt;version&gt;${mysql-connector}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- Junit --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;junit&lt;/groupId&gt;
+            &lt;artifactId&gt;junit&lt;/artifactId&gt;
+            &lt;version&gt;4.12&lt;/version&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+&lt;/project&gt;</code></code></pre>
+<p>2、新建 demo\src\main\java\com\example\demo\entity\User.java</p>
+<pre><code><code>package com.example.demo.entity;
+
+public class User {
+    private int userId;
+    private String userDate;
+    private String userName;
+    private String userAddress;
+
+   //省略get() and set()
+}</code></code></pre>
+<p>3、更新demo\src\main\resources\application.properties</p>
+<pre><code><code>## 数据源配置
+spring.datasource.url=jdbc:mysql://localhost:3306/test1?useUnicode=true&amp;characterEncoding=utf8
+spring.datasource.username=root
+spring.datasource.password=123
+spring.datasource.driver-class-name=com.mysql.jdbc.Driver
+
+## Mybatis 配置
+mybatis.typeAliasesPackage=org.spring.springboot.domain
+mybatis.mapperLocations=classpath:mapper/*.xml
+
+## 端口
+server.port=8081</code></code></pre>
+<p>4、新建demo\src\main\java\com\example\demo\mapper\UserMapper.java</p>
+<pre><code><code>package com.example.demo.mapper;
+
+import com.example.demo.entity.User;
+import org.apache.ibatis.annotations.Mapper;
+
+import java.util.List;
+
+Mapper
+public interface UserMapper {
+
+    public List&lt;User&gt; findUserByName(String userName);
+
+    public List&lt;User&gt; ListUser();
+
+    public List&lt;User&gt; queryPage(Integer startRows);
+
+    public int getRowCount();
+
+    public int insertUser(User user);
+
+    public int delete(int userId);
+
+    public int Update(User user);
+}</code></code></pre>
+<p>5、新建demo\src\main\resources\mapper\UserMapper.xml</p>
+<pre><code><code>&lt;?xml version = &quot;1.0&quot; encoding = &quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE mapper PUBLIC
+        &quot;-//mybatis.org//DTD com.example.Mapper 3.0//EN&quot;
+        &quot;http://mybatis.org/dtd/mybatis-3-mapper.dtd&quot;&gt;
+&lt;mapper namespace=&quot;com.example.demo.mapper.UserMapper&quot;&gt;
+
+    &lt;resultMap id=&quot;result&quot; type=&quot;com.example.demo.entity.User&quot;&gt;
+        &lt;result property=&quot;userId&quot; column=&quot;userId&quot; /&gt;
+        &lt;result property=&quot;userDate&quot; column=&quot;userDate&quot; /&gt;
+        &lt;result property=&quot;userName&quot; column=&quot;userName&quot; /&gt;
+        &lt;result property=&quot;userAddress&quot; column=&quot;userAddress&quot;/&gt;
+    &lt;/resultMap&gt;
+
+    &lt;select id=&quot;ListUser&quot; resultMap=&quot;result&quot;&gt;
+        SELECT * FROM user
+    &lt;/select&gt;
+
+    &lt;select id=&quot;findUserByName&quot; resultMap=&quot;result&quot; parameterType=&quot;String&quot;&gt;
+        SELECT * FROM user
+            where userName like concat(concat(&#39;%&#39;,#{userName}),&#39;%&#39;)
+            order by userId desc
+    &lt;/select&gt;
+
+    &lt;select id=&quot;queryPage&quot; resultMap=&quot;result&quot;  parameterType=&quot;Integer&quot;&gt;
+        select * from user
+            order by userId desc
+            limit #{startRows},5
+    &lt;/select&gt;
+
+    &lt;select id=&quot;getRowCount&quot; resultType=&quot;Integer&quot;&gt;
+        select count(*) from user
+    &lt;/select&gt;
+
+    &lt;insert id=&quot;insertUser&quot; parameterType=&quot;com.example.demo.entity.User&quot;&gt;
+        INSERT INTO user
+        (
+        userId,userDate,userName,userAddress
+        )
+        VALUES (
+        #{userId},
+        #{userDate, jdbcType=VARCHAR},
+        #{userName, jdbcType=VARCHAR},
+        #{userAddress, jdbcType=VARCHAR}
+        )
+    &lt;/insert&gt;
+
+    &lt;delete id=&quot;delete&quot; parameterType=&quot;int&quot;&gt;
+        delete from user where userId=#{userId}
+    &lt;/delete&gt;
+
+    &lt;update id=&quot;Update&quot; parameterType=&quot;com.example.demo.entity.User&quot;&gt;
+        update user
+            set user.userDate=#{userDate},user.userName=#{userName},user.userAddress=#{userAddress}
+            where user.userId=#{userId}
+    &lt;/update&gt;
+&lt;/mapper&gt;</code></code></pre>
+<p>6、新建demo\src\main\java\com\example\demo\service\UserService.java</p>
+<pre><code><code>package com.example.demo.service;
+
+import com.example.demo.entity.User;
+import com.example.demo.mapper.UserMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+
+Service
+public class UserService {
+
+    @Autowired
+    private UserMapper userMapper;
+
+    public List&lt;User&gt; findByName(String userName) {
+        return userMapper.findUserByName(userName);
+    }
+
+    public List&lt;User&gt; queryPage(Integer startRows) {
+        return userMapper.queryPage(startRows);
+    }
+
+    public int getRowCount() {
+        return userMapper.getRowCount();
+    }
+
+    public User insertUser(User user) {
+        userMapper.insertUser(user);
+        return user;
+    }
+
+    public List&lt;User&gt; ListUser(){
+        return userMapper.ListUser();
+    }
+
+    public int Update(User user){
+        return userMapper.Update(user);
+    }
+
+    public int delete(int userId){
+        return userMapper.delete(userId);
+    }
+
+}</code></code></pre>
+<p>7、新建demo\src\main\java\com\example\demo\controller\UserCtrl.java</p>
+<pre><code><code>package com.example.demo.controller;
+
+import com.example.demo.entity.User;
+import com.example.demo.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+RestController
+public class UserCtrl {
+
+    @Autowired
+    private UserService userService;
+
+    @RequestMapping(value = &quot;/delete&quot;, method = RequestMethod.POST)
+    public Integer delete(Integer userId) {
+        System.out.println(userId);
+        int result = userService.delete(userId);
+        return result;
+    }
+
+    @RequestMapping(value = &quot;/update&quot;, method = RequestMethod.POST)
+    @ResponseBody
+    public String update(User user) {
+        int result = userService.Update(user);
+        if (result &gt;= 1) {
+            return &quot;修改成功&quot;;
+        } else {
+            return &quot;修改失败&quot;;
+        }
+
+    }
+
+    @RequestMapping(value = &quot;/insert&quot;, method = RequestMethod.POST)
+    public User insert(User user) {
+        return userService.insertUser(user);
+    }
+
+    @RequestMapping(&quot;/ListUser&quot;)
+    @ResponseBody
+    public List&lt;User&gt; ListUser() {
+        return userService.ListUser();
+    }
+
+    @RequestMapping(&quot;/ListByName&quot;)
+    @ResponseBody
+    public List&lt;User&gt; ListUserByName(String userName) {
+        return userService.findByName(userName);
+    }
+
+    /**
+     * 分页
+     * @return
+     */
+    @RequestMapping(value=&quot;/page&quot;)
+    @ResponseBody
+    public List&lt;User&gt; page(Integer page){
+        int pageNow = page == null ? 1 : page;
+        int pageSize = 5;
+        int startRows = pageSize*(pageNow-1);
+        List&lt;User&gt; list = userService.queryPage(startRows);
+        return list;
+    }
+
+    /**
+     * rows
+     * @return
+     */
+    @RequestMapping(value=&quot;/rows&quot;)
+    @ResponseBody
+    public int rows(){
+        return userService.getRowCount();
+    }
+}</code></code></pre>
+<p>8、启动MySQL数据库，新建或执行如下表：<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO4.png" alt="在这里插入图片描述" /></p>
+<pre><code><code>SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for user
+-- ----------------------------
+DROP TABLE IF EXISTS `user`;
+CREATE TABLE `user`  (
+  `userId` int(20) NOT NULL AUTO_INCREMENT,
+  `userDate` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `userName` varchar(100) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `userAddress` varchar(255) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  PRIMARY KEY (`userId`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 71 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Compact;
+
+-- ----------------------------
+-- Records of user
+-- ----------------------------
+INSERT INTO `user` VALUES (15, &#39;2019-09-29T03:17:12.000Z&#39;, &#39;王老三&#39;, &#39;上海市普陀区金沙江路 1515 弄&#39;);
+INSERT INTO `user` VALUES (16, &#39;2019-09-29T03:27:05.000Z&#39;, &#39;张小四&#39;, &#39;上海市普陀区金沙江路 1514 弄&#39;);
+INSERT INTO `user` VALUES (17, &#39;2019-09-29T03:30:04.000Z&#39;, &#39;王老五&#39;, &#39;上海市普陀区金沙江路 1513弄&#39;);
+INSERT INTO `user` VALUES (18, &#39;2019-09-29T03:33:15.000Z&#39;, &#39;小六子&#39;, &#39;上海市普陀区金沙江路 1512弄&#39;);
+INSERT INTO `user` VALUES (20, &#39;2019-09-29T03:33:15.000Z&#39;, &#39;王老八&#39;, &#39;上海市普陀区金沙江路 1512弄&#39;);
+INSERT INTO `user` VALUES (21, &#39;2019-09-29T05:42:52.000Z&#39;, &#39;王大拿&#39;, &#39;上海市普陀区金沙江路 1511弄&#39;);
+INSERT INTO `user` VALUES (22, &#39;2019-09-29T05:43:50.000Z&#39;, &#39;小九九&#39;, &#39;上海市普陀区金沙江路 1510弄&#39;);
+INSERT INTO `user` VALUES (23, &#39;2019-09-29T05:43:50.000Z&#39;, &#39;刘诗诗&#39;, &#39;上海市普陀区金沙江路 1499弄&#39;);
+INSERT INTO `user` VALUES (24, &#39;2019-09-29T05:46:07.000Z&#39;, &#39;扎昂四四&#39;, &#39;上海市大湾区科技路&#39;);
+INSERT INTO `user` VALUES (25, &#39;2019-09-29T05:46:07.000Z&#39;, &#39;扎昂四四新东方&#39;, &#39;上海市大湾区科技路2001号&#39;);
+INSERT INTO `user` VALUES (26, &#39;2019-09-29T05:46:07.000Z&#39;, &#39;王小虎&#39;, &#39;上海市大湾区科技路2002号&#39;);
+INSERT INTO `user` VALUES (27, &#39;2019-09-29T05:46:07.000Z&#39;, &#39;抽拉吧唧&#39;, &#39;上海市大湾区科技路2003号&#39;);
+INSERT INTO `user` VALUES (28, &#39;2019-09-29T05:46:07.000Z&#39;, &#39;年啦编辑&#39;, &#39;上海市大湾区科技路2004号&#39;);
+INSERT INTO `user` VALUES (29, &#39;2019-09-29T05:46:07.000Z&#39;, &#39;你多少&#39;, &#39;上海市普陀区金沙江路 1211弄&#39;);
+INSERT INTO `user` VALUES (30, &#39;2019-09-29T05:46:07.000Z&#39;, &#39;反发达&#39;, &#39;上海市普陀区金沙江路 1212弄&#39;);
+INSERT INTO `user` VALUES (31, &#39;2019-09-29T05:51:20.000Z&#39;, &#39;发官方&#39;, &#39;上海市普陀区金沙江路 1213弄&#39;);
+INSERT INTO `user` VALUES (32, &#39;2019-09-29T05:51:20.000Z&#39;, &#39;方还有&#39;, &#39;上海市普陀区金沙江路 1214弄&#39;);
+INSERT INTO `user` VALUES (33, &#39;2019-09-29T05:51:20.000Z&#39;, &#39;过不分&#39;, &#39;上海市普陀区金沙江路 1498弄&#39;);
+INSERT INTO `user` VALUES (34, &#39;2019-09-29T05:51:20.000Z&#39;, &#39;菜市场&#39;, &#39;上海市普陀区金沙江路 1497弄&#39;);
+INSERT INTO `user` VALUES (35, &#39;2019-09-29T05:51:20.000Z&#39;, &#39;权威的&#39;, &#39;上海市普陀区金沙江路 1496弄&#39;);
+INSERT INTO `user` VALUES (36, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;冈反对的&#39;, &#39;上海市大湾区科技路2001号&#39;);
+INSERT INTO `user` VALUES (37, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;冈反对&#39;, &#39;上海市大湾区科技路2003号&#39;);
+INSERT INTO `user` VALUES (38, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;偶哦里面&#39;, &#39;上海市大湾区科技路2004号&#39;);
+INSERT INTO `user` VALUES (39, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;偶哦韩大苏打&#39;, &#39;上海市大湾区科技路2005号&#39;);
+INSERT INTO `user` VALUES (40, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;偶哦匀&#39;, &#39;上海市大湾区科技路2006号&#39;);
+INSERT INTO `user` VALUES (41, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;敢哦匀&#39;, &#39;上海市大湾区科技路2006号&#39;);
+INSERT INTO `user` VALUES (42, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;敢孩&#39;, &#39;上海市大湾区科技路2006号&#39;);
+INSERT INTO `user` VALUES (43, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;敢女孩&#39;, &#39;上海市大湾区科技路2007号&#39;);
+INSERT INTO `user` VALUES (45, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;工行行&#39;, &#39;上海市大湾区科技路2008号&#39;);
+INSERT INTO `user` VALUES (46, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;家好吗&#39;, &#39;上海市大湾区科技路2008号&#39;);
+INSERT INTO `user` VALUES (47, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;的程度&#39;, &#39;上海市大湾区科技路2009号&#39;);
+INSERT INTO `user` VALUES (48, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;称得上&#39;, &#39;上海市大湾区科技路2009号&#39;);
+INSERT INTO `user` VALUES (49, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;韩国和&#39;, &#39;上海市大湾区科技路2010号&#39;);
+INSERT INTO `user` VALUES (50, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;韩好&#39;, &#39;上海市大湾区科技路2010号&#39;);
+INSERT INTO `user` VALUES (51, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;韩吧&#39;, &#39;上海市大湾区科技路2011号&#39;);
+INSERT INTO `user` VALUES (52, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;韩吧吧&#39;, &#39;上海市大湾区科技路2012号&#39;);
+INSERT INTO `user` VALUES (53, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;长度是&#39;, &#39;上海市大湾区科技路2013号&#39;);
+INSERT INTO `user` VALUES (54, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;比如合&#39;, &#39;上海市大湾区科技路2014号&#39;);
+INSERT INTO `user` VALUES (55, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;如合境&#39;, &#39;上海市大湾区科技路2015号&#39;);
+INSERT INTO `user` VALUES (56, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;如合国&#39;, &#39;上海市大湾区科技路2016号&#39;);
+INSERT INTO `user` VALUES (57, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;如更好&#39;, &#39;上海市大湾区科技路2017号&#39;);
+INSERT INTO `user` VALUES (58, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;如更法&#39;, &#39;上海市大湾区科技路2018号&#39;);
+INSERT INTO `user` VALUES (59, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;反对&#39;, &#39;上海市大湾区科技路2019号&#39;);
+INSERT INTO `user` VALUES (60, &#39;2019-09-29T05:55:09.000Z&#39;, &#39;如国部&#39;, &#39;上海市大湾区科技路2019号&#39;);
+INSERT INTO `user` VALUES (61, &#39;2019-09-29T06:04:15.000Z&#39;, &#39;奇热网&#39;, &#39;上海市普陀区金沙江路 1496弄&#39;);
+INSERT INTO `user` VALUES (62, &#39;2019-09-29T06:04:33.000Z&#39;, &#39;反对法&#39;, &#39;上海市普陀区金沙江路 1495弄&#39;);
+INSERT INTO `user` VALUES (63, &#39;2019-09-29T06:04:33.000Z&#39;, &#39;的风格&#39;, &#39;上海市普陀区金沙江路 1494弄&#39;);
+INSERT INTO `user` VALUES (64, &#39;2019-09-29T06:04:33.000Z&#39;, &#39;广泛同&#39;, &#39;上海市大湾区科技路2020号&#39;);
+INSERT INTO `user` VALUES (65, &#39;2019-09-10T06:04:33.000Z&#39;, &#39;但仍然&#39;, &#39;上海市普陀区金沙江路 1493弄&#39;);
+INSERT INTO `user` VALUES (66, &#39;2019-09-29T06:10:28.000Z&#39;, &#39;vdfv&#39;, &#39;放到电饭锅的&#39;);
+INSERT INTO `user` VALUES (67, &#39;2019-09-14T16:00:00.000Z&#39;, &#39;朱老六&#39;, &#39;上海市高新区上海中心&#39;);
+INSERT INTO `user` VALUES (69, &#39;2019-09-10T16:00:00.000Z&#39;, &#39;是的&#39;, &#39; 学生的三十四分&#39;);
+INSERT INTO `user` VALUES (70, &#39;2019-09-29T07:51:44.000Z&#39;, &#39;张小子&#39;, &#39;上海市浦东区1234号&#39;);
+
+SET FOREIGN_KEY_CHECKS = 1;</code></code></pre>
+<p>9、后端就写完了，整体结构如下：<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO5.png" alt="在这里插入图片描述" /><br />
+10、run 'DemoApplication'启动项目，控制台没报错就用浏览器测试一下，在浏览器中输入<code>http://localhost:8081/page?page=3</code> 如果能出现如下字符串就👌，已安装postman的可以每个方法都试一下：<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO6.png" alt="在这里插入图片描述" /></p>
+<h2 id="前端开发环境搭建">前端开发环境搭建</h2>
+<p>1、win+R-&gt;cmd-&gt;进入项目目录依次执行命令：<code>vue init webpack projectName</code>、<code>cd projectName</code>、<code>npm install</code>、<code>npm run dev</code>如图所示：<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO7.png" alt="在这里插入图片描述" /><br />
+2、打开浏览器输入：<code>http://localhost:8080</code>，效果如图：<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO8.png" alt="在这里插入图片描述" /><br />
+3、用WebStorm打开项目：File-&gt;Open...-&gt;vue01(projectName)<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO9.png" alt="在这里插入图片描述" /><br />
+4、Vue-cli项目结构如图：<br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO10.png" alt="在这里插入图片描述" /></p>
+<h2 id="前端开发过程">前端开发过程</h2>
+<p>1、在项目根目录安装axios执行命令<code>npm install axios</code>，安装element ui 执行命令<code>npm i element-ui -S</code><br />
+2、更新vue01\src\App.vue</p>
+<pre><code><code>&lt;template&gt;
+  &lt;div id=&quot;app&quot;&gt;
+    &lt;el-row type=&quot;flex&quot; justify=&quot;center&quot;&gt;
+      &lt;el-col :xs=&quot;24&quot; :sm=&quot;22&quot; :md=&quot;20&quot; :lg=&quot;20&quot; :xl=&quot;18&quot;&gt;
+        &lt;router-view/&gt;
+      &lt;/el-col&gt;
+    &lt;/el-row&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+    export default {
+        name: &#39;App&#39;,
+        data() {
+            return {
+            }
+        },
+        methods: {
+        }
+    }
+&lt;/script&gt;
+
+&lt;style&gt;
+  #app {
+    font-family: &#39;Avenir&#39;, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0px;
+    padding: 0px;
+  }
+&lt;/style&gt;</code></code></pre>
+<p>3、更新vue01\src\main.js</p>
+<pre><code><code>// The Vue build version to load with the `import` command
+// (runtime-only or standalone) has been set in webpack.base.conf with an alias.
+import Vue from &#39;vue&#39;
+import App from &#39;./App&#39;
+import router from &#39;./router&#39;
+import elementUI from &#39;element-ui&#39;
+import &#39;element-ui/lib/theme-chalk/index.css&#39;
+import &#39;element-ui/lib/theme-chalk/display.css&#39;
+
+Vue.use(elementUI)
+
+import axios from &#39;axios&#39;
+Vue.prototype.axios = axios
+
+import qs from &#39;qs&#39;;
+Vue.prototype.qs = qs;
+
+Vue.config.productionTip = false
+
+/* eslint-disable no-new */
+new Vue({
+  el: &#39;#app&#39;,
+  router,
+  components: { App },
+  template: &#39;&lt;App/&gt;&#39;
+})</code></code></pre>
+<p>4、更新vue01\src\components\HelloWorld.vue</p>
+<pre><code><code>&lt;template&gt;
+  &lt;div&gt;
+      &lt;el-form :inline=&quot;true&quot; class=&quot;demo-form-inline&quot;&gt;
+          &lt;el-form-item&gt;
+            &lt;el-input
+              v-model=&quot;search&quot;
+              class=&quot;search_name&quot;
+              size=&quot;mini&quot;
+              placeholder=&quot;输入姓名查询&quot;&gt;
+            &lt;/el-input&gt;
+          &lt;/el-form-item&gt;
+          &lt;el-form-item&gt;
+            &lt;el-button
+              type=&quot;text&quot;
+              @click=&quot;onSearch()&quot;
+              class=&quot;el-icon-search&quot;&gt;查询
+            &lt;/el-button&gt;
+          &lt;/el-form-item&gt;
+          &lt;el-form-item&gt;
+            &lt;el-button
+              class=&quot;el-icon-refresh&quot;
+              type=&quot;text&quot;
+              @click=&quot;refreshData&quot;&gt;刷新
+            &lt;/el-button&gt;
+          &lt;/el-form-item&gt;
+          &lt;el-form-item&gt;
+            &lt;el-button
+              class=&quot;el-icon-circle-plus-outline&quot;
+              type=&quot;text&quot;
+              @click=&quot;dialogVisible = true&quot;&gt;添加
+            &lt;/el-button&gt;
+          &lt;/el-form-item&gt;
+      &lt;/el-form&gt;
+      &lt;el-table
+        :data=&quot;tableData&quot;
+        highlight-current-row
+        border
+        style=&quot;width: 100%&quot;&gt;
+        &lt;el-table-column
+          label=&quot;编号&quot;&gt;
+          &lt;template slot-scope=&quot;scope&quot;&gt;
+            &lt;span&gt;{{ scope.row.userId }}&lt;/span&gt;
+          &lt;/template&gt;
+        &lt;/el-table-column&gt;
+        &lt;el-table-column
+          label=&quot;日期&quot;&gt;
+          &lt;template slot-scope=&quot;scope&quot;&gt;
+            &lt;i class=&quot;el-icon-time hidden-sm-and-down&quot;&gt;&lt;/i&gt;
+            &lt;span&gt;{{ scope.row.userDate }}&lt;/span&gt;
+          &lt;/template&gt;
+        &lt;/el-table-column&gt;
+        &lt;el-table-column
+          label=&quot;姓名&quot;&gt;
+          &lt;template slot-scope=&quot;scope&quot;&gt;
+            &lt;el-popover trigger=&quot;hover&quot; placement=&quot;right&quot;&gt;
+              &lt;p&gt;姓名: {{ scope.row.userName }}&lt;/p&gt;
+              &lt;p&gt;住址: {{ scope.row.userAddress }}&lt;/p&gt;
+              &lt;p&gt;日期：{{ scope.row.userDate }}&lt;/p&gt;
+              &lt;div slot=&quot;reference&quot; class=&quot;name-wrapper&quot;&gt;
+                &lt;el-button type=&quot;text&quot;&gt;{{ scope.row.userName }}&lt;/el-button&gt;
+              &lt;/div&gt;
+            &lt;/el-popover&gt;
+          &lt;/template&gt;
+        &lt;/el-table-column&gt;
+        &lt;el-table-column
+          label=&quot;住址&quot;&gt;
+          &lt;template slot-scope=&quot;scope&quot;&gt;
+            &lt;span&gt;{{ scope.row.userAddress }}&lt;/span&gt;
+          &lt;/template&gt;
+        &lt;/el-table-column&gt;
+        &lt;el-table-column
+          label=&quot;操作&quot;
+          fixed=&quot;right&quot;
+          width=&quot;200&quot;&gt;
+          &lt;template slot-scope=&quot;scope&quot;&gt;
+            &lt;el-button
+              size=&quot;mini&quot;
+              icon=&quot;el-icon-edit&quot;
+              @click=&quot;handleEdit(scope.$index, scope.row)&quot;&gt;编辑
+            &lt;/el-button&gt;
+            &lt;el-button
+              size=&quot;mini&quot;
+              type=&quot;danger&quot;
+              icon=&quot;el-icon-delete&quot;
+              @click=&quot;handleDelete(scope.$index, scope.row)&quot;&gt;删除
+            &lt;/el-button&gt;
+          &lt;/template&gt;
+        &lt;/el-table-column&gt;
+      &lt;/el-table&gt;
+
+      &lt;el-form :model=&quot;ruleForm&quot; :rules=&quot;rules&quot; ref=&quot;ruleForm&quot; label-width=&quot;70px&quot; class=&quot;demo-ruleForm&quot; size=&quot;medium&quot;&gt;
+        &lt;el-dialog
+          title=&quot;添加&quot;
+          :append-to-body=&#39;true&#39;
+          :visible.sync=&quot;dialogVisible&quot;
+          width=&quot;80%&quot;
+          :before-close=&quot;handleClose&quot;&gt;
+          &lt;el-input type=&quot;hidden&quot; v-model=&quot;ruleForm.userId&quot;/&gt;
+          &lt;el-form-item label=&quot;时间&quot; prop=&quot;userDate&quot;&gt;
+            &lt;el-date-picker type=&quot;datetime&quot; placeholder=&quot;选择日期&quot; v-model=&quot;ruleForm.userDate&quot; style=&quot;width: 100%;&quot;&gt;&lt;/el-date-picker&gt;
+          &lt;/el-form-item&gt;
+          &lt;el-form-item label=&quot;姓名&quot; prop=&quot;userName&quot;&gt;
+            &lt;el-input v-model=&quot;ruleForm.userName&quot;&gt;&lt;/el-input&gt;
+          &lt;/el-form-item&gt;
+          &lt;el-form-item label=&quot;住址&quot; prop=&quot;userAddress&quot;&gt;
+            &lt;el-input v-model=&quot;ruleForm.userAddress&quot;&gt;&lt;/el-input&gt;
+          &lt;/el-form-item&gt;
+
+          &lt;span slot=&quot;footer&quot; class=&quot;dialog-footer&quot;&gt;
+            &lt;el-button @click=&quot;cancel()&quot; size=&quot;medium&quot;&gt;取 消&lt;/el-button&gt;
+            &lt;el-button @click=&quot;addUser()&quot; type=&quot;primary&quot; size=&quot;medium&quot;&gt;确 定&lt;/el-button&gt;
+          &lt;/span&gt;
+        &lt;/el-dialog&gt;
+      &lt;/el-form&gt;
+
+    &lt;el-form :model=&quot;ruleForm&quot; :rules=&quot;rules&quot; ref=&quot;ruleForm&quot; label-width=&quot;70px&quot; class=&quot;demo-ruleForm&quot; size=&quot;medium&quot;&gt;
+      &lt;el-dialog
+        title=&quot;编辑&quot;
+        :append-to-body=&#39;true&#39;
+        :visible.sync=&quot;dialogUpdate&quot;
+        width=&quot;80%&quot;
+        :before-close=&quot;handleClose&quot;&gt;
+        &lt;el-input type=&quot;hidden&quot; v-model=&quot;ruleForm.userId&quot;/&gt;
+        &lt;el-form-item label=&quot;时间&quot; prop=&quot;userDate&quot;&gt;
+          &lt;el-date-picker type=&quot;datetime&quot; placeholder=&quot;选择日期&quot; v-model=&quot;ruleForm.userDate&quot; style=&quot;width: 100%;&quot;&gt;&lt;/el-date-picker&gt;
+        &lt;/el-form-item&gt;
+        &lt;el-form-item label=&quot;姓名&quot; prop=&quot;userName&quot;&gt;
+          &lt;el-input v-model=&quot;ruleForm.userName&quot;&gt;&lt;/el-input&gt;
+        &lt;/el-form-item&gt;
+        &lt;el-form-item label=&quot;住址&quot; prop=&quot;userAddress&quot;&gt;
+          &lt;el-input v-model=&quot;ruleForm.userAddress&quot;&gt;&lt;/el-input&gt;
+        &lt;/el-form-item&gt;
+
+        &lt;span slot=&quot;footer&quot; class=&quot;dialog-footer&quot;&gt;
+            &lt;el-button @click=&quot;cancel()&quot; size=&quot;medium&quot;&gt;取 消&lt;/el-button&gt;
+            &lt;el-button @click=&quot;updateUser()&quot; type=&quot;primary&quot; size=&quot;medium&quot;&gt;确 定&lt;/el-button&gt;
+          &lt;/span&gt;
+      &lt;/el-dialog&gt;
+    &lt;/el-form&gt;
+      &lt;br&gt;
+      &lt;div class=&quot;pages&quot;&gt;
+        &lt;el-pagination
+          background
+          :disabled = &quot;disablePage&quot;
+          :current-page.sync=&quot;currentPage&quot;
+          small
+          layout=&quot;prev, pager, next&quot;
+          :page-size=&quot;pageSize&quot;
+          :total=&quot;total&quot;
+          @current-change=&quot;handleCurrentChange&quot;&gt;
+        &lt;/el-pagination&gt;
+      &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+    export default {
+        data() {
+            return {
+                ruleForm: {
+                    userId: &#39;&#39;,
+                    userName: &#39;&#39;,
+                    userDate: &#39;&#39;,
+                    userAddress: &#39;&#39;
+                },
+                rules: {
+                    userName: [
+                        { required: true, message: &#39;请输入姓名&#39;, trigger: &#39;blur&#39; },
+                        { min: 2, max: 7, message: &#39;长度在 2 到 7 个字符&#39;, trigger: &#39;blur&#39; }
+                    ],
+                    userAddress: [
+                        { required: true, message: &#39;请输入住址&#39;, trigger: &#39;blur&#39; },
+                        { min: 5, message: &#39;长度大于 5 个字符&#39;, trigger: &#39;blur&#39; }
+                    ],
+                },
+                tableData: [],
+                search: &#39;&#39;,
+                dialogVisible: false,
+                dialogUpdate: false,
+                pageSize: 5,
+                currentPage: 1,
+                total: 0,
+                disablePage: false
+            }
+        },
+        methods: {
+            handleEdit(index, row) {
+                this.dialogUpdate = true;
+                this.ruleForm = Object.assign({}, row); //这句是关键！！！
+            },
+            handleDelete(index, row) {
+                console.log(index, row);
+                this.$confirm(&#39;删除操作, 是否继续?&#39;, &#39;提示&#39;, {
+                    confirmButtonText: &#39;确定&#39;,
+                    cancelButtonText: &#39;取消&#39;,
+                    type: &#39;warning&#39;
+                }).then(() =&gt; {
+                    let postData = this.qs.stringify({
+                        userId: row.userId,
+                    });
+                    this.axios({
+                        method: &#39;post&#39;,
+                        url:&#39;/delete&#39;,
+                        data:postData
+                    }).then(response =&gt;
+                    {
+                        this.getPages();
+                        this.currentPage = 1;
+                        this.axios.post(&#39;/page&#39;).then(response =&gt;
+                        {
+                            this.tableData = response.data;
+                        }).catch(error =&gt;
+                        {
+                            console.log(error);
+                        });
+                        this.$message({
+                            type: &#39;success&#39;,
+                            message: &#39;删除成功!&#39;
+                        });
+                        console.log(response);
+                    }).catch(error =&gt;
+                    {
+                        console.log(error);
+                    });
+
+                }).catch(() =&gt; {
+                    this.$message({
+                        type: &#39;info&#39;,
+                        message: &#39;已取消删除&#39;
+                    });
+                });
+            },
+            handleClose(done) {
+                this.$confirm(&#39;确认关闭？&#39;)
+                    .then(_ =&gt; {
+                        done();
+                    })
+                    .catch(_ =&gt; {});
+            },
+            handleCurrentChange() {
+                console.log(`当前页: ${this.currentPage}`);
+                let postData = this.qs.stringify({
+                    page: this.currentPage
+                });
+                this.axios({
+                    method: &#39;post&#39;,
+                    url:&#39;/page&#39;,
+                    data:postData
+                }).then(response =&gt;
+                {
+                    this.tableData = response.data;
+                }).catch(error =&gt;
+                {
+                    console.log(error);
+                });
+            },
+            cancel() {
+                this.dialogUpdate = false;
+                this.dialogVisible = false;
+                this.emptyUserData();
+            },
+            emptyUserData(){
+                this.ruleForm = {
+                    userName: &#39;&#39;,
+                    userDate: &#39;&#39;,
+                    userAddress: &#39;&#39;
+                }
+            },
+            addUser() {
+                let postData = this.qs.stringify({
+                    userDate: this.ruleForm.userDate,
+                    userName: this.ruleForm.userName,
+                    userAddress: this.ruleForm.userAddress
+                });
+                this.axios({
+                    method: &#39;post&#39;,
+                    url:&#39;/insert&#39;,
+                    data:postData
+                }).then(response =&gt;
+                {
+                    this.axios.post(&#39;/page&#39;).then(response =&gt;
+                    {
+                        this.tableData = response.data;
+                        this.currentPage = 1;
+                        this.$message({
+                            type: &#39;success&#39;,
+                            message: &#39;已添加!&#39;
+                        });
+                    }).catch(error =&gt;
+                    {
+                        console.log(error);
+                    });
+                    this.getPages();
+                    this.dialogVisible = false
+                    console.log(response);
+                }).catch(error =&gt;
+                {
+                    console.log(error);
+                });
+            },
+            updateUser() {
+                let postData = this.qs.stringify({
+                    userId: this.ruleForm.userId,
+                    userDate: this.ruleForm.userDate,
+                    userName: this.ruleForm.userName,
+                    userAddress: this.ruleForm.userAddress
+                });
+                this.axios({
+                    method: &#39;post&#39;,
+                    url:&#39;/update&#39;,
+                    data:postData
+                }).then(response =&gt;
+                {
+                    this.handleCurrentChange();
+                    this.cancel();
+                    this.$message({
+                        type: &#39;success&#39;,
+                        message: &#39;更新成功!&#39;
+                    });
+                    console.log(response);
+                }).catch(error =&gt;
+                {
+                    this.$message({
+                        type: &#39;success&#39;,
+                        message: &#39;更新失败!&#39;
+                    });
+                    console.log(error);
+                });
+            },
+            onSearch() {
+                let postData = this.qs.stringify({
+                    userName: this.search
+                });
+                this.axios({
+                    method: &#39;post&#39;,
+                    url: &#39;/ListByName&#39;,
+                    data: postData
+                }).then(response =&gt;
+                {
+                    this.tableData = response.data;
+                    this.disablePage = true;
+                }).catch(error =&gt;
+                {
+                    console.log(error);
+                });
+            },
+            getPages() {
+                this.axios.post(&#39;/rows&#39;).then(response =&gt;
+                {
+                    this.total = response.data;
+                }).catch(error =&gt;
+                {
+                    console.log(error);
+                });
+            },
+            refreshData() {
+                location.reload();
+            }
+        },
+        created() {
+            /*this.axios.get(&#39;static/user.json&#39;).then(response =&gt;
+            {
+                this.tableData = response.data.tableData;
+                this.total = response.data.tableData.length;
+                // console.log(JSON.parse(JSON.stringify(response.data))[&#39;tableData&#39;])
+            });*/
+            this.axios.post(&#39;/page&#39;).then(response =&gt;
+            {
+                this.tableData = response.data;
+            }).catch(error =&gt;
+            {
+                console.log(error);
+            });
+
+            this.axios.post(&#39;/rows&#39;).then(response =&gt;
+            {
+                this.total = response.data;
+            }).catch(error =&gt;
+            {
+                console.log(error);
+            });
+
+        },
+    }
+&lt;/script&gt;
+&lt;style scoped&gt;
+  .search_name{
+    width: 200px;
+  }
+  .pages{
+    margin: 0px;
+    padding: 0px;
+    text-align: right;
+  }
+&lt;/style&gt;</code></code></pre>
+<h2 id="前后端整合">前后端整合</h2>
+<p><strong>方式一：</strong><br />
+在<code>vue01\config\index.js</code>文件中配置<code>proxyTable{}</code>，如下：</p>
+<pre><code><code>proxyTable: {
+      &#39;/&#39;: {
+        target:&#39;http://localhost:8081&#39;, // 你请求的第三方接口
+        changeOrigin:true, // 在本地会创建一个虚拟服务端，然后发送请求的数据，并同时接收请求的数据，这样服务端和服务端进行数据的交互就不会有跨域问题
+        pathRewrite:{  // 路径重写，
+          &#39;^/&#39;: &#39;&#39;  // 替换target中的请求地址
+        }
+      }
+    },</code></code></pre>
+<p><strong>方式二：</strong><br />
+在vue-cli项目根目录执行命令<code>npm run build</code>，编译完成后将dist/static文件夹copy至springboot项目的<code>src/main/resources/static</code>目录下然后直接启动springboot项目就OK了。</p>
+<h2 id="实现效果">实现效果</h2>
+<p><img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO11.png" alt="在这里插入图片描述" /><br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO12.png" alt="添加" /><img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO13.png" alt="在这里插入图片描述" /><br />
+<img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO14.png" alt="在这里插入图片描述" /><img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO15.png" alt="在这里插入图片描述" /><img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO16.png" alt="在这里插入图片描述" /><img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO17.png" alt="在这里插入图片描述" /><img src="./images/SpringBoot-Vue实现增删改查及分页小DEMO18.png" alt="在这里插入图片描述" /></p>
+<h2 id="总结">总结</h2>
+<p>大材小用，✍这篇博客の源码在<a href="https://github.com/Aizhuxueliang/springboot-vue">我的GitHub</a>上。</p>
+<p>CSDN：https://blog.csdn.net/jianyuwuyi/article/details/101769510</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

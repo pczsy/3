@@ -1,0 +1,457 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Struts2 Jsp 动态明细向后台传值' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Struts2 Jsp 动态明细向后台传值</center></div><div class='banquan'>原文出处:本文由博客园博主黑町提供。<br/>
+原文连接:https://www.cnblogs.com/kuroimachi/p/11421140.html</div><br>
+    <p>最近培训新人，最后练习使用Struts2框架练习，但是联系中碰到了画面List对象传后台无法传递的问题。网上看了一圈没有找到对应的解决办法。最后自己找到了一种，写下来后面可以再看。</p>
+<p>注：方法千千万，有其他能解决的，或者我写的有不对的地方欢迎指正！</p>
+<p><img src="./images/Struts2 Jsp 动态明细向后台传值0.png" alt="" /></p>
+<p>上图表格里面的就是我想上传到后台的内容，因为下面的更新按钮，删除按钮想要多条操作，所以最省心的办法就是整表提交（当然也有通过js把选中的对象拼成字符串再传到后台分割，但是太low了。。。）</p>
+<p>解决办法：</p>
+<p><img src="./images/Struts2 Jsp 动态明细向后台传值1.png" alt="" /></p>
+<p>两个javaBean：ResultBean 和&nbsp;ResultDetailBean（ResultDetailBean嵌套在ResultBean中）</p>
+<p>ResultBean代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> Bean;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.math.BigDecimal;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.ArrayList;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ResultBean {
+    </span><span style="color: #0000ff;">private</span> String stuId = ""<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> String stuName = ""<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> String classes = ""<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> BigDecimal grade;
+    </span><span style="color: #0000ff;">private</span> String sex = ""<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> String detailSize = ""<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">ResultDetailBean的get set方法</span>
+    <span style="color: #ff6600;">private List&lt;ResultDetailBean&gt; detailList = new ArrayList&lt;ResultDetailBean&gt;();
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the stuId
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getStuId() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> stuId;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> stuId
+     *            the stuId to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setStuId(String stuId) {
+        </span><span style="color: #0000ff;">this</span>.stuId =<span style="color: #000000;"> stuId;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the stuName
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getStuName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> stuName;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> stuName
+     *            the stuName to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setStuName(String stuName) {
+        </span><span style="color: #0000ff;">this</span>.stuName =<span style="color: #000000;"> stuName;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the classes
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getClasses() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> classes;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> classes
+     *            the classes to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setClasses(String classes) {
+        </span><span style="color: #0000ff;">this</span>.classes =<span style="color: #000000;"> classes;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the grade
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> BigDecimal getGrade() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> grade;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> grade
+     *            the grade to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setGrade(BigDecimal grade) {
+        </span><span style="color: #0000ff;">this</span>.grade =<span style="color: #000000;"> grade;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the sex
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getSex() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sex;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> sex
+     *            the sex to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setSex(String sex) {
+        </span><span style="color: #0000ff;">this</span>.sex =<span style="color: #000000;"> sex;
+    }
+
+    </span><span style="color: #ff6600;">public List&lt;ResultDetailBean&gt; getDetailList() {
+        return detailList;
+    }
+
+    public void setDetailList(List&lt;ResultDetailBean&gt; detailList) {
+        this.detailList = detailList;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getDetailSize() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> detailSize;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setDetailSize(String detailSize) {
+        </span><span style="color: #0000ff;">this</span>.detailSize =<span style="color: #000000;"> detailSize;
+    }
+}</span></code></pre>
+
+<p>ResultDetailBean的代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> Bean;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ResultDetailBean {
+    </span><span style="color: #0000ff;">private</span> String no = ""<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> String sel = "0"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> String curId = ""<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> String curName = ""<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> String score = ""<span style="color: #000000;">;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the no
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getNo() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> no;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> no
+     *            the no to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setNo(String no) {
+        </span><span style="color: #0000ff;">this</span>.no =<span style="color: #000000;"> no;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the sel
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getSel() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> sel;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> sel
+     *            the sel to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setSel(String sel) {
+        </span><span style="color: #0000ff;">this</span>.sel =<span style="color: #000000;"> sel;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the curId
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getCurId() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> curId;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> curId
+     *            the curId to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setCurId(String curId) {
+        </span><span style="color: #0000ff;">this</span>.curId =<span style="color: #000000;"> curId;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the curName
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getCurName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> curName;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> curName
+     *            the curName to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setCurName(String curName) {
+        </span><span style="color: #0000ff;">this</span>.curName =<span style="color: #000000;"> curName;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;"> the score
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getScore() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> score;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> score
+     *            the score to set
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setScore(String score) {
+        </span><span style="color: #0000ff;">this</span>.score =<span style="color: #000000;"> score;
+    }
+}</span></code></pre>
+
+<p>JavaBean已经定义完了，接下来就是和Action进行绑定，我是用的是模型驱动，通过实现ModelDriven接口来进行绑定</p>
+<p><img src="./images/Struts2 Jsp 动态明细向后台传值2.png" alt="" /></p>
+<p>代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> Action;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.opensymphony.xwork2.ActionSupport;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.opensymphony.xwork2.ModelDriven;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> Bean.ResultBean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> Bean.ResultDetailBean;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> DeleteAction <span style="color: #0000ff;">extends</span> ActionSupport <span style="color: #0000ff;">implements</span> <span style="color: #ff6600;">ModelDriven&lt;ResultBean&gt;</span><span style="color: #000000;"> {
+    </span><span style="color: #ff6600;">private ResultBean resultB = new ResultBean();
+
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+     * (non-Javadoc)
+     * 
+     * @see com.opensymphony.xwork2.ActionSupport#execute()
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">long</span> serialVersionUID = 1L<span style="color: #000000;">;
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> String execute() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {<br />        System.out.println("No. &nbsp; &nbsp; Sel&nbsp; &nbsp; Curriculum Id");
+        </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (ResultDetailBean detail : resultB.getDetailList()) {
+            System.out.println(detail.getNo() + "&nbsp; &nbsp; " + detail.getSel() + "&nbsp; &nbsp; " + detail.getCurId());</span><span style="color: #000000;">
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> SUCCESS;
+    }
+
+  <span style="color: #ff6600;">  @Override
+    </span></span><span style="color: #ff6600;">public ResultBean getModel() {
+        return</span><span style="color: #000000;"><span style="color: #ff6600;"> resultB;
+    }</span>
+
+}</span></code></pre>
+
+<p>可以看到这种绑定之后我们在execute方法中可以直接使用实例化好的对象进行操作。</p>
+<p>struts.xml中的定义：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="UTF-8" </span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE struts PUBLIC
+    "-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"
+    "http://struts.apache.org/dtds/struts-2.3.dtd"</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">struts</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">package </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="default"</span><span style="color: #ff0000;"> namespace</span><span style="color: #0000ff;">="/"</span><span style="color: #ff0000;"> extends</span><span style="color: #0000ff;">="struts-default"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">action </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="keyInAction"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="Action.KeyInAction"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">result </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="success"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="redirectAction"</span><span style="color: #0000ff;">&gt;</span>/resultAction<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">result</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">result </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="error"</span><span style="color: #0000ff;">&gt;</span>/Key－In.jsp<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">result</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">action</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">action </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="resultAction"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="Action.ResultAction"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">result </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="success"</span><span style="color: #0000ff;">&gt;</span>/Result.jsp<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">result</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">action</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #ff6600;"> &lt;action name="deleteAction" class="Action.DeleteAction"&gt;
+            &lt;result name="success"&gt;/Result.jsp&lt;/result&gt;
+        &lt;/action&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">package</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">struts</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>接下来是jsp页面的代码：</p>
+<p><img src="./images/Struts2 Jsp 动态明细向后台传值3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>Result.jsp：<span style="background-color: #ffff00; color: #000000;">&lt;%</span><span>@ page language</span><span>=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">java</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span> contentType</span><span>=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">text/html; charset=ISO-8859</span><span>&nbsp; &nbsp; pageEncoding</span><span>=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">ISO-8859-1</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #ffff00; color: #000000;">%&gt;</span><em id="__mceDel" style="font-family: 'Courier New'; font-size: 12px; background-color: #f5f5f5;"><em id="__mceDel"><em id="__mceDel"><span style="background-color: #ffff00; color: #000000;">&lt;%</span><span>@ taglib prefix</span><span>=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">s</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span> uri</span><span>=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">/struts-tags</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #ffff00; color: #000000;">%&gt;</span></em></em></em></p>
+<src class="cnblogs_code">
+<pre><code><em id="__mceDel"><em id="__mceDel"><em id="__mceDel"><span style="background-color: #ffff00; color: #000000;">&lt;%</span><span style="background-color: #f5f5f5; color: #000000;">@ taglib uri</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">http://java.sun.com/jsp/jstl/core</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #000000;"> prefix</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #f5f5f5; color: #800000;">c</span><span style="background-color: #f5f5f5; color: #800000;">"</span><span style="background-color: #ffff00; color: #000000;">%&gt;</span>
+<span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/css"</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #800000;">
+table.PCxxxx_table2 </span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    border-top</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 1px solid #696969</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    border-left</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 1px solid #696969</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    border-collapse</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> collapse</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    border-spacing</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 0</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    background-color</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> #ffffff</span><span style="background-color: #f5f5f5; color: #000000;">;</span>
+<span style="background-color: #f5f5f5; color: #000000;">}</span><span style="background-color: #f5f5f5; color: #800000;">
+
+.PCxxxx_table2 tr </span><span style="background-color: #f5f5f5; color: #000000;">{</span>
+    
+<span style="background-color: #f5f5f5; color: #000000;">}</span><span style="background-color: #f5f5f5; color: #800000;">
+
+.PCxxxx_table2 th </span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    color</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> #000000</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    background-color</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> #C0C0C0</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    padding</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 0px 1px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    text-align</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> center</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    border</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 1px solid #696969</span><span style="background-color: #f5f5f5; color: #000000;">;</span>
+<span style="background-color: #f5f5f5; color: #000000;">}</span><span style="background-color: #f5f5f5; color: #800000;">
+
+.PCxxxx_table2 td </span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    height</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 26px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    padding</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 0px 1px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    border</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 1px solid #696969</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+    vertical-align</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> middle</span><span style="background-color: #f5f5f5; color: #000000;">;</span>
+<span style="background-color: #f5f5f5; color: #000000;">}</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> deleteButton() {<br />        // 指向上面编辑的deleteAction
+        document.resultAction.action </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">deleteAction</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">;<br />        // 提交
+        document.resultAction.submit();
+    }
+
+    </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> setCheckbox() {
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> detailSize </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">detailSize</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">).value;
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">for</span><span style="background-color: #f5f5f5; color: #000000;"> (</span><span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> i </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #000000;">0</span><span style="background-color: #f5f5f5; color: #000000;">; i </span><span style="background-color: #f5f5f5; color: #000000;">&lt;</span><span style="background-color: #f5f5f5; color: #000000;"> detailSize; i</span><span style="background-color: #f5f5f5; color: #000000;">++</span><span style="background-color: #f5f5f5; color: #000000;">) {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">if</span><span style="background-color: #f5f5f5; color: #000000;">(document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">sel</span><span style="background-color: #f5f5f5; color: #000000;">"</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> i).value </span><span style="background-color: #f5f5f5; color: #000000;">==</span> <span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">1</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">){
+                document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">chk</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;">i).checked </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">checked</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">;
+            }
+        }
+    }
+    
+    </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> set(index) {
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">if</span><span style="background-color: #f5f5f5; color: #000000;">(document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">chk</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;">index).checked </span><span style="background-color: #f5f5f5; color: #000000;">==</span> <span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">checked</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">){
+            document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">chk</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;">index).checked </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #000000;">""</span><span style="background-color: #f5f5f5; color: #000000;">;
+            document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">sel</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;">index).value</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;">""</span><span style="background-color: #f5f5f5; color: #000000;">;
+        }</span><span style="background-color: #f5f5f5; color: #0000ff;">else</span><span style="background-color: #f5f5f5; color: #000000;">{
+            document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">chk</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;">index).checked </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">checked</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">;
+            document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">sel</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;">index).value</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">1</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">;
+        }
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">http-equiv</span><span style="color: #0000ff;">="Content-Type"</span><span style="color: #ff0000;"> content</span><span style="color: #0000ff;">="text/html; charset=ISO-8859-1"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Insert title here<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body </span><span style="color: #ff0000;">onload</span><span style="color: #0000ff;">="setCheckbox();"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">form </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="resultAction"</span><span style="color: #ff0000;"> action</span><span style="color: #0000ff;">="resultAction"</span><span style="color: #ff0000;"> method</span><span style="color: #0000ff;">="post"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="hidden"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="detailSize"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="${detailSize}"</span><span style="color: #ff0000;">
+            id</span><span style="color: #0000ff;">="detailSize"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">table</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">table</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">colspan</span><span style="color: #0000ff;">="3"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">Students Score MainTenance
+                                    Result</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">colspan</span><span style="color: #0000ff;">="3"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">hr</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="100px"</span><span style="color: #0000ff;">&gt;</span>Student Id<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">align</span><span style="color: #0000ff;">="left"</span><span style="color: #ff0000;"> width</span><span style="color: #0000ff;">="50px"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">s:text </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="stuId"</span> <span style="color: #0000ff;">/&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">s:hidden </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="stuId"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="%{stuId}"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">s:hidden</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="100px"</span><span style="color: #0000ff;">&gt;</span>Student Name<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">align</span><span style="color: #0000ff;">="left"</span><span style="color: #ff0000;"> width</span><span style="color: #0000ff;">="50px"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">s:text </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="stuName"</span> <span style="color: #0000ff;">/&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">s:hidden </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="stuName"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="%{stuName}"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">s:hidden</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="100px"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">align</span><span style="color: #0000ff;">="left"</span><span style="color: #ff0000;"> width</span><span style="color: #0000ff;">="50px"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="100px"</span><span style="color: #0000ff;">&gt;</span>Class<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">align</span><span style="color: #0000ff;">="left"</span><span style="color: #ff0000;"> width</span><span style="color: #0000ff;">="50px"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">s:text </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="classes"</span> <span style="color: #0000ff;">/&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">s:hidden </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="classes"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="%{classes}"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">s:hidden</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="100px"</span><span style="color: #0000ff;">&gt;</span>Grade<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">align</span><span style="color: #0000ff;">="left"</span><span style="color: #ff0000;"> width</span><span style="color: #0000ff;">="50px"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">s:text </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="grade"</span> <span style="color: #0000ff;">/&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">s:hidden </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="grade"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="%{grade}"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">s:hidden</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="100px"</span><span style="color: #0000ff;">&gt;</span>Sex<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">align</span><span style="color: #0000ff;">="left"</span><span style="color: #ff0000;"> width</span><span style="color: #0000ff;">="50px"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">s:text </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="sex"</span> <span style="color: #0000ff;">/&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">s:hidden </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="sex"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="%{sex}"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">s:hidden</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td </span><span style="color: #ff0000;">colspan</span><span style="color: #0000ff;">="3"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">hr</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">table</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;<br />                   // list表格开始部分</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">table </span><span style="color: #ff0000;">border</span><span style="color: #0000ff;">="1"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="PCxxxx_table2"</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="30px"</span><span style="color: #0000ff;">&gt;</span>No.<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="30px"</span><span style="color: #0000ff;">&gt;</span>Sel<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="150px"</span><span style="color: #0000ff;">&gt;</span>Curriculum Id<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="150px"</span><span style="color: #0000ff;">&gt;</span>Curriculum Name<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th </span><span style="color: #ff0000;">width</span><span style="color: #0000ff;">="30px"</span><span style="color: #0000ff;">&gt;</span>Score<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">s:iterator </span><span style="color: #ff0000;">value</span><span style="color: #0000ff;">="detailList"</span><span style="color: #ff0000;"> status</span><span style="color: #0000ff;">="status"</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">s:property </span><span style="color: #ff0000;">value</span><span style="color: #0000ff;">="no"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">s:property</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;<br /></span>                                //这里举了text和CheckBox的例子 只需要这样写就可以了 但是单选框type=&ldquo;radio&rdquo;的项目目前查到的资料是无法提交后台的，我的建议是新建一个字段&ldquo;状态&rdquo;，专门用来保存单选框是否选中，当然这个&ldquo;状态&rdquo;字段需要type=&ldquo;hidden&rdquo;的标签隐藏保存值。
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="checkbox"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="sel${status.index}"</span><span style="color: #ff0000;">
+                                    id</span><span style="color: #0000ff;">="chk${status.index}"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">="set(${status.index});"</span> <span style="color: #0000ff;">/&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;">
+                                    name</span><span style="color: #0000ff;">="detailList[${status.index}].curId"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="${curId}"</span> <span style="color: #0000ff;">/&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">s:property </span><span style="color: #ff0000;">value</span><span style="color: #0000ff;">="curName"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">s:property</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">s:property </span><span style="color: #ff0000;">value</span><span style="color: #0000ff;">="score"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">s:property</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">s:iterator</span><span style="color: #0000ff;">&gt;<br />                        //需要注意的是要向把纸传递到后台画面显示用字段需要添加隐藏项，不然页面是不会保存纯显示用字段的<br /></span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">s:iterator </span><span style="color: #ff0000;">value</span><span style="color: #0000ff;">="detailList"</span><span style="color: #ff0000;"> status</span><span style="color: #0000ff;">="status"</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="hidden"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="&lt;s:property value="</span><span style="color: #ff0000;">no"</span><span style="color: #0000ff;">/&gt;</span><span style="color: #000000;">"
+                                name="detailList[${status.index}].no" /&gt;
+                            </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="hidden"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="&lt;s:property value="</span><span style="color: #ff0000;">sel"</span><span style="color: #0000ff;">/&gt;</span><span style="color: #000000;">"
+                                name="detailList[${status.index}].sel" id="sel${status.index}" /&gt;
+                            </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="hidden"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="&lt;s:property value="</span><span style="color: #ff0000;">curName"</span><span style="color: #0000ff;">/&gt;</span><span style="color: #000000;">"
+                                name="detailList[${status.index}].curName" /&gt;
+                            </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="hidden"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="&lt;s:property value="</span><span style="color: #ff0000;">score"</span><span style="color: #0000ff;">/&gt;</span><span style="color: #000000;">"
+                                name="detailList[${status.index}].score" /&gt;
+                        </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">s:iterator</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">table</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">table</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="Update(U)"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">="deleteButton();"//这边只实现了删除按钮压下后的操作deleteButton()中指定跳转的action以及提交。</span><span style="color: #ff0000;">
+                                value</span><span style="color: #0000ff;">="Delete(D)"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">="history.back();"</span><span style="color: #ff0000;">
+                                value</span><span style="color: #0000ff;">="Back(B)"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">table</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">td</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">table</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></em></em></em></code></pre>
+
+<p>附上最后实现结果</p>
+<p><img src="./images/Struts2 Jsp 动态明细向后台传值4.png" alt="" /></p>
+<p>Delete按钮按下后的后台显示效果：</p>
+<p>&nbsp;<img src="./images/Struts2 Jsp 动态明细向后台传值5.png" alt="" /></p>
+<p>结果：后台确实能获取到无论隐藏值&ldquo;No&rdquo;，复选框&ldquo;Sel&rdquo;，text框&ldquo;Curriculum Id&rdquo;的值了。</p>
+<p>以上关于Struts2表格List动态大小的项目像后台传值的解决办法已经介绍完了。方法不止这一种就是了。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

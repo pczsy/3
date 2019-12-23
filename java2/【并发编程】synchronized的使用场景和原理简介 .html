@@ -1,0 +1,200 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【并发编程】synchronized的使用场景和原理简介 ' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【并发编程】synchronized的使用场景和原理简介 </center></div><div class='banquan'>原文出处:本文由博客园博主写代码的木公提供。<br/>
+原文连接:https://www.cnblogs.com/54chensongxia/p/11899031.html</div><br>
+    <h2 id="synchronized使用">1. synchronized使用</h2>
+<h3 id="synchronized介绍">1.1 synchronized介绍</h3>
+<p>在多线程并发编程中synchronized一直是元老级角色，很多人都会称呼它为重量级锁。但是，随着Java SE 1.6对synchronized进行了各种优化之后，有些情况下它就并不那么重了。</p>
+<p>synchronized可以修饰普通方法，静态方法和代码块。<strong>当synchronized修饰一个方法或者一个代码块的时候，它能够保证在同一时刻最多只有一个线程执行该段代码。</strong></p>
+<ul>
+<li><p>对于普通同步方法，锁是当前实例对象（不同实例对象之间的锁互不影响）。</p></li>
+<li><p>对于静态同步方法，锁是当前类的Class对象。</p></li>
+<li><p>对于同步方法块，锁是Synchonized括号里配置的对象。</p></li>
+</ul>
+<p>当一个线程试图访问同步代码块时，它首先必须得到锁，退出或抛出异常时必须释放锁。</p>
+<h3 id="使用场景">1.2 使用场景</h3>
+<p>synchronized最常用的使用场景就是多线程并发编程时线程的同步。这边还是举一个最常用的列子：多线程情况下银行账户存钱和取钱的列子。</p>
+<pre><code><code>public class SynchronizedDemo {
+
+
+    public static void main(String[] args) {
+        BankAccount myAccount = new BankAccount(&quot;accountOfMG&quot;,10000.00);
+        for(int i=0;i&lt;100;i++){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        int var = new Random().nextInt(100);
+                        Thread.sleep(var);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    double deposit = myAccount.deposit(1000.00);
+                    System.out.println(Thread.currentThread().getName()+&quot; balance:&quot;+deposit);
+                }
+            }).start();
+        }
+        for(int i=0;i&lt;100;i++){
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        int var = new Random().nextInt(100);
+                        Thread.sleep(var);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    double deposit = myAccount.withdraw(1000.00);
+                    System.out.println(Thread.currentThread().getName()+&quot; balance:&quot;+deposit);
+
+                }
+            }).start();
+        }
+    }
+
+    private static class BankAccount{
+        String accountName;
+        double balance;
+
+        public BankAccount(String accountName,double balance){
+            this.accountName = accountName;
+            this.balance = balance;
+        }
+
+        public double deposit(double amount){
+            balance = balance + amount;
+            return balance;
+        }
+
+        public double  withdraw(double amount){
+            balance = balance - amount;
+            return balance;
+        }
+
+    }
+}</code></code></pre>
+<p>上面的列子中，首先初始化了一个银行账户，账户的余额是10000.00，然后开始了200个线程，其中100个每次向账户中存1000.00，另外100个每次从账户中取1000.00。如果正常执行的话，账户中应该还是10000.00。但是我们执行多次这段代码，会发现执行结果基本上都不是10000.00，而且每次结果 都是不一样的。</p>
+<p>出现上面这种结果的原因就是：在多线程情况下，银行账户<code>accountOfMG</code>是一个共享变量，对共享变量进行修改如果不做线程同步的话是会存在线程安全问题的。比如说现在有两个线程同时要对账户<code>accountOfMG</code>存款1000，一个线程先拿到账户的当前余额，并且将余额加上1000。但是还没将余额的值刷新回账户，另一个线程也来做相同的操作。此时账户余额还是没加1000之前的值，所以当两个线程执行完毕之后，账户加的总金额还是只有1000。</p>
+<p>synchronized就是Java提供的一种线程同步机制。使用synchronized我们可以非常方便地解决上面的银行账户多线程存钱取钱问题，只需要使用synchronized修饰存钱和取钱方法即可：</p>
+<pre><code><code>private static class BankAccount{
+        String accountName;
+        double balance;
+
+        public BankAccount(String accountName,double balance){
+            this.accountName = accountName;
+            this.balance = balance;
+        }
+        //这边给出一个编程建议：当我们对共享变量进行同步时，同步代码块最好在共享变量中加
+        public synchronized double deposit(double amount){
+            balance = balance + amount;
+            return balance;
+        }
+        
+        public synchronized double  withdraw(double amount){
+            balance = balance - amount;
+            return balance;
+        }
+
+    }</code></code></pre>
+<h2 id="java对象头">2. Java对象头</h2>
+<p>上面提到，当线程进入synchronized方法或者代码块时需要先获取锁，退出时需要释放锁。那么这个锁信息到底存在哪里呢？</p>
+<p>Java对象保存在内存中时，由以下三部分组成：</p>
+<ul>
+<li>对象头</li>
+<li>实例数据</li>
+<li>对齐填充字节</li>
+</ul>
+<p>而对象头又由下面几部分组成：</p>
+<ul>
+<li>Mark Word</li>
+<li>指向类的指针</li>
+<li>数组长度（只有数组对象才有）</li>
+</ul>
+<p><strong>1. Mark Word</strong><br />
+Mark Word记录了对象和锁有关的信息，当这个对象被synchronized关键字当成同步锁时，围绕这个锁的一系列操作都和Mark Word有关。Mark Word在32位JVM中的长度是32bit，在64位JVM中长度是64bit。</p>
+<p>Mark Word在不同的锁状态下存储的内容不同，在32位JVM中是这么存的：</p>
+<p><img src="./images/【并发编程】synchronized的使用场景和原理简介 0.png" /></p>
+<p>其中无锁和偏向锁的锁标志位都是01，只是在前面的1bit区分了这是无锁状态还是偏向锁状态。Epoch是指偏向锁的时间戳。</p>
+<p>JDK1.6以后的版本在处理同步锁时存在锁升级的概念，JVM对于同步锁的处理是从偏向锁开始的，随着竞争越来越激烈，处理方式从偏向锁升级到轻量级锁，最终升级到重量级锁。</p>
+<p>JVM一般是这样使用锁和Mark Word的：</p>
+<ul>
+<li><p>step1:当没有被当成锁时，这就是一个普通的对象，Mark Word记录对象的HashCode，锁标志位是01，是否偏向锁那一位是0。</p></li>
+<li><p>step2:当对象被当做同步锁并有一个线程A抢到了锁时，锁标志位还是01，但是否偏向锁那一位改成1，前23bit记录抢到锁的线程id，表示进入偏向锁状态。</p></li>
+<li><p>step3:当线程A再次试图来获得锁时，JVM发现同步锁对象的标志位是01，是否偏向锁是1，也就是偏向状态，Mark Word中记录的线程id就是线程A自己的id，表示线程A已经获得了这个偏向锁，可以执行同步锁的代码。</p></li>
+<li><p>step4:当线程B试图获得这个锁时，JVM发现同步锁处于偏向状态，但是Mark Word中的线程id记录的不是B，那么线程B会先用CAS操作试图获得锁，这里的获得锁操作是有可能成功的，因为线程A一般不会自动释放偏向锁。如果抢锁成功，就把Mark Word里的线程id改为线程B的id，代表线程B获得了这个偏向锁，可以执行同步锁代码。如果抢锁失败，则继续执行步骤5。</p></li>
+<li><p>step5:偏向锁状态抢锁失败，代表当前锁有一定的竞争，偏向锁将升级为轻量级锁。JVM会在当前线程的线程栈中开辟一块单独的空间，里面保存指向对象锁Mark Word的指针，同时在对象锁Mark Word中保存指向这片空间的指针。上述两个保存操作都是CAS操作，如果保存成功，代表线程抢到了同步锁，就把Mark Word中的锁标志位改成00，可以执行同步锁代码。如果保存失败，表示抢锁失败，竞争太激烈，继续执行步骤6。</p></li>
+<li><p>step6:轻量级锁抢锁失败，JVM会使用自旋锁，自旋锁不是一个锁状态，只是代表不断的重试，尝试抢锁。从JDK1.7开始，自旋锁默认启用，自旋次数由JVM决定。如果抢锁成功则执行同步锁代码，如果失败则继续执行步骤7。</p></li>
+<li><p>step7:自旋锁重试之后如果抢锁依然失败，同步锁会升级至重量级锁，锁标志位改为10。在这个状态下，未抢到锁的线程都会被阻塞。</p></li>
+</ul>
+<p><strong>2. 指向类的指针</strong><br />
+该指针在32位JVM中的长度是32bit，在64位JVM中长度是64bit。Java对象的类数据保存在方法区。</p>
+<p><strong>3. 数组长度</strong><br />
+只有数组对象保存了这部分数据。该数据在32位和64位JVM中长度都是32bit。</p>
+<h2 id="synchronized对锁的优化">synchronized对锁的优化</h2>
+<p>Java 6中为了减少获得锁和释放锁带来的性能消耗，引入了“偏向锁”和“轻量级锁”的概念。在Java 6中，锁一共有4种状态，级别从低到高依次是：无锁状态、偏向锁状态、轻量级锁状态和重量级锁状态，这几个状态会随着竞争情况逐渐升级。锁可以升级但不能降级，意味着偏向锁升级成轻量级锁后不能降级成偏向锁。</p>
+<p>在聊偏向锁、轻量级锁和重量级锁之前我们先来聊下锁的宏观分类。锁从宏观上来分类，可以分为悲观锁与乐观锁。注意，这里说的的锁可以是数据库中的锁，也可以是Java等开发语言中的锁技术。悲观锁和乐观锁其实只是一类概念（对某类具体锁的总称），不是某种语言或是某个技术独有的锁技术。</p>
+<p><strong>乐观锁</strong>是一种乐观思想，即认为读多写少，遇到并发写的可能性低，每次去拿数据的时候都认为别人不会修改，所以不会上锁，但是在更新的时候会判断一下在此期间别人有没有去更新这个数据，采取在写时先读出当前版本号，然后加锁操作（比较跟上一次的版本号，如果一样则更新），如果失败则要重复读-比较-写的操作。java中的乐观锁基本都是通过CAS操作实现的，CAS是一种更新的原子操作，比较当前值跟传入值是否一样，一样则更新，否则失败。数据库中的共享锁也是一种乐观锁。</p>
+<p><strong>悲观锁</strong>是就是悲观思想，即认为写多，遇到并发写的可能性高，每次去拿数据的时候都认为别人会修改，所以每次在读写数据的时候都会上锁，这样别人想读写这个数据就会block直到拿到锁。java中典型的悲观锁就是Synchronized,AQS框架下的锁则是先尝试cas乐观锁去获取锁，获取不到，才会转换为悲观锁，如ReentrantLock。数据库中的排他锁也是一种悲观锁。</p>
+<h3 id="偏向锁">偏向锁</h3>
+<p>Java 6之前的synchronized会导致争用不到锁的线程进入阻塞状态，线程在阻塞状态和runnbale状态之间切换是很耗费系统资源的，所以说它是java语言中一个重量级的同步操纵，被称为重量级锁。为了缓解上述性能问题，Java 6开始，引入了轻量锁与偏向锁，默认启用了自旋，他们都属于<strong>乐观锁</strong>。</p>
+<p><strong>偏向锁</strong>更准确的说是锁的一种状态。在这种锁状态下，系统中只有一个线程来争夺这个锁。线程只要简单地通过Mark Word中存放的线程ID和自己的ID是否一致就能拿到锁。下面简单介绍下偏向锁获取和升级的过程。</p>
+<p><img src="./images/【并发编程】synchronized的使用场景和原理简介 0.png" /></p>
+<p>还是就着这张图讲吧，会清楚点。</p>
+<p>当系统中还没有访问过synchronized代码时，此时锁的状态肯定是“无锁状态”，也就是说“是否是偏向锁”的值是0，“锁标志位”的值是01。此时有一个线程1来访问同步代码，发现锁对象的状态是&quot;无锁状态&quot;，那么操作起来非常简单了，只需要将“是否偏向锁”标志位改成1，再将线程1的线程ID写入Mark Word即可。</p>
+<p>如果后续系统中一直只有线程1来拿锁，那么只要简单的判断下线程1的ID和Mark Word中的线程ID，线程1就能非常轻松地拿到锁。但是现实往往不是那么简单的，现在假设线程2也要来竞争同步锁，我们看下情况是怎么样的。</p>
+<ul>
+<li>step1：线程2首先根据“是否是偏向锁”和“锁标志位”的值判断出当前锁的状态是“偏向锁”状态，但是Mark Word中的线程ID又不是指向自己（此时线程ID还是指向线程1），所以此时回去判断线程1还是否存在；</li>
+<li>step2：假如此时线程1已经不存在了，线程2会将Mark Word中的线程ID指向自己的线程ID，锁不升级，仍为偏向锁；</li>
+<li>step3：假如此时线程1还存在（线程1还没执行完同步代码，【不知道这样理解对不对，姑且先这么理解吧】），首先暂停线程1，设置锁标志位为00，锁升级为“轻量级锁”，继续执行线程1的代码；线程2通过自旋操作来继续获得锁。</li>
+</ul>
+<p>在JDK6中，偏向锁是默认启用的。它提高了单线程访问同步资源的性能。但试想一下，如果你的同步资源或代码一直都是多线程访问的，那么消除偏向锁这一步骤对你来说就是多余的。事实上，消除偏向锁的开销还是蛮大的。<br />
+所以在你非常熟悉自己的代码前提下，大可禁用偏向锁:</p>
+<pre><code><code> -XX:-UseBiasedLocking=false</code></code></pre>
+<h3 id="轻量级锁">轻量级锁</h3>
+<p>&quot;轻量级锁&quot;锁也是一种锁的状态，这种锁状态的特点是：当一个线程来竞争锁失败时，不会立即进入阻塞状态，而是会进行一段时间的锁自旋操作，如果自旋操作拿锁成功就执行同步代码，如果经过一段时间的自旋操作还是没拿到锁，线程就进入阻塞状态。</p>
+<p><strong>1. 轻量级锁加锁流程</strong><br />
+线程在执行同步块之前，JVM会先在当前线程的栈桢中创建用于存储锁记录的空间，并将对象头中的Mark Word复制到锁记录中，官方称为Displaced Mark Word。然后线程尝试使用CAS将对象头中的Mark Word替换为指向锁记录的指针。如果成功，当前线程获得锁，如果失败，表示其他线程竞争锁，当前线程便尝试使用自旋来获取锁。</p>
+<p><strong>2. 轻量级锁解锁流程</strong><br />
+轻量级解锁时，会使用原子的CAS操作将Displaced Mark Word替换回到对象头，如果成功，则表示没有竞争发生。如果失败，表示当前锁存在竞争，锁就会膨胀成重量级锁。</p>
+<h3 id="重量级锁">重量级锁</h3>
+<p>因为自旋会消耗CPU，为了避免无用的自旋（比如获得锁的线程被阻塞住了），一旦锁升级成重量级锁，就不会再恢复到轻量级锁状态。当锁处于这个状态下，其他线程试图获取锁时，都会被阻塞住，当持有锁的线程释放锁之后会唤醒这些线程，被唤醒的线程就会进行新一轮的夺锁之争。</p>
+<h3 id="锁自旋">锁自旋</h3>
+<p>自旋锁原理非常简单，如果持有锁的线程能在很短时间内释放锁资源，那么那些等待竞争锁的线程就不需要做内核态和用户态之间的切换进入阻塞挂起状态，它们只需要等一等（自旋），等持有锁的线程释放锁后即可立即获取锁，这样就避免用户线程和内核的切换的消耗。</p>
+<p>但是线程自旋是需要消耗CPU的，说白了就是让CPU在做无用功，线程不能一直占用CPU自旋做无用功，所以需要设定一个自旋等待的最大时间。如果持有锁的线程执行的时间超过自旋等待的最大时间扔没有释放锁，就会导致其它争用锁的线程在最大等待时间内还是获取不到锁，这时争用线程会停止自旋进入阻塞状态。</p>
+<p>自旋锁尽可能的减少线程的阻塞，这对于锁的竞争不激烈，且占用锁时间非常短的代码块来说性能能大幅度的提升，因为自旋的消耗会小于线程阻塞挂起操作的消耗！但是如果锁的竞争激烈，或者持有锁的线程需要长时间占用锁执行同步块，这时候就不适合使用自旋锁了，因为自旋锁在获取锁前一直都是占用cpu做无用功，线程自旋的消耗大于线程阻塞挂起操作的消耗，其它需要cup的线程又不能获取到cpu，造成cpu的浪费。</p>
+<p>JDK7之后，锁的自旋特性都是由JVM自身控制的，不需要我们手动配置。</p>
+<h3 id="锁对比">锁对比</h3>
+<p><img src="./images/【并发编程】synchronized的使用场景和原理简介 2.png" /></p>
+<h3 id="锁的优化">锁的优化</h3>
+<ul>
+<li>减少锁的时间：不需要同步的代码不加锁；</li>
+<li>使用读写锁：读操作加读锁，可以并发读，写操作使用写锁，只能单线程写；</li>
+<li>锁粗化：假如有一个循环，循环内的操作需要加锁，我们应该把锁放到循环外面，否则每次进出循环，都进出一次临界区，效率是非常差的；</li>
+</ul>
+<h2 id="参考">参考</h2>
+<ul>
+<li>https://blog.csdn.net/lkforce/article/details/81128115</li>
+<li>《并发编程艺术》</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

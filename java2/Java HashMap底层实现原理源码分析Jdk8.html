@@ -1,0 +1,353 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java HashMap底层实现原理源码分析Jdk8' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java HashMap底层实现原理源码分析Jdk8</center></div><div class='banquan'>原文出处:本文由博客园博主NeverTh提供。<br/>
+原文连接:https://www.cnblogs.com/neverth/p/11781491.html</div><br>
+    <p>在JDK1.6，JDK1.7中，HashMap采用位桶+链表实现，即使用链表处理冲突，同一hash值的链表都存储在一个链表里。但是当位于一个桶中的元素较多，即hash值相等的元素较多时，通过key值依次查找的效率较低。而JDK1.8中，HashMap采用位桶+链表+红黑树实现，当链表长度超过阈值（8）时，可能会将链表转换为红黑树，这样大大减少了查找时间。</p>
+<h4 id="简单说下hashmap的实现原理">简单说下HashMap的实现原理：</h4>
+<p>首先存在一个table数组，里面每个元素都是一个node链表，当添加一个元素（key-value）时，就首先计算元素key的hash值，通过table的长度和key的hash值进行与运算得到一个index，以此确定插入数组中的位置，但是可能存在同一hash值的元素已经被放在数组同一位置了，这时就把这个元素添加到同一hash值的node链表的链尾，他们在数组的同一位置，但是形成了链表，同一各链表上的Hash值是相同的，所以说数组存放的是链表。而当链表长度大于等于8时，链表就可能转换为红黑树，这样大大提高了查找的效率。</p>
+<h4 id="存储结构">存储结构</h4>
+<p><img src="./images/Java HashMap底层实现原理源码分析Jdk80.png" alt="存储结构" /></p>
+<pre><code><code>static class Node&lt;K,V&gt; implements Map.Entry&lt;K,V&gt; {
+        final int hash;
+        final K key;
+        V value;
+        Node&lt;K,V&gt; next; //可以看得出这是一个链表
+
+        Node(int hash, K key, V value, Node&lt;K,V&gt; next) {
+            this.hash = hash;
+            this.key = key;
+            this.value = value;
+            this.next = next;
+        }
+        *
+        *
+        *
+    }</code></code></pre>
+<pre><code><code>transient Node&lt;K,V&gt;[] table;</code></code></pre>
+<ul>
+<li>HashMap内部包含一个Node类型的数组table，Node由Map.Entry继承而来。</li>
+<li>Node存储着键值对。它包含四个字段，从next字段我们可以看出node是一个链表。</li>
+<li>table数组中的每个位置都可以当做一个桶，一个桶存放一个链表。</li>
+<li>HashMap使用拉链法来解决冲突，同一个存放散列值相同的Node。</li>
+</ul>
+<h4 id="数据域">数据域</h4>
+<pre><code><code>// 序列化ID
+private static final long serialVersionUID = 362498820763181265L;  
+// 初始化容量，初始化有16个桶
+static final int DEFAULT_INITIAL_CAPACITY = 1 &lt;&lt; 4; // aka 16  
+// 最大容量  1 073 741 824, 10亿多
+static final int MAXIMUM_CAPACITY = 1 &lt;&lt; 30;
+// 默认的负载因子。因此初始情况下，当键值对的数量大于 16 * 0.75 = 12 时，就会触发扩容。
+static final float DEFAULT_LOAD_FACTOR = 0.75f; 
+// 当put()一个元素到某个桶，其链表长度达到8时有可能将链表转换为红黑树  
+static final int TREEIFY_THRESHOLD = 8;  
+// 在hashMap扩容时，如果发现链表长度小于等于6，则会由红黑树重新退化为链表。
+static final int UNTREEIFY_THRESHOLD = 6;  
+// 在转变成红黑树树之前，还会有一次判断，只有键值对数量大于 64 才会发生转换，否者直接扩容。这是为了避免在HashMap建立初期，多个键值对恰好被放入了同一个链表中而导致不必要的转化。
+static final int MIN_TREEIFY_CAPACITY = 64;  
+// 存储元素的数组  
+transient Node&lt;k,v&gt;[] table;
+// 存放元素的个数
+transient int size;
+// 被修改的次数fast-fail机制   
+transient int modCount; 
+// 临界值 当实际大小(容量*填充比)超过临界值时，会进行扩容   
+int threshold;
+// 填充比
+final float loadFactor;</code></code></pre>
+<h4 id="构造函数">构造函数</h4>
+<pre><code><code>public HashMap() {
+        this.loadFactor = DEFAULT_LOAD_FACTOR; // all other fields defaulted
+}
+public HashMap(int initialCapacity) {
+        this(initialCapacity, DEFAULT_LOAD_FACTOR);
+}
+public HashMap(int initialCapacity, float loadFactor) {
+        if (initialCapacity &lt; 0)
+            throw new IllegalArgumentException(&quot;Illegal initial capacity: &quot; +
+                                               initialCapacity);
+        if (initialCapacity &gt; MAXIMUM_CAPACITY)
+            initialCapacity = MAXIMUM_CAPACITY;
+        if (loadFactor &lt;= 0 || Float.isNaN(loadFactor))
+            throw new IllegalArgumentException(&quot;Illegal load factor: &quot; +
+                                               loadFactor);
+        this.loadFactor = loadFactor;
+        // tableSizeFor(initialCapacity)方法计算出接近initialCapacity
+        // 参数的2^n来作为初始化容量。
+        this.threshold = tableSizeFor(initialCapacity);
+}
+public HashMap(Map&lt;? extends K, ? extends V&gt; m) {
+        this.loadFactor = DEFAULT_LOAD_FACTOR;
+        putMapEntries(m, false);
+}</code></code></pre>
+<ul>
+<li><p>HashMap构造函数允许用户传入容量不是2的n次方，因为它可以自动地将传入的容量转换为2的n次方。</p>
+<h4 id="put操作源码解析">put()操作源码解析</h4></li>
+</ul>
+<pre><code><code>
+public V put(K key, V value) {
+        return putVal(hash(key), key, value, false, true);
+}
+static final int hash(Object key) {
+        int h;
+        // “扰动函数”。参考 https://www.cnblogs.com/zhengwang/p/8136164.html
+        return (key == null) ? 0 : (h = key.hashCode()) ^ (h &gt;&gt;&gt; 16);
+}    
+final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
+                   boolean evict) {
+        HashMap.Node&lt;K,V&gt;[] tab; HashMap.Node&lt;K,V&gt; p; int n, i;
+        // 未初始化则初始化table
+        if ((tab = table) == null || (n = tab.length) == 0)
+            n = (tab = resize()).length;
+        // 通过table的长度和hash与运算得到一个index，
+        // 然后判断table数组下标为index处是否已经存在node。
+        if ((p = tab[i = (n - 1) &amp; hash]) == null)
+            // 如果table数组下标为index处为空则新创建一个node放在该处
+            tab[i] = newNode(hash, key, value, null);
+        else {
+            // 运行到这代表table数组下标为index处已经存在node，即发生了碰撞
+            HashMap.Node&lt;K,V&gt; e; K k;
+            // 检查这个node的key是否跟插入的key是否相同。
+            if (p.hash == hash &amp;&amp;
+                    ((k = p.key) == key || (key != null &amp;&amp; key.equals(k))))
+                e = p;
+            // 检查这个node是否已经是一个红黑树
+            else if (p instanceof TreeNode)
+                // 如果这个node已经是一个红黑树则继续往树种添加节点
+                e = ((HashMap.TreeNode&lt;K,V&gt;)p).putTreeVal(this, tab, hash, key, value);
+            else {
+                for (int binCount = 0; ; ++binCount) {
+                    // 在这里循环遍历node链表
+
+                    // 判断是否到达链表尾
+                    if ((e = p.next) == null) {
+                        // 到达链表尾，直接把新node插入链表，插入链表尾部，在jdk8之前是头插法
+                        p.next = newNode(hash, key, value, null);
+                        if (binCount &gt;= TREEIFY_THRESHOLD - 1) // -1 for 1st
+                            // 如果node链表的长度大于等于8则可能把这个node转换为红黑树
+                            treeifyBin(tab, hash);
+                        break;
+                    }
+                    // 检查这个node的key是否跟插入的key是否相同。
+                    if (e.hash == hash &amp;&amp;
+                            ((k = e.key) == key || (key != null &amp;&amp; key.equals(k))))
+                        break;
+                    p = e;
+                }
+            }
+            // 当插入key存在，则更新value值并返回旧value
+            if (e != null) { // existing mapping for key
+                V oldValue = e.value;
+                if (!onlyIfAbsent || oldValue == null)
+                    e.value = value;
+                afterNodeAccess(e);
+                return oldValue;
+            }
+        }
+        // 修改次数++
+        ++modCount;
+        // 如果当前大小大于门限，门限原本是初始容量*0.75
+        if (++size &gt; threshold)
+            resize();
+        afterNodeInsertion(evict);
+        return null;
+    }</code></code></pre>
+<ul>
+<li>下面简单说下put()流程：
+<ol>
+<li>判断键值对数组table[]是否为空或为null，否则以默认大小resize()；</li>
+<li>根据键key计算hash值与table的长度进行与运算得到插入的数组索引 index，如果tab[index] == null，直接根据key-value新建node添加，否则转入3</li>
+<li>判断当前数组中处理hash冲突的方式为链表还是红黑树(check第一个节点类型即可),分别处理</li>
+</ol></li>
+<li>为啥头插法为什么要换成尾插：jdk1.7时候用头插法可能是考虑到了一个所谓的热点数据的点(新插入的数据可能会更早用到)；找到链表尾部的时间复杂度是 O(n)，或者需要使用额外的内存地址来保存链表尾部的位置，头插法可以节省插入耗时。但是在扩容时会改变链表中元素原本的顺序，以至于在<strong>并发场景下导致链表成环</strong>的问题。</li>
+<li>从putVal()源码可以看出，HashMap并没有对null的键值对做限制（hash值设为0），即HashMap允许插入键尾null的键值对。但在JDK1.8之前HashMap使用第0个node存放键为null的键值对。</li>
+<li>确定node下标：通过table的长度和key的hash进行与运算得到一个index。</li>
+<li>在转变成红黑树树之前，还会有一次判断，只有键值对数量大于 64 才会发生转换，否者直接扩容。这是为了避免在HashMap建立初期，多个键值对恰好被放入了同一个链表中而导致不必要的转化。</li>
+</ul>
+<h4 id="get操作源码解析">get()操作源码解析</h4>
+<pre><code><code>public V get(Object key) {
+        HashMap.Node&lt;K,V&gt; e;
+        return (e = getNode(hash(key), key)) == null ? null : e.value;
+    }
+    
+    final HashMap.Node&lt;K,V&gt; getNode(int hash, Object key) {
+        HashMap.Node&lt;K,V&gt;[] tab; HashMap.Node&lt;K,V&gt; first, e; int n; K k;
+        // table不为空
+        if ((tab = table) != null &amp;&amp; (n = tab.length) &gt; 0 &amp;&amp;
+                // 通过table的长度和hash与运算得到一个index，table
+                // 下标位index处的元素不为空，即元素为node链表
+                (first = tab[(n - 1) &amp; hash]) != null) {
+            // 首先判断node链表中中第一个节点
+            if (first.hash == hash &amp;&amp; // always check first node
+                    // 分别判断key为null和key不为null的情况
+                    ((k = first.key) == key || (key != null &amp;&amp; key.equals(k))))
+                // key相等则返回第一个
+                return first;
+            // 第一个节点key不同且node链表不止包含一个节点
+            if ((e = first.next) != null) {
+                // 判断node链表是否转为红黑树。
+                if (first instanceof HashMap.TreeNode)
+                    // 则在红黑树中进行查找。
+                    return ((HashMap.TreeNode&lt;K,V&gt;)first).getTreeNode(hash, key);
+                do {
+                    // 循环遍历node链表中的节点，判断key是否相等
+                    if (e.hash == hash &amp;&amp;
+                            ((k = e.key) == key || (key != null &amp;&amp; key.equals(k))))
+                        return e;
+                } while ((e = e.next) != null);
+            }
+        }
+        // key在table中不存在则返回null。
+        return null;
+    }</code></code></pre>
+<ul>
+<li>get(key)方法首先获取key的hash值，
+<ol>
+<li>计算hash &amp; (table.len - 1)得到在链表数组中的位置，</li>
+<li>先判断node链表（桶）中的第一个节点的key是否与参数key相等，</li>
+<li>不等则判断是否已经转为红黑树，若转为红黑树则在红黑树中查找，</li>
+<li>如没有转为红黑树就遍历后面的链表找到相同的key值返回对应的Value值即可。</li>
+</ol></li>
+</ul>
+<h4 id="resize操作源码解析">resize()操作源码解析</h4>
+<pre><code><code>// 初始化或者扩容之后的元素调整
+    final HashMap.Node&lt;K,V&gt;[] resize() {
+        // 获取旧table
+        HashMap.Node&lt;K,V&gt;[] oldTab = table;
+        // 旧table容量
+        int oldCap = (oldTab == null) ? 0 : oldTab.length;
+        // 旧table扩容临界值
+        int oldThr = threshold;
+        // 定义新table容量和临界值
+        int newCap, newThr = 0;
+        // 如果原table不为空
+        if (oldCap &gt; 0) {
+            // 如果table容量达到最大值，则修改临界值为Integer.MAX_VALUE
+            // MAXIMUM_CAPACITY = 1 &lt;&lt; 30;
+            // Integer.MAX_VALUE = 1 &lt;&lt; 31 - 1;
+            if (oldCap &gt;= MAXIMUM_CAPACITY) {
+                // Map达到最大容量，这时还要向map中放数据，则直接设置临界值为整数的最大值
+                // 在容量没有达到最大值之前不会再resize。
+                threshold = Integer.MAX_VALUE;
+                // 结束操作
+                return oldTab;
+            }
+            // 下面就是扩容操作（2倍）
+            else if ((newCap = oldCap &lt;&lt; 1) &lt; MAXIMUM_CAPACITY &amp;&amp;
+                    oldCap &gt;= DEFAULT_INITIAL_CAPACITY)
+                // 临界值也变为两倍
+                newThr = oldThr &lt;&lt; 1; // double threshold
+        }
+        else if (oldThr &gt; 0) // initial capacity was placed in threshold
+            /*
+             * 进入此if证明创建HashMap时用的带参构造：public HashMap(int initialCapacity)
+             * 或 public HashMap(int initialCapacity, float loadFactor)
+             * 注：带参的构造中initialCapacity（初始容量值）不管是输入几都会通过
+             * tableSizeFor(initialCapacity)方法计算出接近initialCapacity
+             * 参数的2^n来作为初始化容量。
+             * 所以实际创建的容量并不等于设置的初始容量。
+             */
+            newCap = oldThr;
+        else {               // zero initial threshold signifies using defaults
+            // 进入此if证明创建map时用的无参构造：
+            // 然后将参数newCap（新的容量）、newThr(新的扩容阀界值)进行初始化
+            newCap = DEFAULT_INITIAL_CAPACITY;
+            newThr = (int)(DEFAULT_LOAD_FACTOR * DEFAULT_INITIAL_CAPACITY);
+        }
+        if (newThr == 0) {
+            // 进入这代表有两种可能。
+            // 1. 说明old table容量大于0但是小于16.
+            // 2. 创建HashMap时用的带参构造，根据loadFactor计算临界值。
+            float ft = (float)newCap * loadFactor;
+            newThr = (newCap &lt; MAXIMUM_CAPACITY &amp;&amp; ft &lt; (float)MAXIMUM_CAPACITY ?
+                    (int)ft : Integer.MAX_VALUE);
+        }
+        // 修改临界值
+        threshold = newThr;
+        @SuppressWarnings({&quot;rawtypes&quot;,&quot;unchecked&quot;})
+        // 根据新的容量生成新的 table
+        HashMap.Node&lt;K,V&gt;[] newTab = (HashMap.Node&lt;K,V&gt;[])new HashMap.Node[newCap];
+        // 替换成新的table
+        table = newTab;
+        // 如果oldTab不为null说明是扩容，否则直接返回newTab
+        if (oldTab != null) {
+            /* 遍历原来的table */
+            for (int j = 0; j &lt; oldCap; ++j) {
+                HashMap.Node&lt;K,V&gt; e;
+                if ((e = oldTab[j]) != null) {
+                    oldTab[j] = null;
+                    // 判断这个桶（链表）中就只有一个节点
+                    if (e.next == null)
+                        // 根据新的容量重新计算在table中的位置index，并把当前元素赋值给他。
+                        newTab[e.hash &amp; (newCap - 1)] = e;
+                    // 判断这个链表是否已经转为红黑树
+                    else if (e instanceof HashMap.TreeNode)
+                        // 在split函数中可能由于红黑树的长度小于等于UNTREEIFY_THRESHOLD（6）
+                        // 则把红黑树重新转为链表
+                        ((HashMap.TreeNode&lt;K,V&gt;)e).split(this, newTab, j, oldCap);
+                    else { // preserve order
+                        // 运行到这里证明桶中有多个节点。
+                        HashMap.Node&lt;K,V&gt; loHead = null, loTail = null;
+                        HashMap.Node&lt;K,V&gt; hiHead = null, hiTail = null;
+                        HashMap.Node&lt;K,V&gt; next;
+                        do {
+                            // 对桶进行遍历
+                            next = e.next;
+                            if ((e.hash &amp; oldCap) == 0) {
+                                if (loTail == null)
+                                    loHead = e;
+                                else
+                                    loTail.next = e;
+                                loTail = e;
+                            }
+                            else {
+                                if (hiTail == null)
+                                    hiHead = e;
+                                else
+                                    hiTail.next = e;
+                                hiTail = e;
+                            }
+                        } while ((e = next) != null);
+                        if (loTail != null) {
+                            loTail.next = null;
+                            newTab[j] = loHead;
+                        }
+                        if (hiTail != null) {
+                            hiTail.next = null;
+                            newTab[j + oldCap] = hiHead;
+                        }
+                    }
+                }
+            }
+        }
+        return newTab;
+    }
+</code></code></pre>
+<ul>
+<li>在达到最大值MAXIMUM_CAPACITY之后仍可以put数据。</li>
+<li>带构造参数初始化过程中，实际创建的容量并不等于设置的初始容量。tableSizeFor()方法可以自动的将传入的容量转换2的n次方。</li>
+<li>红黑树可以退化成链表。</li>
+<li>需要注意的是，扩容操作需要把oldTable的所有键值对重新插入newTable中，因此，这一步是很耗时的。</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

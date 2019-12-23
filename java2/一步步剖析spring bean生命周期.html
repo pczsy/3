@@ -1,0 +1,224 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一步步剖析spring bean生命周期' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一步步剖析spring bean生命周期</center></div><div class='banquan'>原文出处:本文由博客园博主Alan_beijing提供。<br/>
+原文连接:https://www.cnblogs.com/wangjiming/p/11669091.html</div><br>
+    <p>&nbsp;关于spring bean的生命周期，是深入学习spring的基础，也是难点，本篇文章将采用代码+图文结论的方式来阐述spring bean的生命周期，</p>
+<p>本篇文章将阐述清楚下图。</p>
+<p><img src="./images/一步步剖析spring bean生命周期0.png" alt="" width="834" height="402" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<strong><span style="font-size: 16px;">一&nbsp; 项目结构及源码</span></strong></p>
+<p>1.程序目录结构</p>
+<p><img src="./images/一步步剖析spring bean生命周期1.png" alt="" /></p>
+<p>&nbsp;2.applicationContext.xml</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="UTF-8"</span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">beans </span><span style="color: #ff0000;">xmlns</span><span style="color: #0000ff;">="http://www.springframework.org/schema/beans"</span><span style="color: #ff0000;">
+       xmlns:xsi</span><span style="color: #0000ff;">="http://www.w3.org/2001/XMLSchema-instance"</span><span style="color: #ff0000;">
+       xsi:schemaLocation</span><span style="color: #0000ff;">="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd"</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="com.demo.dao.UserDao"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="userDao"</span><span style="color: #ff0000;"> scope</span><span style="color: #0000ff;">="singleton"</span><span style="color: #ff0000;"> init-method</span><span style="color: #0000ff;">="myInit"</span><span style="color: #ff0000;"> destroy-method</span><span style="color: #0000ff;">="myDestroy"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="userName"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="Alan_beijing"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">bean</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">bean </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="com.demo.dao.MyBeanPostProcessor"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="myBeanPostProcessor"</span><span style="color: #0000ff;">/&gt;</span>
+
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">beans</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>3.UserDao.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.demo.dao;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.BeansException;
+</span><span style="color: #0000ff;">import</span> org.springframework.beans.factory.*<span style="color: #000000;">;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.config.BeanPostProcessor;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.ApplicationContext;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.ApplicationContextAware;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.log4j.Logger;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserDao <span style="color: #0000ff;">implements</span><span style="color: #000000;"> BeanNameAware, BeanFactoryAware, ApplicationContextAware, InitializingBean,
+        DisposableBean{
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String userName;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> count = 0<span style="color: #000000;">;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getUserName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userName;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">2.属性注入，注入属性为userName</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setUserName(String userName) {
+        count</span>++<span style="color: #000000;">;
+        System.out.println(count </span>+ "：注入属性userName="+<span style="color: #000000;">userName);
+        </span><span style="color: #0000ff;">this</span>.userName =<span style="color: #000000;"> userName;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">1.无参构造函数，实例化时调用该构造函数</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> UserDao() {
+        count</span>++<span style="color: #000000;">;
+        System.out.println(count </span>+ "：调用构造函数UserDao()"<span style="color: #000000;">);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">3.实现BeanNameAware，获取bean id</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setBeanName(String s) {
+        count</span>++<span style="color: #000000;">;
+        System.out.println(count </span>+ "：调用setBeanName()获取bean id,bean id=" +<span style="color: #000000;"> s);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">4.实现BeanFactoryAware,获取bean工厂</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setBeanFactory(BeanFactory beanFactory) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeansException {
+        count</span>++<span style="color: #000000;">;
+        System.out.println(count </span>+ "：调用setBeanFactory()获取bean工厂,beanFactory=" +<span style="color: #000000;"> beanFactory);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">5.实现ApplicationContextAware,获取bean上下文</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setApplicationContext(ApplicationContext applicationContext) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeansException {
+        count</span>++<span style="color: #000000;">;
+        System.out.println(count </span>+ "：调用setApplicationContext()获取bean上下文,applicationContext=" +<span style="color: #000000;"> applicationContext);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">6.实现InitializingBean，获取afterPropertiesSet</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> afterPropertiesSet() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        count</span>++<span style="color: #000000;">;
+        System.out.println(count </span>+ "：调用afterPropertiesSet()"<span style="color: #000000;">);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">7.自定义初始化方法myInit()</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> myInit() {
+        count</span>++<span style="color: #000000;">;
+        System.out.println(count </span>+ "：调用自定义myInit()"<span style="color: #000000;">);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">8.实现DisposableBean，获取destroy()</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> destroy() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        count</span>++<span style="color: #000000;">;
+        System.out.println(count </span>+ "：destroy()"<span style="color: #000000;">);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">9.自定义销毁方法myDestroy()</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> myDestroy() {
+        count</span>++<span style="color: #000000;">;
+        System.out.println(count </span>+ "：调用自定义destroy()"<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<pre><code>4.MyBeanPostProcessor.java</code></pre>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.demo.dao;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.BeansException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.config.BeanPostProcessor;
+
+</span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">class</span> MyBeanPostProcessor <span style="color: #0000ff;">implements</span><span style="color: #000000;"> BeanPostProcessor {
+    </span><span style="color: #0000ff;">public</span> Object postProcessBeforeInitialization(Object bean, String beanName) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeansException {
+        System.out.println(</span>"=====调用postProcessBeforeInitialization()====="<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> bean;
+    }
+
+    </span><span style="color: #0000ff;">public</span> Object postProcessAfterInitialization(Object bean, String beanName) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeansException {
+        System.out.println(</span>"=====调用postProcessAfterInitialization()====="<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> bean;
+    }
+}</span></code></pre>
+
+<p><strong><span style="font-size: 16px;">&nbsp;二&nbsp; 测试代码及测试结果</span></strong></p>
+<p>1.test.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.demo.test;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.demo.dao.UserDao;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.support.AbstractApplicationContext;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.support.ClassPathXmlApplicationContext;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyTest {
+
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">定义容器并初始化
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">ApplicationContext applicationContext = new ClassPathXmlApplicationContext("applicationContext.xml");</span>
+        AbstractApplicationContext applicationContext = <span style="color: #0000ff;">new</span> ClassPathXmlApplicationContext("applicationContext.xml"<span style="color: #000000;">);
+        applicationContext.getBean(UserDao.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">只有关闭容器时，才会调用destroy方法</span>
+<span style="color: #000000;">        applicationContext.registerShutdownHook();
+    }
+}</span></code></pre>
+
+<p>2.测试结果</p>
+<p><img src="./images/一步步剖析spring bean生命周期2.png" alt="" width="1171" height="325" /></p>
+<p>&nbsp;三 分析</p>
+<p>通过如上测试结果，bean生命周期流程大致如下：</p>
+<p><img src="./images/一步步剖析spring bean生命周期3.png" alt="" width="967" height="466" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;1.装配bean</p>
+<p>bean装配为bean生命周期第一环节。所谓装配bean,指将java对象转换为bean的过程。在该示例中，UserDao.jave和MyBeanPostProcessor通过xml方式转化为bean。</p>
+<p>注意：spring框架支持四种方式装配bean：xml方式，java代码方式，自动装配和混合装配方式</p>
+<p><img src="./images/一步步剖析spring bean生命周期4.png" alt="" width="913" height="227" /></p>
+<p>2.加载applicationContext.xml并实例化</p>
+<p>加载并实例化bean为bean生命周期的第二环节。本文示例通过ClassPathXmlApplicationContext()来加载并，当bean为singleton时，该过程就实例化对象，而不需要等待</p>
+<p>调用applicationContext.getBean()获取bean时才实例化对象，这与prototype是不一样的。</p>
+<p><img src="./images/一步步剖析spring bean生命周期5.png" alt="" width="887" height="223" /></p>
+<p>3.属性注入</p>
+<p>bean属性注入为bean生命周期第三环节，采用反射方式注入bean.</p>
+<p><img src="./images/一步步剖析spring bean生命周期6.png" alt="" width="1030" height="646" /></p>
+<p>&nbsp;</p>
+<p>4.实现BeanNameAware,获取bean id</p>
+<p>该过程为bean生命周期的第四环节，实现该接口，可以获取bean的id</p>
+<p>&nbsp;<img src="./images/一步步剖析spring bean生命周期7.png" alt="" width="814" height="440" /></p>
+<p>5.实现BeanFactoryAware,获取bean 工厂</p>
+<p>该过程为bean生命周期第五环节，通过实现BeanFactoryAware获取bean工厂</p>
+<p><img src="./images/一步步剖析spring bean生命周期8.png" alt="" width="861" height="326" /></p>
+<p>&nbsp;6.实现ApplicationContextAware,获取运用上下文</p>
+<p>该过程为bean生命周期第六环节，通过实现ApplicationContextAware接口，获取bean上下文</p>
+<p><img src="./images/一步步剖析spring bean生命周期9.png" alt="" width="937" height="433" /></p>
+<p>&nbsp;7.调用Bean后置处理器,before</p>
+<p>该过程为bean生命周期第七环节，通过实现后置处理器BeanPostProcessor获取before和after,该过程是通过AOP方式实现的，在before和after之间，发生如下8，9过程。</p>
+<p><img src="./images/一步步剖析spring bean生命周期10.png" alt="" width="908" height="399" /></p>
+<p>8.实现InitializingBean的afterPropertiesSet(),获取初始化方法</p>
+<p>该过程为bean生命周期第八环节，通过实现InitializingBean，获取afterPropertiesSet()</p>
+<p><img src="./images/一步步剖析spring bean生命周期11.png" alt="" width="897" height="429" /></p>
+<p>&nbsp;9.调用自定义初始化方法,init-method</p>
+<p>该过程为bean生命周期第九环节，实现自定义初始化方法</p>
+<p><img src="./images/一步步剖析spring bean生命周期12.png" alt="" width="984" height="538" /></p>
+<p>&nbsp;10.调用Bean后置处理器after</p>
+<p>该过程为bean生命周期第十环节，后置处理器最后环节</p>
+<p><img src="./images/一步步剖析spring bean生命周期13.png" alt="" width="901" height="523" /></p>
+<p>&nbsp;11.关闭容器AbstractApplicationContext.registerShutDownHook()</p>
+<p>该环节为bean生命周期第十一环节，关闭容器</p>
+<p>&nbsp;<img src="./images/一步步剖析spring bean生命周期14.png" alt="" width="1020" height="203" /></p>
+<p>&nbsp;12.调用DisposableBean的destroy()</p>
+<p>该过程为bean生命周期第十二环节，实现DisposableBean接口，调用destroy()</p>
+<p><img src="./images/一步步剖析spring bean生命周期15.png" alt="" width="974" height="524" /></p>
+<p>&nbsp;13.调用定制化销毁方法destroy-method</p>
+<p>该过程为bean生命周期最后环节，调用自定义销毁方法destroy-method</p>
+<p><img src="./images/一步步剖析spring bean生命周期16.png" alt="" width="930" height="494" /></p>
+<p><span style="font-size: 16px;"><strong>&nbsp;三&nbsp; 版权区</strong></span></p>
+<ul>
+<li>&nbsp;&nbsp;转载博客，必须注明博客出处</li>
+<li>&nbsp; &nbsp;博主网址：http://www.cnblogs.com/wangjiming/</li>
+<li>&nbsp; &nbsp;如您有新想法，欢迎提出，邮箱：2098469527@qq.com</li>
+<li>&nbsp; 专业.NET之家技术QQ群：490539956</li>
+<li>&nbsp; 专业化Java之家QQ群：924412846</li>
+<li>&nbsp; 有问必答QQ群：2098469527</li>
+<li>&nbsp; 一对一技术辅导QQ：2098469527</li>
+</ul>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

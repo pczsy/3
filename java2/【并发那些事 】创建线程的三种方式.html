@@ -1,0 +1,158 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【并发那些事 】创建线程的三种方式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【并发那些事 】创建线程的三种方式</center></div><div class='banquan'>原文出处:本文由博客园博主KIWI的碎碎念提供。<br/>
+原文连接:https://www.cnblogs.com/kiwifly/p/11688600.html</div><br>
+    <p><img src="./images/【并发那些事 】创建线程的三种方式0.png" /></p>
+<p>创建线程可以说是并发知识中最基础的操作了，JDK 提供的创建线程的方式，如果不包括通过线程池的话，目前有三种形式，它们分别是通过继承 Thread 类，通过实现 Runable 接口，通过 FutureTask。如下图所示</p>
+<p><img src="./images/【并发那些事 】创建线程的三种方式1.png" /></p>
+<p>下面整理了一下 3 种方法的具体使用与异同。</p>
+<h3 id="创建线程的-3-种方法">创建线程的 3 种方法</h3>
+<h4 id="继承-thread">1. 继承 Thread</h4>
+<ol>
+<li>创建一个类继承 Thread 并覆盖 run 方法</li>
+</ol>
+<pre><code><code>class MyThread extends Thread {
+    @Override
+    public void run() {
+        String threadName = getName();
+        for (int i = 0; i &lt; 20; i++) {
+            System.out.println(&quot;线程[&quot; + threadName + &quot;]运行开始,i = &quot; + i + &quot; time = &quot; + new Date());
+        }
+    }
+}</code></code></pre>
+<ol>
+<li>创建并启动线程</li>
+</ol>
+<pre><code><code>        MyThread myThread1 = new MyThread();
+        MyThread myThread2 = new MyThread();
+
+        myThread1.start();
+        myThread2.start();
+
+        String threadName = Thread.currentThread().getName();
+        for (int i = 0; i &lt; 20; i++) {
+            System.out.println(&quot;线程[&quot; + threadName + &quot;]运行开始,i = &quot; + i + &quot; time = &quot; + new Date());
+        }</code></code></pre>
+<p>整体流程如下：</p>
+<p><img src="./images/【并发那些事 】创建线程的三种方式2.png" /></p>
+<p>这里步骤比较简单和清晰</p>
+<ol>
+<li>创建一个类，这类要继承 Thread</li>
+<li>覆盖 Thread 的 run 方法，并在此方法中实现你的多线程任务</li>
+<li>创建这个类的实例</li>
+<li>调用它的 start() 方法（这里要注意，新手容易直接调用 run 方法，那样只是普通调用，而不多线程调用）</li>
+</ol>
+<h4 id="实现-runable">2. 实现 Runable</h4>
+<ol>
+<li>创建一个类实现 Runable 接口，并覆盖 run 方法</li>
+</ol>
+<pre><code><code>class MyRunable implements Runnable {
+    
+    @Override
+    public void run() {
+        String threadName = Thread.currentThread().getName();
+        for (int i = 0; i &lt; 20; i++) {
+            System.out.println(&quot;线程[&quot; + threadName + &quot;]运行开始,i = &quot; + i + &quot; time = &quot; + new Date());
+        }
+    }
+}</code></code></pre>
+<ol>
+<li>创建类的实现，并将它传给 Thread 的构造函数来创建 Thread </li>
+</ol>
+<pre><code><code>MyRunable myRunable = new MyRunable();
+
+new Thread(myRunable).start();
+new Thread(myRunable).start();
+
+String threadName = Thread.currentThread().getName();
+for (int i = 0; i &lt; 20; i++) {
+    System.out.println(&quot;线程[&quot; + threadName + &quot;]运行开始,i = &quot; + i + &quot; time = &quot; + new Date());
+}</code></code></pre>
+<p>整体流程如下：</p>
+<p><img src="./images/【并发那些事 】创建线程的三种方式3.png" /></p>
+<p>具体步骤如下：</p>
+<ol>
+<li>创建一个实现了 Runable 接口的类</li>
+<li>覆盖 run 方法，并在此方法中实现你的多线程任务</li>
+<li>创建 Runable 接口实现类的实例</li>
+<li>通过把上步得到的 Runable 接口实现类的实例，传给  Thread 的有参构造函数来创建 Thread 的实例</li>
+<li>调用上步得来的 Thread 实例的 start() 方法（这里要注意，新手容易直接调用 run 方法，那样只是普通调用，而不多线程调用）</li>
+</ol>
+<h4 id="通过-futuretask">3. 通过 FutureTask</h4>
+<ol>
+<li>创建一个实现了 Callable<T> 接口的类，并实现call 方法 (T 代表你想要的返回值类型)</li>
+</ol>
+<pre><code><code>class MyCallerTask implements Callable&lt;String&gt; {
+    
+    @Override
+    public String call() throws Exception {
+        System.out.println(&quot;执行任务开始&quot;);
+        Thread.sleep(3000);
+        System.out.println(&quot;执行任务结束&quot;);
+        return &quot;hello&quot;;
+    }
+}</code></code></pre>
+<ol>
+<li>创建并启动线程</li>
+</ol>
+<pre><code><code>        // 创建异步任务
+        FutureTask&lt;String&gt; futureTask = new FutureTask&lt;&gt;(new MyCallerTask());
+        // 启动线程
+        new Thread(futureTask).start();
+        System.out.println(&quot;其它操作&quot;);
+        try {
+            // 等待任务执行完，并获得任务执行完的结果
+            String result = futureTask.get();
+            System.out.println(result);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }</code></code></pre>
+<p>整体流程如下：</p>
+<p><img src="./images/【并发那些事 】创建线程的三种方式4.png" /></p>
+<p>具体步骤如下：</p>
+<ol>
+<li>创建一个实现了 <strong>Callable<T></strong> 接口的类，这里 T 的类型就是你线程任务想要返回的类型</li>
+<li>覆盖 <strong>call</strong> 方法，并在此方法中实现你的多线程任务</li>
+<li>创建 <strong>Callable</strong> 接口实现类的实例</li>
+<li>通过把上步得到的 <strong>Callable</strong> 接口实现类的实例，传给  <strong>FutureTask</strong> 的有参构造函数来创建 <strong>FutureTask</strong> 的实例</li>
+<li>通过把上步得到的 <strong>FutureTask</strong> 实例，传给  <strong>Thread</strong> 的有参构造函数来创建 <strong>Thread</strong> 的实例</li>
+<li>调用上步得来的 <strong>Thread</strong> 实例的 <strong>start()</strong> 方法（这里要注意，新手容易直接调用 run 方法，那样只是普通调用，而不多线程调用）</li>
+<li>如果你还想获得返回值，需要再调用 <strong>FutureTask </strong>实例的 <strong>get()</strong> 方法（这里要注意，get()会阻塞线程）</li>
+</ol>
+<h3 id="种方法的优缺点">3种方法的优缺点</h3>
+<p>通过上述的演示代码，可以看出这 3 种方法，其实各有优缺点</p>
+<h4 id="复杂程度">复杂程度</h4>
+<p>通过代码量与逻辑可以明显感觉出来，第一种直接继承 Thread 最方便，并且其它两种到最后，还是要依赖创建 Thread 才能实现。所以从方便及难易程度来看，可以得到如下结论：<br />
+<em><img src="./images/【并发那些事 】创建线程的三种方式5.png" /></em></p>
+<h4 id="可扩展性">可扩展性</h4>
+<p>通过演示代码可以看出，只有第一种是通过继承，其它两种是通过实现接口的形式。我们都知道 JAVA 是不允许多继承，但是可以多实现。所以如果使用了第一种方法，就无法再继承别的类了。另外第一种把线程与线程任务冗余在了一起，不利于后期的维护。所以可以得到如下结论：<br />
+<img src="./images/【并发那些事 】创建线程的三种方式6.png" /></p>
+<h4 id="是否有返回值">是否有返回值</h4>
+<p>从代码中可以很容易看出，只有通过 FutureTask 的方式才有返回值，另外两种均没有，所以得出如下结论<br />
+<img src="./images/【并发那些事 】创建线程的三种方式7.png" /></p>
+<h3 id="该用哪种方式创建线程">该用哪种方式创建线程</h3>
+<p>如果要用到返回值，那不用想，肯定只能使用 FutureTask 的方法。如果对于返回值没有要求，那Thread 与  Runable 均可，不过，考虑到可扩展性，最好使用 Runable 的形式。不过，话说回来，如果在真正项目中使用，综合考虑，一般还是最推荐通过线程池去创建。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

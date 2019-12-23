@@ -1,0 +1,109 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修为什么不允许使用 Java 静态构造函数？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>为什么不允许使用 Java 静态构造函数？</center></div><div class='banquan'>原文出处:本文由博客园博主Java知己提供。<br/>
+原文连接:https://www.cnblogs.com/java-friend/p/11750671.html</div><br>
+    <p>不允许使用 Java 静态构造函数，但是为什么呢？在深入探讨不允许使用静态构造函数的原因之前，让我们看看如果要使 构造函数静态化 会发生什么。</p>
+<h3 id="java-静态构造函数">Java 静态构造函数</h3>
+<p>假设我们有一个定义为的类：</p>
+<pre><code><code>public class Data {
+
+    private int id;
+    
+    public static Data() {}
+}</code></code></pre>
+<p>如果您尝试编译此类，则会<strong>在 Data 类型的构造函数中</strong>收到一条错误消息，作为<strong>非法修饰符。仅允许公开，受保护和私有</strong>。</p>
+<p><img src="./images/为什么不允许使用 Java 静态构造函数？0.png" alt="在这里插入图片描述" /></p>
+<h3 id="静态属于类构造函数属于对象">静态属于类，构造函数属于对象</h3>
+<p>我们知道静态方法，静态块或变量属于该类。而构造函数属于该对象，并在使用 new 运算符创建实例时调用。由于构造函数不是类属性，因此有理由认为它不能是静态的。</p>
+<h3 id="静态块-方法无法访问非静态变量">静态块 / 方法无法访问非静态变量</h3>
+<p>我们知道静态方法不能访问非静态变量。静态块也是如此。</p>
+<p>现在，构造函数的主要目的是初始化对象变量。因此，如果我们将构造函数设置为静态，则无法初始化对象变量。这将破坏使用创建对象的构造函数的全部目的。因此，使构造函数为非静态是合理的。</p>
+<p>注意，我们不能<code>this</code>在静态方法中使用引用对象变量。下面的代码将定义编译错误，因为：<strong>不能在静态上方中使用它</strong>。</p>
+<pre><code><code>public static void main(String args []){
+    System.out.println(this.id);
+}
+</code></code></pre>
+<p><img src="./images/为什么不允许使用 Java 静态构造函数？1.png" alt="在这里插入图片描述" /></p>
+<h3 id="静态构造函数将破坏继承">静态构造函数将破坏继承</h3>
+<p>在Java中，每个类都隐式扩展了对象类。我们可以定义一个类层次结构，其中子类构造函数调用超类构造函数。这是通过<code>super()</code>方法调用完成的。大多数情况下，JVM自动调用超类构造函数，但有时如果超类中有多个构造函数，我们必须手动调用它们。</p>
+<p>让我们来看一个<code>super()</code>用法示例。</p>
+<pre><code><code>
+package com.journaldev.util;
+
+class Data {
+    Data() {
+        System.out.println(&quot;Data Constructor&quot;);
+    }
+}
+
+public class DataChild extends Data{
+    public DataChild() {
+        super(); //JRE calls it explicitly, calling here for explanation
+        System.out.println(&quot;DataChild Constructor&quot;);
+    }
+    
+    public static void main(String args[]) {
+        DataChild dc = new DataChild();
+    }
+}
+</code></code></pre>
+<p>上面的程序将产生以下输出。</p>
+<pre><code><code>
+Data Constructor
+DataChild Constructor
+</code></code></pre>
+<p>如果，您看一下<code>super()</code>方法，它不是静态的。因此，如果构造函数转换静态，我们将无法使用它，这将破坏java中的继承性。</p>
+<h3 id="java静态构造方法替代">　Java静态构造方法替代</h3>
+<p>如果要在类中初始化一些静态变量，则可以使用静态块。请注意，我们无法将参数传递给静态块，因此，如果您要初始化静态变量，则也可以在常规构造函数中执行此操作。</p>
+<pre><code><code>
+class Data {
+    public static int count;
+    
+    static {
+        count = 0;
+    }
+    Data(int c) {
+        //not recommended since the count is class variable 
+        //and shared among all the objects of the class
+        count=c; 
+    }
+}
+
+</code></code></pre>
+<h3 id="总结">总结</h3>
+<p>我们说明了为什么不允许使用Java静态构造函数。我们可以使用静态块以及构造函数本身来初始化静态变量。</p>
+<hr />
+<blockquote>
+<p>“不积跬步，无以至千里”，希望未来的你能：有梦为马 随处可栖！加油，少年！</p>
+</blockquote>
+<p>关注公众号:<strong>「Java 知己」</strong>，每天更新Java知识哦，期待你的到来！</p>
+<ul>
+<li>发送「<strong>Group</strong>」，与 10 万程序员一起进步。</li>
+<li>发送「<strong>面试</strong>」，领取BATJ面试资料、面试视频攻略。</li>
+<li>发送「<strong>玩转算法</strong>」，领取《玩转算法》系列视频教程。</li>
+<li>千万不要发送「<strong>1024</strong>」...</li>
+</ul>
+<p><img src="./images/为什么不允许使用 Java 静态构造函数？2.png" alt="在这里插入图片描述" /><br />
+每日福利</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

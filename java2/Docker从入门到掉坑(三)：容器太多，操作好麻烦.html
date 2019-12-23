@@ -1,0 +1,553 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Docker从入门到掉坑(三)：容器太多，操作好麻烦' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Docker从入门到掉坑(三)：容器太多，操作好麻烦</center></div><div class='banquan'>原文出处:本文由博客园博主Java知音*提供。<br/>
+原文连接:https://www.cnblogs.com/javazhiyin/p/11926193.html</div><br>
+    <p>前边的两篇文章里面，我们讲解了基于docker来部署基础的SpringBoot容器，如果阅读本文之前没有相关基础的话，可以回看之前的教程。</p>
+<p><a href="https://www.javazhiyin.com/go?url=http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247490319&amp;idx=1&amp;sn=8b091680dee385109f72a6f24fe00d26&amp;chksm=ebd62423dca1ad3580e5027da3f1707f93fd96cb514a6a975cbbc338631a4b3dcfa27b535f39&amp;scene=21#wechat_redirect" rel="nofollow" target="_blank">Docker 从入门到掉坑</a></p>
+<p><a href="https://www.javazhiyin.com/go?url=http://mp.weixin.qq.com/s?__biz=MzI4Njc5NjM1NQ==&amp;mid=2247490393&amp;idx=1&amp;sn=0f3a89cfa4a41142c7e194df93a3be88&amp;chksm=ebd62475dca1ad635a71c184a1d9ac6b1e05cc3e5760884c45fbaa15f4b3675bf21540b1b232&amp;scene=21#wechat_redirect" rel="nofollow" target="_blank">Docker从入门到掉坑(二)：基于Docker构建SpringBoot微服务</a></p>
+<p>不知道大家在初次使用docker的时候是否有遇到这种场景，每次部署微服务都是需要执行docker run xxx,docker kill xxx 等命令来操作容器。假设说一个系统中依赖了多个docker容器，那么对于每个docker容器的部署岂不是都需要手动编写命令来启动和关闭，这样做就会增加运维人员的开发工作量，同时也容易出错。</p>
+<p><strong>Docker Compose 编排技术</strong></p>
+<p>在前边的文章中，我们讲解了Docker容器化技术的发展，但是随着我们的<strong>Docker</strong>越来越多的时候，对于容器的管理也是特别麻烦，因此<strong>Docker Compose</strong>技术也就诞生了。</p>
+<p>Docker Compose技术是通过一份文件来定义和运行一系列复杂应用的Docker工具，通过Docker-compose文件来启动多个容器，网上有很多关于Docker-compose的实战案例，但是都会有些细节地方有所遗漏，所以下边我将通过一个简单的案例一步步地带各位从浅入深地对Docker-compose进行学习。</p>
+<p><strong>基于Docker Compose来进行对SpringBoot微服务应用的打包集成</strong></p>
+<p>我们还是按照老样子来构建一套基础的SpringBoot微服务项目，首先我们来看看基础版本的项目结构：</p>
+<p><img class="rich_pages" title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦0.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦0.png" /></p>
+<p><br />首先是我们pom文件的配置内容：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="UTF-8"</span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project </span><span style="color: #ff0000;">xmlns</span><span style="color: #0000ff;">="http://maven.apache.org/POM/4.0.0"</span><span style="color: #ff0000;">
+         xmlns:xsi</span><span style="color: #0000ff;">="http://www.w3.org/2001/XMLSchema-instance"</span><span style="color: #ff0000;">
+         xsi:schemaLocation</span><span style="color: #0000ff;">="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">modelVersion</span><span style="color: #0000ff;">&gt;</span>4.0.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">modelVersion</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>com.sise.idea<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>springboot-docker<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.0-SNAPSHOT<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">packaging</span><span style="color: #0000ff;">&gt;</span>jar<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">packaging</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">name</span><span style="color: #0000ff;">&gt;</span>spring-boot-docker<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">name</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">url</span><span style="color: #0000ff;">&gt;</span>http://maven.apache.org<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">url</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">parent</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-parent<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.0.3.RELEASE<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">parent</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">project.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>UTF-8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project.build.sourceEncoding</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">properties</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-web<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.projectlombok<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>lombok<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>1.16.18<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">finalName</span><span style="color: #0000ff;">&gt;</span>springboot-docker<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">finalName</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-maven-plugin<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.apache.maven.plugins<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>maven-compiler-plugin<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">source</span><span style="color: #0000ff;">&gt;</span>1.8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">source</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">target</span><span style="color: #0000ff;">&gt;</span>1.8<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">target</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugin</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">plugins</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">build</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">project</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p>然后是java程序的内容代码，这里面有常规的controller，application类，代码如下所示：</p>
+<p><strong>启动类Application</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.sise.docker;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.SpringApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.SpringBootApplication;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> idea
+ * @data 2019/11/20
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@SpringBootApplication
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Application {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        SpringApplication.run(Application.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><strong>控制器 DockerController</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.sise.docker.controller;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.GetMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RestController;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> idea
+ * @data 2019/11/20
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@RestController
+@RequestMapping(value </span>= "/docker"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DockerController {
+
+
+    @GetMapping(value </span>= "/test"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String test(){
+        System.out.println(</span>"=========docker test========="<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span> "this is docker test"<span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>yml配置文件：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>7089</code></pre>
+
+<p>&nbsp;</p>
+<p>接下来便是docker-compose打包时候要用到的配置文件了。这里采用的方式通常都是针对必要的docker容器编写一份dockerfile，然后统一由Docker Compose进行打包管理，假设我们的微服务中需要引用到了MySQL,MongoDB等应用，那么整体架构如下图所示：</p>
+<p><img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦1.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦1.png" /></p>
+<p><br />那么我们先从简单的单个容器入手，看看该如何对SpringBoot做Docker Compose的管理，下边是一份打包SpringBoot进入Docker容器的Dockerfile文件：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">#需要依赖的其他镜像
+</span><span style="color: #008080;">FROM</span> openjdk:8<span style="color: #000000;">-jdk-alpine
+# Spring Boot应用程序为Tomcat创建的默认工作目录。作用是在你的主机&rdquo;/var/lib/docker&rdquo;目录下创建一个临时的文件，并且链接到容器中#的&rdquo;/tmp&rdquo;目录。
+</span><span style="color: #008080;">VOLUME</span><span style="color: #000000;"> /tmp
+
+#是指将原先的src文件 添加到我们需要打包的镜像里面
+</span><span style="color: #008080;">ADD</span><span style="color: #000000;"> target/springboot-docker.jar app.jar
+
+#设置镜像的时区,避免出现8小时的误差
+</span><span style="color: #008080;">ENV</span><span style="color: #000000;"> TZ=Asia/Shanghai
+
+#容器暴露的端口号 和SpringBoot的yml文件暴露的端口号要一致
+</span><span style="color: #008080;">EXPOSE</span> 7089<span style="color: #000000;">
+
+#输入的启动参数内容 下边这段内容相当于运行了java -Xms256m -Xmx512m -jar app.jar 
+</span><span style="color: #008080;">ENTRYPOINT</span> ["java","-Xms256m","-Xmx512m","-jar","app.jar"]</code></pre>
+
+<p>&nbsp;</p>
+<p>接着便是加入docker-compose.yml文件的环节了,下边是脚本的内容：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">#</span><span style="color: #008000;">docker引擎对应所支持的docker-compose文本格式</span>
+version: <span style="color: #800000;">'</span><span style="color: #800000;">3</span><span style="color: #800000;">'</span><span style="color: #000000;">
+services:
+
+  </span><span style="color: #008000;">#</span><span style="color: #008000;">服务的名称</span>
+  springboot-<span style="color: #000000;">docker:
+    build:
+      context: .
+      </span><span style="color: #008000;">#</span><span style="color: #008000;"> 构建这个容器时所需要使用的dockerfile文件</span>
+      dockerfile: springboot-<span style="color: #000000;">dockerfile
+    ports:
+      </span><span style="color: #008000;">#</span><span style="color: #008000;"> docker容器和宿主机之间的端口映射</span>
+      - <span style="color: #800000;">"</span><span style="color: #800000;">7089:7089</span><span style="color: #800000;">"</span></code></pre>
+
+<p>&nbsp;</p>
+<p>docker-compose.ym配置文件有着特殊的规则，通常我们都是先定义version版本号，然后便是列举一系列与容器相关的services内容。</p>
+<p>接下来将这份docker服务进行打包，部署到相关的linux服务器上边，这里我采用的是一台阿里云上边购买的服务器来演示。</p>
+<p><img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦2.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦2.png" /></p>
+<p><br />目前该文件还没有进行打包处理，所以没有target目录，因此dockerfile文件构建的时候是不会成功的，因此需要先进行mvn的打包：</p>
+<src class="cnblogs_code">
+<pre><code>mvn package</code></pre>
+
+<p>&nbsp;</p>
+<p>接着便是进行Docker-Compose命令的输入了：</p>
+<src class="cnblogs_code">
+<pre><code>[root@izwz9ic9ggky8kub9x1ptuz springboot-docker]<span style="color: #008000;">#</span><span style="color: #008000;"> docker-compose up -d</span>
+Starting springboot-docker_springboot-<span style="color: #000000;">docker_1 ... done
+[root@izwz9ic9ggky8kub9x1ptuz springboot</span>-docker]<span style="color: #008000;">#</span> </code></pre>
+
+<p>&nbsp;</p>
+<p>你会发现这次输入的命令和之前教程中提及的docker指令有些出入，变成了docker-compose 指令，这条指令是专门针对Docker compose文件所设计的，加入了一个-d的参数用于表示后台运行该容器。由于我们的docker-compose文件中知识编写了对于SpringBoot容器的打包，因此启动的时候只会显示一个docker容器。</p>
+<p>为了验证<strong>docker-compose</strong>指令是否生效，我们可以通过<strong>docker--compose ps</strong>命令来进行验证。</p>
+<p>这里边我们使用&nbsp;<strong>docker logs [容器id]</strong>&nbsp;指令可以进入容器查看日志的打印情况：</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code>docker logs ad83c82b014d</code></pre>
+
+<p>&nbsp;</p>
+<p><img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦3.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦3.png" /></p>
+<p><br />最后我们通过请求之前写好的接口便会看到相关的响应：</p>
+<p>&nbsp;</p>
+<p>
+<img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦4.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦4.png" /></p>
+<p><br />基础版本的SpringBoot+Docker compose案例已经搭建好了，还记得我在开头画的那张图片吗：</p>
+<p>
+<img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦5.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦5.png" /></p>
+<p>通常在实际开发中，我们所面对的docker容器并不是那么的简单，还有可能会依赖到多个容器，那么这个时候该如何来编写docker compose文件呢？</p>
+<p>下边我们对原先的<strong>SpringBoot</strong>项目增加对于<strong>MySQL</strong>和<strong>MongoDB</strong>的依赖,为了方便下边的场景模拟，这里我们增加两个实体类：</p>
+<p>用户类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.sise.docker.domain;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> lombok.AllArgsConstructor;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> lombok.Data;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> lombok.NoArgsConstructor;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> idea
+ * @data 2019/11/23
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@AllArgsConstructor
+@NoArgsConstructor
+@Data
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> User {
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer id;
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String username;
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>汽车类：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.sise.docker.domain;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> lombok.AllArgsConstructor;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> lombok.Data;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> lombok.NoArgsConstructor;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.annotation.Id;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> idea
+ * @data 2019/11/23
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Car {
+
+    @Id
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer id;
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String number;
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>增加对于mongodb，mysql的pom依赖内容</p>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-data-mongodb<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-jdbc<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>mysql<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>mysql-connector-java<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>5.1.21<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p>编写相关的dao层：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.sise.docker.dao;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.sise.docker.domain.Car;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.mongodb.repository.MongoRepository;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Repository;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> idea
+ * @data 2019/11/23
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Repository
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> CarDao <span style="color: #0000ff;">extends</span> MongoRepository&lt;Car, Integer&gt;<span style="color: #000000;"> {
+}
+ 
+
+</span><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.sise.docker.dao;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.sise.docker.domain.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.jdbc.core.JdbcTemplate;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.jdbc.core.RowMapper;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Repository;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.ResultSet;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.sql.SQLException;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> idea
+ * @data 2019/11/23
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Repository
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserDao {
+
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> JdbcTemplate jdbcTemplate;
+
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> insert() {
+        String time </span>=<span style="color: #000000;"> String.valueOf(System.currentTimeMillis());
+        String sql </span>= "insert into t_user (username) values ('idea-" + time + "')"<span style="color: #000000;">;
+        jdbcTemplate.update(sql);
+        System.out.println(</span>"==========执行插入语句=========="<span style="color: #000000;">);
+    }
+
+    </span><span style="color: #0000ff;">class</span> UserMapper <span style="color: #0000ff;">implements</span> RowMapper&lt;User&gt;<span style="color: #000000;"> {
+
+        @Override
+        </span><span style="color: #0000ff;">public</span> User mapRow(ResultSet resultSet, <span style="color: #0000ff;">int</span> i) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+            User unitPO </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> User();
+            unitPO.setId(resultSet.getInt(</span>"id"<span style="color: #000000;">));
+            unitPO.setUsername(resultSet.getString(</span>"username"<span style="color: #000000;">));
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> unitPO;
+        }
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>在控制器中添加相关的函数入口：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.sise.docker.controller;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.sise.docker.dao.CarDao;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.sise.docker.dao.UserDao;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.sise.docker.domain.Car;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.GetMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RestController;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Random;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> idea
+ * @data 2019/11/20
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@RestController
+@RequestMapping(value </span>= "/docker"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DockerController {
+
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> UserDao userDao;
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> CarDao carDao;
+
+    @GetMapping(value </span>= "/insert-mongodb"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String insertMongoDB() {
+        Car car </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Car();
+        car.setId(</span><span style="color: #0000ff;">new</span> Random().nextInt(15000000<span style="color: #000000;">));
+        String number </span>=<span style="color: #000000;"> String.valueOf(System.currentTimeMillis());
+        car.setNumber(number);
+        carDao.save(car);
+        </span><span style="color: #0000ff;">return</span> "this is insert-mongodb"<span style="color: #000000;">;
+    }
+
+    @GetMapping(value </span>= "/insert-mysql"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String insertMySQL() {
+        userDao.insert();
+        </span><span style="color: #0000ff;">return</span> "this is insert-mysql"<span style="color: #000000;">;
+    }
+
+    @GetMapping(value </span>= "/test2"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String test() {
+        System.out.println(</span>"=========docker test222========="<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span> "this is docker test"<span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>对原先的docker-compose.yml文件添加相应的内容，主要是增加对于mongodb和mysql的依赖模块，</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">#</span><span style="color: #008000;">docker引擎对应所支持的docker-compose文本格式</span>
+version: <span style="color: #800000;">'</span><span style="color: #800000;">3</span><span style="color: #800000;">'</span><span style="color: #000000;">
+services:
+
+  </span><span style="color: #008000;">#</span><span style="color: #008000;">服务的名称</span>
+  springboot-<span style="color: #000000;">docker:
+    container_name: docker</span>-<span style="color: #000000;">springboot
+    build:
+      context: .
+      dockerfile: springboot</span>-<span style="color: #000000;">dockerfile
+    ports:
+      </span>- <span style="color: #800000;">"</span><span style="color: #800000;">7089:7089</span><span style="color: #800000;">"</span><span style="color: #000000;">
+
+    depends_on:
+      </span>-<span style="color: #000000;"> mongodb
+
+
+  mongodb:
+    </span><span style="color: #008000;">#</span><span style="color: #008000;">容器的名称</span>
+    container_name: docker-<span style="color: #000000;">mongodb
+    image: daocloud.io</span>/library/<span style="color: #000000;">mongo:latest
+    ports:
+      </span>- <span style="color: #800000;">"</span><span style="color: #800000;">27017:27017</span><span style="color: #800000;">"</span><span style="color: #000000;">
+
+  mysql:
+    </span><span style="color: #008000;">#</span><span style="color: #008000;">镜像的版本</span>
+    image: mysql:5.7<span style="color: #000000;">
+    container_name: docker</span>-<span style="color: #000000;">mysql
+    ports:
+      </span>- 3309:3306<span style="color: #000000;">
+    environment:
+       MYSQL_DATABASE: test
+       MYSQL_ROOT_PASSWORD: root
+       MYSQL_ROOT_USER: root
+       MYSQL_ROOT_HOST: </span><span style="color: #800000;">'</span><span style="color: #800000;">%</span><span style="color: #800000;">'</span></code></pre>
+
+<p>&nbsp;</p>
+<p>这里头我尝试将application.yml文件通过不同的profile来进行区分：</p>
+<p><img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦6.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦6.png" /></p>
+<p><br />应上篇文章中有读者问到，不同环境不同配置的指定问题，这里有一种思路，springboot依旧保持原有的按照profile来识别不同环境的配置，具体打包之后读取的配置，可以通过springboot-dockerfile这份文件的ENTRYPOINT 参数来指定，例如下边这种格式：</p>
+<src class="cnblogs_code">
+<pre><code>FROM openjdk:8-jdk-<span style="color: #000000;">alpine
+
+VOLUME </span>/<span style="color: #000000;">tmp
+
+ADD target</span>/springboot-docker.jar springboot-<span style="color: #000000;">docker.jar
+
+</span><span style="color: #008000;">#</span><span style="color: #008000;">设置镜像的时区,避免出现8小时的误差</span>
+ENV TZ=Asia/<span style="color: #000000;">Shanghai
+
+EXPOSE </span>7089
+<span style="color: #008000;">#</span><span style="color: #008000;">这里可以通过-D参数在对jar打包运行的时候指定需要读取的配置问题</span>
+ENTRYPOINT [<span style="color: #800000;">"</span><span style="color: #800000;">java</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">-Xms256m</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">-Xmx512m</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">-Dspring.profiles.active=prod</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">-jar</span><span style="color: #800000;">"</span>,<span style="color: #800000;">"</span><span style="color: #800000;">springboot-docker.jar</span><span style="color: #800000;">"</span>]</code></pre>
+
+<p>&nbsp;</p>
+<p>最后便是我们的yml配置文件内容，由于配置类docker容器的依赖，所以这里面对于yml的写法不再是通过ip来访问相应的数据库了，而是需要通过service-name的映射来达成目标。</p>
+<p><strong>application-prod.yml</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  port: </span>7089<span style="color: #000000;">
+
+spring:
+    data:
+      mongodb:
+        uri: mongodb:</span>//mongodb:27017<span style="color: #000000;">
+        database: test
+
+    datasource:
+             driver</span>-<span style="color: #0000ff;">class</span>-<span style="color: #000000;">name: com.mysql.jdbc.Driver
+             url: jdbc:mysql:</span>//mysql:3306/test?useUnicode=true&amp;amp;characterEncoding=UTF-8<span style="color: #000000;">
+             username: root
+             password: root</span></code></pre>
+
+<p>&nbsp;</p>
+<p>当相关的代码和文件都整理好了之后，将这份代码发送到服务器上进行打包。</p>
+<src class="cnblogs_code">
+<pre><code>mvn package</code></pre>
+
+<p>&nbsp;</p>
+<p>接着我们便可以进行docker-compose的启动了。</p>
+<p>这里有个小坑需要注意一下，由于之前我们已经对单独的springboot容器进行过打包了，所以在执行docker-compose up指令的时候会优先使用已有的容器，而不是重新创建容器。</p>
+<p><br />这个时候需要先将原先的image镜像进行手动删除，再打包操作：</p>
+<src class="cnblogs_code">
+<pre><code>[root@izwz9ic9ggky8kub9x1ptuz springboot-docker]<span style="color: #008000;">#</span><span style="color: #008000;"> docker images</span>
+<span style="color: #000000;">REPOSITORY                                           TAG                 IMAGE ID            CREATED             SIZE
+springboot</span>-docker                  latest              86f32bd9257f        4<span style="color: #000000;"> hours ago         128MB
+</span>&lt;none&gt;                                               &lt;none&gt;              411616c3d7f7        2<span style="color: #000000;"> days ago          679MB
+</span>&lt;none&gt;                                               &lt;none&gt;              77044e3ad9c2        2<span style="color: #000000;"> days ago          679MB
+</span>&lt;none&gt;                                               &lt;none&gt;              5d9328dd1aca        2<span style="color: #000000;"> days ago          679MB
+springbootmongodocker_springappserver                latest              36237acf08e1        </span>3 days ago          695MB</code></pre>
+
+<p>&nbsp;</p>
+<p>删除镜像的命令：</p>
+<src class="cnblogs_code">
+<pre><code>docker rmi 【镜像id】</code></pre>
+
+<p>&nbsp;</p>
+<p><img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦7.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦7.png" /></p>
+<p><br />此时再重新进行docker-compose指令的打包操作即可：</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code>docker-compose up</code></pre>
+
+<p>&nbsp;</p>
+<p><img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦8.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦8.png" /></p>
+<p><br />启动之后，可以通过docker-compose自带的一些指令来进行操作，常用的一些指令我都归纳在了下边：</p>
+<p>&nbsp;</p>
+<p><strong>docker-compose [Command]</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">Commands:
+  build              构建或重建服务
+  bundle             从compose配置文件中产生一个docker绑定
+  config             验证并查看compose配置文件
+  create             创建服务
+  down               停止并移除容器、网络、镜像和数据卷
+  events             从容器中接收实时的事件
+  </span><span style="color: #0000ff;">exec</span><span style="color: #000000;">               在一个运行中的容器上执行一个命令
+  help               获取命令的帮助信息
+  images             列出所有镜像
+  kill               通过发送SIGKILL信号来停止指定服务的容器
+  logs               从容器中查看服务日志输出
+  pause              暂停服务
+  port               打印绑定的公共端口
+  ps                 列出所有运行中的容器
+  pull               拉取并下载指定服务镜像
+  push               Push service images
+  restart            重启YAML文件中定义的服务
+  rm                 删除指定已经停止服务的容器
+  run                在一个服务上执行一条命令
+  scale              设置指定服务运行容器的个数
+  start              在容器中启动指定服务
+  stop               停止已运行的服务
+  top                显示各个服务容器内运行的进程
+  unpause            恢复容器服务
+  up                 创建并启动容器
+  version            显示Docker</span>-Compose版本信息</code></pre>
+
+<p><strong>&nbsp;</strong></p>
+<p>最后对相应的接口做检测：</p>
+<p><img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦9.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦9.png" /></p>
+<p>&nbsp;</p>
+<p>
+<img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦10.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦10.png" /></p>
+<p><br />相关的完整代码我已经上传到了gitee地址，如果有需要的朋友可以前往进行下载。</p>
+<blockquote class="js_blockquote_wrap">
+<p>代码地址：https://gitee.com/IdeaHome_admin/wfw</p>
+
+</blockquote>
+<p>&nbsp;</p>
+<p>
+<img title="Docker从入门到掉坑(三)：容器太多，操作好麻烦" src="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦11.png" alt="Docker从入门到掉坑(三)：容器太多，操作好麻烦" data-original="./images/Docker从入门到掉坑(三)：容器太多，操作好麻烦11.png" /></p>
+<p><br />实践完毕之后，你可能会觉得有了docker-compose之后，对于多个docker容器来进行管理显得就特别轻松了。</p>
+<p>&nbsp;</p>
+<p>但是往往现实中并没有这么简单，docker-compose存在着一个弊端，<strong>那就是不能做跨机器之间的docker容器进行管理</strong>。</p>
+<p>&nbsp;</p>
+<p>因此随者技术的发展，后边也慢慢出现了一种叫做<strong>Kubernetes</strong>的技术。<strong>Kubernetes</strong>（俗称k8s）是一个开源的，用于管理云平台中多个主机上的容器化的应用，<strong>Kubernetes</strong>的目标是让部署容器化的应用简单并且高效（powerful）,<strong>Kubernetes</strong>提供了应用部署，规划，更新，维护的一种机制。</p>
+<p><strong>&nbsp;</strong></p>
+<p><strong>Kubernetes</strong>这类技术对于小白来说入门的难度较高，后边可能会抽空专门来写一篇适合小白阅读的k8s入门文章。</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

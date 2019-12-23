@@ -1,0 +1,376 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot 源码解析 （三）----- Spring Boot 精髓：启动时初始化数据' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot 源码解析 （三）----- Spring Boot 精髓：启动时初始化数据</center></div><div class='banquan'>原文出处:本文由博客园博主chen_hao提供。<br/>
+原文连接:https://www.cnblogs.com/java-chen-hao/p/11835120.html</div><br>
+    <p>在我们用&nbsp;springboot&nbsp;搭建项目的时候，有时候会碰到在项目启动时初始化一些操作的需求&nbsp;，针对这种需求&nbsp;spring&nbsp;boot为我们提供了以下几种方案供我们选择:</p>
+<ul>
+<li>
+<p><code class="prettyprint prettyprinted"><span class="pln"><span class="pln"><span class="typ">App</span></span><span class="pln">li<span class="pln">cat</span><span class="pln">ionRunner&nbsp;</span></span></span></code>与&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">CommandLineRunner<span class="pln">&nbsp;</span></span></span></code>接口</p>
+</li>
+<li>
+<p><code class="prettyprint prettyprinted"><span class="pln"><span class="typ">Spring容器初始化时InitializingBean<span class="pun">接口和@PostConstruct</span></span></span></code></p>
+</li>
+<li>
+<p>Spring的事件机制</p>
+</li>
+</ul>
+<h2>ApplicationRunner与CommandLineRunner</h2>
+<p>我们可以实现&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">ApplicationRunner<span class="pln">&nbsp;</span></span></span></code>或&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">CommandLineRunner<span class="pln">&nbsp;</span></span></span></code>接口， 这两个接口工作方式相同，都只提供单一的run方法，该方法在SpringApplication.run(&hellip;)完成之前调用，不知道大家还对我上一篇文章结尾有没有印象，我们先来看看这两个接口</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> ApplicationRunner {
+    </span><span style="color: #0000ff;">void</span> <strong>run</strong>(ApplicationArguments var1) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+}
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> CommandLineRunner {
+    </span><span style="color: #0000ff;">void</span> <strong>run</strong>(String... var1) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception;
+}</span></code></pre>
+
+<p>都只提供单一的run方法，接下来我们来看看具体的使用</p>
+<h3>ApplicationRunner</h3>
+<p>构造一个类实现ApplicationRunner接口</p>
+<src class="cnblogs_code">
+<pre><code><strong><span style="color: #008000;">//</span><span style="color: #008000;">需要加入到Spring容器中</span>
+<span style="color: #000000;">@Component
+</span></strong><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ApplicationRunnerTest <span style="color: #0000ff;">implements</span><span style="color: #000000;"> ApplicationRunner {
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> <strong>run</strong>(ApplicationArguments args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        System.out.println(</span>"ApplicationRunner"<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>很简单，首先要使用<strong>@Component</strong>将实现类加入到Spring容器中，为什么要这样做我们待会再看，然后实现其run方法实现自己的初始化数据逻辑就可以了</p>
+<h3>CommandLineRunner</h3>
+<p>对于这两个接口而言，我们可以通过Order注解或者使用Ordered接口来指定调用顺序，&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="lit">@Order<span class="pun">()<span class="pln">&nbsp;</span></span></span></span></code>中的值越小，优先级越高</p>
+<src class="cnblogs_code">
+<pre><code><strong><span style="color: #008000;">//</span><span style="color: #008000;">需要加入到Spring容器中</span>
+</strong><span style="color: #000000;"><strong>@Component</strong>
+@Order(</span>1<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> CommandLineRunnerTest <span style="color: #0000ff;">implements</span><span style="color: #000000;"> CommandLineRunner {
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> run(String... args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        System.out.println(</span>"CommandLineRunner..."<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>同样需要加入到Spring容器中，CommandLineRunner的参数是最原始的参数，没有进行任何处理，ApplicationRunner的参数是ApplicationArguments,是对原始参数的进一步封装</p>
+<h3>源码分析</h3>
+<p>大家回顾一下我上一篇文章，也就是<a href="https://www.cnblogs.com/java-chen-hao/p/11829344.html#_label1">SpringApplication.run方法</a>的最后一步<a href="https://www.cnblogs.com/java-chen-hao/p/11829344.html#_label1_7">第八步：执行Runners</a>，这里我直接把代码复制过来</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> callRunners(ApplicationContext context, ApplicationArguments args) {
+    List</span>&lt;Object&gt; runners = <span style="color: #0000ff;">new</span> ArrayList&lt;Object&gt;<span style="color: #000000;">();
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">获取容器中所有的ApplicationRunner的Bean实例</span>
+    runners.addAll(context.getBeansOfType(ApplicationRunner.<span style="color: #0000ff;">class</span><span style="color: #000000;">).values());
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取容器中所有的CommandLineRunner的Bean实例</span>
+    runners.addAll(context.getBeansOfType(CommandLineRunner.<span style="color: #0000ff;">class</span></strong><span style="color: #000000;"><strong>).values());</strong>
+    AnnotationAwareOrderComparator.sort(runners);
+    </span><span style="color: #0000ff;">for</span> (Object runner : <span style="color: #0000ff;">new</span> LinkedHashSet&lt;Object&gt;<span style="color: #000000;">(runners)) {
+        </span><span style="color: #0000ff;">if</span> (runner <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> ApplicationRunner) {
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">执行ApplicationRunner的run方法</span>
+</strong><span style="color: #000000;"><strong>            callRunner((ApplicationRunner) runner, args);</strong>
+        }
+        </span><span style="color: #0000ff;">if</span> (runner <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> CommandLineRunner) {
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">执行CommandLineRunner的run方法</span>
+</strong><span style="color: #000000;"><strong>            callRunner((CommandLineRunner) runner, args);</strong>
+        }
+    }
+}</span></code></pre>
+
+<p>很明显，是直接从Spring容器中获取<strong>ApplicationRunner和</strong><strong>CommandLineRunner的实例，</strong>并调用其run方法，这也就是为什么我要使用<strong>@Component将<strong>ApplicationRunner和<strong>CommandLineRunner接口的实现类加入到Spring容器中了。</strong></strong></strong></p>
+<h2>InitializingBean</h2>
+<p>在spring初始化bean的时候，如果bean实现了&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">InitializingBean<span class="pln">&nbsp;</span></span></span></code>接口，在对象的所有属性被初始化后之后才会调用afterPropertiesSet()方法</p>
+<src class="cnblogs_code">
+<pre><code><strong><span style="color: #000000;">@Component
+</span></strong><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> InitialingzingBeanTest <strong><span style="color: #0000ff;">implements</span></strong><span style="color: #000000;"><strong> InitializingBean</strong> {
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> <strong>afterPropertiesSet()</strong> <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        System.out.println(</span>"InitializingBean.."<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>我们可以看出spring初始化bean肯定会在 ApplicationRunner和CommandLineRunner接口调用之前。</p>
+<h2 id="init-method和postconstruct">@PostConstruct</h2>
+<src class="cnblogs_code">
+<pre><code><strong><span style="color: #000000;">@Component
+</span></strong><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> PostConstructTest {
+
+   <strong> @PostConstruct
+    </strong></span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> postConstruct() {
+        System.out.println(</span>"init..."<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>我们可以看到，只用在方法上添加<strong>@PostConstruct注解，</strong>并将类注入到Spring容器中就可以了。我们来看看<strong>@PostConstruct注解的方法是何时执行的</strong></p>
+<p>在Spring初始化bean时，对bean的实例赋值时，populateBean方法下面有一个initializeBean(beanName, exposedObject, mbd)方法，这个就是用来执行用户设定的初始化操作。我们看下方法体：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> Object initializeBean(<span style="color: #0000ff;">final</span> String beanName, <span style="color: #0000ff;">final</span><span style="color: #000000;"> Object bean, @Nullable RootBeanDefinition mbd) {
+    </span><span style="color: #0000ff;">if</span> (System.getSecurityManager() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        AccessController.doPrivileged((PrivilegedAction</span>&lt;Object&gt;) () -&gt;<span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 激活 Aware 方法</span>
+<span style="color: #000000;">            invokeAwareMethods(beanName, bean);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }, getAccessControlContext());
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 对特殊的 bean 处理：Aware、BeanClassLoaderAware、BeanFactoryAware</span>
+<span style="color: #000000;">        invokeAwareMethods(beanName, bean);
+    }
+
+    Object wrappedBean </span>=<span style="color: #000000;"> bean;
+    </span><span style="color: #0000ff;">if</span> (mbd == <span style="color: #0000ff;">null</span> || !<span style="color: #000000;">mbd.isSynthetic()) {
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 后处理器</span>
+        wrappedBean =</strong><span style="color: #000000;"><strong> applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);</strong>
+    }
+
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 激活用户自定义的 init 方法</span>
+</strong><span style="color: #000000;"><strong>        invokeInitMethods(beanName, wrappedBean, mbd);</strong>
+    }
+    </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable ex) {
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> BeanCreationException(
+                (mbd </span>!= <span style="color: #0000ff;">null</span> ? mbd.getResourceDescription() : <span style="color: #0000ff;">null</span><span style="color: #000000;">),
+                beanName, </span>"Invocation of init method failed"<span style="color: #000000;">, ex);
+    }
+    </span><span style="color: #0000ff;">if</span> (mbd == <span style="color: #0000ff;">null</span> || !<span style="color: #000000;">mbd.isSynthetic()) {
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 后处理器</span>
+        wrappedBean =</strong><span style="color: #000000;"><strong> applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);</strong>
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> wrappedBean;
+}</span></code></pre>
+
+<p>我们看到会先执行<strong>后处理器然后执行</strong><strong>invokeInitMethods方法</strong>，我们来看下applyBeanPostProcessorsBeforeInitialization</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span><span style="color: #000000;"> Object applyBeanPostProcessorsBeforeInitialization(Object existingBean, String beanName)  
+        </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeansException {  
+
+    Object result </span>=<span style="color: #000000;"> existingBean;  
+    </span><strong><span style="color: #0000ff;">for</span><span style="color: #000000;"> (BeanPostProcessor beanProcessor : getBeanPostProcessors()) {  
+        result </span>=</strong><span style="color: #000000;"><strong> beanProcessor.postProcessBeforeInitialization(result, beanName); </strong> 
+        </span><span style="color: #0000ff;">if</span> (result == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {  
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;  
+        }  
+    }  
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;  
+}
+
+</span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Object applyBeanPostProcessorsAfterInitialization(Object existingBean, String beanName)  
+        </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeansException {  
+
+    Object result </span>=<span style="color: #000000;"> existingBean;  
+    </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (BeanPostProcessor beanProcessor : getBeanPostProcessors()) {  
+        result </span>=<span style="color: #000000;"> beanProcessor.postProcessAfterInitialization(result, beanName);  
+        </span><span style="color: #0000ff;">if</span> (result == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {  
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;  
+        }  
+    }  
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;  
+}</span></code></pre>
+
+<p>获取容器中所有的后置处理器，循环调用后置处理器的<strong>postProcessBeforeInitialization方法，这里我们来看一个BeanPostProcessor</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> CommonAnnotationBeanPostProcessor <span style="color: #0000ff;">extends</span> InitDestroyAnnotationBeanPostProcessor <span style="color: #0000ff;">implements</span><span style="color: #000000;"> InstantiationAwareBeanPostProcessor, BeanFactoryAware, Serializable {
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> CommonAnnotationBeanPostProcessor() {
+        </span><span style="color: #0000ff;">this</span>.setOrder(2147483644<span style="color: #000000;">);
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">设置初始化参数为PostConstruct.class</span>
+        <span style="color: #0000ff;">this</span>.setInitAnnotationType(PostConstruct.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+        </span></strong><span style="color: #0000ff;">this</span>.setDestroyAnnotationType(PreDestroy.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">this</span>.ignoreResourceType("javax.xml.ws.WebServiceContext"<span style="color: #000000;">);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">略...</span>
+}</code></pre>
+
+<p>在构造器中设置了一个属性为<strong>PostConstruct.class，</strong>再次观察CommonAnnotationBeanPostProcessor这个类，它继承自InitDestroyAnnotationBeanPostProcessor。InitDestroyAnnotationBeanPostProcessor顾名思义，就是在Bean初始化和销毁的时候所作的一个前置/后置处理器。查看InitDestroyAnnotationBeanPostProcessor类下的postProcessBeforeInitialization方法：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> Object postProcessBeforeInitialization(Object bean, String beanName) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> BeansException {  
+ <strong>  LifecycleMetadata metadata </strong></span><strong>=</strong><span style="color: #000000;"><strong> findLifecycleMetadata(bean.getClass()); </strong> 
+   </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {  
+     <strong>  metadata.invokeInitMethods(bean, beanName); </strong> 
+   }  
+   </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InvocationTargetException ex) {  
+       </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> BeanCreationException(beanName, "Invocation of init method failed"<span style="color: #000000;">, ex.getTargetException());  
+   }  
+   </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable ex) {  
+       </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> BeanCreationException(beanName, "Couldn't invoke init method"<span style="color: #000000;">, ex);  
+   }  
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> bean;  
+}  
+
+</span><span style="color: #0000ff;">private</span> LifecycleMetadata buildLifecycleMetadata(<span style="color: #0000ff;">final</span><span style="color: #000000;"> Class clazz) {  
+       </span><span style="color: #0000ff;">final</span> LifecycleMetadata newMetadata = <span style="color: #0000ff;">new</span><span style="color: #000000;"> LifecycleMetadata();  
+       </span><span style="color: #0000ff;">final</span> <span style="color: #0000ff;">boolean</span> debug =<span style="color: #000000;"> logger.isDebugEnabled();  
+       ReflectionUtils.doWithMethods(clazz, </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> ReflectionUtils.MethodCallback() {  
+           </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> doWith(Method method) {  
+              </span><span style="color: #0000ff;">if</span> (initAnnotationType != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {  
+                   </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">判断clazz中的methon是否有initAnnotationType注解，也就是PostConstruct.class注解</span>
+                  <span style="color: #0000ff;">if</span> (method.getAnnotation(initAnnotationType) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {  
+                     </span><span style="color: #008000;">//</span><span style="color: #008000;">如果有就将方法添加进LifecycleMetadata中</span>
+</strong><span style="color: #000000;"><strong>                     newMetadata.addInitMethod(method); </strong> 
+                     </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (debug) {  
+                         logger.debug(</span>"Found init method on class [" + clazz.getName() + "]: " +<span style="color: #000000;"> method);  
+                     }  
+                  }  
+              }  
+              </span><span style="color: #0000ff;">if</span> (destroyAnnotationType != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {  
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">判断clazz中的methon是否有destroyAnnotationType注解</span>
+                  <span style="color: #0000ff;">if</span> (method.getAnnotation(destroyAnnotationType) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {  
+                     newMetadata.addDestroyMethod(method);  
+                     </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (debug) {  
+                         logger.debug(</span>"Found destroy method on class [" + clazz.getName() + "]: " +<span style="color: #000000;"> method);  
+                     }  
+                  }  
+              }  
+           }  
+       });  
+       </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> newMetadata;  
+} </span></code></pre>
+
+<p>在这里会去判断某方法是否有<strong>PostConstruct.class注解</strong>，如果有，则添加到init/destroy队列中，后续一一执行。<strong>@PostConstruct注解的方法会在此时执行，我们接着来看invokeInitMethods</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> invokeInitMethods(String beanName, <span style="color: #0000ff;">final</span><span style="color: #000000;"> Object bean, @Nullable RootBeanDefinition mbd)
+        </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 是否实现 InitializingBean
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果实现了 InitializingBean 接口，则只掉调用bean的 afterPropertiesSet()</span>
+    <span style="color: #0000ff;">boolean</span> isInitializingBean = (bean <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> InitializingBean);
+    </span></strong><span style="color: #0000ff;">if</span> (isInitializingBean &amp;&amp; (mbd == <span style="color: #0000ff;">null</span> || !mbd.isExternallyManagedInitMethod("afterPropertiesSet"<span style="color: #000000;">))) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (logger.isDebugEnabled()) {
+            logger.debug(</span>"Invoking afterPropertiesSet() on bean with name '" + beanName + "'"<span style="color: #000000;">);
+        }
+        </span><span style="color: #0000ff;">if</span> (System.getSecurityManager() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                AccessController.doPrivileged((PrivilegedExceptionAction</span>&lt;Object&gt;) () -&gt;<span style="color: #000000;"> {
+                    ((InitializingBean) bean).afterPropertiesSet();
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                }, getAccessControlContext());
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (PrivilegedActionException pae) {
+                </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> pae.getException();
+            }
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 直接调用 afterPropertiesSet()</span>
+</strong><span style="color: #000000;"><strong>            ((InitializingBean) bean).afterPropertiesSet();</strong>
+        }
+    }
+
+    </span><span style="color: #0000ff;">if</span> (mbd != <span style="color: #0000ff;">null</span> &amp;&amp; bean.getClass() != NullBean.<span style="color: #0000ff;">class</span><span style="color: #000000;">) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 判断是否指定了 init-method()，
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果指定了 init-method()，则再调用制定的init-method</span>
+        String initMethodName =<span style="color: #000000;"> mbd.getInitMethodName();
+        </span><span style="color: #0000ff;">if</span> (StringUtils.hasLength(initMethodName) &amp;&amp;
+                !(isInitializingBean &amp;&amp; "afterPropertiesSet".equals(initMethodName)) &amp;&amp;
+                !<span style="color: #000000;">mbd.isExternallyManagedInitMethod(initMethodName)) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 利用反射机制执行</span>
+<span style="color: #000000;">            invokeCustomInitMethod(beanName, bean, mbd);
+        }
+    }
+}</span></code></pre>
+
+<p>首先检测当前 bean 是否实现了 InitializingBean 接口，如果实现了则调用其&nbsp;<code>afterPropertiesSet()</code>，然后再检查是否也指定了&nbsp;<code>init-method()</code>，如果指定了则通过反射机制调用指定的&nbsp;<code>init-method()</code>。</p>
+<p>我们也可以发现<strong>@PostConstruct会在实现&nbsp;InitializingBean 接口的afterPropertiesSet()方法之前执行</strong></p>
+<h2>Spring的事件机制</h2>
+<h3>基础概念</h3>
+<p>Spring的事件驱动模型由三部分组成</p>
+<ul>
+<li>事件:&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">ApplicationEvent<span class="pln">&nbsp;</span></span></span></code>,继承自JDK的&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">EventObject<span class="pln">&nbsp;</span></span></span></code>，所有事件都要继承它,也就是被观察者</li>
+<li>事件发布者:&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">ApplicationEventPublisher<span class="pln">&nbsp;</span></span></span></code>及&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">ApplicationEventMulticaster<span class="pln">&nbsp;</span></span></span></code>接口，使用这个接口，就可以发布事件了</li>
+<li>事件监听者:&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">ApplicationListener<span class="pln">&nbsp;</span></span></span></code>,继承JDK的&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">EventListener<span class="pln">&nbsp;</span></span></span></code>，所有监听者都继承它，也就是我们所说的观察者，当然我们也可以使用注解&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="lit">@EventListener<span class="pln">&nbsp;</span></span></span></code>，效果是一样的</li>
+</ul>
+<h3>事件</h3>
+<p>在Spring框架中，默认对ApplicationEvent事件提供了如下支持:</p>
+<ul>
+<li>ContextStartedEvent：ApplicationContext启动后触发的事件</li>
+<li>ContextStoppedEvent：ApplicationContext停止后触发的事件</li>
+<li>ContextRefreshedEvent：&nbsp;<strong>ApplicationContext初始化或刷新完成后触发的事件&nbsp;</strong>；（容器初始化完成后调用，所以我们可以利用这个事件做一些初始化操作）</li>
+<li>ContextClosedEvent：ApplicationContext关闭后触发的事件；（如&nbsp;web&nbsp;容器关闭时自动会触发spring容器的关闭，如果是普通&nbsp;java&nbsp;应用，需要调用ctx.registerShutdownHook();注册虚拟机关闭时的钩子才行）&nbsp;</li>
+</ul>
+<p><img src="./images/SpringBoot 源码解析 （三）----- Spring Boot 精髓：启动时初始化数据0.png" alt="" /></p>
+<p>构造一个类继承ApplicationEvent</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> TestEvent <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ApplicationEvent {
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String message;
+    
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> TestEvent(Object source) {
+        </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(source);
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> getMessage() {
+        System.out.println(message);
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setMessage(String message) {
+        </span><span style="color: #0000ff;">this</span>.message =<span style="color: #000000;"> message;
+    }
+
+}</span></code></pre>
+
+<h3>创建事件监听者</h3>
+<p>有两种方法可以创建监听者，一种是直接实现ApplicationListener的接口，一种是使用注解&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="lit">@EventListener<span class="pln">&nbsp;</span></span></span></code>，&nbsp;<strong>注解是添加在监听方法上的&nbsp;</strong>，下面的例子是直接实现的接口</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Component
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ApplicationListenerTest <strong><span style="color: #0000ff;">implements</span> ApplicationListener</strong>&lt;TestEvent&gt;<span style="color: #000000;"> {
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> onApplicationEvent(TestEvent testEvent) {
+        testEvent.getMessage();
+    }
+}</span></code></pre>
+
+<h3>事件发布</h3>
+<p>对于事件发布，代表者是&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">ApplicationEventPublisher<span class="pln">&nbsp;</span></span></span></code>和&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">ApplicationEventMulticaster<span class="pln">&nbsp;</span></span></span></code>,ApplicationContext接口继承了ApplicationEventPublisher，并在AbstractApplicationContext实现了具体代码，实际执行是委托给ApplicationEventMulticaster（可以认为是多播）</p>
+<p>下面是一个事件发布者的测试实例:</p>
+<src class="cnblogs_code">
+<pre><code>@RunWith(SpringRunner.<span style="color: #0000ff;">class</span><span style="color: #000000;">)
+@SpringBootTest
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> EventTest {
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> ApplicationContext applicationContext;
+
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> publishTest() {
+        TestEvent testEvent </span>= <span style="color: #0000ff;">new</span> TestEvent(""<span style="color: #000000;">);
+        testEvent.setMessage(</span>"hello world"<span style="color: #000000;">);
+      <strong>  applicationContext.publishEvent(testEvent);</strong>
+    }
+}</span></code></pre>
+
+<h3>利用ContextRefreshedEvent事件进行初始化操作</h3>
+<p>利用&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">ContextRefreshedEvent<span class="pln">&nbsp;</span></span></span></code>事件进行初始化，该事件是&nbsp;<code class="prettyprint prettyprinted"><span class="pln"><span class="typ">ApplicationContext<span class="pln">&nbsp;</span></span></span></code>初始化完成后调用的事件，所以我们可以利用这个事件，对应实现一个&nbsp;监听器&nbsp;，在其&nbsp;<code class="prettyprint prettyprinted"><span class="pln">onApplicationEvent<span class="pun">()<span class="pln">&nbsp;</span></span></span></code>方法里初始化操作</p>
+<src class="cnblogs_code">
+<pre><code><strong><span style="color: #000000;">@Component
+</span></strong><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> ApplicationListenerTest <span style="color: #0000ff;">implements</span> <strong>ApplicationListener&lt;ContextRefreshedEvent&gt;</strong><span style="color: #000000;"> {
+
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> onApplicationEvent(ContextRefreshedEvent event) {
+        System.out.println(</span>"容器刷新完成后，我被调用了.."<span style="color: #000000;">);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

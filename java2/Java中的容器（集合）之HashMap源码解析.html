@@ -1,0 +1,451 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java中的容器（集合）之HashMap源码解析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java中的容器（集合）之HashMap源码解析</center></div><div class='banquan'>原文出处:本文由博客园博主喜欢听风提供。<br/>
+原文连接:https://www.cnblogs.com/xihuantingfeng/p/11619628.html</div><br>
+    <h3 id="autoid-0-0-0"><span style="font-family: 楷体; font-size: 18px;">1、HashMap源码解析（JDK8</span><span style="font-family: 楷体; font-size: 18px;">）</span></h3>
+<p><span style="font-family: 楷体; font-size: 18px;"><strong>基础原理：</strong></span></p>
+<ul>
+<li><span style="font-family: 楷体;"><span style="font-size: 16px;">对比上一篇《<a title="Java中的容器（集合）之ArrayList源码解析" href="https://www.cnblogs.com/xihuantingfeng/p/11618015.html" target="_blank">Java中的容器（集合）之ArrayList源码解析</a>》而言，本篇只解析HashMap常用的核心方法的源码。<a href="https://www.cnblogs.com/xihuantingfeng/p/11618015.html"><br /></a></span></span></li>
+<li><span style="font-family: 楷体;"><span style="font-size: 16px;">HashMap是一个以键值对存储的容器。</span></span></li>
+<li><span style="font-family: 楷体;"><span style="font-size: 16px;">hashMap底层实现为数组+链表+红黑树（链表超过8时转为红黑树，JDK7为数组+链表）。</span></span></li>
+<li><span style="font-family: 楷体;"><span style="font-size: 16px;">HashMap会根据key的hashCode得到对应的hash值，再去数组中找寻对应的数组位置（下标）。</span></span></li>
+<li><span style="font-family: 楷体;"><span style="font-size: 16px;">hash方法如下：</span></span></li>
+
+
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> hash(Object key) {
+        </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> h;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">hashCode()返回散列值，这是Object中的一个方法
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> ^ 按位异或，&amp; 按位与，|按位或；&amp;&amp;逻辑与，||逻辑或
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> &gt;&gt;&gt; 无符号右移</span>
+        <span style="color: #0000ff;">return</span> (key == <span style="color: #0000ff;">null</span>) ? 0 : (h = key.hashCode()) ^ (h &gt;&gt;&gt; 16<span style="color: #000000;">);
+        }</span></code></pre>
+
+<p><span style="font-family: 楷体; font-size: 18px;"><strong>HashMap的一些属性</strong></span><span style="font-family: 楷体; font-size: 18px;"><strong>：</strong></span></p>
+<ul>
+<li><span style="font-family: 楷体; font-size: 16px;">关于其中加载因子属性（DEFAULT_LOAD_FACTOR ，loadFactor），主要是针对元素量而言，越大元素放的越多，空间利用率高，不过容易碰撞，查找时间多；越小元素放的越少，不容易碰撞，不过浪费空间，查找时间少。</span></li>
+<li><span style="font-family: 楷体; font-size: 16px;">关于threshold属性，它是HashMap的扩容标准，计算规则为容量*加载因子，比如默认情况为16*0.75=12，达到这个值的时候就会进行扩容（扩容操作比较耗费性能）。</span></li>
+<li><span style="font-family: 楷体; font-size: 16px;">源码及释义如下：</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> HashMap&lt;K,V&gt; <span style="color: #0000ff;">extends</span> AbstractMap&lt;K,V&gt; <span style="color: #0000ff;">implements</span> Map&lt;K,V&gt;<span style="color: #000000;">, Cloneable, Serializable {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 序列号</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">long</span> serialVersionUID = 362498820763181265L<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 默认的初始容量，需为2的幂次方（为了减少哈希碰撞），&lt;&lt; 表示左移，运算规则为乘以2的n次方，1&lt;&lt;4=16</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> DEFAULT_INITIAL_CAPACITY = 1 &lt;&lt; 4<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 最大容量，如果由某个带参构造函数隐式的指定了更高的值，需为2的幂次方且小于1 &lt;&lt; 30</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> MAXIMUM_CAPACITY = 1 &lt;&lt; 30<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 构造函数中未指定时使用的加载因子，即默认加载因子</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">float</span> DEFAULT_LOAD_FACTOR = 0.75f<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当传入的节点大于2且至少为8的时候，链表节点转为红黑树</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> TREEIFY_THRESHOLD = 8<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当节点小于为6的时候，红黑树退化为链表</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> UNTREEIFY_THRESHOLD = 6<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 红黑树中对应的最小表容量应该最少为4*TREEIFY_THRESHOLD，以避免在调整大小和红黑树阈值之间的冲突。</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> MIN_TREEIFY_CAPACITY = 64<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 在第一次使用的时候初始化表，且根据需要设置大小，分配的大小总是2的幂次方</span>
+    <span style="color: #0000ff;">transient</span> Node&lt;k,v&gt;<span style="color: #000000;">[] table;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 保存元素的集，需要注意的是，它使用的AbstractMap字段是keySet()和values()。</span>
+    <span style="color: #0000ff;">transient</span> Set&lt;map.entry&lt;k,v&gt;&gt;<span style="color: #000000;"> entrySet;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 此映射中包含的键值映射数，键值是一个整体，不等于数组的长度（因为存在哈希碰撞之后的链表和红黑树）</span>
+    <span style="color: #0000ff;">transient</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> size;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 每次扩容和更改map结构的计数器</span>
+    <span style="color: #0000ff;">transient</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> modCount;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 下一个要调整大小的大小值（容量*加载因子）</span>
+    <span style="color: #0000ff;">int</span><span style="color: #000000;"> threshold;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> hash表的加载因子</span>
+    <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">float</span><span style="color: #000000;"> loadFactor;
+}</span></code></pre>
+
+<p><span style="font-family: 楷体; font-size: 18px;"><strong>静态内部类Node：</strong></span></p>
+<ul>
+<li><span style="font-family: 楷体; font-size: 16px;">源码及释义如下：</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">静态内部类，实现了Map.Entry&lt;K,V&gt;接口</span>
+<span style="color: #0000ff;">static</span> <span style="color: #0000ff;">class</span> Node&lt;K,V&gt; <span style="color: #0000ff;">implements</span> Map.Entry&lt;K,V&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> hash;<span style="color: #008000;">//</span><span style="color: #008000;">哈希值，用于与其他元素的哈希值进行比较</span>
+    <span style="color: #0000ff;">final</span> K key;<span style="color: #008000;">//</span><span style="color: #008000;">键</span>
+    V value;<span style="color: #008000;">//</span><span style="color: #008000;">值</span>
+    Node&lt;K,V&gt; next;<span style="color: #008000;">//</span><span style="color: #008000;">下一个节点
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">构造器</span>
+    Node(<span style="color: #0000ff;">int</span> hash, K key, V value, Node&lt;K,V&gt;<span style="color: #000000;"> next) {
+        </span><span style="color: #0000ff;">this</span>.hash =<span style="color: #000000;"> hash;
+        </span><span style="color: #0000ff;">this</span>.key =<span style="color: #000000;"> key;
+        </span><span style="color: #0000ff;">this</span>.value =<span style="color: #000000;"> value;
+        </span><span style="color: #0000ff;">this</span>.next =<span style="color: #000000;"> next;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> K getKey()        { <span style="color: #0000ff;">return</span><span style="color: #000000;"> key; }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> V getValue()      { <span style="color: #0000ff;">return</span><span style="color: #000000;"> value; }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> String toString() { <span style="color: #0000ff;">return</span> key + "=" +<span style="color: #000000;"> value; }  
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> hashCode() {
+        </span><span style="color: #0000ff;">return</span> Objects.hashCode(key) ^<span style="color: #000000;"> Objects.hashCode(value);
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> V setValue(V newValue) {
+        V oldValue </span>=<span style="color: #000000;"> value;
+        value </span>=<span style="color: #000000;"> newValue;
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> oldValue;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> equals(Object o) {
+        </span><span style="color: #0000ff;">if</span> (o == <span style="color: #0000ff;">this</span><span style="color: #000000;">)
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span> (o <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Map.Entry) {
+            Map.Entry</span>&lt;?,?&gt; e = (Map.Entry&lt;?,?&gt;<span style="color: #000000;">)o;
+            </span><span style="color: #0000ff;">if</span> (Objects.equals(key, e.getKey()) &amp;&amp;<span style="color: #000000;">
+                    Objects.equals(value, e.getValue()))
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p><span style="font-family: 楷体; font-size: 18px;"><strong>JDK8增加了树节点静态内部类用于红黑树</strong><strong>：</strong></span></p>
+<ul>
+<li><span style="font-family: 楷体; font-size: 16px;">部分源码及释义如下：</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">class</span> TreeNode&lt;K,V&gt; <span style="color: #0000ff;">extends</span> LinkedHashMap.Entry&lt;K,V&gt;<span style="color: #000000;"> {
+    TreeNode</span>&lt;K, V&gt; parent;  <span style="color: #008000;">//</span><span style="color: #008000;"> red-black tree links</span>
+    TreeNode&lt;K, V&gt;<span style="color: #000000;"> left;
+    TreeNode</span>&lt;K, V&gt;<span style="color: #000000;"> right;
+    TreeNode</span>&lt;K, V&gt; prev;    <span style="color: #008000;">//</span><span style="color: #008000;"> needed to unlink next upon deletion</span>
+    <span style="color: #0000ff;">boolean</span> red; <span style="color: #008000;">//</span><span style="color: #008000;">判断是否为红</span>
+<span style="color: #000000;">
+    TreeNode(</span><span style="color: #0000ff;">int</span> hash, K key, V val, Node&lt;K, V&gt;<span style="color: #000000;"> next) {
+        </span><span style="color: #0000ff;">super</span><span style="color: #000000;">(hash, key, val, next);
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 返回包含此节点的树的根节点
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">final</span> TreeNode&lt;K, V&gt;<span style="color: #000000;"> root() {
+        </span><span style="color: #0000ff;">for</span> (TreeNode&lt;K, V&gt; r = <span style="color: #0000ff;">this</span><span style="color: #000000;">, p; ; ) {
+            </span><span style="color: #0000ff;">if</span> ((p = r.parent) == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> r;
+            r </span>=<span style="color: #000000;"> p;
+        }
+    }
+}</span></code></pre>
+
+<p><span style="font-family: 楷体; font-size: 18px;"><strong>HashMap的构造器</strong><strong>：</strong></span></p>
+<ul>
+<li><span style="font-family: 楷体; font-size: 16px;">主要有四个，源码及释义如下：</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 指定容量以及加载因子构造一个空的HashMap
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> HashMap(<span style="color: #0000ff;">int</span> initialCapacity, <span style="color: #0000ff;">float</span><span style="color: #000000;"> loadFactor) {
+        </span><span style="color: #0000ff;">if</span> (initialCapacity &lt; 0<span style="color: #000000;">)
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> IllegalArgumentException("Illegal initial capacity: " +<span style="color: #000000;">
+                    initialCapacity);
+        </span><span style="color: #0000ff;">if</span> (initialCapacity &gt;<span style="color: #000000;"> MAXIMUM_CAPACITY)
+            initialCapacity </span>=<span style="color: #000000;"> MAXIMUM_CAPACITY;
+        </span><span style="color: #0000ff;">if</span> (loadFactor &lt;= 0 ||<span style="color: #000000;"> Float.isNaN(loadFactor))
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> IllegalArgumentException("Illegal load factor: " +<span style="color: #000000;">
+                    loadFactor);
+        </span><span style="color: #0000ff;">this</span>.loadFactor =<span style="color: #000000;"> loadFactor;
+        </span><span style="color: #0000ff;">this</span>.threshold =<span style="color: #000000;"> tableSizeFor(initialCapacity);
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 指定容量以及默认加载因子0.75构造一个空的HashMap
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> HashMap(<span style="color: #0000ff;">int</span><span style="color: #000000;"> initialCapacity) {
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">(initialCapacity, DEFAULT_LOAD_FACTOR);
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 以默认容量16以及默认加载因子0.75构造一个空的HashMap
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> HashMap() {
+        </span><span style="color: #0000ff;">this</span>.loadFactor = DEFAULT_LOAD_FACTOR; <span style="color: #008000;">//</span><span style="color: #008000;"> all other fields defaulted</span>
+<span style="color: #000000;">    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 以另一个Map的键值对构造一个新的HashMap。新HashMap的容量最少足够存储旧HashMap的键值对数，加载因子为默认加载因子0.75
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> HashMap(Map&lt;? <span style="color: #0000ff;">extends</span> K, ? <span style="color: #0000ff;">extends</span> V&gt;<span style="color: #000000;"> m) {
+        </span><span style="color: #0000ff;">this</span>.loadFactor =<span style="color: #000000;"> DEFAULT_LOAD_FACTOR;
+        putMapEntries(m, </span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+    }</span></code></pre>
+
+<ul>
+<li><span style="font-family: 楷体; font-size: 16px;">其中第四个构造函数有用到putMapEntries()这个方法，其源码如下：</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 实现map.putall和map构造函数
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">void</span> putMapEntries(Map&lt;? <span style="color: #0000ff;">extends</span> K, ? <span style="color: #0000ff;">extends</span> V&gt; m, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> evict) {
+        </span><span style="color: #0000ff;">int</span> s =<span style="color: #000000;"> m.size();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">判断m是否为空</span>
+        <span style="color: #0000ff;">if</span> (s &gt; 0<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">判断table是否初始化</span>
+            <span style="color: #0000ff;">if</span> (table == <span style="color: #0000ff;">null</span>) { <span style="color: #008000;">//</span><span style="color: #008000;"> pre-size
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">计算m的总容量，计算规则为使用容量/加载因子+1</span>
+                <span style="color: #0000ff;">float</span> ft = ((<span style="color: #0000ff;">float</span>)s / loadFactor) + 1.0F<span style="color: #000000;">;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">将m总容量与HashMap规定的最大容量相比得到最终容量</span>
+                <span style="color: #0000ff;">int</span> t = ((ft &lt; (<span style="color: #0000ff;">float</span>)MAXIMUM_CAPACITY) ?<span style="color: #000000;">
+                        (</span><span style="color: #0000ff;">int</span><span style="color: #000000;">)ft : MAXIMUM_CAPACITY);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">判断最终容量是否大于扩容阈值（扩容阈值计算规则：容量*加载因子）</span>
+                <span style="color: #0000ff;">if</span> (t &gt;<span style="color: #000000;"> threshold)
+                    threshold </span>=<span style="color: #000000;"> tableSizeFor(t);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果m的键值对数大于扩容阈值，则进行扩容</span>
+            <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (s &gt;<span style="color: #000000;"> threshold)
+                resize();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">将m中的键值对添加到新HashMap中</span>
+            <span style="color: #0000ff;">for</span> (Map.Entry&lt;? <span style="color: #0000ff;">extends</span> K, ? <span style="color: #0000ff;">extends</span> V&gt;<span style="color: #000000;"> e : m.entrySet()) {
+                K key </span>=<span style="color: #000000;"> e.getKey();
+                V value </span>=<span style="color: #000000;"> e.getValue();
+                putVal(hash(key), key, value, </span><span style="color: #0000ff;">false</span><span style="color: #000000;">, evict);
+            }
+        }
+    }</span></code></pre>
+
+<ul>
+<li><span style="font-family: 楷体; font-size: 16px;">针对putMapEntries()方法中的扩容操作，可以查看resize()方法，源码及释义如下：</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 初始化表或者将表容量翻倍，如果为空则分配初始容量，否则以2的幂次方扩容，需要保持索引一致
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">final</span> Node&lt;K,V&gt;<span style="color: #000000;">[] resize() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">得到表</span>
+        Node&lt;K,V&gt;[] oldTab =<span style="color: #000000;"> table;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">判断表是否初始化</span>
+        <span style="color: #0000ff;">int</span> oldCap = (oldTab == <span style="color: #0000ff;">null</span>) ? 0<span style="color: #000000;"> : oldTab.length;
+        </span><span style="color: #0000ff;">int</span> oldThr =<span style="color: #000000;"> threshold;
+        </span><span style="color: #0000ff;">int</span> newCap, newThr = 0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span> (oldCap &gt; 0<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果旧容量大于最大值，则不扩容</span>
+            <span style="color: #0000ff;">if</span> (oldCap &gt;=<span style="color: #000000;"> MAXIMUM_CAPACITY) {
+                threshold </span>=<span style="color: #000000;"> Integer.MAX_VALUE;
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> oldTab;
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">判断旧容量的两倍容量（左移表示乘以2的n次方）是否小于最大容量，且旧容量是否大于等于默认容量</span>
+            <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ((newCap = oldCap &lt;&lt; 1) &lt; MAXIMUM_CAPACITY &amp;&amp;<span style="color: #000000;">
+                    oldCap </span>&gt;=<span style="color: #000000;"> DEFAULT_INITIAL_CAPACITY)
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">扩容两倍</span>
+                newThr = oldThr &lt;&lt; 1; <span style="color: #008000;">//</span><span style="color: #008000;"> double threshold</span>
+<span style="color: #000000;">        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">否则如果旧阈值大于0，则初始化容量设置为旧阈值</span>
+        <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (oldThr &gt; 0) <span style="color: #008000;">//</span><span style="color: #008000;"> initial capacity was placed in threshold</span>
+            newCap =<span style="color: #000000;"> oldThr;
+        </span><span style="color: #0000ff;">else</span> {               <span style="color: #008000;">//</span><span style="color: #008000;"> zero initial threshold signifies using defaults
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">否则新容量设置为默认容量（因为旧容量小于0）</span>
+            newCap =<span style="color: #000000;"> DEFAULT_INITIAL_CAPACITY;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">新阈值设置为默认容量乘以默认加载因子，即16*0.75</span>
+            newThr = (<span style="color: #0000ff;">int</span>)(DEFAULT_LOAD_FACTOR *<span style="color: #000000;"> DEFAULT_INITIAL_CAPACITY);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">如果新阈值为0，则重新计算新阈值</span>
+        <span style="color: #0000ff;">if</span> (newThr == 0<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">float</span> ft = (<span style="color: #0000ff;">float</span>)newCap *<span style="color: #000000;"> loadFactor;
+            newThr </span>= (newCap &lt; MAXIMUM_CAPACITY &amp;&amp; ft &lt; (<span style="color: #0000ff;">float</span>)MAXIMUM_CAPACITY ?<span style="color: #000000;">
+                    (</span><span style="color: #0000ff;">int</span><span style="color: #000000;">)ft : Integer.MAX_VALUE);
+        }
+        threshold </span>=<span style="color: #000000;"> newThr;
+        @SuppressWarnings({</span>"rawtypes","unchecked"<span style="color: #000000;">})
+        Node</span>&lt;K,V&gt;[] newTab = (Node&lt;K,V&gt;[])<span style="color: #0000ff;">new</span> Node[newCap];  <span style="color: #008000;">//</span><span style="color: #008000;">此方法返回的新table
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">如果旧table为空，则初始化</span>
+        table =<span style="color: #000000;"> newTab;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">否则将旧table的值放入新table</span>
+        <span style="color: #0000ff;">if</span> (oldTab != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">旧table的值循环放入新table</span>
+            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> j = 0; j &lt; oldCap; ++<span style="color: #000000;">j) {
+                Node</span>&lt;K,V&gt;<span style="color: #000000;"> e;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">判断当前节点是否有值</span>
+                <span style="color: #0000ff;">if</span> ((e = oldTab[j]) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">旧table节点置为空</span>
+                    oldTab[j] = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果该节点没有子节点，则返回新table，元素放入的位置为e的哈希值按位与（新容量-1）</span>
+                    <span style="color: #0000ff;">if</span> (e.next == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                        newTab[e.hash </span>&amp; (newCap - 1)] =<span style="color: #000000;"> e;
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">否则如果该节点属于红黑树节点，将其切割赋给新红黑树</span>
+                    <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (e <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> TreeNode)
+                        ((TreeNode</span>&lt;K,V&gt;)e).split(<span style="color: #0000ff;">this</span><span style="color: #000000;">, newTab, j, oldCap);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">保持索引一致</span>
+                    <span style="color: #0000ff;">else</span> { <span style="color: #008000;">//</span><span style="color: #008000;"> preserve order</span>
+                        Node&lt;K,V&gt; loHead = <span style="color: #0000ff;">null</span>, loTail = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                        Node</span>&lt;K,V&gt; hiHead = <span style="color: #0000ff;">null</span>, hiTail = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                        Node</span>&lt;K,V&gt;<span style="color: #000000;"> next;
+                        </span><span style="color: #0000ff;">do</span><span style="color: #000000;"> {
+                            next </span>=<span style="color: #000000;"> e.next;
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">旧索引</span>
+                            <span style="color: #0000ff;">if</span> ((e.hash &amp; oldCap) == 0<span style="color: #000000;">) {
+                                </span><span style="color: #0000ff;">if</span> (loTail == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                                    loHead </span>=<span style="color: #000000;"> e;
+                                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                                    loTail.next </span>=<span style="color: #000000;"> e;
+                                loTail </span>=<span style="color: #000000;"> e;
+                            }
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">新索引</span>
+                            <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                                </span><span style="color: #0000ff;">if</span> (hiTail == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                                    hiHead </span>=<span style="color: #000000;"> e;
+                                </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                                    hiTail.next </span>=<span style="color: #000000;"> e;
+                                hiTail </span>=<span style="color: #000000;"> e;
+                            }
+                        } </span><span style="color: #0000ff;">while</span> ((e = next) != <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">旧索引放入table</span>
+                        <span style="color: #0000ff;">if</span> (loTail != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                            loTail.next </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                            newTab[j] </span>=<span style="color: #000000;"> loHead;
+                        }
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">新索引放入table</span>
+                        <span style="color: #0000ff;">if</span> (hiTail != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                            hiTail.next </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                            newTab[j </span>+ oldCap] =<span style="color: #000000;"> hiHead;
+                        }
+                    }
+                }
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> newTab;
+    }</span></code></pre>
+
+<ul>
+<li><span style="font-family: 楷体; font-size: 16px;">关于put的源码及释义如下（对应原理可以查看《<a title="Java中的容器（集合）" href="https://www.cnblogs.com/xihuantingfeng/p/11616389.html#autoid-9-0-0" target="_blank">Java中的容器（集合）</a>》第七条）：</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">//</span><span style="color: #008000;">put元素到map中</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> V put(K key, V value) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">实际调用的是putVal()方法</span>
+        <span style="color: #0000ff;">return</span> putVal(hash(key), key, value, <span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">putVal()方法用于实际操作插入元素</span>
+    <span style="color: #0000ff;">final</span> V putVal(<span style="color: #0000ff;">int</span> hash, K key, V value, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> onlyIfAbsent,
+                   </span><span style="color: #0000ff;">boolean</span><span style="color: #000000;"> evict) {
+        Node</span>&lt;K,V&gt;[] tab; Node&lt;K,V&gt; p; <span style="color: #0000ff;">int</span><span style="color: #000000;"> n, i;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">table未初始化，调用resize()进行扩容（使用的都是默认值）</span>
+        <span style="color: #0000ff;">if</span> ((tab = table) == <span style="color: #0000ff;">null</span> || (n = tab.length) == 0<span style="color: #000000;">)
+            n </span>= (tab =<span style="color: #000000;"> resize()).length;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">判断(n - 1) &amp; hash]索引处的table是否为空，为空，则插入新节点（table为空，此时插入的节点是在数组中）</span>
+        <span style="color: #0000ff;">if</span> ((p = tab[i = (n - 1) &amp; hash]) == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+            tab[i] </span>= newNode(hash, key, value, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">table不为空</span>
+        <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            Node</span>&lt;K,V&gt;<span style="color: #000000;"> e; K k;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">判断节点的hash以及key是否相等，是则覆盖。</span>
+            <span style="color: #0000ff;">if</span> (p.hash == hash &amp;&amp;<span style="color: #000000;">
+                    ((k </span>= p.key) == key || (key != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> key.equals(k))))
+                e </span>=<span style="color: #000000;"> p;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">否则如果属于树节点，使用putTreeVal插入节点数据（putTreeVal是针对红黑树的putVal方法），有兴趣的可以看一下putTreeVal方法</span>
+            <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (p <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> TreeNode)
+                e </span>= ((TreeNode&lt;K,V&gt;)p).putTreeVal(<span style="color: #0000ff;">this</span><span style="color: #000000;">, tab, hash, key, value);
+            </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">是一个链表</span>
+                <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> binCount = 0; ; ++<span style="color: #000000;">binCount) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">判断是否到达链表末尾</span>
+                    <span style="color: #0000ff;">if</span> ((e = p.next) == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">在链表末尾插入数据</span>
+                        p.next = newNode(hash, key, value, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">如果大于规则节点数（8），则转为红黑树存储</span>
+                        <span style="color: #0000ff;">if</span> (binCount &gt;= TREEIFY_THRESHOLD - 1) <span style="color: #008000;">//</span><span style="color: #008000;"> -1 for 1st</span>
+<span style="color: #000000;">                            treeifyBin(tab, hash);
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">跳出循环</span>
+                        <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">判断插入元素与链表中原有元素的hash以及key是否相等</span>
+                    <span style="color: #0000ff;">if</span> (e.hash == hash &amp;&amp;<span style="color: #000000;">
+                            ((k </span>= e.key) == key || (key != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> key.equals(k))))
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">相等，跳出循环</span>
+                        <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">循环链表</span>
+                    p =<span style="color: #000000;"> e;
+                }
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">存在键值对的key</span>
+            <span style="color: #0000ff;">if</span> (e != <span style="color: #0000ff;">null</span>) { <span style="color: #008000;">//</span><span style="color: #008000;"> existing mapping for key
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">存储旧值</span>
+                V oldValue =<span style="color: #000000;"> e.value;
+                </span><span style="color: #0000ff;">if</span> (!onlyIfAbsent || oldValue == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">替换为新值</span>
+                    e.value =<span style="color: #000000;"> value;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">访问后回调</span>
+<span style="color: #000000;">                afterNodeAccess(e);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">返回旧值</span>
+                <span style="color: #0000ff;">return</span><span style="color: #000000;"> oldValue;
+            }
+        }
+        </span>++<span style="color: #000000;">modCount;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">插入的时候，判断容量是否大于阈值</span>
+        <span style="color: #0000ff;">if</span> (++size &gt;<span style="color: #000000;"> threshold)
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">是，则进行扩容</span>
+<span style="color: #000000;">            resize();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">插入后回调</span>
+<span style="color: #000000;">        afterNodeInsertion(evict);
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }</span></code></pre>
+
+<ul>
+<li><span style="font-family: 楷体; font-size: 16px;">关于get的源码及释义如下：</span></li>
+</ul>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">//</span><span style="color: #008000;">通过指定key从map中get值</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> V get(Object key) {
+        Node</span>&lt;K,V&gt;<span style="color: #000000;"> e;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">实际调用的是getNode()方法</span>
+        <span style="color: #0000ff;">return</span> (e = getNode(hash(key), key)) == <span style="color: #0000ff;">null</span> ? <span style="color: #0000ff;">null</span><span style="color: #000000;"> : e.value;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">getNode()方法用于实际操作查询元素值</span>
+    <span style="color: #0000ff;">final</span> Node&lt;K,V&gt; getNode(<span style="color: #0000ff;">int</span><span style="color: #000000;"> hash, Object key) {
+        Node</span>&lt;K,V&gt;[] tab; Node&lt;K,V&gt; first, e; <span style="color: #0000ff;">int</span><span style="color: #000000;"> n; K k;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">判断存在table是否初始化</span>
+        <span style="color: #0000ff;">if</span> ((tab = table) != <span style="color: #0000ff;">null</span> &amp;&amp; (n = tab.length) &gt; 0 &amp;&amp;<span style="color: #000000;">
+                (first </span>= tab[(n - 1) &amp; hash]) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">总是检查第一个节点，如果第一个节点与需要查询的节点的hash以及key相等，则返回第一个节点</span>
+            <span style="color: #0000ff;">if</span> (first.hash == hash &amp;&amp; <span style="color: #008000;">//</span><span style="color: #008000;"> always check first node</span>
+                    ((k = first.key) == key || (key != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> key.equals(k))))
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> first;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果存在多个节点</span>
+            <span style="color: #0000ff;">if</span> ((e = first.next) != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">如果属于红黑树，则调用红黑树中的getTreeNode方法查询，有兴趣的可以看一下getTreeNode方法</span>
+                <span style="color: #0000ff;">if</span> (first <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> TreeNode)
+                    </span><span style="color: #0000ff;">return</span> ((TreeNode&lt;K,V&gt;<span style="color: #000000;">)first).getTreeNode(hash, key);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">否则在链表中查询</span>
+                <span style="color: #0000ff;">do</span><span style="color: #000000;"> {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果链表节点与需要查询的节点的hash以及key相等，则返回链表节点</span>
+                    <span style="color: #0000ff;">if</span> (e.hash == hash &amp;&amp;<span style="color: #000000;">
+                            ((k </span>= e.key) == key || (key != <span style="color: #0000ff;">null</span> &amp;&amp;<span style="color: #000000;"> key.equals(k))))
+                        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> e;
+                } </span><span style="color: #0000ff;">while</span> ((e = e.next) != <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            }
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }</span></code></pre>
+
+<p><span style="font-family: 楷体; font-size: 16px;">&nbsp;（以上所有内容皆为个人笔记，如有错误之处还望指正。）</span></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

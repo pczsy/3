@@ -1,0 +1,337 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Netty中粘包和拆包的解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Netty中粘包和拆包的解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主CodingDiary提供。<br/>
+原文连接:https://www.cnblogs.com/coding-diary/p/11650686.html</div><br>
+    <src class="markdown-here-wrapper" data-md-url="https://i.cnblogs.com/EditPosts.aspx?opt=1">
+<p style="margin: 0px 0px 1.2em !important;">粘包和拆包是TCP网络编程中不可避免的，无论是服务端还是客户端，当我们读取或者发送消息的时候，都需要考虑TCP底层的粘包/拆包机制。</p>
+<h3 id="tcp-" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.3em;">TCP粘包和拆包</h3>
+<p style="margin: 0px 0px 1.2em !important;">TCP是个&ldquo;流&rdquo;协议，所谓流，就是没有界限的一串数据。TCP底层并不了解上层业务数据的具体含义，它会根据TCP缓冲区的实际情况进行包的划分，所以在业务上认为，一个完整的包可能会被TCP拆分成多个包进行发送，也有可能把多个小的包封装成一个大的数据包发送，这就是所谓的TCP粘包和拆包问题。</p>
+<p style="margin: 0px 0px 1.2em !important;"><img src="./images/Netty中粘包和拆包的解决方案0.png" alt="img" /></p>
+<p style="margin: 0px 0px 1.2em !important;">如图所示，假设客户端分别发送了两个数据包D1和D2给服务端，由于服务端一次读取到的字节数是不确定的，故可能存在以下4种情况。</p>
+<ol style="margin: 1.2em 0px; padding-left: 2em;">
+<li style="margin: 0.5em 0px;">服务端分两次读取到了两个独立的数据包，分别是D1和D2，没有粘包和拆包；</li>
+<li style="margin: 0.5em 0px;">服务端一次接收到了两个数据包，D1和D2粘合在一起，被称为TCP粘包；</li>
+<li style="margin: 0.5em 0px;">服务端分两次读取到了两个数据包，第一次读取到了完整的D1包和D2包的部分内容，第二次读取到了D2包的剩余内容，这被称为TCP拆包</li>
+<li style="margin: 0.5em 0px;">服务端分两次读取到了两个数据包，第一次读取到了D1包的部分内容D1_1，第二次读取到了D1包的剩余内容D1_2和D2包的整包。</li>
+</ol>
+<p style="margin: 0px 0px 1.2em !important;">如果此时服务端TCP接收滑窗非常小，而数据包D1和D2比较大，很有可能会发生第五种可能，即服务端分多次才能将D1和D2包接收完全，期间发生多次拆包。</p>
+<h3 id="tcp-" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.3em;">TCP粘包和拆包产生的原因</h3>
+<p style="margin: 0px 0px 1.2em !important;">数据从发送方到接收方需要经过操作系统的缓冲区，而造成粘包和拆包的主要原因就在这个缓冲区上。粘包可以理解为缓冲区数据堆积，导致多个请求数据粘在一起，而拆包可以理解为发送的数据大于缓冲区，进行拆分处理。</p>
+<p style="margin: 0px 0px 1.2em !important;"><img src="./images/Netty中粘包和拆包的解决方案1.png" alt="img" /></p>
+<p style="margin: 0px 0px 1.2em !important;">详细来说，造成粘包和拆包的原因主要有以下三个：</p>
+<ol style="margin: 1.2em 0px; padding-left: 2em;">
+<li style="margin: 0.5em 0px;">应用程序write写入的字节大小大于套接口发送缓冲区大小</li>
+<li style="margin: 0.5em 0px;">进行MSS大小的TCP分段</li>
+<li style="margin: 0.5em 0px;">以太网帧的payload大于MTU进行IP分片。</li>
+</ol>
+<p style="margin: 0px 0px 1.2em !important;"><img src="./images/Netty中粘包和拆包的解决方案2.png" alt="img" /></p>
+<h3 id="-" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.3em;">粘包和拆包的解决方法</h3>
+<p style="margin: 0px 0px 1.2em !important;">由于底层的TCP无法理解上层的业务数据，所以在底层是无法保证数据包不被拆分和重组的，这个问题只能通过上层的应用协议栈设计来解决，根据业界的主流协议的解决方案，可以归纳如下。</p>
+<ol style="margin: 1.2em 0px; padding-left: 2em;">
+<li style="margin: 0.5em 0px;">消息长度固定，累计读取到长度和为定长LEN的报文后，就认为读取到了一个完整的信息</li>
+<li style="margin: 0.5em 0px;">将回车换行符作为消息结束符</li>
+<li style="margin: 0.5em 0px;">将特殊的分隔符作为消息的结束标志，回车换行符就是一种特殊的结束分隔符</li>
+<li style="margin: 0.5em 0px;">通过在消息头中定义长度字段来标识消息的总长度</li>
+</ol>
+<h3 id="netty-" style="margin: 1.3em 0px 1em; padding: 0px; font-weight: bold; font-size: 1.3em;">Netty中的粘包和拆包解决方案</h3>
+<p style="margin: 0px 0px 1.2em !important;">针对上一小节描述的粘包和拆包的解决方案，对于拆包问题比较简单，用户可以自己定义自己的编码器进行处理，Netty并没有提供相应的组件。对于粘包的问题，由于拆包比较复杂，代码比较处理比较繁琐，Netty提供了4种解码器来解决，分别如下：</p>
+<ol style="margin: 1.2em 0px; padding-left: 2em;">
+<li style="margin: 0.5em 0px;">固定长度的拆包器 FixedLengthFrameDecoder，每个应用层数据包的都拆分成都是固定长度的大小</li>
+<li style="margin: 0.5em 0px;">行拆包器 LineBasedFrameDecoder，每个应用层数据包，都以换行符作为分隔符，进行分割拆分</li>
+<li style="margin: 0.5em 0px;">分隔符拆包器 DelimiterBasedFrameDecoder，每个应用层数据包，都通过自定义的分隔符，进行分割拆分</li>
+<li style="margin: 0.5em 0px;">基于数据包长度的拆包器 LengthFieldBasedFrameDecoder，将应用层数据包的长度，作为接收端应用层数据包的拆分依据。按照应用层数据包的大小，拆包。这个拆包器，有一个要求，就是应用层协议中包含数据包的长度</li>
+</ol>
+<p style="margin: 0px 0px 1.2em !important;">以上解码器在使用时只需要添加到Netty的责任链中即可，大多数情况下这4种解码器都可以满足了，当然除了以上4种解码器，用户也可以自定义自己的解码器进行处理。具体可以参考以下代码示例:</p>
+<pre><code><code style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0.5em 0.7em; white-space: pre; border: 1px solid #cccccc; background-color: #f8f8f8; border-radius: 3px; display: block !important; overflow: auto;">// Server主程序
+public class XNettyServer {
+  public static void main(String[] args) throws Exception {
+    // accept 处理连接的线程池
+    NioEventLoopGroup acceptGroup = new NioEventLoopGroup();
+    // read io 处理数据的线程池
+    NioEventLoopGroup readGroup = new NioEventLoopGroup();
+    try {
+      ServerBootstrap serverBootstrap = new ServerBootstrap();
+      serverBootstrap
+          .group(acceptGroup, readGroup)
+          .channel(NioServerSocketChannel.class)
+          .childHandler(
+              new ChannelInitializer&lt;SocketChannel&gt;() {
+                @Override
+                protected void initChannel(SocketChannel ch) throws Exception {
+                  ChannelPipeline pipeline = ch.pipeline();
+
+                  // 增加解码器
+                  pipeline.addLast(new XDecoder());
+
+                  // 打印出内容 handdler
+                  pipeline.addLast(new XHandler());
+                }
+              });
+      System.out.println("启动成功，端口 7777");
+      serverBootstrap.bind(7777).sync().channel().closeFuture().sync();
+    } finally {
+      acceptGroup.shutdownGracefully();
+      readGroup.shutdownGracefully();
+    }
+  }
+}
+
+// 解码器
+public class XDecoder extends ByteToMessageDecoder {
+
+  static final int PACKET_SIZE = 220;
+
+  // 用来临时保留没有处理过的请求报文
+  ByteBuf tempMsg = Unpooled.buffer();
+
+  /**
+   * @param ctx
+   * @param in 请求的数据
+   * @param out 将粘在一起的报文拆分后的结果保留起来
+   * @throws Exception
+   */
+  @Override
+  protected void decode(ChannelHandlerContext ctx, ByteBuf in, List&lt;Object&gt; out) throws Exception {
+    System.out.println(Thread.currentThread() + "收到了一次数据包，长度是：" + in.readableBytes());
+
+    // 合并报文
+    ByteBuf message = null;
+    int tmpMsgSize = tempMsg.readableBytes();
+    // 如果暂存有上一次余下的请求报文，则合并
+    if (tmpMsgSize &gt; 0) {
+      message = Unpooled.buffer();
+      message.writeBytes(tempMsg);
+      message.writeBytes(in);
+      System.out.println("合并：上一数据包余下的长度为：" + tmpMsgSize + ",合并后长度为:" + message.readableBytes());
+    } else {
+      message = in;
+    }
+
+    int size = message.readableBytes();
+    int counter = size / PACKET_SIZE;
+    for (int i = 0; i &lt; counter; i++) {
+      byte[] request = new byte[PACKET_SIZE];
+      // 每次从总的消息中读取220个字节的数据
+      message.readBytes(request);
+
+      // 将拆分后的结果放入out列表中，交由后面的业务逻辑去处理
+      out.add(Unpooled.copiedBuffer(request));
+    }
+
+    // 多余的报文存起来
+    // 第一个报文： i+  暂存
+    // 第二个报文： 1 与第一次
+    size = message.readableBytes();
+    if (size != 0) {
+      System.out.println("多余的数据长度：" + size);
+      // 剩下来的数据放到tempMsg暂存
+      tempMsg.clear();
+      tempMsg.writeBytes(message.readBytes(size));
+    }
+  }
+}
+
+// 处理器
+public class XHandler extends ChannelInboundHandlerAdapter {
+
+  @Override
+  public void channelReadComplete(ChannelHandlerContext ctx) throws Exception {
+    ctx.flush();
+  }
+
+  @Override
+  public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+    ByteBuf byteBuf = (ByteBuf) msg;
+    byte[] content = new byte[byteBuf.readableBytes()];
+    byteBuf.readBytes(content);
+    System.out.println(Thread.currentThread() + ": 最终打印" + new String(content));
+    ((ByteBuf) msg).release();
+  }
+
+  @Override
+  public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+    cause.printStackTrace();
+    ctx.close();
+  }
+}
+</code></code></pre>
+<p style="margin: 0px 0px 1.2em !important;"><img src="./images/Netty中粘包和拆包的解决方案3.png" alt="" /></p>
+<src style="height: 0; width: 0; max-height: 0; max-width: 0; overflow: hidden; font-size: 0em; padding: 0; margin: 0;" title="MDH:PHByZT48YnI+57KY5YyF5ZKM5ouG5YyF5pivVENQ572R57uc57yW56iL5Lit5LiN5Y+v6YG/5YWN
+55qE77yM5peg6K665piv5pyN5Yqh56uv6L+Y5piv5a6i5oi356uv77yM5b2T5oiR5Lus6K+75Y+W
+5oiW6ICF5Y+R6YCB5raI5oGv55qE5pe25YCZ77yM6YO96ZyA6KaB6ICD6JmRVENQ5bqV5bGC55qE
+57KY5YyFL+aLhuWMheacuuWItuOAgjxicj48YnI+IyMjIFRDUOeymOWMheWSjOaLhuWMhTxicj48
+YnI+VENQ5piv5Liq4oCc5rWB4oCd5Y2P6K6u77yM5omA6LCT5rWB77yM5bCx5piv5rKh5pyJ55WM
+6ZmQ55qE5LiA5Liy5pWw5o2u44CCVENQ5bqV5bGC5bm25LiN5LqG6Kej5LiK5bGC5Lia5Yqh5pWw
+5o2u55qE5YW35L2T5ZCr5LmJ77yM5a6D5Lya5qC55o2uVENQ57yT5Yay5Yy655qE5a6e6ZmF5oOF
+5Ya16L+b6KGM5YyF55qE5YiS5YiG77yM5omA5Lul5Zyo5Lia5Yqh5LiK6K6k5Li677yM5LiA5Liq
+5a6M5pW055qE5YyF5Y+v6IO95Lya6KKrVENQ5ouG5YiG5oiQ5aSa5Liq5YyF6L+b6KGM5Y+R6YCB
+77yM5Lmf5pyJ5Y+v6IO95oqK5aSa5Liq5bCP55qE5YyF5bCB6KOF5oiQ5LiA5Liq5aSn55qE5pWw
+5o2u5YyF5Y+R6YCB77yM6L+Z5bCx5piv5omA6LCT55qEVENQ57KY5YyF5ZKM5ouG5YyF6Zeu6aKY
+44CCPGJyPjxicj4hW2ltZ10oaHR0cHM6Ly9naXRlZS5jb20vbW8tc2UtZGUtZmVuZy9ub3Rlcy9y
+YXcvbWFzdGVyL2ltYWdlcy8yLjMuMSUyMCVFNyVCMiU5OCVFNSU4QyU4NSVFNSU5MiU4QyVFNiU4
+QiU4NiVFNSU4QyU4NSVFOSU5NyVBRSVFOSVBMiU5OC5QTkcpPGJyPjxicj7lpoLlm77miYDnpLrv
+vIzlgYforr7lrqLmiLfnq6/liIbliKvlj5HpgIHkuobkuKTkuKrmlbDmja7ljIVEMeWSjEQy57uZ
+5pyN5Yqh56uv77yM55Sx5LqO5pyN5Yqh56uv5LiA5qyh6K+75Y+W5Yiw55qE5a2X6IqC5pWw5piv
+5LiN56Gu5a6a55qE77yM5pWF5Y+v6IO95a2Y5Zyo5Lul5LiLNOenjeaDheWGteOAgjxicj4xLiDm
+nI3liqHnq6/liIbkuKTmrKHor7vlj5bliLDkuobkuKTkuKrni6znq4vnmoTmlbDmja7ljIXvvIzl
+iIbliKvmmK9EMeWSjEQy77yM5rKh5pyJ57KY5YyF5ZKM5ouG5YyF77ybPGJyPjIuIOacjeWKoeer
+r+S4gOasoeaOpeaUtuWIsOS6huS4pOS4quaVsOaNruWMhe+8jEQx5ZKMRDLnspjlkIjlnKjkuIDo
+tbfvvIzooqvnp7DkuLpUQ1DnspjljIXvvJs8YnI+My4g5pyN5Yqh56uv5YiG5Lik5qyh6K+75Y+W
+5Yiw5LqG5Lik5Liq5pWw5o2u5YyF77yM56ys5LiA5qyh6K+75Y+W5Yiw5LqG5a6M5pW055qERDHl
+jIXlkoxEMuWMheeahOmDqOWIhuWGheWuue+8jOesrOS6jOasoeivu+WPluWIsOS6hkQy5YyF55qE
+5Ymp5L2Z5YaF5a6577yM6L+Z6KKr56ew5Li6VENQ5ouG5YyFPGJyPjQuIOacjeWKoeerr+WIhuS4
+pOasoeivu+WPluWIsOS6huS4pOS4quaVsOaNruWMhe+8jOesrOS4gOasoeivu+WPluWIsOS6hkQx
+5YyF55qE6YOo5YiG5YaF5a65RDFfMe+8jOesrOS6jOasoeivu+WPluWIsOS6hkQx5YyF55qE5Ymp
+5L2Z5YaF5a65RDFfMuWSjEQy5YyF55qE5pW05YyF44CCPGJyPjxicj7lpoLmnpzmraTml7bmnI3l
+iqHnq69UQ1DmjqXmlLbmu5HnqpfpnZ7luLjlsI/vvIzogIzmlbDmja7ljIVEMeWSjEQy5q+U6L6D
+5aSn77yM5b6I5pyJ5Y+v6IO95Lya5Y+R55Sf56ys5LqU56eN5Y+v6IO977yM5Y2z5pyN5Yqh56uv
+5YiG5aSa5qyh5omN6IO95bCGRDHlkoxEMuWMheaOpeaUtuWujOWFqO+8jOacn+mXtOWPkeeUn+Wk
+muasoeaLhuWMheOAgjxicj48YnI+IyMjIFRDUOeymOWMheWSjOaLhuWMheS6p+eUn+eahOWOn+Wb
+oDxicj48YnI+5pWw5o2u5LuO5Y+R6YCB5pa55Yiw5o6l5pS25pa56ZyA6KaB57uP6L+H5pON5L2c
+57O757uf55qE57yT5Yay5Yy677yM6ICM6YCg5oiQ57KY5YyF5ZKM5ouG5YyF55qE5Li76KaB5Y6f
+5Zug5bCx5Zyo6L+Z5Liq57yT5Yay5Yy65LiK44CC57KY5YyF5Y+v5Lul55CG6Kej5Li657yT5Yay
+5Yy65pWw5o2u5aCG56ev77yM5a+86Ie05aSa5Liq6K+35rGC5pWw5o2u57KY5Zyo5LiA6LW377yM
+6ICM5ouG5YyF5Y+v5Lul55CG6Kej5Li65Y+R6YCB55qE5pWw5o2u5aSn5LqO57yT5Yay5Yy677yM
+6L+b6KGM5ouG5YiG5aSE55CG44CCPGJyPjxicj4hW2ltZ10oaHR0cHM6Ly9naXRlZS5jb20vbW8t
+c2UtZGUtZmVuZy9ub3Rlcy9yYXcvbWFzdGVyL2ltYWdlcy8yLjMuMSUyMCVFNiU5NSVCMCVFNiU4
+RCVBRSVFNyVCQyU5MyVFNSU4NiVCMiVFNSU4QyVCQS5QTkcpPGJyPjxicj7or6bnu4bmnaXor7Tv
+vIzpgKDmiJDnspjljIXlkozmi4bljIXnmoTljp/lm6DkuLvopoHmnInku6XkuIvkuInkuKrvvJo8
+YnI+MS4g5bqU55So56iL5bqPd3JpdGXlhpnlhaXnmoTlrZfoioLlpKflsI/lpKfkuo7lpZfmjqXl
+j6Plj5HpgIHnvJPlhrLljLrlpKflsI88YnI+Mi4g6L+b6KGMTVNT5aSn5bCP55qEVENQ5YiG5q61
+PGJyPjMuIOS7peWkque9keW4p+eahHBheWxvYWTlpKfkuo5NVFXov5vooYxJUOWIhueJh+OAgjxi
+cj48YnI+IVtpbWddKGh0dHBzOi8vZ2l0ZWUuY29tL21vLXNlLWRlLWZlbmcvbm90ZXMvcmF3L21h
+c3Rlci9pbWFnZXMvMi4zLjElMjAlRTclQjIlOTglRTUlOEMlODUlRTUlOTIlOEMlRTYlOEIlODYl
+RTUlOEMlODUlRTclOUElODQlRTUlOEUlOUYlRTUlOUIlQTAuUE5HKTxicj48YnI+IyMjIOeymOWM
+heWSjOaLhuWMheeahOino+WGs+aWueazlTxicj48YnI+55Sx5LqO5bqV5bGC55qEVENQ5peg5rOV
+55CG6Kej5LiK5bGC55qE5Lia5Yqh5pWw5o2u77yM5omA5Lul5Zyo5bqV5bGC5piv5peg5rOV5L+d
+6K+B5pWw5o2u5YyF5LiN6KKr5ouG5YiG5ZKM6YeN57uE55qE77yM6L+Z5Liq6Zeu6aKY5Y+q6IO9
+6YCa6L+H5LiK5bGC55qE5bqU55So5Y2P6K6u5qCI6K6+6K6h5p2l6Kej5Yaz77yM5qC55o2u5Lia
+55WM55qE5Li75rWB5Y2P6K6u55qE6Kej5Yaz5pa55qGI77yM5Y+v5Lul5b2S57qz5aaC5LiL44CC
+PGJyPjxicj4xLiDmtojmga/plb/luqblm7rlrprvvIzntK/orqHor7vlj5bliLDplb/luqblkozk
+uLrlrprplb9MRU7nmoTmiqXmloflkI7vvIzlsLHorqTkuLror7vlj5bliLDkuobkuIDkuKrlrozm
+lbTnmoTkv6Hmga88YnI+Mi4g5bCG5Zue6L2m5o2i6KGM56ym5L2c5Li65raI5oGv57uT5p2f56ym
+PGJyPjMuIOWwhueJueauiueahOWIhumalOespuS9nOS4uua2iOaBr+eahOe7k+adn+agh+W/l++8
+jOWbnui9puaNouihjOespuWwseaYr+S4gOenjeeJueauiueahOe7k+adn+WIhumalOespjxicj40
+LiDpgJrov4flnKjmtojmga/lpLTkuK3lrprkuYnplb/luqblrZfmrrXmnaXmoIfor4bmtojmga/n
+moTmgLvplb/luqY8YnI+PGJyPiMjIyBOZXR0eeS4reeahOeymOWMheWSjOaLhuWMheino+WGs+aW
+ueahiDxicj48YnI+6ZKI5a+55LiK5LiA5bCP6IqC5o+P6L+w55qE57KY5YyF5ZKM5ouG5YyF55qE
+6Kej5Yaz5pa55qGI77yM5a+55LqO5ouG5YyF6Zeu6aKY5q+U6L6D566A5Y2V77yM55So5oi35Y+v
+5Lul6Ieq5bex5a6a5LmJ6Ieq5bex55qE57yW56CB5Zmo6L+b6KGM5aSE55CG77yMTmV0dHnlubbm
+sqHmnInmj5Dkvpvnm7jlupTnmoTnu4Tku7bjgILlr7nkuo7nspjljIXnmoTpl67popjvvIznlLHk
+uo7mi4bljIXmr5TovoPlpI3mnYLvvIzku6PnoIHmr5TovoPlpITnkIbmr5TovoPnuYHnkJDvvIxO
+ZXR0eeaPkOS+m+S6hjTnp43op6PnoIHlmajmnaXop6PlhrPvvIzliIbliKvlpoLkuIvvvJo8YnI+
+MS4g5Zu65a6a6ZW/5bqm55qE5ouG5YyF5ZmoIEZpeGVkTGVuZ3RoRnJhbWVEZWNvZGVy77yM5q+P
+5Liq5bqU55So5bGC5pWw5o2u5YyF55qE6YO95ouG5YiG5oiQ6YO95piv5Zu65a6a6ZW/5bqm55qE
+5aSn5bCPPGJyPjIuIOihjOaLhuWMheWZqCBMaW5lQmFzZWRGcmFtZURlY29kZXLvvIzmr4/kuKrl
+upTnlKjlsYLmlbDmja7ljIXvvIzpg73ku6XmjaLooYznrKbkvZzkuLrliIbpmpTnrKbvvIzov5vo
+oYzliIblibLmi4bliIY8YnI+My4g5YiG6ZqU56ym5ouG5YyF5ZmoIERlbGltaXRlckJhc2VkRnJh
+bWVEZWNvZGVy77yM5q+P5Liq5bqU55So5bGC5pWw5o2u5YyF77yM6YO96YCa6L+H6Ieq5a6a5LmJ
+55qE5YiG6ZqU56ym77yM6L+b6KGM5YiG5Ymy5ouG5YiGPGJyPjQuIOWfuuS6juaVsOaNruWMhemV
+v+W6pueahOaLhuWMheWZqCBMZW5ndGhGaWVsZEJhc2VkRnJhbWVEZWNvZGVy77yM5bCG5bqU55So
+5bGC5pWw5o2u5YyF55qE6ZW/5bqm77yM5L2c5Li65o6l5pS256uv5bqU55So5bGC5pWw5o2u5YyF
+55qE5ouG5YiG5L6d5o2u44CC5oyJ54Wn5bqU55So5bGC5pWw5o2u5YyF55qE5aSn5bCP77yM5ouG
+5YyF44CC6L+Z5Liq5ouG5YyF5Zmo77yM5pyJ5LiA5Liq6KaB5rGC77yM5bCx5piv5bqU55So5bGC
+5Y2P6K6u5Lit5YyF5ZCr5pWw5o2u5YyF55qE6ZW/5bqmPGJyPjxicj7ku6XkuIrop6PnoIHlmajl
+nKjkvb/nlKjml7blj6rpnIDopoHmt7vliqDliLBOZXR0eeeahOi0o+S7u+mTvuS4reWNs+WPr++8
+jOWkp+WkmuaVsOaDheWGteS4i+i/mTTnp43op6PnoIHlmajpg73lj6/ku6Xmu6HotrPkuobvvIzl
+vZPnhLbpmaTkuobku6XkuIo056eN6Kej56CB5Zmo77yM55So5oi35Lmf5Y+v5Lul6Ieq5a6a5LmJ
+6Ieq5bex55qE6Kej56CB5Zmo6L+b6KGM5aSE55CG44CC5YW35L2T5Y+v5Lul5Y+C6ICD5Lul5LiL
+5Luj56CB56S65L6LOjxicj48YnI+YGBgPGJyPi8vIFNlcnZlcuS4u+eoi+W6jzxicj5wdWJsaWMg
+Y2xhc3MgWE5ldHR5U2VydmVyIHs8YnI+ICBwdWJsaWMgc3RhdGljIHZvaWQgbWFpbihTdHJpbmdb
+XSBhcmdzKSB0aHJvd3MgRXhjZXB0aW9uIHs8YnI+ICAgIC8vIGFjY2VwdCDlpITnkIbov57mjqXn
+moTnur/nqIvmsaA8YnI+ICAgIE5pb0V2ZW50TG9vcEdyb3VwIGFjY2VwdEdyb3VwID0gbmV3IE5p
+b0V2ZW50TG9vcEdyb3VwKCk7PGJyPiAgICAvLyByZWFkIGlvIOWkhOeQhuaVsOaNrueahOe6v+eo
+i+axoDxicj4gICAgTmlvRXZlbnRMb29wR3JvdXAgcmVhZEdyb3VwID0gbmV3IE5pb0V2ZW50TG9v
+cEdyb3VwKCk7PGJyPiAgICB0cnkgezxicj4gICAgICBTZXJ2ZXJCb290c3RyYXAgc2VydmVyQm9v
+dHN0cmFwID0gbmV3IFNlcnZlckJvb3RzdHJhcCgpOzxicj4gICAgICBzZXJ2ZXJCb290c3RyYXA8
+YnI+ICAgICAgICAgIC5ncm91cChhY2NlcHRHcm91cCwgcmVhZEdyb3VwKTxicj4gICAgICAgICAg
+LmNoYW5uZWwoTmlvU2VydmVyU29ja2V0Q2hhbm5lbC5jbGFzcyk8YnI+ICAgICAgICAgIC5jaGls
+ZEhhbmRsZXIoPGJyPiAgICAgICAgICAgICAgbmV3IENoYW5uZWxJbml0aWFsaXplciZsdDtTb2Nr
+ZXRDaGFubmVsJmd0OygpIHs8YnI+ICAgICAgICAgICAgICAgIEBPdmVycmlkZTxicj4gICAgICAg
+ICAgICAgICAgcHJvdGVjdGVkIHZvaWQgaW5pdENoYW5uZWwoU29ja2V0Q2hhbm5lbCBjaCkgdGhy
+b3dzIEV4Y2VwdGlvbiB7PGJyPiAgICAgICAgICAgICAgICAgIENoYW5uZWxQaXBlbGluZSBwaXBl
+bGluZSA9IGNoLnBpcGVsaW5lKCk7PGJyPjxicj4gICAgICAgICAgICAgICAgICAvLyDlop7liqDo
+p6PnoIHlmag8YnI+ICAgICAgICAgICAgICAgICAgcGlwZWxpbmUuYWRkTGFzdChuZXcgWERlY29k
+ZXIoKSk7PGJyPjxicj4gICAgICAgICAgICAgICAgICAvLyDmiZPljbDlh7rlhoXlrrkgaGFuZGRs
+ZXI8YnI+ICAgICAgICAgICAgICAgICAgcGlwZWxpbmUuYWRkTGFzdChuZXcgWEhhbmRsZXIoKSk7
+PGJyPiAgICAgICAgICAgICAgICB9PGJyPiAgICAgICAgICAgICAgfSk7PGJyPiAgICAgIFN5c3Rl
+bS5vdXQucHJpbnRsbigi5ZCv5Yqo5oiQ5Yqf77yM56uv5Y+jIDc3NzciKTs8YnI+ICAgICAgc2Vy
+dmVyQm9vdHN0cmFwLmJpbmQoNzc3Nykuc3luYygpLmNoYW5uZWwoKS5jbG9zZUZ1dHVyZSgpLnN5
+bmMoKTs8YnI+ICAgIH0gZmluYWxseSB7PGJyPiAgICAgIGFjY2VwdEdyb3VwLnNodXRkb3duR3Jh
+Y2VmdWxseSgpOzxicj4gICAgICByZWFkR3JvdXAuc2h1dGRvd25HcmFjZWZ1bGx5KCk7PGJyPiAg
+ICB9PGJyPiAgfTxicj59PGJyPjxicj48YnI+Ly8g6Kej56CB5ZmoPGJyPnB1YmxpYyBjbGFzcyBY
+RGVjb2RlciBleHRlbmRzIEJ5dGVUb01lc3NhZ2VEZWNvZGVyIHs8YnI+PGJyPiAgc3RhdGljIGZp
+bmFsIGludCBQQUNLRVRfU0laRSA9IDIyMDs8YnI+PGJyPiAgLy8g55So5p2l5Li05pe25L+d55WZ
+5rKh5pyJ5aSE55CG6L+H55qE6K+35rGC5oql5paHPGJyPiAgQnl0ZUJ1ZiB0ZW1wTXNnID0gVW5w
+b29sZWQuYnVmZmVyKCk7PGJyPjxicj4gIC8qKjxicj4gICAqIEBwYXJhbSBjdHg8YnI+ICAgKiBA
+cGFyYW0gaW4g6K+35rGC55qE5pWw5o2uPGJyPiAgICogQHBhcmFtIG91dCDlsIbnspjlnKjkuIDo
+tbfnmoTmiqXmlofmi4bliIblkI7nmoTnu5Pmnpzkv53nlZnotbfmnaU8YnI+ICAgKiBAdGhyb3dz
+IEV4Y2VwdGlvbjxicj4gICAqLzxicj4gIEBPdmVycmlkZTxicj4gIHByb3RlY3RlZCB2b2lkIGRl
+Y29kZShDaGFubmVsSGFuZGxlckNvbnRleHQgY3R4LCBCeXRlQnVmIGluLCBMaXN0Jmx0O09iamVj
+dCZndDsgb3V0KSB0aHJvd3MgRXhjZXB0aW9uIHs8YnI+ICAgIFN5c3RlbS5vdXQucHJpbnRsbihU
+aHJlYWQuY3VycmVudFRocmVhZCgpICsgIuaUtuWIsOS6huS4gOasoeaVsOaNruWMhe+8jOmVv+W6
+puaYr++8miIgKyBpbi5yZWFkYWJsZUJ5dGVzKCkpOzxicj48YnI+ICAgIC8vIOWQiOW5tuaKpeaW
+hzxicj4gICAgQnl0ZUJ1ZiBtZXNzYWdlID0gbnVsbDs8YnI+ICAgIGludCB0bXBNc2dTaXplID0g
+dGVtcE1zZy5yZWFkYWJsZUJ5dGVzKCk7PGJyPiAgICAvLyDlpoLmnpzmmoLlrZjmnInkuIrkuIDm
+rKHkvZnkuIvnmoTor7fmsYLmiqXmlofvvIzliJnlkIjlubY8YnI+ICAgIGlmICh0bXBNc2dTaXpl
+ICZndDsgMCkgezxicj4gICAgICBtZXNzYWdlID0gVW5wb29sZWQuYnVmZmVyKCk7PGJyPiAgICAg
+IG1lc3NhZ2Uud3JpdGVCeXRlcyh0ZW1wTXNnKTs8YnI+ICAgICAgbWVzc2FnZS53cml0ZUJ5dGVz
+KGluKTs8YnI+ICAgICAgU3lzdGVtLm91dC5wcmludGxuKCLlkIjlubbvvJrkuIrkuIDmlbDmja7l
+jIXkvZnkuIvnmoTplb/luqbkuLrvvJoiICsgdG1wTXNnU2l6ZSArICIs5ZCI5bm25ZCO6ZW/5bqm
+5Li6OiIgKyBtZXNzYWdlLnJlYWRhYmxlQnl0ZXMoKSk7PGJyPiAgICB9IGVsc2Ugezxicj4gICAg
+ICBtZXNzYWdlID0gaW47PGJyPiAgICB9PGJyPjxicj4gICAgaW50IHNpemUgPSBtZXNzYWdlLnJl
+YWRhYmxlQnl0ZXMoKTs8YnI+ICAgIGludCBjb3VudGVyID0gc2l6ZSAvIFBBQ0tFVF9TSVpFOzxi
+cj4gICAgZm9yIChpbnQgaSA9IDA7IGkgJmx0OyBjb3VudGVyOyBpKyspIHs8YnI+ICAgICAgYnl0
+ZVtdIHJlcXVlc3QgPSBuZXcgYnl0ZVtQQUNLRVRfU0laRV07PGJyPiAgICAgIC8vIOavj+asoeS7
+juaAu+eahOa2iOaBr+S4reivu+WPljIyMOS4quWtl+iKgueahOaVsOaNrjxicj4gICAgICBtZXNz
+YWdlLnJlYWRCeXRlcyhyZXF1ZXN0KTs8YnI+PGJyPiAgICAgIC8vIOWwhuaLhuWIhuWQjueahOe7
+k+aenOaUvuWFpW91dOWIl+ihqOS4re+8jOS6pOeUseWQjumdoueahOS4muWKoemAu+i+keWOu+Wk
+hOeQhjxicj4gICAgICBvdXQuYWRkKFVucG9vbGVkLmNvcGllZEJ1ZmZlcihyZXF1ZXN0KSk7PGJy
+PiAgICB9PGJyPjxicj4gICAgLy8g5aSa5L2Z55qE5oql5paH5a2Y6LW35p2lPGJyPiAgICAvLyDn
+rKzkuIDkuKrmiqXmlofvvJogaSsgIOaaguWtmDxicj4gICAgLy8g56ys5LqM5Liq5oql5paH77ya
+IDEg5LiO56ys5LiA5qyhPGJyPiAgICBzaXplID0gbWVzc2FnZS5yZWFkYWJsZUJ5dGVzKCk7PGJy
+PiAgICBpZiAoc2l6ZSAhPSAwKSB7PGJyPiAgICAgIFN5c3RlbS5vdXQucHJpbnRsbigi5aSa5L2Z
+55qE5pWw5o2u6ZW/5bqm77yaIiArIHNpemUpOzxicj4gICAgICAvLyDliankuIvmnaXnmoTmlbDm
+ja7mlL7liLB0ZW1wTXNn5pqC5a2YPGJyPiAgICAgIHRlbXBNc2cuY2xlYXIoKTs8YnI+ICAgICAg
+dGVtcE1zZy53cml0ZUJ5dGVzKG1lc3NhZ2UucmVhZEJ5dGVzKHNpemUpKTs8YnI+ICAgIH08YnI+
+ICB9PGJyPn08YnI+PGJyPjxicj4vLyDlpITnkIblmag8YnI+cHVibGljIGNsYXNzIFhIYW5kbGVy
+IGV4dGVuZHMgQ2hhbm5lbEluYm91bmRIYW5kbGVyQWRhcHRlciB7PGJyPjxicj4gIEBPdmVycmlk
+ZTxicj4gIHB1YmxpYyB2b2lkIGNoYW5uZWxSZWFkQ29tcGxldGUoQ2hhbm5lbEhhbmRsZXJDb250
+ZXh0IGN0eCkgdGhyb3dzIEV4Y2VwdGlvbiB7PGJyPiAgICBjdHguZmx1c2goKTs8YnI+ICB9PGJy
+Pjxicj4gIEBPdmVycmlkZTxicj4gIHB1YmxpYyB2b2lkIGNoYW5uZWxSZWFkKENoYW5uZWxIYW5k
+bGVyQ29udGV4dCBjdHgsIE9iamVjdCBtc2cpIHRocm93cyBFeGNlcHRpb24gezxicj4gICAgQnl0
+ZUJ1ZiBieXRlQnVmID0gKEJ5dGVCdWYpIG1zZzs8YnI+ICAgIGJ5dGVbXSBjb250ZW50ID0gbmV3
+IGJ5dGVbYnl0ZUJ1Zi5yZWFkYWJsZUJ5dGVzKCldOzxicj4gICAgYnl0ZUJ1Zi5yZWFkQnl0ZXMo
+Y29udGVudCk7PGJyPiAgICBTeXN0ZW0ub3V0LnByaW50bG4oVGhyZWFkLmN1cnJlbnRUaHJlYWQo
+KSArICI6IOacgOe7iOaJk+WNsCIgKyBuZXcgU3RyaW5nKGNvbnRlbnQpKTs8YnI+ICAgICgoQnl0
+ZUJ1ZikgbXNnKS5yZWxlYXNlKCk7PGJyPiAgfTxicj48YnI+ICBAT3ZlcnJpZGU8YnI+ICBwdWJs
+aWMgdm9pZCBleGNlcHRpb25DYXVnaHQoQ2hhbm5lbEhhbmRsZXJDb250ZXh0IGN0eCwgVGhyb3dh
+YmxlIGNhdXNlKSB0aHJvd3MgRXhjZXB0aW9uIHs8YnI+ICAgIGNhdXNlLnByaW50U3RhY2tUcmFj
+ZSgpOzxicj4gICAgY3R4LmNsb3NlKCk7PGJyPiAgfTxicj59PGJyPmBgYDxicj48YnI+PGJyPjwv
+cHJlPjxwPjxpbWcgc3JjPSJodHRwczovL2ltZzIwMTguY25ibG9ncy5jb20vYmxvZy8xNzM1ODQx
+LzIwMTkxMC8xNzM1ODQxLTIwMTkxMDEwMjEyNTEzOTYyLTE4NDUwNjc5MTcucG5nIiBhbHQ9IiIg
+ZGF0YS1tY2Utc3JjPSJodHRwczovL2ltZzIwMTguY25ibG9ncy5jb20vYmxvZy8xNzM1ODQxLzIw
+MTkxMC8xNzM1ODQxLTIwMTkxMDEwMjEyNTEzOTYyLTE4NDUwNjc5MTcucG5nIj48L3A+PHByZT48
+YnI+PC9wcmU+">​
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

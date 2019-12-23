@@ -1,0 +1,250 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修四、Srping之Bean的初始化和销毁' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>四、Srping之Bean的初始化和销毁</center></div><div class='banquan'>原文出处:本文由博客园博主ねぇ提供。<br/>
+原文连接:https://www.cnblogs.com/lee0527/p/11748299.html</div><br>
+    <h2 id="srping之bean的初始化和销毁方法">Srping之Bean的初始化和销毁方法</h2>
+<p>通常,bean的初始化和销毁方法我们有三个地方可以入手，分别是：</p>
+<ul>
+<li>自定义初始化，销毁方法</li>
+<li>实现spring提供的InitializingBean(初始化逻辑)，DisposableBean(销毁逻辑)接口</li>
+<li>JSR250；@PostConstruct，@PreDestroy执行初始化和销毁方法</li>
+<li>实现spring提供的BeanPostProcessor接口，实现其postProcessBeforeInitialization方法来执行在初始化之前的操作，实现postProcessAfterInitialization方法来执行初始化之后的操作。</li>
+</ul>
+<p>bean的生命周期：实例化 -&gt; 属性赋值 -&gt; 初始化 -&gt; 销毁</p>
+<h3 id="自定义初始化销毁方法">【1】自定义初始化，销毁方法</h3>
+<p>​ 容器管理bean的生命周期：我们可以自定义初始化和销毁方法；容器在bean进行到当前生命周期的时候来调用我们自定义的初始化和销毁方法</p>
+<p><strong>构造（对象创建）：</strong></p>
+<ul>
+<li><strong>单实例：在容器启动的时候创建对象</strong></li>
+<li><strong>多实例：在每次获取的时候创建对象</strong></li>
+</ul>
+<p><strong>销毁：</strong></p>
+<ul>
+<li><strong>单实例：容器关闭的时候</strong></li>
+<li><strong>多实例：容器不会管理这个bean；容器不会调用销毁方法，如果需要，自己手动调用销毁方法。</strong></li>
+</ul>
+<p>​ 定义一个Person类，然后定义两个方法，一个是我们想作为初始化方法的init方法，一个是我们想作为销毁方法的destory方法</p>
+<pre><code><code>public class Person {
+    public Person() {
+        System.out.println(&quot;Person...constructor&quot;);
+    }
+
+    public void init(){
+        System.out.println(&quot;Person...init&quot;);
+    }
+
+    public void destroy(){
+        System.out.println(&quot;Person...destroy&quot;);
+    }
+}</code></code></pre>
+<p>​ 将Person添加到配置类当中</p>
+<pre><code><code>@Configuration
+public class LifeCycleConfig {
+
+    @Bean(initMethod = &quot;init&quot;,destroyMethod = &quot;destroy&quot;)
+    public Person person(){
+        return new Person();
+    }
+}</code></code></pre>
+<p>​ 测试结果</p>
+<pre><code><code>public class LifeCycleConfigTest {
+    @Test
+    public void testLifeCycle(){
+        AnnotationConfigApplicationContext applicationContext = new AnnotationConfigApplicationContext(LifeCycleConfig.class);
+        System.out.println(&quot;容器创建完成了...&quot;);
+        applicationContext.close();
+    }
+}
+/**
+Person...constructor
+Person...init
+容器创建完成了...
+Person...destroy
+*/</code></code></pre>
+<h3 id="initializingbean和disposablebean接口">【2】InitializingBean和DisposableBean接口</h3>
+<p>​ 我们还是在之前的Person类代码上继续编写</p>
+<pre><code><code>public class Person implements InitializingBean,DisposableBean{
+    public Person() {
+        System.out.println(&quot;Person...constructor&quot;);
+    }
+
+    public void init(){
+        System.out.println(&quot;Person...init&quot;);
+    }
+
+    public void destry(){
+        System.out.println(&quot;Person...destroy&quot;);
+    }
+    /**
+     * 当beanFactory关闭且bean为单例的对象时触发
+     * @throws Exception
+     */
+    @Override
+    public void destroy() throws Exception {
+        System.out.println(&quot;DisposableBean...Person.....destroy....&quot;);
+    }
+
+    /**
+     * 当beanFactory实例化bean后，将所有的属性值设置完毕之后，才会调用该接口方法。
+     * @throws Exception
+     */
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        System.out.println(&quot;InitializingBean...Person.....afterPropertiesSet....&quot;);
+    }
+}</code></code></pre>
+<p>​ 测试结果</p>
+<pre><code><code>/**
+Person...constructor
+InitializingBean...Person.....afterPropertiesSet....
+Person...init
+容器创建完成了...
+DisposableBean...Person.....destroy....
+Person...destroy
+*/</code></code></pre>
+<p>可以看到，</p>
+<ul>
+<li><strong>初始化过程：容器先调用了Person的无参构造方法来实例化Person对象实例，接着执行了InitialiaingBean的初始化方法afterPropertiesSet(）方法，最后才执行我们自定义的init初始化方法。</strong></li>
+<li><strong>销毁过程：同样，容器也是先执行了DisposableBean的destroy方法，然后才执行了我们自定义的destry销毁方法。</strong></li>
+</ul>
+<h3 id="jsr250postconstructpredestroy">【3】JSR250：@PostConstruct，@PreDestroy</h3>
+<ul>
+<li>@PostConstruct：在bean创建完成并且属性赋值完成；来执行初始化方法，</li>
+<li>@PreDestroy：在容器销毁bean之前通知我们进行清理工作</li>
+</ul>
+<p>​ 继续在上面的Person代码上修改</p>
+<pre><code><code>public class Person implements InitializingBean,DisposableBean{
+    public Person() {
+        System.out.println(&quot;Person...constructor&quot;);
+    }
+
+    public void init(){
+        System.out.println(&quot;Person...init&quot;);
+    }
+
+    public void destry(){
+        System.out.println(&quot;Person...destroy&quot;);
+    }
+
+    @PostConstruct
+    public void PostConstruct() {
+        System.out.println(&quot;JSR250....PostConstruct....Person ... PostConstruct...&quot;);
+    }
+
+    @PreDestroy
+    public void PreDestroy() {
+        System.out.println(&quot;JSR250....PreDestroy....Person ... PreDestroy...&quot;);
+    }
+
+    /**
+     * 当beanFactory关闭且bean为单例的对象时触发
+     * @throws Exception
+     */
+    @Override
+    public void destroy() throws Exception {
+        System.out.println(&quot;DisposableBean...Person.....destroy....&quot;);
+    }
+
+    /**
+     * 当beanFactory实例化bean后，将所有的属性值设置完毕之后，才会调用该接口方法。
+     * @throws Exception
+     */
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        System.out.println(&quot;InitializingBean...Person.....afterPropertiesSet....&quot;);
+    }
+}</code></code></pre>
+<p>​ 测试结果：</p>
+<pre><code><code>/**
+Person...constructor
+JSR250....PostConstruct....Person ... PostConstruct...
+InitializingBean...Person.....afterPropertiesSet....
+Person...init
+容器创建完成了...
+JSR250....PreDestroy....Person ... PreDestroy...
+DisposableBean...Person.....destroy....
+Person...destroy
+*/</code></code></pre>
+<p>可以看到：</p>
+<ul>
+<li><strong>初始化方法的执行顺序：先执行Toyota的无参构造方法，再执行JSR250的PostConstruct初始化方法，接着执行InitializingBean的afterPropertiesSet初始化方法，最后执行我们自定义的init初始化方法。</strong></li>
+<li><strong>销毁方法的执行顺序：和初始化方法一样，先执行JSR250的PerDestroy销毁方法，再执行DisposableBean的destroy方法，最后执行我们自定义的destry销毁方法。</strong></li>
+</ul>
+<h3 id="实现beanpostprocessor接口">【4】实现BeanPostProcessor接口</h3>
+<p>​ BeanPostProcessor是bean的后置处理器，在bean初始化前后进行一些处理工作：</p>
+<ul>
+<li><p>postProcessBeforeInitialization:在初始化之前工作</p></li>
+<li><p>postProcessAfterInitialization:在初始化之后工作</p>
+<p>直接观察代码，会发现BeanPostProcessor的方法postProcessBeforeInitialization有返回类型Object，</p></li>
+</ul>
+<p>postProcessAfterInitialization也有返回类型Object，同时两个方法都可以抛出BeansException异常。</p>
+<p>​ 首先定义一个我们自己的BeanPostProcessor:</p>
+<pre><code><code>@Component
+public class LifeCycleBeanPostProcessor implements BeanPostProcessor {
+    @Override
+    public Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
+        if (bean instanceof Person) {
+            System.err.println(&quot;postProcessBeforeInitialization....拦截指定bean&quot;);
+        }
+        System.out.println(&quot;这句话证明所有容器中的bean都会被postProcessBeforeInitialization拦截.. beanName=&quot; + beanName + &quot;==&gt;&quot; + bean);
+        return bean;
+    }
+ 
+    @Override
+    public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
+        if (bean instanceof Person) {
+            System.err.println(&quot;postProcessAfterInitialization.....拦截指定bean&quot;);
+        }
+        System.out.println(&quot;这句话证明所有容器中的bean都会被postProcessAfterInitialization拦截.. beanName=&quot; + beanName + &quot;==&gt;&quot; + bean);
+        return bean;
+    }
+}</code></code></pre>
+<p>​ 接着在配置类中添加注解包扫描：</p>
+<pre><code><code>@Configuration
+@ComponentScan(&quot;com.zl&quot;)
+public class LifeCycleConfig {
+
+    @Bean(initMethod = &quot;init&quot;,destroyMethod = &quot;destry&quot;)
+    public Person person(){
+        return new Person();
+    }
+}</code></code></pre>
+<p>​ 测试结果：</p>
+<p><img src="./images/四、Srping之Bean的初始化和销毁0.png" /></p>
+<p>第一个标示点：说明所有容器加载的bean在实例化之后，初始化之前都会执行postProcessBeforeInitialization方法，在初始化完成后执行postProcessAfterInitialization方法。</p>
+<p>第二个标示点：说明我们可以只拦截我们指定的bean，并且执行的顺序是：</p>
+<ul>
+<li><strong>1.容器对bean进行实例化</strong></li>
+<li><strong>2.初始化前执行自定义BeanPostProcessor的postProcessBeforeInitialization方法</strong></li>
+<li><strong>3.如果存在JSR250的初始化方法，则执行其初始化方法</strong></li>
+<li><strong>4.如果实现了InitializingBean接口，则执行其afterPropertiesSet方法</strong></li>
+<li><strong>5.如果存在我们自定义的初始化方法(initMethod)，则执行自定义初始化方法</strong></li>
+<li><strong>6.初始化方法结束后，执行自定义BeanPostProcessor的postProcessAfterInitialization方法。</strong></li>
+<li><strong>7.容器关闭时，若存在JSR250的销毁方法，则先调用JSR250的销毁方法</strong></li>
+<li><strong>8.若实现了DisposableBean接口，则调用其destroy方法</strong></li>
+<li><strong>9.最后，若存在我们自定义的销毁方法(destroyMethod)，则执行我们自定义的销毁方法</strong></li>
+</ul>
+<p>以上九点，按顺序执行，完成bean的初始化和销毁工作。</p>
+<p><strong>需要注意的是,BeanPostProcessor提供的两个方法，是针对初始化前后的拦截操作，和容器的关闭，bean的销毁无关。</strong></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

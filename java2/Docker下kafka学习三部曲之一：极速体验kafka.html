@@ -1,0 +1,88 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Docker下kafka学习三部曲之一：极速体验kafka' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Docker下kafka学习三部曲之一：极速体验kafka</center></div><div class='banquan'>原文出处:本文由博客园博主zq2599提供。<br/>
+原文连接:https://www.cnblogs.com/bolingcavalry/p/11539551.html</div><br>
+    <p>Kafka是一种高吞吐量的分布式发布订阅消息系统，从本章开始我们先极速体验，再实战docker下搭建kafka环境，最后开发一个java web应用来体验kafka服务。</p>
+<p>我们一起用最快的速度体验kafka的消息发布订阅功能：</p>
+<p>新建一个docker-compose.yml文件，内容如下：</p>
+<pre><code><code>version: &#39;2&#39;
+services:
+  zk_server: 
+    image: daocloud.io/library/zookeeper:3.3.6
+    restart: always
+  kafka_server: 
+    image: bolingcavalry/kafka:0.0.1
+    links: 
+      - zk_server:zkhost
+    command: /bin/sh -c &#39;/usr/local/work/start_server.sh&#39;
+    restart: always
+  message_producer: 
+    image: bolingcavalry/kafka:0.0.1
+    links: 
+      - zk_server:zkhost
+      - kafka_server:kafkahost
+    restart: always
+  message_consumer: 
+    image: bolingcavalry/kafka:0.0.1
+    links: 
+      - zk_server:zkhost
+    restart: always</code></code></pre>
+<p>打开终端，在docker-compose.yml所在目录下执行<font color="red">docker-compose up -d</font>，由于需要从hub.docker.com下载镜像，所以需要等待几分钟，下载结束后会自动启动四个容器，如下图：</p>
+<p><img src="./images/Docker下kafka学习三部曲之一：极速体验kafka0.png" alt="这里写图片描述" /></p>
+<p>为了更好的观察效果，我们要打开三个终端对不同的容器做操作，在后面我们用编号来表达不同的终端，编号对应如下：</p>
+<blockquote>
+<p>1号 : kafka server<br />
+2号 : 消息生产者(producer)<br />
+3号 : 消息消费者(consumer)</p>
+</blockquote>
+<p>1号终端中输入以下命令，即可看到kafka server的实时输出信息：</p>
+<pre class="shell"><code>docker logs -f dockerkafka_kafka_server_1</code></code></pre>
+<p>输入命令后看到的信息如下图，与zookeeper连接成功，启动成功:</p>
+<p><img src="./images/Docker下kafka学习三部曲之一：极速体验kafka1.png" alt="这里写图片描述" /></p>
+<p>2号终端中输入以下命令，进入消息生产者容器：</p>
+<pre class="shell"><code>docker exec -it dockerkafka_message_producer_1 /bin/bash</code></code></pre>
+<p>再执行以下命令创建一个主题：</p>
+<pre class="shell"><code>$WORK_PATH/$KAFKA_PACKAGE_NAME/bin/kafka-topics.sh --create --zookeeper zkhost:2181 --replication-factor 1 --partitions 1 --topic test001</code></code></pre>
+<p>3号终端中输入以下命令，进入消息消费者容器：</p>
+<pre class="shell"><code>docker exec -it dockerkafka_message_consumer_1 /bin/bash</code></code></pre>
+<p>执行以下命令可以查看当前kafka sever上的所有主题：</p>
+<pre class="shell"><code>$WORK_PATH/$KAFKA_PACKAGE_NAME/bin/kafka-topics.sh --list --zookeeper zkhost:2181</code></code></pre>
+<p>可以看到刚才在2号终端创建的主题，如下图：</p>
+<p><img src="./images/Docker下kafka学习三部曲之一：极速体验kafka2.png" alt="这里写图片描述" /></p>
+<p>继续在3号终端上执行以下命令，即可订阅主题为test001的消息：</p>
+<pre class="shell"><code>$WORK_PATH/$KAFKA_PACKAGE_NAME/bin/kafka-console-consumer.sh --zookeeper zkhost:2181 --topic test001 --from-beginning</code></code></pre>
+<p>此时回到1号终端，可以看到消息订阅者容器的连接信息，如下图：</p>
+<p><img src="./images/Docker下kafka学习三部曲之一：极速体验kafka3.png" alt="这里写图片描述" /></p>
+<p>现在主题也创建了，订阅也添加了，可以测试消息的发送和接收了：</p>
+<p>在2号终端，执行以下命令，就可以进入发送消息的交互模式：</p>
+<pre class="shell"><code>$WORK_PATH/$KAFKA_PACKAGE_NAME/bin/kafka-console-producer.sh --broker-list kafkahost:9092 --topic test001</code></code></pre>
+<p>此时已经进入了交互模式，继续输入一个字符串，例如<font color="red">hello world!</font>，再输入回车键，即可发送内容为&quot;hello world!&quot;的消息，如下图：</p>
+<p><img src="./images/Docker下kafka学习三部曲之一：极速体验kafka4.png" alt="这里写图片描述" /></p>
+<p>现在回到3号终端，可以看到已经接收到了最新的消息，内容被打印出来了，如下图：</p>
+<p><img src="./images/Docker下kafka学习三部曲之一：极速体验kafka5.png" alt="这里写图片描述" /></p>
+<p>最后我们回到1号终端，能看到消息生产者的连接信息，如下图：</p>
+<p><img src="./images/Docker下kafka学习三部曲之一：极速体验kafka6.png" alt="这里写图片描述" /></p>
+<p>至此，我们快速体验了kafka的消息发布订阅功能，下一章我们再细说docker下kafka环境的搭建过程。</p>
+<h3 id="欢迎关注我的公众号程序员欣宸">欢迎关注我的公众号：程序员欣宸</h3>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,203 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Flink Connector 深度解析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Flink Connector 深度解析</center></div><div class='banquan'>原文出处:本文由博客园博主zhisheng_tian提供。<br/>
+原文连接:https://www.cnblogs.com/zhisheng/p/11737548.html</div><br>
+    <p>作者介绍：董亭亭，快手大数据架构实时计算引擎团队负责人。目前负责 Flink 引擎在快手内的研发、应用以及周边子系统建设。2013 年毕业于大连理工大学，曾就职于奇虎 360、58 集团。主要研究领域包括：分布式计算、调度系统、分布式存储等系统。</p>
+<!--more-->
+<p>本文主要分享Flink connector相关内容，分为以下三个部分的内容：第一部分会首先介绍一下Flink Connector有哪些。第二部分会重点介绍在生产环境中经常使用的kafka connector的基本的原理以及使用方法。第三部分答疑环节，看大家有没有一些问题。</p>
+<h3 id="flink-streaming-connector">Flink Streaming Connector</h3>
+<p>Flink是新一代流批统一的计算引擎，它需要从不同的第三方存储引擎中把数据读过来，进行处理，然后再写出到另外的存储引擎中。Connector的作用就相当于一个连接器，连接 Flink 计算引擎跟外界存储系统。Flink里有以下几种方式，当然也不限于这几种方式可以跟外界进行数据交换：第一种 Flink里面预定义了一些source和sink。第二种 FLink内部也提供了一些Boundled connectors。第三种 可以使用第三方apache Bahir项目中提供的连接器。第四种是通过异步IO方式。下面分别简单介绍一下这四种数据读写的方式。</p>
+<p><img src="./images/Flink Connector 深度解析0.png" /></p>
+<h3 id="预定义的source和sink">预定义的source和sink</h3>
+<p>Flink里预定义了一部分source和sink。在这里分了几类。</p>
+<p><img src="./images/Flink Connector 深度解析1.png" /></p>
+<ul>
+<li>基于文件的source和sink。</li>
+</ul>
+<p>如果要从文本文件中读取数据，可以直接使用</p>
+<ul>
+<li>env.readTextFile(path)</li>
+</ul>
+<p>就可以以文本的形式读取该文件中的内容。当然也可以使用</p>
+<ul>
+<li>env.readFile(fileInputFormat, path)</li>
+</ul>
+<p>根据指定的fileInputFormat格式读取文件中的内容。</p>
+<p>如果数据在FLink内进行了一系列的计算，想把结果写出到文件里，也可以直接使用内部预定义的一些sink，比如将结果已文本或csv格式写出到文件中，可以使用DataStream的writeAsText(path)和 writeAsCsv(path)。</p>
+<ul>
+<li>基于Socket的Source和Sink</li>
+</ul>
+<p>提供Socket的host name及port，可以直接用StreamExecutionEnvironment预定的接口socketTextStream创建基于Socket的source，从该socket中以文本的形式读取数据。当然如果想把结果写出到另外一个Socket，也可以直接调用DataStream writeToSocket。</p>
+<ul>
+<li>基于内存 Collections、Iterators 的Source可以直接基于内存中的集合或者迭代器，调用StreamExecutionEnvironment fromCollection、fromElements构建相应的source。结果数据也可以直接print、printToError的方式写出到标准输出或标准错误。</li>
+</ul>
+<p>详细也可以参考Flink源码中提供的一些相对应的Examples来查看异常预定义source和sink的使用方法，例如WordCount、SocketWindowWordCount。</p>
+<h3 id="bundled-connectors">Bundled Connectors</h3>
+<p>Flink里已经提供了一些绑定的Connector，例如kafka source和sink，Es sink等。读写kafka、es、rabbitMQ时可以直接使用相应connector的api即可。第二部分会详细介绍生产环境中最常用的kafka connector。</p>
+<p>虽然该部分是Flink 项目源代码里的一部分，但是真正意义上不算作flink引擎相关逻辑，并且该部分没有打包在二进制的发布包里面。所以在提交Job时候需要注意，job代码jar包中一定要将相应的connetor相关类打包进去，否则在提交作业时就会失败，提示找不到相应的类，或初始化某些类异常。</p>
+<p><img src="./images/Flink Connector 深度解析2.png" /></p>
+<h3 id="apache-bahir中的连接器">Apache Bahir中的连接器</h3>
+<p>Apache Bahir 最初是从 Apache Spark 中独立出来项目提供，以提供不限于 Spark 相关的扩展/插件、连接器和其他可插入组件的实现。通过提供多样化的流连接器（streaming connectors）和 SQL 数据源扩展分析平台的覆盖面。如有需要写到flume、redis的需求的话，可以使用该项目提供的connector。</p>
+<p><img src="./images/Flink Connector 深度解析3.png" /></p>
+<h3 id="async-io">Async I/O</h3>
+<p>流计算中经常需要与外部存储系统交互，比如需要关联mysql中的某个表。一般来说，如果用同步I/O的方式，会造成系统中出现大的等待时间，影响吞吐和延迟。为了解决这个问题，异步I/O可以并发处理多个请求，提高吞吐，减少延迟。</p>
+<p>Async的原理可参考官方文档：&lt;<a href="https://ci.apache.org/projects/flink/flink-docs-release-1.3/dev/stream/asyncio.html" class="uri">https://ci.apache.org/projects/flink/flink-docs-release-1.3/dev/stream/asyncio.html</a></p>
+<p><img src="./images/Flink Connector 深度解析4.png" /></p>
+<h3 id="flink-kafka-connector">Flink Kafka Connector</h3>
+<p>本章重点介绍生产环境中最常用到的Flink kafka connector。使用flink的同学，一定会很熟悉kafka，它是一个分布式的、分区的、多副本的、 支持高吞吐的、发布订阅消息系统。生产环境环境中也经常会跟kafka进行一些数据的交换，比如利用kafka consumer读取数据，然后进行一系列的处理之后，再将结果写出到kafka中。这里会主要分两个部分进行介绍，一是Flink kafka Consumer，一个是Flink kafka Producer。</p>
+<p><img src="./images/Flink Connector 深度解析5.png" /></p>
+<p>首先看一个例子来串联下Flink kafka connector。代码逻辑里主要是从kafka里读数据，然后做简单的处理，再写回到kafka中。</p>
+<p>分别用红色框 框出 如何构造一个Source sink Function. Flink提供了现成的构造FLinkKafkaConsumer、Producer的接口，可以直接使用。这里需要注意，因为kafka有多个版本，多个版本之间的接口协议会不同。Flink针对不同版本的kafka有相应的版本的Consumer和Producer。例如：针对08、09、10、11版本，Flink对应的consumer分别是FlinkKafkaConsumer08、09、010、011，producer也是。</p>
+<p><img src="./images/Flink Connector 深度解析6.png" /></p>
+<h3 id="flink-kafka-consumer">Flink kafka Consumer</h3>
+<h4 id="反序列化数据">反序列化数据</h4>
+<p>因为kafka中数据都是以二进制byte形式存储的。读到flink系统中之后，需要将二进制数据转化为具体的java、scala对象。具体需要实现一个schema类，定义如何序列化和反序列数据。反序列化时需要实现DeserializationSchema接口，并重写deserialize(byte[] message)函数，如果是反序列化kafka中kv的数据时，需要实现KeyedDeserializationSchema接口，并重写deserialize(byte[] messageKey, byte[] message, String topic, int partition, long offset)函数。</p>
+<p>另外Flink中也提供了一些常用的序列化反序列化的schema类。例如，SimpleStringSchema，按字符串方式进行序列化、反序列化。TypeInformationSerializationSchema，它可根据Flink的TypeInformation信息来推断出需要选择的schema。JsonDeserializationSchema 使用jackson反序列化json格式消息，并返回ObjectNode，可以使用.get(“property”)方法来访问相应字段。</p>
+<p><img src="./images/Flink Connector 深度解析7.png" /></p>
+<h4 id="消费起始位置设置">消费起始位置设置</h4>
+<p>如何设置作业从kafka消费数据最开始的起始位置，这一部分flink也提供了非常好的封装。在构造好的FlinkKafkaConsumer类后面调用如下相应函数，设置合适的其实位置。</p>
+<p>setStartFromGroupOffsets，也是默认的策略，从group offset位置读取数据，group offset指的是kafka broker端记录的某个group的最后一次的消费位置。但是kafka broker端没有该group信息，会根据kafka的参数&quot;auto.offset.reset&quot;的设置来决定从哪个位置开始消费。</p>
+<p>setStartFromEarliest，从kafka最早的位置开始读取。</p>
+<p>setStartFromLatest，从kafka最新的位置开始读取。</p>
+<p>setStartFromTimestamp(long)，从时间戳大于或等于指定时间戳的位置开始读取。Kafka时戳，是指kafka为每条消息增加另一个时戳。该时戳可以表示消息在proudcer端生成时的时间、或进入到kafka broker时的时间。</p>
+<p>setStartFromSpecificOffsets，从指定分区的offset位置开始读取，如指定的offsets中不存某个分区，该分区从group offset位置开始读取。此时需要用户给定一个具体的分区、offset的集合。</p>
+<p>一些具体的使用方法可以参考下图。需要注意的是，因为flink框架有容错机制，如果作业故障，如果作业开启checkpoint，会从上一次checkpoint状态开始恢复。或者在停止作业的时候主动做savepoint，启动作业时从savepoint开始恢复。这两种情况下恢复作业时，作业消费起始位置是从之前保存的状态中恢复，与上面提到跟kafka这些单独的配置无关。</p>
+<p><img src="./images/Flink Connector 深度解析8.png" /></p>
+<h4 id="topic和partition动态发现">topic和partition动态发现</h4>
+<p>实际的生产环境中可能有这样一些需求，比如场景一，有一个flink作业需要将五份数据聚合到一起，五份数据对应五个kafka topic，随着业务增长，新增一类数据，同时新增了一个kafka topic，如何在不重启作业的情况下作业自动感知新的topic。场景二，作业从一个固定的kafka topic读数据，开始该topic有10个partition，但随着业务的增长数据量变大，需要对kafka partition个数进行扩容，由10个扩容到20。该情况下如何在不重启作业情况下动态感知新扩容的partition？</p>
+<p>针对上面的两种场景，首先需要在构建FlinkKafkaConsumer时的properties中设置flink.partition-discovery.interval-millis参数为非负值，表示开启动态发现的开关，以及设置的时间间隔。此时FLinkKafkaConsumer内部会启动一个单独的线程定期去kafka获取最新的meta信息。针对场景一，还需在构建FlinkKafkaConsumer时，topic的描述可以传一个正则表达式描述的pattern。每次获取最新kafka meta时获取正则匹配的最新topic列表。针对场景二，设置前面的动态发现参数，在定期获取kafka最新meta信息时会匹配新的partition。为了保证数据的正确性，新发现的partition从最早的位置开始读取。</p>
+<p><img src="./images/Flink Connector 深度解析9.png" /></p>
+<h4 id="commit-offset方式">commit offset方式</h4>
+<p>Flink kafka consumer commit offset方式需要区分是否开启了checkpoint。</p>
+<p>如果checkpoint关闭，commit offset要依赖于kafka客户端的auto commit。需设置enable.auto.commit， auto.commit.interval.ms 参数到consumer properties，就会按固定的时间间隔定期auto commit offset到kafka。</p>
+<p>如果开启checkpoint，这个时候作业消费的offset是Flink在state中自己管理和容错。此时提交offset到kafka，一般都是作为外部进度的监控，想实时知道作业消费的位置和lag情况。此时需要setCommitOffsetsOnCheckpoints为true来设置当checkpoint成功时提交offset到kafka。此时commit offset的间隔就取决于checkpoint的间隔，所以此时从kafka一侧看到的lag可能并非完全实时，如果checkpoint间隔比较长lag曲线可能会是一个锯齿状。</p>
+<p><img src="./images/Flink Connector 深度解析10.png" /></p>
+<h4 id="timestamp-extractionwatermark生成">Timestamp Extraction/Watermark生成</h4>
+<p>我们知道当flink作业内使用EventTime属性时，需要指定从消息中提取时戳和生成水位的函数。FlinkKakfaConsumer构造的source后直接调用assignTimestampsAndWatermarks函数设置水位生成器的好处是此时是每个partition一个watermark assigner，如下图。source生成的睡戳为多个partition时戳对齐后的最小时戳。此时在一个source读取多个partition，并且partition之间数据时戳有一定差距的情况下，因为在source端watermark在partition级别有对齐，不会导致数据读取较慢partition数据丢失。</p>
+<p><img src="./images/Flink Connector 深度解析11.png" /></p>
+<h3 id="flink-kafka-producer">Flink kafka Producer</h3>
+<h4 id="producer-分区">Producer 分区</h4>
+<p>使用FlinkKafkaProducer往kafka中写数据时，如果不单独设置partition策略，会默认使用FlinkFixedPartitioner，该partitioner分区的方式是task所在的并发id对topic 总partition数取余：parallelInstanceId % partitions.length。此时如果sink为4，paritition为1，则4个task往同一个partition中写数据。但当sink task&lt; partition 个数时会有部分partition没有数据写入，例如sink task为2，partition总数为4，则后面两个partition将没有数据写入。如果构建FlinkKafkaProducer时，partition设置为null，此时会使用kafka producer默认分区方式，非key写入的情况下，使用round-robin的方式进行分区，每个task都会轮训的写下游的所有partition。该方式下游的partition数据会比较均衡，但是缺点是partition个数过多的情况下维持过多的网络链接，即每个task都会维持跟所有partition所在broker的链接。</p>
+<p><img src="./images/Flink Connector 深度解析12.png" /></p>
+<h4 id="容错">容错</h4>
+<p>Flink kafka 09、010版本下，通过setLogFailuresOnly为false，setFlushOnCheckpoint为true，能达到at-least-once语义。setLogFailuresOnly，默认为false，是控制写kafka失败时，是否只打印失败的log不抛异常让作业停止。setFlushOnCheckpoint，默认为true，是控制是否在checkpoint时fluse数据到kafka，保证数据已经写到kafka。否则数据有可能还缓存在kafka 客户端的buffer中，并没有真正写出到kafka，此时作业挂掉数据即丢失，不能做到至少一次的语义。</p>
+<p>Flink kafka 011版本下，通过两阶段提交的sink结合kafka事务的功能，可以保证端到端精准一次。详细原理可以参考：<a href="https://www.ververica.com/blog/end-to-end-exactly-once-processing-apache-flink-apache-kafka" class="uri">https://www.ververica.com/blog/end-to-end-exactly-once-processing-apache-flink-apache-kafka</a>。</p>
+<p><img src="./images/Flink Connector 深度解析13.png" /></p>
+<h3 id="qa">Q&amp;A</h3>
+<p>(1)在flink consumer的并行度的设置：是对应topic的partitions个数吗？要是有多个主题数据源，并行度是设置成总体的partitions数吗？<br />
+答：这个并不是绝对的，跟topic的数据量也有关，如果数据量不大，也可以设置小于partitions个数的并发数。但不要设置并发数大于partitions总数，因为这种情况下某些并发因为分配不到partition导致没有数据处理。</p>
+<p>(2)如果 partitioner 传 null 的时候是 round-robin 发到每一个partition？如果有 key 的时候行为是 kafka 那种按照 key 分布到具体分区的行为吗？<br />
+答：如果在构造FlinkKafkaProducer时，如果没有设置单独的partitioner，则默认使用FlinkFixedPartitioner，此时无论是带key的数据，还是不带key。如果主动设置partitioner为null时，不带key的数据会round-robin的方式写出，带key的数据会根据key，相同key数据分区的相同的partition，如果key为null，再轮询写。不带key的数据会轮询写各partition。</p>
+<p>(3)如果checkpoint时间过长，offset未提交到kafka，此时节点宕机了，重启之后的重复消费如何保证呢？<br />
+首先开启checkpoint时offset是flink通过状态state管理和恢复的，并不是从kafka的offset位置恢复。在checkpoint机制下，作业从最近一次checkpoint恢复，本身是会回放部分历史数据，导致部分数据重复消费，Flink引擎仅保证计算状态的精准一次，要想做到端到端精准一次需要依赖一些幂等的存储系统或者事务操作。</p>
+<h3 id="关注我">关注我</h3>
+<p>微信公众号：<strong>zhisheng</strong></p>
+<p>另外我自己整理了些 Flink 的学习资料，目前已经全部放到微信公众号（zhisheng）了，你可以回复关键字：<strong>Flink</strong> 即可无条件获取到。另外也可以加我微信 你可以加我的微信：<strong>yuanblog_tzs</strong>，探讨技术！</p>
+<p><img src="./images/Flink Connector 深度解析14.png" /></p>
+<p>更多私密资料请加入知识星球！</p>
+<p><img src="./images/Flink Connector 深度解析15.png" /></p>
+<h3 id="github-代码仓库">Github 代码仓库</h3>
+<p><a href="https://github.com/zhisheng17/flink-learning/" class="uri">https://github.com/zhisheng17/flink-learning/</a></p>
+<p>以后这个项目的所有代码都将放在这个仓库里，包含了自己学习 flink 的一些 demo 和博客</p>
+<h3 id="博客">博客</h3>
+<p>1、<a href="http://www.54tianzhisheng.cn/2018/10/13/flink-introduction/">Flink 从0到1学习 —— Apache Flink 介绍</a></p>
+<p>2、<a href="http://www.54tianzhisheng.cn/2018/09/18/flink-install">Flink 从0到1学习 —— Mac 上搭建 Flink 1.6.0 环境并构建运行简单程序入门</a></p>
+<p>3、<a href="http://www.54tianzhisheng.cn/2018/10/27/flink-config/">Flink 从0到1学习 —— Flink 配置文件详解</a></p>
+<p>4、<a href="http://www.54tianzhisheng.cn/2018/10/28/flink-sources/">Flink 从0到1学习 —— Data Source 介绍</a></p>
+<p>5、<a href="http://www.54tianzhisheng.cn/2018/10/30/flink-create-source/">Flink 从0到1学习 —— 如何自定义 Data Source ？</a></p>
+<p>6、<a href="http://www.54tianzhisheng.cn/2018/10/29/flink-sink/">Flink 从0到1学习 —— Data Sink 介绍</a></p>
+<p>7、<a href="http://www.54tianzhisheng.cn/2018/10/31/flink-create-sink/">Flink 从0到1学习 —— 如何自定义 Data Sink ？</a></p>
+<p>8、<a href="http://www.54tianzhisheng.cn/2018/11/04/Flink-Data-transformation/">Flink 从0到1学习 —— Flink Data transformation(转换)</a></p>
+<p>9、<a href="http://www.54tianzhisheng.cn/2018/12/08/Flink-Stream-Windows/">Flink 从0到1学习 —— 介绍 Flink 中的 Stream Windows</a></p>
+<p>10、<a href="http://www.54tianzhisheng.cn/2018/12/11/Flink-time/">Flink 从0到1学习 —— Flink 中的几种 Time 详解</a></p>
+<p>11、<a href="http://www.54tianzhisheng.cn/2018/12/30/Flink-ElasticSearch-Sink/">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 ElasticSearch</a></p>
+<p>12、<a href="http://www.54tianzhisheng.cn/2019/01/05/Flink-run/">Flink 从0到1学习 —— Flink 项目如何运行？</a></p>
+<p>13、<a href="http://www.54tianzhisheng.cn/2019/01/06/Flink-Kafka-sink/">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 Kafka</a></p>
+<p>14、<a href="http://www.54tianzhisheng.cn/2019/01/13/Flink-JobManager-High-availability/">Flink 从0到1学习 —— Flink JobManager 高可用性配置</a></p>
+<p>15、<a href="http://www.54tianzhisheng.cn/2019/01/14/Flink-parallelism-slot/">Flink 从0到1学习 —— Flink parallelism 和 Slot 介绍</a></p>
+<p>16、<a href="http://www.54tianzhisheng.cn/2019/01/15/Flink-MySQL-sink/">Flink 从0到1学习 —— Flink 读取 Kafka 数据批量写入到 MySQL</a></p>
+<p>17、<a href="http://www.54tianzhisheng.cn/2019/01/20/Flink-RabbitMQ-sink/">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 RabbitMQ</a></p>
+<p>18、<a href="https://t.zsxq.com/zV7MnuJ">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 HBase</a></p>
+<p>19、<a href="https://t.zsxq.com/zV7MnuJ">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 HDFS</a></p>
+<p>20、<a href="https://t.zsxq.com/zV7MnuJ">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 Redis</a></p>
+<p>21、<a href="https://t.zsxq.com/uVbi2nq">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 Cassandra</a></p>
+<p>22、<a href="https://t.zsxq.com/zV7MnuJ">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 Flume</a></p>
+<p>23、<a href="https://t.zsxq.com/zV7MnuJ">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 InfluxDB</a></p>
+<p>24、<a href="https://t.zsxq.com/zV7MnuJ">Flink 从0到1学习 —— Flink 读取 Kafka 数据写入到 RocketMQ</a></p>
+<p>25、<a href="http://www.54tianzhisheng.cn/2019/03/13/flink-job-jars/">Flink 从0到1学习 —— 你上传的 jar 包藏到哪里去了</a></p>
+<p>26、<a href="https://t.zsxq.com/zV7MnuJ">Flink 从0到1学习 —— 你的 Flink job 日志跑到哪里去了</a></p>
+<p>27、<a href="http://www.54tianzhisheng.cn/2019/02/28/blink/">阿里巴巴开源的 Blink 实时计算框架真香</a></p>
+<p>28、<a href="http://www.54tianzhisheng.cn/2019/03/28/flink-additional-data/">Flink 从0到1学习 —— Flink 中如何管理配置？</a></p>
+<p>29、<a href="http://www.54tianzhisheng.cn/2019/06/12/flink-split/">Flink 从0到1学习—— Flink 不可以连续 Split(分流)？</a></p>
+<p>30、<a href="http://www.54tianzhisheng.cn/2019/06/13/flink-book-paper/">Flink 从0到1学习—— 分享四本 Flink 国外的书和二十多篇 Paper 论文</a></p>
+<p>31、<a href="http://www.54tianzhisheng.cn/2019/06/14/flink-architecture-deploy-test/">Flink 架构、原理与部署测试</a></p>
+<p>32、<a href="http://www.54tianzhisheng.cn/2019/06/15/Stream-processing/">为什么说流处理即未来？</a></p>
+<p>33、<a href="http://www.54tianzhisheng.cn/2019/06/16/flink-sql-oppo/">OPPO 数据中台之基石：基于 Flink SQL 构建实时数据仓库</a></p>
+<p>34、<a href="http://www.54tianzhisheng.cn/2019/06/17/flink-vs-storm/">流计算框架 Flink 与 Storm 的性能对比</a></p>
+<p>35、<a href="http://www.54tianzhisheng.cn/2019/06/18/flink-state/">Flink状态管理和容错机制介绍</a></p>
+<p>36、<a href="http://www.54tianzhisheng.cn/2019/06/20/flink-kafka-Exactly-Once/">Apache Flink 结合 Kafka 构建端到端的 Exactly-Once 处理</a></p>
+<p>37、<a href="http://www.54tianzhisheng.cn/2019/06/21/flink-in-360/">360深度实践：Flink与Storm协议级对比</a></p>
+<p>38、<a href="http://www.54tianzhisheng.cn/2019/06/26/flink-TensorFlow/">如何基于Flink+TensorFlow打造实时智能异常检测平台？只看这一篇就够了</a></p>
+<p>39、<a href="http://www.54tianzhisheng.cn/2019/07/01/flink-1.9-preview/">Apache Flink 1.9 重大特性提前解读</a></p>
+<p>40、<a href="http://www.54tianzhisheng.cn/2019/12/31/Flink-resources/">Flink 全网最全资源（视频、博客、PPT、入门、实战、源码解析、问答等持续更新）</a></p>
+<p>41、<a href="https://mp.weixin.qq.com/s/ok-YwuVbwAVtJz7hUCiZxg">Flink 灵魂两百问，这谁顶得住？</a></p>
+<p>42、<a href="http://www.54tianzhisheng.cn/2019/08/18/flink-side-output/">Flink 从0到1学习 —— 如何使用 Side Output 来分流？</a></p>
+<p>43、<a href="http://www.54tianzhisheng.cn/2019/08/06/flink-streaming-system/">你公司到底需不需要引入实时计算引擎？</a></p>
+<p>44、<a href="http://www.54tianzhisheng.cn/2019/08/19/flink/">一文让你彻底了解大数据实时计算引擎 Flink</a></p>
+<h3 id="源码解析">源码解析</h3>
+<p>1、<a href="http://www.54tianzhisheng.cn/2019/01/30/Flink-code-compile/">Flink 源码解析 —— 源码编译运行</a></p>
+<p>2、<a href="http://www.54tianzhisheng.cn/2019/03/14/Flink-code-structure/">Flink 源码解析 —— 项目结构一览</a></p>
+<p>3、<a href="http://www.54tianzhisheng.cn/tags/Flink/">Flink 源码解析—— local 模式启动流程</a></p>
+<p>4、<a href="http://www.54tianzhisheng.cn/2019/03/15/Flink-code-Standalone-start/">Flink 源码解析 —— standalone session 模式启动流程</a></p>
+<p>5、<a href="http://www.54tianzhisheng.cn/2019/03/16/Flink-code-Standalone-JobManager-start/">Flink 源码解析 —— Standalone Session Cluster 启动流程深度分析之 Job Manager 启动</a></p>
+<p>6、<a href="http://www.54tianzhisheng.cn/2019/03/17/Flink-code-Standalone-TaskManager-start/">Flink 源码解析 —— Standalone Session Cluster 启动流程深度分析之 Task Manager 启动</a></p>
+<p>7、<a href="http://www.54tianzhisheng.cn/2019/03/18/Flink-code-batch-wordcount-start/">Flink 源码解析 —— 分析 Batch WordCount 程序的执行过程</a></p>
+<p>8、<a href="http://www.54tianzhisheng.cn/2019/03/19/Flink-code-streaming-wordcount-start/">Flink 源码解析 —— 分析 Streaming WordCount 程序的执行过程</a></p>
+<p>9、<a href="http://www.54tianzhisheng.cn/2019/03/21/Flink-code-JobGraph/">Flink 源码解析 —— 如何获取 JobGraph？</a></p>
+<p>10、<a href="http://www.54tianzhisheng.cn/2019/03/20/Flink-code-StreamGraph/">Flink 源码解析 —— 如何获取 StreamGraph？</a></p>
+<p>11、<a href="http://www.54tianzhisheng.cn/2019/03/25/Flink-code-jobmanager/">Flink 源码解析 —— Flink JobManager 有什么作用？</a></p>
+<p>12、<a href="http://www.54tianzhisheng.cn/2019/03/25/Flink-code-taskmanager/">Flink 源码解析 —— Flink TaskManager 有什么作用？</a></p>
+<p>13、<a href="http://www.54tianzhisheng.cn/2019/03/27/Flink-code-JobManager-submitJob/">Flink 源码解析 —— JobManager 处理 SubmitJob 的过程</a></p>
+<p>14、<a href="http://www.54tianzhisheng.cn/2019/03/28/Flink-code-TaskManager-submitJob/">Flink 源码解析 —— TaskManager 处理 SubmitJob 的过程</a></p>
+<p>15、<a href="http://www.54tianzhisheng.cn/2019/03/23/Flink-code-checkpoint/">Flink 源码解析 —— 深度解析 Flink Checkpoint 机制</a></p>
+<p>16、<a href="http://www.54tianzhisheng.cn/2019/03/22/Flink-code-serialize/">Flink 源码解析 —— 深度解析 Flink 序列化机制</a></p>
+<p>17、<a href="http://www.54tianzhisheng.cn/2019/03/24/Flink-code-memory-management/">Flink 源码解析 —— 深度解析 Flink 是如何管理好内存的？</a></p>
+<p>18、<a href="http://www.54tianzhisheng.cn/2019/07/02/Flink-code-metrics/">Flink Metrics 源码解析 —— Flink-metrics-core</a></p>
+<p>19、<a href="http://www.54tianzhisheng.cn/2019/07/02/Flink-code-metrics/">Flink Metrics 源码解析 —— Flink-metrics-datadog</a></p>
+<p>20、<a href="http://www.54tianzhisheng.cn/2019/07/02/Flink-code-metrics/">Flink Metrics 源码解析 —— Flink-metrics-dropwizard</a></p>
+<p>21、<a href="http://www.54tianzhisheng.cn/2019/07/02/Flink-code-metrics/">Flink Metrics 源码解析 —— Flink-metrics-graphite</a></p>
+<p>22、<a href="http://www.54tianzhisheng.cn/2019/07/02/Flink-code-metrics/">Flink Metrics 源码解析 —— Flink-metrics-influxdb</a></p>
+<p>23、<a href="http://www.54tianzhisheng.cn/2019/07/02/Flink-code-metrics/">Flink Metrics 源码解析 —— Flink-metrics-jmx</a></p>
+<p>24、<a href="http://www.54tianzhisheng.cn/2019/07/02/Flink-code-metrics/">Flink Metrics 源码解析 —— Flink-metrics-slf4j</a></p>
+<p>25、<a href="http://www.54tianzhisheng.cn/2019/07/02/Flink-code-metrics/">Flink Metrics 源码解析 —— Flink-metrics-statsd</a></p>
+<p>26、<a href="http://www.54tianzhisheng.cn/2019/07/02/Flink-code-metrics/">Flink Metrics 源码解析 —— Flink-metrics-prometheus</a></p>
+<p><img src="./images/Flink Connector 深度解析16.png" /></p>
+<p>26、<a href="http://www.54tianzhisheng.cn/2019/07/03/Flink-code-Annotations/">Flink Annotations 源码解析</a></p>
+<p><img src="./images/Flink Connector 深度解析17.png" /></p>
+<p>27、<a href="http://www.54tianzhisheng.cn/2019/03/26/Flink-code-ExecutionGraph/">Flink 源码解析 —— 如何获取 ExecutionGraph ？</a></p>
+<p>28、<a href="https://t.zsxq.com/UvrRNJM">大数据重磅炸弹——实时计算框架 Flink</a></p>
+<p>29、<a href="https://t.zsxq.com/QVFqjea">Flink Checkpoint-轻量级分布式快照</a></p>
+<p>30、<a href="http://www.54tianzhisheng.cn/2019/07/04/Flink-code-clients/">Flink Clients 源码解析</a><br />
+原文出处：<a href="http://www.54tianzhisheng.cn/">zhisheng的博客</a>，欢迎关注我的公众号：zhisheng</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

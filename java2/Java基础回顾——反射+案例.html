@@ -1,0 +1,244 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java基础回顾——反射+案例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java基础回顾——反射+案例</center></div><div class='banquan'>原文出处:本文由博客园博主会飞的一棵树提供。<br/>
+原文连接:https://www.cnblogs.com/flytree/p/11452264.html</div><br>
+    <h2>一，引言：</h2>
+<p>从大二刚开始接触java，了解其基本语法，到用swing编写图形界面的程序，到JavaWeb用SSH三大框架编写小网站，后面又学SSM,SpringBoot,SpringCloud等。可以说算是对java也不断的了解了，慢慢的入了java这个大坑，感觉还不错😂。虽然学的东西越来越多，但是还是有必要时不时回顾下一些基础。</p>
+<h2>二，概述：</h2>
+<h3>①反射的概念：</h3>
+<blockquote>
+<p>反射库(reflection library) 提供了一个非常丰富且精心设计的工具集，以便编写能够动态操纵Java代码的程序。这项功能被大量地应用于JavaBeans中，它是Java组件的体系结构。使用反射，Java可以支持Visual Basic用户习惯使用的工具。特别是<strong>在设计或运行中添加新类时，能够快速地应用开发工具动态地查询新添加类的能力。能够分析类能力的程序被称为反射(reflective)</strong>。反射机制的功能极其强大。</p>
+<p>利用反射机制可以：</p>
+<p>●在运行中分析类的能力。<br />●在运行中查看对象，例如，编写一个toString方法供所有类使用。<br />●实现数组的操作代码。<br />●利用Method对象，这个对象很像C++中的函数指针。</p>
+<p style="text-align: right;">&mdash;&mdash;《Java核心技术 卷1 第八版》</p>
+
+
+
+
+
+
+
+
+
+</blockquote>
+<p>&nbsp;更简单的描述：</p>
+<blockquote>
+<p>反射：将类的各个组成部分封装为其它对象。(其它对象指Class类对象)</p>
+</blockquote>
+<h2>三，获取字Class对象的三种方法：</h2>
+<h3>①Java代码在计算机中经历的阶段：</h3>
+<p><img src="./images/Java基础回顾——反射+案例0.png" alt="" /></p>
+<p>&nbsp;在三个阶段分别对应不同的获取方法：</p>
+<h3>②源代码阶段：Class.forName("全类名");</h3>
+<p>多用于配置文件。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> Class&lt;?&gt;<span style="color: #000000;">    forName(String className)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns the Class object associated with the class or interface with the given string name.</span>
+<span style="color: #0000ff;">static</span> Class&lt;?&gt;    forName(String name, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> initialize, ClassLoader loader)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns the Class object associated with the class or interface with the given string name, using the given class loader.</span></code></pre>
+
+<h3>③Class类对象阶段：类名.class</h3>
+<p>多用于传参。</p>
+<src class="cnblogs_code">
+<pre><code>java.lang.Object java.lang.Class&lt;T&gt;
+<span style="color: #008000;">/*</span><span style="color: #008000;">
+ *Type Parameters:
+ *T - the type of the class modeled by this Class object.
+ *For example, the type of String.class is Class&lt;String&gt;.
+ * Use Class&lt;?&gt; if the class being modeled is unknown.
+ </span><span style="color: #008000;">*/</span></code></pre>
+
+<h3>④运行时阶段：对象.getClass();</h3>
+<src class="cnblogs_code">
+<pre><code>Class&lt;?&gt;<span style="color: #000000;">    getClass()
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns the runtime class of this Object.</span></code></pre>
+
+<p>&nbsp;注：不论通过以上哪一种方式获取的Class对象，同一个字节码文件(* .class)在一次程序运行过程中，只会被加载一次。</p>
+<h2>四，Class对象常用方法（java.lang.Class）：</h2>
+<h3>①Class对象获取成员变量：</h3>
+<p>获取公有的成员变量：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">Field    getField(String name)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns a Field object that reflects the specified public member field of the class or interface represented by this Class object.</span>
+<span style="color: #000000;">Field[]    getFields()
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns an array containing Field objects 
+</span><span style="color: #008000;">//</span><span style="color: #008000;">reflecting all the accessible public fields of the class or interface represented by this Class object.</span></code></pre>
+
+<p>获取该类下的所有成员变量：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">Field    getDeclaredField(String name)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns a Field object that reflects the specified declared field of the class or interface represented by this Class object.</span>
+<span style="color: #000000;">Field[]    getDeclaredFields()
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns an array of Field objects reflecting all the fields declared by the class or interface represented by this Class object.</span>&nbsp;</code></pre>
+
+<h3>②Class对象获取构造方法：</h3>
+<p>获取公有的构造方法</p>
+<src class="cnblogs_code">
+<pre><code>Constructor&lt;T&gt;    getConstructor(Class&lt;?&gt;<span style="color: #000000;">... parameterTypes)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns a Constructor object that reflects the specified public constructor of the class represented by this Class object.</span>
+Constructor&lt;?&gt;<span style="color: #000000;">[]    getConstructors()
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns an array containing Constructorobjects reflecting all 
+</span><span style="color: #008000;">//</span><span style="color: #008000;">the public constructors of the class represented by this Class object.</span></code></pre>
+
+<p>获取该类下所有的构造方法</p>
+<src class="cnblogs_code">
+<pre><code>Constructor&lt;T&gt;    getDeclaredConstructor(Class&lt;?&gt;<span style="color: #000000;">... parameterTypes)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns a Constructor object that reflects the specified constructor of the class or interface represented by this Class object.</span>
+Constructor&lt;?&gt;<span style="color: #000000;">[]    getDeclaredConstructors()
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns an array of Constructor objects reflecting all the constructors declared by the class represented by this Class object.</span></code></pre>
+
+<p>&nbsp;</p>
+<h3>③Class对象获取成员方法：</h3>
+<p>获取公有的成员方法：</p>
+<src class="cnblogs_code">
+<pre><code>Method    getMethod(String name, Class&lt;?&gt;<span style="color: #000000;">... parameterTypes)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns a Method object that reflects the specified public member method of the class or interface represented by this Class object.</span>
+<span style="color: #000000;">Method[]    getMethods()
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns an array containing Method objects reflecting all the public member methods of the class or interface represented by this Class object,
+</span><span style="color: #008000;">//</span><span style="color: #008000;">including those declared by the class or interface and those inherited from superclasses and superinterfaces.</span></code></pre>
+
+<p>获取所有的成员方法：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">Method[]    getDeclaredMethods()
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Returns an array of Method objects reflecting all the methods declared by the class or interface represented by this Class object.</span>
+Class&lt;?&gt;<span style="color: #000000;">    getDeclaringClass()
+</span><span style="color: #008000;">//</span><span style="color: #008000;">If the class or interface represented by this Class object is a member of another class, returns the Class object representing the class in which it was declared.</span></code></pre>
+
+<p>&nbsp;</p>
+<h3>④Class对象获取其它信息：</h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span><span style="color: #000000;">    getModifiers()
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取修饰符
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 数字形式的public, protected, private, final, static, abstract and interface; 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 可调用Modifier类中方法将其转为可识别的字符表示
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Returns the Java language modifiers for this class or interface, 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> encoded in an integer.</span>
+<span style="color: #000000;">
+String    getName()
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取类名（eg:java.lang.String）
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Returns the name of the entity (class, interface, array class, primitive type, or void) 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> represented by this Class object, as a String.</span>
+<span style="color: #000000;">
+String    getSimpleName()
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  获取简单类名
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Returns the simple name of the underlying class as given in the source code.</span>
+<span style="color: #000000;">
+T    newInstance()
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建该类的无参构造方法
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Creates a new instance of the class represented by this Class object.</span>
+<span style="color: #000000;">
+Package    getPackage()
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取包
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Gets the package for this class.</span></code></pre>
+
+<h3>⑤注（访问没有访问权限的内容）：</h3>
+<p>设置忽略访问权限修饰符的安全检查</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setAccessible(AccessibleObject[] array,
+                 </span><span style="color: #0000ff;">boolean</span> flag) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SecurityException
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">
+ *Convenience method to set the accessible flag for an array of objects with a  
+ *single security check (for efficiency).
+ *First, if there is a security manager, its checkPermission method is called with a  
+ *ReflectPermission("suppressAccessChecks") permission.
+ *
+ *A SecurityException is raised if flag is true but accessibility of any of the  
+ *elements of the input array may not be changed (for example, if the element  
+ *object is a Constructor object for the class Class). In the event of such a  
+ *SecurityException, the accessibility of objects is set to flag for array elements  
+ *upto (and excluding) the element for which the exception occurred; the  
+ *accessibility of elements beyond (and including) the element for which the  
+ *exception occurred is unchanged.
+ </span><span style="color: #008000;">*/</span></code></pre>
+
+<p>&nbsp;</p>
+<h2>五，Field对象常用方法(java.lang.reflect.Field)：</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">Object    get(Object obj)
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取field值
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Returns the value of the field represented by this Field, on the specified object.</span>
+
+<span style="color: #0000ff;">void</span><span style="color: #000000;">    set(Object obj, Object value)
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置field值
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Sets the field represented by this Field object on the specified object argument to the specified new value.</span></code></pre>
+
+<h2>六，Constructor对象常用的方法(java.lang.reflect.Constructor)：</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">T    newInstance(Object... initargs)
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建对象
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Uses the constructor represented by this Constructor object 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> to create and initialize a new instance of the constructor's declaring class, 
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> with the specified initialization parameters.</span></code></pre>
+
+<h2>七，Method对象常用的方法(java.lang.reflect.Method)：</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">Object    invoke(Object obj, Object... args)
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用当前Method对象中的方法
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Invokes the underlying method represented by this Method object,
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> on the specified object with the specified parameters.</span></code></pre>
+
+<p>&nbsp;</p>
+<h2>八，反射案例（通过反射编写可以创建任意类对象，且执行其任意方法的工具类）：</h2>
+<p>demo.properties</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">className=demo.Student
+methodName=listen</span></code></pre>
+
+<p>ReflectDemo</p>
+<src class="cnblogs_code">
+<pre><code>**
+ *<span style="color: #000000;"> @ClassName demo.ReflectDemo
+ </span>*<span style="color: #000000;"> @Description TODO
+ </span>*<span style="color: #000000;"> @Author flytree
+ </span>* @Date 2019/9/3 19:48
+ */
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ReflectDemo {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1.加载配置文件</span>
+        Properties properties = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Properties();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1.1创建Properties对象
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1.2加载配置文件并转换为一个集合
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1.2.1获取class目录下的配置文件</span>
+        ClassLoader classLoader = ReflectDemo.<span style="color: #0000ff;">class</span><span style="color: #000000;">.getClassLoader();
+        InputStream stream </span>= classLoader.getResourceAsStream("demo.properties"<span style="color: #000000;">);
+        properties.load(stream);
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 2.获取配置文件中定义的数据</span>
+        String className = properties.getProperty("className"<span style="color: #000000;">);
+        String methodName </span>= properties.getProperty("methodName"<span style="color: #000000;">);
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3.加载此类进入内存</span>
+        Class cls =<span style="color: #000000;"> Class.forName(className);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 4.创建对象</span>
+        Object obj =<span style="color: #000000;"> cls.newInstance();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 5.获取方法对象</span>
+        Method method =<span style="color: #000000;"> cls.getMethod(methodName);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 6.执行方法</span>
+<span style="color: #000000;">        method.invoke(obj);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;参考</p>
+<p>JavaAPI：<a href="http://tool.oschina.net/apidocs/apidoc?api=jdk_7u4" target="_blank">api=jdk_7u4</a></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

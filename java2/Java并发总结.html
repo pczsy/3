@@ -1,0 +1,132 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java并发总结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java并发总结</center></div><div class='banquan'>原文出处:本文由博客园博主Leton提供。<br/>
+原文连接:https://www.cnblogs.com/leton/p/11701033.html</div><br>
+    <h1 id="java并发">Java并发</h1>
+<h2 id="进程">进程</h2>
+<p>进程是程序的一次执行过程，是系统运行程序的基本单位，因此进程是动态的。系统运行一个程序即是一个进程从创建，运行到消亡的过程。</p>
+<p>在 Java 中，当我们启动 main 函数时其实就是启动了一个 JVM 的进程，而 main 函数所在的线程就是这个进程中的一个线程，也称主线程。</p>
+<h2 id="线程">线程</h2>
+<p>线程与进程相似，但线程是一个比进程更小的执行单位。一个进程在其执行的过程中可以产生多个线程。与进程不同的是同类的多个线程共享进程的堆和方法区资源，但每个线程有自己的程序计数器、虚拟机栈和本地方法栈，所以系统在产生一个线程，或是在各个线程之间作切换工作时，负担要比进程小得多，也正因为如此，线程也被称为轻量级进程。</p>
+<p>一个进程中可以有多个线程，多个线程共享进程的堆和方法区 (JDK1.8 之后的元空间)资源，但是每个线程有自己的程序计数器、虚拟机栈 和 本地方法栈。</p>
+<p>总结： 线程 是 进程 划分成的更小的运行单位。线程和进程最大的不同在于基本上各进程是独立的，而各线程则不一定，因为同一进程中的线程极有可能会相互影响。线程执行开销小，但不利于资源的管理和保护；而进程正相反</p>
+<h2 id="java线程生命周期和状态">Java线程生命周期和状态</h2>
+<p><img src="./images/Java并发总结0.png" /></p>
+<p><img src="./images/Java并发总结1.png" /></p>
+<h3 id="线程死锁">线程死锁</h3>
+<p>多个线程同时被阻塞，它们中的一个或者全部都在等待某个资源被释放。由于线程被无限期地阻塞，因此程序不可能正常终止。</p>
+<pre><code><code>public class DeadLockDemo {
+    private static Object resource1 = new Object();//资源 1
+    private static Object resource2 = new Object();//资源 2
+
+    public static void main(String[] args) {
+        new Thread(() -&gt; {
+            synchronized (resource1) {
+                System.out.println(Thread.currentThread() + &quot;get resource1&quot;);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread() + &quot;waiting get resource2&quot;);
+                synchronized (resource2) {
+                    System.out.println(Thread.currentThread() + &quot;get resource2&quot;);
+                }
+            }
+        }, &quot;线程 1&quot;).start();
+
+        new Thread(() -&gt; {
+            synchronized (resource2) {
+                System.out.println(Thread.currentThread() + &quot;get resource2&quot;);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                System.out.println(Thread.currentThread() + &quot;waiting get resource1&quot;);
+                synchronized (resource1) {
+                    System.out.println(Thread.currentThread() + &quot;get resource1&quot;);
+                }
+            }
+        }, &quot;线程 2&quot;).start();
+    }
+}</code></code></pre>
+<h3 id="避免线程死锁">避免线程死锁</h3>
+<p>我们只要破坏产生死锁的四个条件中的其中一个就可以了。</p>
+<ul>
+<li><strong>破坏互斥条件</strong><br />
+这个条件我们没有办法破坏，因为我们用锁本来就是想让他们互斥的（临界资源需要互斥访问）。</li>
+<li><strong>破坏请求与保持条件</strong><br />
+一次性申请所有的资源。</li>
+<li><strong>破坏不剥夺条件</strong><br />
+占用部分资源的线程进一步申请其他资源时，如果申请不到，可以主动释放它占有的资源。</li>
+<li><strong>破坏循环等待条件</strong><br />
+靠按序申请资源来预防。按某一顺序申请资源，释放资源则反序释放。破坏循环等待条件。</li>
+</ul>
+<h3 id="sleep-方法和-wait-方法区别和共同点">sleep() 方法和 wait() 方法区别和共同点</h3>
+<ul>
+<li>两者最主要的区别在于：sleep 方法没有释放锁，而 wait 方法释放了锁 。</li>
+<li>两者都可以暂停线程的执行。</li>
+<li>Wait 通常被用于线程间交互/通信，sleep 通常被用于暂停执行。</li>
+<li>wait() 方法被调用后，线程不会自动苏醒，需要别的线程调用同一个对象上的 notify() 或者 notifyAll() 方法。sleep() 方法执行完成后，线程会自动苏醒。或者可以使用wait(long timeout)超时后线程会自动苏醒。</li>
+</ul>
+<p><strong>调用 start 方法方可启动线程并使线程进入就绪状态，而 run 方法只是 thread 的一个普通方法调用，还是在主线程里执行。</strong></p>
+<h3 id="synchronized关键字最主要的三种使用方式">synchronized关键字最主要的三种使用方式：</h3>
+<ul>
+<li>修饰实例方法: 作用于当前对象实例加锁，进入同步代码前要获得当前对象实例的锁</li>
+<li>修饰静态方法: :也就是给当前类加锁，会作用于类的所有对象实例，因为静态成员不属于任何一个实例对象，是类成员（ static 表明这是该类的一个静态资源，不管new了多少个对象，只有一份）。所以如果一个线程A调用一个实例对象的非静态 synchronized 方法，而线程B需要调用这个实例对象所属类的静态 synchronized 方法，是允许的，不会发生互斥现象，因为访问静态 synchronized 方法占用的锁是当前类的锁，而访问非静态 synchronized 方法占用的锁是当前实例对象锁。</li>
+<li>修饰代码块: 指定加锁对象，对给定对象加锁，进入同步代码库前要获得给定对象的锁。</li>
+</ul>
+<p><strong>总结：</strong> synchronized 关键字加到 static 静态方法和 synchronized(class)代码块上都是是给 Class 类上锁。synchronized 关键字加到实例方法上是给对象实例上锁。尽量不要使用 synchronized(String a) 因为JVM中，字符串常量池具有缓存功能！</p>
+<h2 id="线程池">线程池</h2>
+<p>线程池提供了一种限制和管理资源（包括执行一个任务）。 每个线程池还维护一些基本统计信息，例如已完成任务的数量。</p>
+<p>使用线程池的好处：</p>
+<ul>
+<li>降低资源消耗。 通过重复利用已创建的线程降低线程创建和销毁造成的消耗。</li>
+<li>提高响应速度。 当任务到达时，任务可以不需要的等到线程创建就能立即执行。</li>
+<li>提高线程的可管理性。 线程是稀缺资源，如果无限制的创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一的分配，调优和监控。</li>
+</ul>
+<h3 id="实现runnable接口和callable接口的区别">实现Runnable接口和Callable接口的区别</h3>
+<p>如果想让线程池执行任务的话需要实现的Runnable接口或Callable接口。 Runnable接口或Callable接口实现类都可以被ThreadPoolExecutor或 ScheduledThreadPoolExecutor执行。两者的区别在于 Runnable 接口不会返回结果但是 Callable 接口可以返回结果。</p>
+<p>备注： 工具类Executors可以实现Runnable对象和Callable对象之间的相互转换。（Executors.callable（Runnable task）或Executors.callable（Runnable task，Object resule））。</p>
+<h3 id="执行execute方法和submit方法的区别">执行execute()方法和submit()方法的区别</h3>
+<ol>
+<li><p>execute() 方法用于提交不需要返回值的任务，所以无法判断任务是否被线程池执行成功与否；</p></li>
+<li><p>submit() 方法用于提交需要返回值的任务。线程池会返回一个Future类型的对象，通过这个Future对象可以判断任务是否执行成功，并且可以通过future的get()方法来获取返回值，get()方法会阻塞当前线程直到任务完成，而使用 get（long timeout，TimeUnit unit）方法则会阻塞当前线程一段时间后立即返回，这时候有可能任务没有执行完。</p></li>
+</ol>
+<h2 id="生产者消费者模式">生产者/消费者模式</h2>
+<p>生产者和消费者问题是线程模型中的经典问题：生产者和消费者在同一时间段内共用同一个存储空间，生产者往存储空间中添加产品，消费者从存储空间中取走产品，当存储空间为空时，消费者阻塞，当存储空间满时，生产者阻塞。</p>
+<p>生产者消费者问题是研究多线程程序时绕不开的经典问题之一，它描述是有一块缓冲区作为仓库，生产者可以将产品放入仓库，消费者则可以从仓库中取走产品。在Java中一共有四种方法支持同步，其中前三个是同步方法，一个是管道方法。</p>
+<ol>
+<li>Object的wait() / notify()方法</li>
+<li>Lock和Condition的await() / signal()方法</li>
+<li>BlockingQueue阻塞队列方法</li>
+<li>PipedInputStream / PipedOutputStream</li>
+</ol>
+<h3 id="countdownlatch倒计时门栓">countDownLatch(倒计时门栓)</h3>
+<ul>
+<li>countDownLatch这个类使一个线程等待其他线程各自执行完毕后再执行。</li>
+<li>是通过一个计数器来实现的，计数器的初始值是线程的数量。每当一个线程执行完毕后，计数器的值就-1，当计数器的值为0时，表示所有线程都执行完毕，然后在闭锁上等待的线程就可以恢复工作了。</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

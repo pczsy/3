@@ -1,0 +1,99 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修全面解析JVM加载中初始化的时机' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>全面解析JVM加载中初始化的时机</center></div><div class='banquan'>原文出处:本文由博客园博主万猫学社提供。<br/>
+原文连接:https://www.cnblogs.com/heihaozi/p/12015094.html</div><br>
+    <h3 id="jvm类加载过程">JVM类加载过程</h3>
+<p>JVM类加载过程分为几个阶段，分别是<strong>加载</strong>、<strong>验证</strong>、<strong>准备</strong>、<strong>解析</strong>和<strong>初始化</strong>。<strong>加载</strong>是把二进制字节码载入内存，<strong>验证</strong>是校验字节流中包含的信息是否符合当要求，<strong>准备</strong>是为静态变量分配内存并设置静态变量初始值，<strong>解析</strong>是把常量池内的符号引用替换为直接引用，<strong>初始化</strong>是执行所有静态变量的赋值动作和静态语句块中的语句。更多详尽分析请阅读之前的文章《<a href="https://mp.weixin.qq.com/s/TZhKtosd8QE1sXEnVBzVlg">JVM的类加载机制全面解析</a>》，这里不再赘述了。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="类初始化的时机">类初始化的时机</h3>
+<p>对于我们开发人员，我认为应该具体了解一下初始化阶段什么时候在开始。JVM规范对此做了严格规范，有且只有以下5种情况必须对类进行初始化：</p>
+<ol>
+<li><p>遇到new、getstatic、putstatic或invokestatic这四条字节码指令时，如果类没有被初始化过，就需要先进行初始化。对于字节码指令不了解的同学，可能就是一脸蒙圈了。我们来说人话，就是：使用new关键字实例化对象的时候、读取和设置一个类的静态字段（不被final修饰的）和调用一个类的静态方法的时候。这样说更容易被理解一些。</p></li>
+<li><p>使用java.lang.reflect包中的方法对类进行反射调用的时候，如果类没有被初始化过，就需要先进行初始化。</p></li>
+<li><p>当初始化一个类的时候，如果发现它的父类还没有被初始化过，就需要先初始化它的父类。</p></li>
+<li><p>JVM会先初始化要执行的主类，也是包含main()方法的那个类。</p></li>
+<li><p>当使用JDK 1.7的动态语言支持时，如果java.lang.invoke.MethodHandle实例最后的解析结果是REF_getStatic（使用MethodHandle读取类的静态字段）、REF_putStatic（使用MethodHandle设置类的静态字段）、REF_invokeStatic（使用MethodHandle调用类的静态方法）的方法句柄时，如果这个方法句柄没有被初始化过，就需要先进行初始化。</p></li>
+</ol>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="被动引用">被动引用</h3>
+<p>刚刚提到的5种情况，都会触发初始化，这些行为为称为对一个类的<strong>主动引用</strong>。除了这些以外，所有引用类的方式都不会触发初始化，被为被动引用。为了更好的理解，下面举几个被动引用的例子。</p>
+<h4 id="通过子类引用父类的静态变量">通过子类引用父类的静态变量</h4>
+<pre><code><code>public class SuperClass {
+    static {
+        System.out.println(&quot;父类正在初始化&quot;);
+    }
+
+    public static String name = &quot;万猫学社&quot;;
+}</code></code></pre>
+<pre><code><code>public class SubClass extends SuperClass {
+    static {
+        System.out.println(&quot;子类正在初始化&quot;);
+    }
+}</code></code></pre>
+<pre><code><code>public class OneMoreStudy {
+    public static void main(String[] args) {
+        System.out.println(SubClass.name);
+    }
+}</code></code></pre>
+<p>对于静态变量，只有直接定义这个变量的类才会被初始化，通过子类引用父类中定义的静态变量，只会触发父类的初始化而不会触发子类的初始化，运行的结果是：</p>
+<pre><code><code>父类正在初始化
+万猫学社</code></code></pre>
+<p>结果中并没有“子类正在初始化”。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h4 id="通过数组定义来引用类">通过数组定义来引用类</h4>
+<pre><code><code>public class OneMoreStudy {
+    public static void main(String[] args) {
+        SuperClass[] arrays = new SuperClass[10];
+        System.out.println(&quot;数组元素个数：&quot; + arrays.length);
+    }
+}</code></code></pre>
+<p>这段代码中使用之前的SuperClass类，定义了一个SuperClass类的一维数组，运行后的结果是：</p>
+<pre><code><code>数组元素个数：10</code></code></pre>
+<p>结果中并没有“父类正在初始化”，说明并没有触发SuperClass类的初始化。实际上，有一个名为“[LSuperClass”的类被初始化了，它是由JVM自动生成的、直接继承于java.lang.Object，创建动作由字节码指令newarray触发。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h4 id="常量">常量</h4>
+<pre><code><code>public class ConstClass {
+    static {
+        System.out.println(&quot;有常量的类正在初始化&quot;);
+    }
+
+    public static final String NAME = &quot;万猫学社&quot;;
+}</code></code></pre>
+<pre><code><code>public class OneMoreStudy {
+    public static void main(String[] args) {
+        System.out.println(ConstClass.NAME);
+    }
+}</code></code></pre>
+<p>常量在编译阶段会存入调用类的常量池中，本质没有直接引用到定义的常量的类，不会触发定义常量的类的初始化，所以运行的结果是：</p>
+<pre><code><code>万猫学社</code></code></pre>
+<p>结果中并没有“有常量的类正在初始化”。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="接口初始化的时机">接口初始化的时机</h3>
+<p>接口也有初始化过程，和类是一致的。不过接口中不能使用“static{}”语句块，但编译器仍然会为接口生成“clinit()”类构造器，用于初始化接口中所定义的成员变量。</p>
+<p>接口初始化的时机，基本和之前提到的类的5种情况基本一致，唯一不一样的是第3种情况：在一个类被初始化时，它的父类也必须被初始化，但是一个接口被初始化时，它的父接口并不要求被初始化。只有在真正使用到父接口时才会被初始化，比如：引用父接口中定义的常量。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+<h3 id="结语">结语</h3>
+<p>这次主要分享了类在什么时候被初始化，共有5种情况。除了这种5种情况的引用叫做被动引用，同时举了3个被动引用的例子。同时，也提到初始化接口和类有什么不同。</p>
+<p><span class="onemorestudy">欢迎关注微信公众号：<b>万猫学社</b>，每周一分享Java技术干货。</span></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

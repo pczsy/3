@@ -1,0 +1,236 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringSecurity原理剖析与权限系统设计' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringSecurity原理剖析与权限系统设计</center></div><div class='banquan'>原文出处:本文由博客园博主Florian提供。<br/>
+原文连接:https://www.cnblogs.com/fanzhidongyzby/p/11610334.html</div><br>
+    <p>Spring Secutity和Apache Shiro是Java领域的两大主流开源安全框架，也是权限系统设计的主要技术选型。本文主要介绍Spring Secutity的实现原理，并基于Spring Secutity设计基于RBAC的权限系统。</p>
+<h2 id="一技术选型">一、技术选型</h2>
+<p>为何把Spring Secutity作为权限系统的技术选型，主要考虑了以下几个方面：</p>
+<ol>
+<li><strong>数据鉴权的能力</strong>：Spring Secutity支持数据鉴权，即细粒度权限控制。</li>
+<li><strong>Spring生态基础</strong>：Spring Secutity可以和Spring生态无缝集成。</li>
+<li><strong>多样认证能力</strong>：Spring Secutity支持多样认证方式，如预认证方式可以与第三方认证系统集成。</li>
+</ol>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>Spring Security</strong></th>
+<th><strong>Apache Shiro</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>认证</td>
+<td>支持多种认证方式（如密码、匿名、<strong>预认证</strong>）</td>
+<td>简单登录认证</td>
+</tr>
+<tr class="even">
+<td>鉴权</td>
+<td>功能鉴权、<strong>数据鉴权</strong></td>
+<td>功能鉴权</td>
+</tr>
+<tr class="odd">
+<td>多源适配</td>
+<td>Mem、JDBC、DAO、LDAP、<br />OpenID、OAuth等</td>
+<td>LDAP、JDBC、Kerberos、<br />ActiveDirectory等</td>
+</tr>
+<tr class="even">
+<td>加密</td>
+<td>支持多种加密方式</td>
+<td>简单加密方式</td>
+</tr>
+<tr class="odd">
+<td>运行环境</td>
+<td>依赖Spring</td>
+<td>可独立运行</td>
+</tr>
+<tr class="even">
+<td>开放性</td>
+<td><strong>开源、Spring生态基础</strong></td>
+<td>开源</td>
+</tr>
+<tr class="odd">
+<td>复杂度</td>
+<td>复杂、较重</td>
+<td>简单、灵活</td>
+</tr>
+</tbody>
+</table>
+<h2 id="二核心架构">二、核心架构</h2>
+<p>权限系统一般包含两大核心模块：认证（Authentication）和鉴权（Authorization）。</p>
+<ul>
+<li><strong>认证</strong>：认证模块负责验证用户身份的合法性，生成认证令牌，并保存到服务端会话中（如TLS）。</li>
+<li><strong>鉴权</strong>：鉴权模块负责从服务端会话内获取用户身份信息，与访问的资源进行权限比对。</li>
+</ul>
+<p>官方给出的Spring Security的核心架构图如下：<br />
+<img src="./images/SpringSecurity原理剖析与权限系统设计0.png" /></p>
+<p>核心架构解读：</p>
+<ul>
+<li><strong>AuthenticationManager</strong>：负责认证管理，解析用户登录信息（封装在Authentication），读取用户、角色、权限信息进行认证，认证结果被回填到Authentication，保存在SecurityContext。</li>
+<li><strong>AccessDecisionManager</strong>：负责鉴权投票表决，汇总投票器的结果，实现一票通过（默认）、多票通过、一票否决策略。</li>
+<li><strong>SecurityInterceptor</strong>：负责权限拦截，包括Web URL拦截和方法调用拦截。通过ConfigAttributes获取资源的描述信息，借助于AccessDecisionManager进行鉴权拦截。</li>
+<li><strong>SecurityContext</strong>：安全上下文，保存认证结果。提供了全局上下文、线程继承上下文、线程独立上下文（默认）三种策略。</li>
+<li><strong>Authentication</strong>：认证信息，保存用户的身份标示、权限列表、证书、认证通过标记等信息。</li>
+<li><strong>SecuredResource</strong>：被安全管控的资源，如Web URL、用户、角色、自定义领域对象等。</li>
+<li><strong>ConfigAttributes</strong>：资源属性配置，描述安全管控资源的信息，为SecurityInterceptor提供拦截逻辑的输入。</li>
+</ul>
+<h2 id="三设计原理">三、设计原理</h2>
+<p>通过对源码的分析，我把Spring Security的核心领域模型设计整理如下：<br />
+<img src="./images/SpringSecurity原理剖析与权限系统设计1.png" /></p>
+<p>全局抽象模型解读：</p>
+<ul>
+<li><strong>配置</strong>：AuthenticationConfiguration负责认证系统的全局配置，GlobalMethodSecurityConfiguration负责方法调用拦截的全局配置。</li>
+<li><strong>构建</strong>：AuthenticationConfiguration通过AuthenticationManagerBuilder构建认证管理器AuthenticationManager，GlobalMethodSecurityConfiguration会自动初始化AbstractSecurityInterceptor进行方法调用拦截。</li>
+<li><strong>Web拦截</strong>：HttpSecurity对Web进行安全配置，内置了大量GenericFilterBean过滤器对URL进行拦截。负责认证的过滤器会通过AuthenticationManager进行认证，并将认证结果保存到SecurityContext。</li>
+<li><strong>方法拦截</strong>：Spring通过AOP技术（cglib/aspectj）对标记为@PreAuthorize、@PreFilter、@PostAuthorize、@PostFilter等注解的方法进行拦截，通过AbstractSecurityInterceptor调用AuthenticationManager进行身份认证（如果必要的话）。</li>
+<li><strong>认证</strong>：认证管理器AuthenticationManager内置了多种认证器AuthenticationProvider，只要其中一个认证通过，认证便成功。不同的AuthenticationProvider获取各自需要的信息（HTTP请求、数据库查询、远程服务等）进行认证，认证结果全部封装在Authentication。需要加载用户、角色、权限信息的认证器（如密码认证、预认证等）需要对接UserDetailsManager接口实现用户CRUD功能。</li>
+<li><strong>鉴权</strong>：权限拦截器AbstractSecurityInterceptor通过读取不同的SecurityMetadataSource加载需要被鉴权资源的描述信息ConfigAttribute，然后把认证信息Authentication、资源描述ConfigAttribute、资源对象本身传递给AccessDecisionManager进行表决。AccessDecisionManager内置了多个投票器AccessDecisionVoter，投票器会将鉴权信息中的ConfigAttribute转换为SpringEL的格式，通过表达式处理器SecurityExpressionHandler执行基于表达式的鉴权逻辑，鉴权逻辑会通过反射的方式转发到SecurityExpressionRoot的各个操作上去。</li>
+<li><strong>定制</strong>：通过WebSecurityConfigureAdapter可以定制HTTP安全配置HttpSecurity和认证管理器生成器AuthenticationManagerBuilder；通过AbstractPreAuthenticatedProcessingFilter可以定制预认证过滤器；通过UserDetailsManager和UserDetails接口可以对接自定义数据源；通过GrantedAuthority定制权限信息；通过PermissionEvaluator可以定制自定义领域模型的访问控制逻辑。</li>
+</ul>
+<h2 id="四应用集成">四、应用集成</h2>
+<p>理清Spring Security的定制点后，就可以在系统内部集成Spring Security了。</p>
+<p>这里使用预认证的方式，以适配第三方认证系统。AbstractPreAuthenticatedProcessingFilter提供了预认证的扩展点，基于该抽象类实现一个自定义认证过滤器。</p>
+<pre><code><code>public class MyPreAuthFilter extends AbstractPreAuthenticatedProcessingFilter {
+    @Override
+    protected Object getPreAuthenticatedPrincipal(HttpServletRequest request) {
+        // 从第三方系统获取用户ID
+        return userId;
+    }
+
+    @Override
+    protected Object getPreAuthenticatedCredentials(HttpServletRequest request) {
+        return &quot;&quot;;
+    }
+}</code></code></pre>
+<p>Spring Security会根据预认证过滤器getPreAuthenticatedPrincipal返回的用户ID信息，加载用户角色等初始信息。这里需要实现UserDetailsManager接口，提供用户信息管理器。</p>
+<pre><code><code>@Service
+public class MyUserManager implements UserDetailsManager {
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // 从数据库加载用户信息
+        return user;
+    }
+    
+    // 其他管理接口
+}</code></code></pre>
+<p>UserDetails内包含了GrantedAuthority接口类型的权限信息抽象，一般可以基于它自定义角色和权限。Spring Security使用一种接口形式表达角色和权限，角色和权限的差别是角色的ID是以&quot;ROLE_&quot;为前缀。</p>
+<pre><code><code>public class MyRole implements GrantedAuthority {
+    private final String role;
+
+    @Override
+    public String getAuthority() {
+        return &quot;ROLE_&quot; + role;
+    }
+}
+
+public class MyAuthority implements GrantedAuthority {
+    private final String authority;
+
+    @Override
+    public String getAuthority() {
+        return authority;
+    }
+}</code></code></pre>
+<p>接下来注册自定义认证过滤器和用户管理器，这里需要实现WebSecurityConfigurerAdapter进行Web安全配置。</p>
+<pre><code><code>@EnableWebSecurity
+@EnableGlobalMethodSecurity(prePostEnabled = true, mode = AdviceMode.PROXY)
+public class MySecurityConfig extends WebSecurityConfigurerAdapter {
+
+    @Autowired
+    UserDetailsManager userDetailsManager;
+
+    @Bean
+    protected AuthenticationProvider createPreAuthProvider() {
+        // 注册用户管理器
+        PreAuthenticatedAuthenticationProvider provider = new PreAuthenticatedAuthenticationProvider();
+        provider.setPreAuthenticatedUserDetailsService(new UserDetailsByNameServiceWrapper&lt;&gt;(userDetailsManager));
+        return provider;
+    }
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        // 注册预认证过滤器
+        http.addFilter(new MyPreAuthFilter(authenticationManager()));
+    }
+}</code></code></pre>
+<p>这样，最简单的Spring Security框架集成内系统内部已经完成了。在系统的任意服务接口上可以使用如下方式进行鉴权。<br /></p>
+<pre><code><code>public interface MyService {
+    @PreAuthorize(&quot;hasAuthority(&#39;QUERY&#39;)&quot;)
+    Object getById(String id);
+    
+    @PreAuthorize(&quot;hasRole(&#39;ADMIN&#39;)&quot;)
+    void deleteById(String id);
+}</code></code></pre>
+<p>PreAuthorize注解表示调用前鉴权，Spring使用默认使用动态代理技术生成鉴权逻辑。注解内配置了<a href="http://itmyhome.com/spring/expressions.html">SpringEL表达式</a>来定制鉴权方式。上述代码中，hasAuthority会检查用户是否有QUERY权限，hasRole会检查用户是否有ADMIN角色。</p>
+<p>使用动态代理的方式进行AOP，只允许在接口层面进行权限拦截，如果想在任意的方法上进行权限拦截，那么就需要借助于AspectJ的方式进行AOP。首先将注解EnableGlobalMethodSecurity的mode设置为AdviceMode.ASPECTJ，然后添加JVM启动参数，这样就可以在任意方法上使用Spring Security的注解了。</p>
+<pre class="bash"><code>-javaagent:/path/to/org/aspectj/aspectjweaver/1.9.4/aspectjweaver-1.9.4.jar</code></code></pre>
+<p>以上还是只是以用户的身份信息（角色/权限）进行权限，灵活度有限，也发挥不了Spring Security的数据鉴权的能力。要使用数据鉴权，需要实现一个Spring Bean。</p>
+<pre><code><code>@Component
+public class MyPermissionEvaluator implements PermissionEvaluator {
+    @Override
+    public boolean hasPermission(Authentication authentication, Object targetDomainObject, Object permission) {
+        // 自定义数据鉴权
+        return false;
+    }
+
+    @Override
+    public boolean hasPermission(Authentication authentication, Serializable targetId, String targetType, Object permission) {
+        // 自定义数据鉴权
+        return false;
+    }
+}</code></code></pre>
+<p>PermissionEvaluator会被自动注册到Spring Security框架，并允许在注解内使用如下方式进行鉴权。</p>
+<pre><code><code>@PreAuthorize(&quot;hasPermission(#id, &#39;QUERY&#39;)&quot;)
+Object func1(String id) {
+}
+
+@PreAuthorize(&quot;hasPermission(#id, &#39;TABLE&#39;, &#39;QUERY&#39;)&quot;)
+Object func2(String id) {
+}</code></code></pre>
+<p>其中，func1的注解表示校验用户是否对id有QUERY权限，代码逻辑路由到MyPermissionEvaluator的第一个接口。func2的注解表示校验用户是否对TABLE类型的id有QUERY权限，代码逻辑路由到MyPermissionEvaluator的第二个接口。PermissionEvaluator提供了权限系统中数据鉴权的扩展点，稍后会描述如何利用该扩展点定制基于RBAC的权限系统。</p>
+<h2 id="五权限系统">五、权限系统</h2>
+<p>构建基于RBAC（Role Based Access Control）的权限系统，需要明确用户、角色、权限、资源这几个核心的<a href="https://baike.baidu.com/item/%E6%A6%82%E5%BF%B5%E7%B1%BB/17915967">概念类</a>的含义和它们之间的关系。</p>
+<ul>
+<li><strong>资源</strong>：权限系统内需要安全控制的客体，一般是系统内的数据或功能。</li>
+<li><strong>权限</strong>：描述了资源上的操作抽象，一般是一种动作。</li>
+<li><strong>授权</strong>：是权限和资源的组合，表示对资源的某一个操作。</li>
+<li><strong>角色</strong>：描述了一组授权的集合，表示一类特殊概念的功能集。</li>
+<li><strong>用户</strong>：权限系统的主体，一般是当前系统的访问用户，用户可以拥有多种角色。</li>
+</ul>
+<p>以下是我们设计的基于RABC的权限核心领域模型：<br />
+<img src="./images/SpringSecurity原理剖析与权限系统设计2.png" /></p>
+<p>一般情况下，系统内需要权限管控的资源是无法用户自定义的，因为资源会耦合大量的业务逻辑，所以我们提供了自 资源工厂，通过配置化的方式构建业务模块所需的资源。而用户、角色、权限，以及授权记录都是可以通过相应的管理器进行查询更新。</p>
+<p>另外，资源抽象允许表达资源的继承和组合关系，继而表达更复杂的资源模型，资源统一鉴权的流程为：<br />
+<img src="./images/SpringSecurity原理剖析与权限系统设计3.png" /></p>
+<ul>
+<li>执行鉴权时，首先看资源是原子资源还是组合资源。</li>
+<li>对于原子资源，先查询是否有授权记录，再查看角色预授权是否包含当前授权，存在一种便成功。</li>
+<li>没有授权记录和角色预授权的原子资源，尝试用父资源（如果有的话）代替鉴权，否则鉴权失败。</li>
+<li>对于组合资源，先进行资源展开，获取子资源列表。</li>
+<li>遍历子资源列表，并依次对子资源进行鉴权，子资源鉴权结果汇总后，即组合资源鉴权结果。</li>
+</ul>
+<p>综上，基于统一资源抽象和资源配置化构建，可以实现资源的统一构建，继而实现统一鉴权。</p>
+<h2 id="六总结回顾">六、总结回顾</h2>
+<p>本文从Spring Security的架构和原理出发，描述了开源安全框架对于认证和鉴权模块的设计思路和细节。并提供了系统内集成Spring Security的方法，结合RBAC通用权限系统模型，讨论了统一资源构建和统一鉴权的设计和实现。如果你也需要设计一个新的权限系统，希望本文对你有所帮助。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

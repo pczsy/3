@@ -1,0 +1,179 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【软件工具】easyExcel简明使用指南' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【软件工具】easyExcel简明使用指南</center></div><div class='banquan'>原文出处:本文由博客园博主写代码的木公提供。<br/>
+原文连接:https://www.cnblogs.com/54chensongxia/p/11990312.html</div><br>
+    <h2 id="easyexcel简介">easyExcel简介</h2>
+<p>Java领域解析、生成Excel比较有名的框架有Apache poi、jxl等。但他们都存在一个严重的问题就是非常的耗内存。如果你的系统并发量不大的话可能还行，但是一旦并发上来后一定会OOM或者JVM频繁的full gc。</p>
+<p>easyExcel是阿里巴巴开源的一个excel处理框架，<strong>以使用简单、节省内存著称</strong>。</p>
+<p>64M内存1分钟内读取75M(46W行25列)的Excel(当然还有急速模式能更快，但是内存占用会在100M多一点)<br />
+<img src="./images/【软件工具】easyExcel简明使用指南0.png" /></p>
+<p>easyExcel能大大减少占用内存的主要原因是在解析Excel时没有将文件数据一次性全部加载到内存中，而是从磁盘上一行行读取数据，逐个解析。</p>
+<p>下图是easyExcel和POI在解析Excel时的对比图。<br />
+<img src="./images/【软件工具】easyExcel简明使用指南1.png" /></p>
+<p>easyExcel采用一行一行的解析模式，并将一行的解析结果以观察者的模式通知处理（AnalysisEventListener）。</p>
+<p><img src="./images/【软件工具】easyExcel简明使用指南2.png" /></p>
+<p>上面简要介绍了easyExcel的特点和原理，关于easyExcel的其他问题可以先参考下这个<a href="https://alibaba-easyexcel.github.io/quickstart/faq.html">文章</a>。下面就通过代码来介绍下怎么使用easyExcel。</p>
+<h2 id="快速使用指南">快速使用指南</h2>
+<h3 id="文件上传读取excel">文件上传读取Excel</h3>
+<p>下面通过一个读取用户信息的列子来展示下怎么使用easyExcel。</p>
+<p><strong>step1：创建用户信息类</strong></p>
+<pre><code><code>@Data
+public class UserInfo extends BaseRowModel {
+
+    @ExcelProperty(index = 0)
+    private String name;
+
+    @ExcelProperty(index = 1)
+    private int age;
+
+    @ExcelProperty(index = 2)
+    private String address;
+
+}</code></code></pre>
+<p><strong>step2：创建AnalysisEventListener子类</strong></p>
+<pre><code><code>/**
+ * 每解析一行会回调invoke()方法。
+ * 整个excel解析结束会执行doAfterAllAnalysed()方法
+ */
+
+//有个很重要的点   不能被spring管理,要每次读取excel都要new。
+//这边就会有一个问题：如果UserInfoDataListener中需要用到Spring中的主键怎么办？
+public class UserInfoDataListener extends AnalysisEventListener&lt;UserInfo&gt; {
+
+    Logger logger = LoggerFactory.getLogger(UserInfoDataListener.class);
+
+    //每次读取100条数据就进行保存操作
+    private static final int BATCH_COUNT = 100;
+    //由于每次读都是新new UserInfoDataListener的，所以这个list不会存在线程安全问题
+    List&lt;UserInfo&gt; list = new ArrayList&lt;&gt;();
+
+    //这个组件是Spring中的组件，这边推荐两种方法注入这个组件
+    //第一种就是提供一个UserInfoDataListener的构造方法，这个方法提供一个参数是UserInfoDataListener类型
+    //另外一种方法就是将 UserInfoDataListener 这个类定义成 UserService 实现类的内部类（推荐这种方式）
+    //private UserService userService;
+
+    @Override
+    public void invoke(UserInfo data, AnalysisContext analysisContext) {
+        logger.info(&quot;解析到一条数据:{}&quot;, JSON.toJSONString(data));
+        list.add(data);
+        if (list.size() &gt;= BATCH_COUNT) {
+            saveData();
+            // 存储完成清理 list
+            list.clear();
+        }
+    }
+
+    @Override
+    public void doAfterAllAnalysed(AnalysisContext analysisContext) {
+        // 这里也要保存数据，确保最后遗留的数据也存储到数据库
+        saveData();
+        logger.info(&quot;所有数据解析完成！&quot;);
+    }
+
+    private void saveData() {
+        logger.info(&quot;{}条数据，开始存储数据库！&quot;, list.size());
+        //保存数据
+        //userService.save(list);
+        logger.info(&quot;存储数据库成功！&quot;);
+    }
+
+}</code></code></pre>
+<p><strong>step3: 读取excel</strong></p>
+<pre><code><code>
+public class EasyExcelDemo {
+
+    public static void main(String[] args) throws Exception {
+        InputStream fis = new FileInputStream(&quot;D:\\UserInfo.xlsx&quot;);
+
+        AnalysisEventListener listener = new UserInfoDataListener();
+
+        ExcelReader excelReader = EasyExcel.read(fis, UserInfo.class, listener).build();
+        ReadSheet readSheet = EasyExcel.readSheet(0).build();
+        ReadSheet readSheet2 = EasyExcel.readSheet(1).build();
+        excelReader.read(readSheet);
+        // 这里千万别忘记关闭，读的时候会创建临时文件，到时磁盘会崩的
+        excelReader.finish();
+    }
+
+}
+</code></code></pre>
+<p>只需要上面3步就能进行Excel的读取了。</p>
+<h3 id="文件下载excel">文件下载Excel</h3>
+<pre><code><code>
+public class ExcelUtil {
+
+    public static OutputStream getOutputStream(String fileName, HttpServletResponse response)
+            throws Exception{
+        try{
+            fileName = URLEncoder.encode(fileName,&quot;utf-8&quot;);
+            response.setContentType(&quot;application/vnd.ms-excel&quot;);
+            response.setCharacterEncoding(&quot;utf-8&quot;);
+            //此处指定了文件类型为xls，如果是xlsx的，请自行替换修改
+            response.setHeader(&quot;Content-Disposition&quot;, &quot;attachment; filename=&quot; + fileName + &quot;.xls&quot;);
+            response.setHeader(&quot;Pragma&quot;, &quot;public&quot;);
+            response.setHeader(&quot;Cache-Control&quot;, &quot;no-store&quot;);
+            response.addHeader(&quot;Cache-Control&quot;, &quot;max-age=0&quot;);
+            return response.getOutputStream();
+        } catch (IOException e){
+            throw new Exception(&quot;导出文件失败！&quot;);
+        }
+    }
+
+    public static void writeExcel(HttpServletResponse response, List&lt;? extends BaseRowModel&gt; list, String fileName,
+                                  String sheetName, Class clazz) throws Exception {
+        ExcelWriter writer = new ExcelWriter(getOutputStream(fileName, response), ExcelTypeEnum.XLS);
+        Sheet sheet = new Sheet(1, 0, clazz);
+        sheet.setSheetName(sheetName);
+        writer.write(list, sheet);
+        writer.finish();
+    }
+
+}
+</code></code></pre>
+<p>在Controller中我们只要像下面这种方式调用就行了。</p>
+<pre><code><code>
+    @RequestMapping(value = &quot;/file/testExcelDownload&quot;)
+    public void testExcelDownload(HttpServletRequest request,HttpServletResponse response){
+        //以下信息从数据库中查出
+        List&lt;ExcelInfo&gt; excelInfos = new ArrayList&lt;&gt;();
+        ExcelInfo info1 = new ExcelInfo();
+        ExcelInfo info2 = new ExcelInfo();
+        excelInfos.add(info1);
+        excelInfos.add(info2);
+        info1.setIssuerName(&quot;name1&quot;);
+        info1.setRiskLevel(&quot;level1&quot;);
+        info2.setIssuerName(&quot;name1&quot;);
+        info2.setRiskLevel(&quot;level1&quot;);
+        try {
+            String fileName = &quot;excelInfo&quot;;
+            String sheetName = &quot;sheet1&quot;;
+            ExcelUtil.writeExcel(response, excelInfos, fileName, sheetName, ExcelInfo.class);
+        } catch(Exception e){
+            log.error(&quot;模板下载失败&quot;,e);
+        }
+
+    }
+</code></code></pre>
+<p>在导出Excel的部分，easyExcel还提供了自定义样式，插入表格，插入图片等其他功能，还有一个比较有意思的功能就是Excel模板填充的功能。详细的功能信息参考<a href="https://alibaba-easyexcel.github.io/quickstart/write.html#web%E4%B8%AD%E7%9A%84%E5%86%99">官方文档</a>。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

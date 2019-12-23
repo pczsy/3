@@ -1,0 +1,63 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修datax分析与思考(一)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>datax分析与思考(一)</center></div><div class='banquan'>原文出处:本文由博客园博主_我在清水河边提供。<br/>
+原文连接:https://www.cnblogs.com/wzqshb/p/11778598.html</div><br>
+    <h1 id="datax">Datax</h1>
+<h2 id="总体流程图">总体流程图</h2>
+<p>先看执行的第一个步骤:</p>
+<p><img src="./images/datax分析与思考(一)0.png" alt="file" /></p>
+<p>在最上层抽象类,这个里面相当于获取全局公共信息,java入口部分就是这个Engine的main方法直接启动</p>
+<h2 id="engine-启动">Engine 启动</h2>
+<h3 id="com.alibaba.datax.core.enginemain直接启动">com.alibaba.datax.core.Engine#main直接启动</h3>
+<p>阿里这边有提供多级JSON配置信息无损存储</p>
+<pre><code><code>com.alibaba.datax.common.util.Configuration</code></code></pre>
+<p>但是平常的使用中很少有直接以json的格式操作,一般是转成对象bean,然后进行操作,<br />
+他在这边新写这个方法的目的主要在于对封闭的json进行处理,直接从key获取到value,但是我感觉还是可以直接转成bean的形式去获取比较方便.毕竟只有一个json的文件</p>
+<p>直接main方法启动,在datax.py脚本中设置了锁需要的参数和json地址, 在启动的时候通过读取启动参数,获取到当前的启动配置文件.<br />
+这边阿里使用了</p>
+<pre><code><code>&lt;dependency&gt;
+    &lt;groupId&gt;commons-cli&lt;/groupId&gt;
+    &lt;artifactId&gt;commons-cli&lt;/artifactId&gt;
+    &lt;version&gt;1.3.1&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>这个包 ,然后使用</p>
+<pre><code><code>Options options = new Options();
+        options.addOption(&quot;job&quot;, true, &quot;Job config.&quot;);
+        options.addOption(&quot;id&quot;, true, &quot;Job unique id.&quot;);
+        options.addOption(&quot;mode&quot;, true, &quot;Job runtime mode.&quot;);
+        DefaultParser parser = new DefaultParser();
+        CommandLine cl = parser.parse(options, args);
+        String job = cl.getOptionValue(&quot;job&quot;);
+        String id = cl.getOptionValue(&quot;id&quot;);
+        String mode = cl.getOptionValue(&quot;mode&quot;);</code></code></pre>
+<p>来根据参数的名字进行读取.这个地方平常很少有用到,可以记录下.</p>
+<p>datax在执行的过程中打了很多的日志,有个打印vminfo的class我感觉可以在平常使用到,之前我也写过这种类似的,但是说效果不是很好,因为我之前是使用的脚本去查询的服务器上面的信息.</p>
+<pre><code><code>com.alibaba.datax.common.statistics.VMInfo#getVmInfo</code></code></pre>
+<p>这个类的话,在日志监控或者效率监控也可以使用到.</p>
+<h3 id="com.alibaba.datax.core.enginestart-进入真正的执行方法">com.alibaba.datax.core.Engine#start 进入真正的执行方法</h3>
+<p>前面基本上都是在对性能参数的赋值,然后获取到了一个<code>List&lt;Configuration&gt; taskConfigs</code>,将这个list转成了map,然后再循环中开多线程执行任务.</p>
+<blockquote>
+<p><a href="https://github.com/fulln" class="uri">https://github.com/fulln</a></p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

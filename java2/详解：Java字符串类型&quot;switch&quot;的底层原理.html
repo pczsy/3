@@ -1,0 +1,125 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修详解：Java字符串类型&quot;switch&quot;的底层原理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>详解：Java字符串类型&quot;switch&quot;的底层原理</center></div><div class='banquan'>原文出处:本文由博客园博主Java架构Monster提供。<br/>
+原文连接:https://www.cnblogs.com/sevencutekk/p/11507798.html</div><br>
+    <h2>前言：</h2>
+<p>最近更新得会比较频繁，希望大家见谅哦！</p>
+<p>也感谢关注我的人，我会更加更加努力去做的！</p>
+<p>&nbsp;</p>
+<h2>基础</h2>
+<p>我们现在使用的Java的版本，基本上是都支持String类型的。当然除了String类型，还有int、char、byte、short、enum等等也都是支持的。然而在其底部实现中，还是基于 整型的，也就是int、byte、short这些类型。</p>
+<p>我们先来看一下int的一个简单例子，主要部分源代码</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String [] args){
+ </span><span style="color: #0000ff;">int</span> n = <span style="color: #800080;">2</span><span style="color: #000000;">;
+ </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (n){
+ </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">1</span><span style="color: #000000;">:
+ </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+ </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">2</span><span style="color: #000000;">:
+ </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+ </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">3</span><span style="color: #000000;">:
+ </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+ </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+ }
+}</span></code></pre>
+
+<p>再使用javac命令编译，javap命令反编译之后得到如下关键部分字节码：</p>
+<src class="cnblogs_code">
+<pre><code>0<span style="color: #000000;">: iconst_2
+ </span>1<span style="color: #000000;">: istore_1
+ </span>2<span style="color: #000000;">: iload_1
+ </span>3: tableswitch { <span style="color: #008000;">//</span><span style="color: #008000;"> 1 to 3</span>
+ 1: 28
+ 2: 31
+ 3: 34
+ <span style="color: #0000ff;">default</span>: 37<span style="color: #000000;">
+ }
+ </span>28: <span style="color: #0000ff;">goto</span> 37
+ 31: <span style="color: #0000ff;">goto</span> 37
+ 34: <span style="color: #0000ff;">goto</span> 37
+ 37: <span style="color: #0000ff;">return</span></code></pre>
+
+<p>我们可以直接把class文件反编译成源代码，可以直接将class文件拖进IDEA，得到如下代码：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] var0) {
+ </span><span style="color: #0000ff;">byte</span> var1 = 2<span style="color: #000000;">;
+ </span><span style="color: #0000ff;">switch</span><span style="color: #000000;">(var1) {
+ </span><span style="color: #0000ff;">case</span> 1<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">case</span> 2<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">case</span> 3<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+ }
+ }</span></code></pre>
+
+<p>这里总的来说和源代码变化不大，只是将int类型都转化为了byte类型。这里转化的原因，在于我们最初的case里面的值刚好在byte的范围之内。如果case的值稍微大点，它可能就会转化为short类型，再大点，就直接是int类型了。需要注意的是switch里面不支持float、long这些类型。</p>
+<h2>String类型讲解</h2>
+<p>有了上文的理解之后，下面应该会简单许多。</p>
+<p>同样的，还是先上源代码</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String [] args){
+ String str </span>= "sdf"<span style="color: #000000;">;
+ </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (str){
+ </span><span style="color: #0000ff;">case</span> "aaa"<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+ </span><span style="color: #0000ff;">case</span> "ccc"<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+ </span><span style="color: #0000ff;">case</span> "bbb"<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+ </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+ }
+}</span></code></pre>
+
+<p>然后编译之后丢进IDEA反编译得到反编译的代码</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] var0) {
+ String var1 </span>= "sdf"<span style="color: #000000;">;
+ </span><span style="color: #0000ff;">byte</span> var3 = -1<span style="color: #000000;">;
+ </span><span style="color: #0000ff;">switch</span><span style="color: #000000;">(var1.hashCode()) {
+ </span><span style="color: #0000ff;">case</span> 96321<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">if</span> (var1.equals("aaa"<span style="color: #000000;">)) {
+ var3 </span>= 0<span style="color: #000000;">;
+ }
+ </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+ </span><span style="color: #0000ff;">case</span> 97314<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">if</span> (var1.equals("bbb"<span style="color: #000000;">)) {
+ var3 </span>= 2<span style="color: #000000;">;
+ }
+ </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+ </span><span style="color: #0000ff;">case</span> 98307<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">if</span> (var1.equals("ccc"<span style="color: #000000;">)) {
+ var3 </span>= 1<span style="color: #000000;">;
+ }
+ }
+ </span><span style="color: #0000ff;">switch</span><span style="color: #000000;">(var3) {
+ </span><span style="color: #0000ff;">case</span> 1<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">case</span> 0<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">case</span> 2<span style="color: #000000;">:
+ </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+ }
+ }</span></code></pre>
+
+<p>可以看到，String类型的switch，转换为了字符串的哈希比较，而其哈希返回的正是int类型。hash相同的情况再通过equals方法对比字符串的值，因此引进局部变量var3，是很有必要的。</p>
+<p>最后，感谢大家读到了这里</p>
+<p>我是小架，</p>
+<p>我们下篇文章见！</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

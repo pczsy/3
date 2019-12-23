@@ -1,0 +1,70 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修人脸跟踪开源项目HyperFT代码算法解析及改进' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>人脸跟踪开源项目HyperFT代码算法解析及改进</center></div><div class='banquan'>原文出处:本文由博客园博主huiwei13提供。<br/>
+原文连接:https://www.cnblogs.com/huiwei13/p/11797097.html</div><br>
+    <h1 id="%E4%B8%80%E3%80%81%E7%AE%80%E4%BB%8B">一、简介</h1>
+<p>人脸识别已经成为计算机视觉领域中最热门的应用之一，其中，人脸信息处理的第一个环节便是人脸检测和人脸跟踪。人脸检测是指在输入的图像中确定所有人脸的位置、大小和姿势的过程。人脸跟踪是指在图像序列中确定各帧间人脸的对应关系的过程，即确定每个人脸的运动轨迹及其大小变化的过程。</p>
+<p>&nbsp;</p>
+<p>人脸跟踪最初的应用源于人类识别。人脸识别是指将输入的人脸图像与已知人脸库中的模型进行比较，以确定是否存在相匹配的人脸。随着近几年信息化进程日益加快,安全认证系列应用的涌现，这使得高度自动化的人脸识别系统的研究成为一个热点。以往大多数系统要求被识别者固定在摄像机前的某一位置,&nbsp;十分不便，且在某些场合如监控领域也无法实现。如何基于视频，在复杂背景中直接检测、定位运动的人脸，并加以识别，这一问题迫切需要得到解决。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h1 id="%E4%BA%8C%E3%80%81HyperFT">二、HyperFT</h1>
+<p>这是一个移动端快速视频多人脸跟踪的开源项目，项目是基于mtcnn人脸检测加上简单的模板匹配进行人脸跟踪，算法简单但效果显著，移动端速度可达150帧以上，该项目的优点是可实现多人脸跟踪。</p>
+<p>&nbsp;</p>
+<p>github地址：<a href="https://github.com/zeusees/HyperFT" data-cke-saved-href="https://github.com/zeusees/HyperFT">https://github.com/zeusees/HyperFT</a></p>
+<p>&nbsp;</p>
+<h1 id="%E4%B8%89%E3%80%81%E4%BB%A3%E7%A0%81%E7%AE%97%E6%B3%95%E8%A7%A3%E6%9E%90">三、代码算法解析</h1>
+<p>HyperFT项目的多人脸跟踪算法分为三大部分：</p>
+<p>第一部分是初始化。通过mtcnn的人脸检测找出第一帧的人脸位置，然后根据结果对人脸跟踪进行初始化；</p>
+<p>&nbsp;</p>
+<p>第二部分是更新。首先利用模板匹配进行人脸目标位置的初步预判，再结合mtcnn中的onet对人脸位置进行更加精细的定位，最后通过mtcnn中的rnet的置信度来判断跟踪目标是否为人脸，防止当有手从面前慢慢挥过时，框会跟着手走，导致无法跟踪到真正的人脸；</p>
+<p>&nbsp;</p>
+<p>第三部分是定时检测。通过在更新的部分中加入一个定时器来做定时人脸检测，从而判断中途是否有新的人脸加入，本项目在定时人脸检测中使用了一个trick&mdash;&mdash;就是将已跟踪的人脸所在位置利用蒙版遮蔽起来，避免了人脸检测的重复进行，从而减少其计算量，提高了检测速度。</p>
+<p>&nbsp;</p>
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="5"><img class="has cke_widget_element" src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进0.png" alt="" data-cke-saved-src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进0.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/人脸跟踪开源项目HyperFT代码算法解析及改进0.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<p>&nbsp;</p>
+<h1 id="%E5%9B%9B%E3%80%81%E7%AE%97%E6%B3%95%E6%94%B9%E8%BF%9B%E7%9A%84%E6%80%9D%E8%B7%AF">四、算法改进的思路</h1>
+<p>HyperFT项目是在当前已实现多人脸跟踪的开源项目中取得显著效果的项目之一，其优点是人脸跟踪速度快且可以进行对多个人脸的跟踪。由于使用的算法是基于mtcnn和模板匹配实现的，在进行多人脸跟踪时有一定的局限性，所以算法仍存在一定的可提升空间。</p>
+<p>1、<strong>替换人脸检测模型</strong>：可将mtcnn的人脸检测模型替换成<a href="https://github.com/qaz734913414/libfacedetection/blob/master/models/caffe/yufacedetectnet-open-v2.train.prototxt" data-cke-saved-href="https://github.com/qaz734913414/libfacedetection/blob/master/models/caffe/yufacedetectnet-open-v2.train.prototxt">yufacedetectnet</a>和<a href="https://github.com/qaz734913414/RetinaFace-Cpp" data-cke-saved-href="https://github.com/qaz734913414/RetinaFace-Cpp">RetinaFace</a>等模型，人脸检测的时间即可不受人脸数量的影响。</p>
+<p>2、<strong>替换目标跟踪算法</strong>：可将模板匹配算法替换成TLD和光流法等跟踪算法，相比于模板匹配，跟踪速度有一定的提升。</p>
+<p>&nbsp;</p>
+<h1 id="%E4%BA%94%E3%80%81%E9%A1%B9%E7%9B%AE%E4%B8%AD%E5%8A%A0%E5%85%A5%E4%BA%94%E4%B8%AA%E5%85%B3%E9%94%AE%E7%82%B9%E8%B7%9F%E8%B8%AA%E7%9A%84%E5%AE%9E%E8%B7%B5">五、项目中加入五个关键点跟踪的实践</h1>
+<p>1、在HyperFT项目中的Face类中仅定义了人脸矩形的变量，如若需要加入五个关键点的跟踪则需要在Face类中需要定义一个Bbox类的faceBbox，这样Face即能保存人脸位置又能保存人脸关键点。</p>
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="4"><img class="has cke_widget_element" src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进2.png" alt="" data-cke-saved-src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进2.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/人脸跟踪开源项目HyperFT代码算法解析及改进2.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<p>&nbsp;</p>
+<p>2、在原来的doingLandmark_onet函数的基础上重载函数，将传入的std::vector&lt;cv::Point&gt; &amp;pts改为传入Bbox&amp; faceBbox。</p>
+<p>&nbsp;</p>
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="3"><img class="has cke_widget_element" src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进4.png" alt="" data-cke-saved-src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进4.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/人脸跟踪开源项目HyperFT代码算法解析及改进4.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<p>3、在tracking函数中修改doingLandmark_onet函数的调用</p>
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="2"><img class="has cke_widget_element" src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进6.png" alt="" data-cke-saved-src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进6.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/人脸跟踪开源项目HyperFT代码算法解析及改进6.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<p>&nbsp;</p>
+<p>4、通过人脸跟踪中Face类中的faceBbox即可获得人脸的位置及其五个人脸关键点（main.cpp）</p>
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="1"><img class="has cke_widget_element" src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进8.png" alt="" data-cke-saved-src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进8.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/人脸跟踪开源项目HyperFT代码算法解析及改进8.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<p>&nbsp;</p>
+<p>改进后的项目-&gt;GitHub地址：<a href="https://github.com/qaz734913414/Ncnn_FaceTrack" data-cke-saved-href="https://github.com/qaz734913414/Ncnn_FaceTrack">https://github.com/qaz734913414/Ncnn_FaceTrack</a></p>
+<p>&nbsp;</p>
+<hr />
+<p><span class="cke_widget_wrapper cke_widget_inline cke_widget_image cke_image_nocaption cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="图像" data-cke-widget-id="0"><img class="has cke_widget_element" src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进10.png" alt="" data-cke-saved-src="./images/人脸跟踪开源项目HyperFT代码算法解析及改进10.png" data-cke-widget-data="{&amp;quot;hasCaption&amp;quot;:false,&amp;quot;src&amp;quot;:&amp;quot;./images/人脸跟踪开源项目HyperFT代码算法解析及改进10.png&amp;quot;,&amp;quot;alt&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;width&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;height&amp;quot;:&amp;quot;&amp;quot;,&amp;quot;lock&amp;quot;:true,&amp;quot;align&amp;quot;:&amp;quot;none&amp;quot;,&amp;quot;classes&amp;quot;:{&amp;quot;has&amp;quot;:1}}" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="image" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /><span class="cke_image_resizer" title="点击并拖拽以改变尺寸">​</span></span></span></p>
+<p>&nbsp;</p>
+<p><a href="http://www.zeusee.com/" data-cke-saved-href="http://www.zeusee.com/">zeusee.com</a>&nbsp;智云视图</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

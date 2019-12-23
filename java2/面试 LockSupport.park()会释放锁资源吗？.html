@@ -1,0 +1,90 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修面试 LockSupport.park()会释放锁资源吗？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>面试 LockSupport.park()会释放锁资源吗？</center></div><div class='banquan'>原文出处:本文由博客园博主彤哥读源码提供。<br/>
+原文连接:https://www.cnblogs.com/tong-yuan/p/11768904.html</div><br>
+    <p><img src="./images/面试 LockSupport.park()会释放锁资源吗？0.png" alt="park_thread" /></p>
+<p>（手机横屏看源码更方便）</p>
+<hr />
+<h2 id="引子">引子</h2>
+<p>大家知道，我最近在招人，今天遇到个同学，他的源码看过一些，然后我就开始了AQS连环问。</p>
+<p>我：说说AQS的大致流程？</p>
+<p>他：AQS包含一个状态变量，一个同步队列……balabala……互斥锁balabala，共享锁balabala……</p>
+<p>我：AQS中除了同步队列，还有什么队列？</p>
+<p>他：还有个Condition，Condition中有个条件队列……</p>
+<p>我：条件队列和同步队列有什么区别？</p>
+<p>他：条件队列balabala，然后调用LockSupport.park()进入休眠，等待被唤醒，……，balabala</p>
+<p>咦，这时我灵感突发：LockSupport.park()和Thread.sleep()有什么区别？</p>
+<p>他：Thread.sleep()不会释放锁资源，……，balabala</p>
+<p>我：LockSupport.park()会释放锁资源吗？</p>
+<p>他：会吧。（估计和Object.wait()搞混淆了）</p>
+<p>我：会吗？会吗？会吗？</p>
+<p>他（羞涩地低下了头）：彤哥，不知道，你的文章里没写。（这段我瞎写的哈^^）</p>
+<p>OK，今天我们就来看看LockSupport.park()到底会不会释放锁资源。</p>
+<h2 id="thread.sleep和object.wait的区别">Thread.sleep()和Object.wait()的区别</h2>
+<p>首先，我们先来看看Thread.sleep()和Object.wait()的区别，这是一个烂大街的题目了，大家应该都能说上来两点。</p>
+<p>（1）Thread.sleep()不会释放占有的锁，Object.wait()会释放占有的锁；</p>
+<p>（2）Thread.sleep()必须传入时间，Object.wait()可传可不传，不传表示一直阻塞下去；</p>
+<p>（3）Thread.sleep()到时间了会自动唤醒，然后继续执行；</p>
+<p>（4）Object.wait()不带时间的，需要另一个线程使用Object.notify()唤醒；</p>
+<p>（5）Object.wait()带时间的，假如没有被notify，到时间了会自动唤醒，这时又分好两种情况，一是立即获取到了锁，线程自然会继续执行；二是没有立即获取锁，线程进入同步队列等待获取锁；</p>
+<p>其实，他们俩最大的区别就是Thread.sleep()不会释放锁资源，Object.wait()会释放锁资源。</p>
+<h2 id="thread.sleep和condition.await的区别">Thread.sleep()和Condition.await()的区别</h2>
+<p>我们再来看看Thread.sleep()和Condition.await()的区别。</p>
+<p>其实，这个题目和上面的题目比较类似，因为本来Object.wait()和Condition.await()的原理就比较类似，可以参考之前彤哥写的《死磕 java线程系列之线程的生命周期》之篇文章。</p>
+<p>这个题目的回答思路跟Object.wait()是基本一致的，不同的是Condition.await()底层是调用LockSupport.park()来实现阻塞当前线程的。</p>
+<p>实际上，它在阻塞当前线程之前还干了两件事，一是把当前线程添加到条件队列中，二是“完全”释放锁，也就是让state状态变量变为0，然后才是调用LockSupport.park()阻塞当前线程，可以参考之前彤哥写的《死磕 java同步系列之ReentrantLock源码解析（二）——条件锁》这篇文章。</p>
+<p>看到这里，今天开篇提的那个问题是不是就有答案了呢【本文由公从号“彤哥读源码”原创】？</p>
+<h2 id="thread.sleep和locksupport.park的区别">Thread.sleep()和LockSupport.park()的区别</h2>
+<p>LockSupport.park()还有几个兄弟方法——parkNanos()、parkUtil()等，我们这里说的park()方法统称这一类方法。</p>
+<p>（1）从功能上来说，Thread.sleep()和LockSupport.park()方法类似，都是阻塞当前线程的执行，且<strong>都不会释放当前线程占有的锁资源</strong>；</p>
+<p>（2）Thread.sleep()没法从外部唤醒，只能自己醒过来；</p>
+<p>（3）LockSupport.park()方法可以被另一个线程调用LockSupport.unpark()方法唤醒；</p>
+<p>（4）Thread.sleep()方法声明上抛出了InterruptedException中断异常，所以调用者需要捕获这个异常或者再抛出；</p>
+<p>（5）LockSupport.park()方法不需要捕获中断异常；</p>
+<p>（6）Thread.sleep()本身就是一个native方法；</p>
+<p>（7）LockSupport.park()底层是调用的Unsafe的native方法；</p>
+<h2 id="object.wait和locksupport.park的区别">Object.wait()和LockSupport.park()的区别</h2>
+<p>二者都会阻塞当前线程的运行，他们有什么区别呢？经过上面的分析相信你一定很清楚了，真的吗？往下看！</p>
+<p>（1）Object.wait()方法需要在synchronized块中执行；</p>
+<p>（2）LockSupport.park()可以在任意地方执行；</p>
+<p>（3）Object.wait()方法声明抛出了中断异常，调用者需要捕获或者再抛出；</p>
+<p>（4）LockSupport.park()不需要捕获中断异常【本文由公从号“彤哥读源码”原创】；</p>
+<p>（5）Object.wait()不带超时的，需要另一个线程执行notify()来唤醒，但不一定继续执行后续内容；</p>
+<p>（6）LockSupport.park()不带超时的，需要另一个线程执行unpark()来唤醒，一定会继续执行后续内容；</p>
+<p>（7）<strong>如果在wait()之前执行了notify()会怎样？抛出IllegalMonitorStateException异常</strong>；</p>
+<p>（8）<strong>如果在park()之前执行了unpark()会怎样？线程不会被阻塞，直接跳过park()，继续执行后续内容；</strong></p>
+<p>最后两点是不是没想到？！</p>
+<p>其实，在《死磕 java线程系列之自己动手写一个线程池（续）》这篇文章里代码注释里稍微提到过unpark()这个方法，它先执行，则后续的park()方法将不再起作用。</p>
+<p>park()/unpark()底层的原理是“<strong>二元信号量</strong>”，你可以把它相像成只有一个许可证的Semaphore，只不过这个信号量在重复执行unpark()的时候也不会再增加许可证，最多只有一个许可证。</p>
+<p>关于信号量的内容，可以参考《死磕 java同步系列之Semaphore源码解析》这篇文章。</p>
+<h2 id="locksupport.park会释放锁资源吗">LockSupport.park()会释放锁资源吗？</h2>
+<p>不会，它只负责阻塞当前线程，释放锁资源实际上是在Condition的await()方法中实现的。</p>
+<h2 id="彩蛋">彩蛋</h2>
+<p>好了，上面我们交叉对比了Thread.sleep()、Object.wait()、Condition.await()、LockSupport.park()的区别。</p>
+<p>让我们用一张思维导图结束今天的内容。</p>
+<p><img src="./images/面试 LockSupport.park()会释放锁资源吗？1.png" alt="park_thread" /></p>
+<hr />
+<p>欢迎关注我的公众号“彤哥读源码”，查看更多源码系列文章, 与彤哥一起畅游源码的海洋。</p>
+<p><img src="./images/面试 LockSupport.park()会释放锁资源吗？2.png" alt="qrcode" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,233 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring Boot 2 单元测试' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring Boot 2 单元测试</center></div><div class='banquan'>原文出处:本文由博客园博主gdjlc提供。<br/>
+原文连接:https://www.cnblogs.com/gdjlc/p/11553274.html</div><br>
+    <p><span style="color: #888888;">开发环境：IntelliJ IDEA 2019.2.2</span><br /><span style="color: #888888;">Spring Boot版本：2.1.8</span></p>
+<p>IDEA新建一个Spring Boot项目后，pom.xml默认包含了Web应用和单元测试两个依赖包。<br />如下：</p>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-web<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependencies</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p><strong style="font-size: 16px;">一、测试Web服务</strong></p>
+<p><span style="color: #333399;">1、新建控制器类 HelloController.java</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.controller;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RestController;
+
+@RestController
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloController {
+    @RequestMapping(</span>"/"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String index() {
+        </span><span style="color: #0000ff;">return</span> "index"<span style="color: #000000;">;
+    }
+
+    @RequestMapping(</span>"/hello"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String hello() {
+        </span><span style="color: #0000ff;">return</span> "hello"<span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p><span style="color: #333399;">2、新建测试类 HelloControllerTest.cs</span></p>
+<p>下面WebEnvironment.RANDOM_PORT会启动一个真实的Web容器，RANDOM_PORT表示随机端口，如果想使用固定端口，可配置为 <br />WebEnvironment.DEFINED_PORT，该属性会读取项目配置文件（如application.properties）中的端口（server.port）。<br />如果没有配置，默认使用8080端口。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.controller;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Assert;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.runner.RunWith;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.test.context.SpringBootTest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.test.web.client.TestRestTemplate;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.context.junit4.SpringRunner;
+
+@RunWith(SpringRunner.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+@SpringBootTest(webEnvironment </span>=<span style="color: #000000;"> SpringBootTest.WebEnvironment.RANDOM_PORT)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloControllerTest {
+
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> TestRestTemplate restTemplate;
+
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> testIndex(){
+        String result </span>= restTemplate.getForObject("/",String.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+        Assert.assertEquals(</span>"index"<span style="color: #000000;">, result);
+    }
+
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> testHello(){
+        String result </span>= restTemplate.getForObject("/",String.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+        Assert.assertEquals(</span>"Hello world", result);<span style="color: #008000;">//</span><span style="color: #008000;">这里故意写错</span>
+<span style="color: #000000;">    }
+}</span></code></pre>
+
+<p>在HelloControllerTest.java代码中右键空白行可选择Run 'HelloControllerTest'，测试类里面所有方法。<br />（如果只想测试一个方法如testIndex()，可在testIndex()代码上右键选择Run 'testIndex()'）<br />运行结果如下，一个通过，一个失败。</p>
+<p><img src="./images/Spring Boot 2 单元测试0.png" alt="" /></p>
+<p><strong style="font-size: 16px;">二、模拟Web测试</strong></p>
+<p><span style="color: #333399;">新建测试类 HelloControllerMockTest.java</span><br />设置WebEnvironment属性为WebEnvironment.MOCK，启动一个模拟的Web容器。<br />测试方法中使用Spring的MockMvc进行模拟测试。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.controller;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.runner.RunWith;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.test.context.SpringBootTest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.context.junit4.SpringRunner;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.web.servlet.MockMvc;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.web.servlet.MvcResult;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.web.servlet.ResultActions;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.net.URI;
+
+@RunWith(SpringRunner.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+@SpringBootTest(webEnvironment </span>= SpringBootTest.WebEnvironment.MOCK)<span style="color: #008000;">//</span><span style="color: #008000;">MOCK为默认值，也可不设置</span>
+<span style="color: #000000;">@AutoConfigureMockMvc
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloControllerMockTest {
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> MockMvc mvc;
+
+    @Test
+    </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">void</span> testIndex() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        ResultActions ra </span>= mvc.perform(MockMvcRequestBuilders.get(<span style="color: #0000ff;">new</span> URI("/"<span style="color: #000000;">)));
+        MvcResult result </span>=<span style="color: #000000;"> ra.andReturn();
+        System.out.println(result.getResponse().getContentAsString());
+    }
+
+    @Test
+    </span><span style="color: #0000ff;">public</span>  <span style="color: #0000ff;">void</span> testHello() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        ResultActions ra </span>= mvc.perform(MockMvcRequestBuilders.get(<span style="color: #0000ff;">new</span> URI("/hello"<span style="color: #000000;">)));
+        MvcResult result </span>=<span style="color: #000000;"> ra.andReturn();
+        System.out.println(result.getResponse().getContentAsString());
+    }
+}</span></code></pre>
+
+<p>右键Run 'HelloControllerMockTest'，运行结果如下：</p>
+<p><img src="./images/Spring Boot 2 单元测试1.png" alt="" /></p>
+<p><strong><span style="font-size: 16px;">三、测试业务组件</span></strong></p>
+<p><span style="color: #333399;">1、新建服务类 HelloService.java</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.service;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Service;
+
+@Service
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloService {
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String hello(){
+        </span><span style="color: #0000ff;">return</span> "hello"<span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p><span style="color: #333399;">2、新建测试类 HelloServiceTest.java</span></p>
+<p>WebEnvironment属性设置为NONE，不会启动Web容器，只启动Spring容器。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.service;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.runner.RunWith;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.test.context.SpringBootTest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.context.junit4.SpringRunner;
+
+@RunWith(SpringRunner.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+@SpringBootTest(webEnvironment </span>=<span style="color: #000000;"> SpringBootTest.WebEnvironment.NONE)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HelloServiceTest {
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> HelloService helloService;
+
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> testHello(){
+        String result </span>=<span style="color: #000000;"> helloService.hello();
+        System.out.println(result);
+    }
+}</span></code></pre>
+
+<p>右键Run 'HelloServiceTest'，运行结果如下：</p>
+<p><img src="./images/Spring Boot 2 单元测试2.png" alt="" /></p>
+<p><strong><span style="font-size: 16px;">四、模拟业务组件</span></strong></p>
+<p>假设上面的HelloService.cs是操作数据库或调用第三方接口，为了不让这些外部不稳定因素影响单元测试的运行结果，可使用mock来模拟 <br />某些组件的返回结果。<br /><span style="color: #333399;">1、新建一个服务类 MainService.java</span></p>
+<p>里面的main方法会调用HelloService的方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.service;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Service;
+
+@Service
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MainService {
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> HelloService helloService;
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(){
+        System.out.println(</span>"调用业务方法"<span style="color: #000000;">);
+        String result </span>=<span style="color: #000000;"> helloService.hello();
+        System.out.println(</span>"返回结果：" +<span style="color: #000000;"> result);
+    }
+}</span></code></pre>
+
+<p><span style="color: #333399;">2、新建测试类 MainServiceMockTest.java</span></p>
+<p>下面代码中，使用MockBean修饰需要模拟的组件helloService，测试方法中使用Mockito的API模拟helloService的hello方法返回。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.service;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.runner.RunWith;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.mockito.BDDMockito;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.test.context.SpringBootTest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.test.mock.mockito.MockBean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.context.junit4.SpringRunner;
+
+@RunWith(SpringRunner.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+@SpringBootTest
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MainServiceMockTest {
+    @MockBean
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> HelloService helloService;
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> MainService mainService;
+
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> testMain(){
+        BDDMockito.given(</span><span style="color: #0000ff;">this</span>.helloService.hello()).willReturn("hello world"<span style="color: #000000;">);
+        mainService.main();
+    }
+}</span></code></pre>
+
+<p>右键Run 'MainServiceMockTest'，运行结果如下：</p>
+<p><img src="./images/Spring Boot 2 单元测试3.png" alt="" /></p>
+<p><span style="font-size: 16px;"><strong>五、IDEA项目结构图</strong></span></p>
+<p><img src="./images/Spring Boot 2 单元测试4.png" alt="" /></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

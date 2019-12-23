@@ -1,0 +1,159 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修CAS你知道吗？原子类AtomicInteger的ABA问题谈谈？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>CAS你知道吗？原子类AtomicInteger的ABA问题谈谈？</center></div><div class='banquan'>原文出处:本文由博客园博主不能没有你提供。<br/>
+原文连接:https://www.cnblogs.com/2019wxw/p/11650673.html</div><br>
+    <blockquote>
+<p>（1）CAS是什么？</p>
+<p>&nbsp; &nbsp; &nbsp; <strong>&nbsp;比较并交换</strong></p>
+</blockquote>
+<p>&nbsp; &nbsp; &nbsp;举例1,&nbsp; CAS产生场景代码？</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.concurrent.atomic.AtomicInteger;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CASDemo {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        AtomicInteger atomicInteger</span>=<span style="color: #0000ff;">new</span> AtomicInteger(5);<span style="color: #008000;">//</span><span style="color: #008000;">主物理内存
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">比较5</span>
+        System.out.println(atomicInteger.compareAndSet(5, 2019)+"\t current data（主物理内存） : "+<span style="color: #000000;"> atomicInteger.get());
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">修改失败</span>
+        System.out.println(atomicInteger.compareAndSet(5, 1024)+"\t current data（主物理内存） : "+<span style="color: #000000;"> atomicInteger.get());
+    }
+}</span></code></pre>
+
+<p>&nbsp;&nbsp;&nbsp;举例2,&nbsp; CAS产生场景代码？<strong>原子引用</strong></p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('be6d83bc-64d8-41cd-ada0-a614369a1001')"><img id="code_img_closed_be6d83bc-64d8-41cd-ada0-a614369a1001" class="code_img_closed" src="./images/CAS你知道吗？原子类AtomicInteger的ABA问题谈谈？0.png" alt="" /><img id="code_img_opened_be6d83bc-64d8-41cd-ada0-a614369a1001" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('be6d83bc-64d8-41cd-ada0-a614369a1001',event)" src="./images/CAS你知道吗？原子类AtomicInteger的ABA问题谈谈？1.png" alt="" />
+<src id="cnblogs_code_open_be6d83bc-64d8-41cd-ada0-a614369a1001" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> CAS_ABADemo {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">========================原子引用==========================</span>
+        User A = <span style="color: #0000ff;">new</span> User("A", 123<span style="color: #000000;">);
+        User B </span>= <span style="color: #0000ff;">new</span> User("B", 456<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">主物理内存 引用比较的是地址</span>
+        AtomicReference&lt;User&gt; atomicReference1 = <span style="color: #0000ff;">new</span> AtomicReference&lt;&gt;<span style="color: #000000;">();
+        atomicReference1.set(A);
+        System.out.println(atomicReference1.compareAndSet(A, B) </span>+ "\t" +<span style="color: #000000;"> atomicReference1.get().toString());
+        System.out.println(atomicReference1.compareAndSet(A, B) </span>+ "\t" +<span style="color: #000000;"> atomicReference1.get().toString());
+    }
+}
+</span><span style="color: #0000ff;">class</span><span style="color: #000000;"> User {
+    String name;
+    </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> age;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setName(String name) {
+        </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getAge() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> age;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setAge(<span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User() {
+    }
+
+    </span><span style="color: #0000ff;">public</span> User(String name, <span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+        </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+    }
+
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+        </span><span style="color: #0000ff;">return</span> "User{" +
+                "name='" + name + '\'' +
+                ", age=" + age +
+                '}'<span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<span class="cnblogs_code_collapse">原子引用</span>
+<p>&nbsp; &nbsp;参考博客：<strong>CopyOnWriteArrayList&nbsp; 写时复制----------https://www.cnblogs.com/huangjuncong/p/9160713.html</strong></p>
+<p><strong>&nbsp; &nbsp;参考博客：ReentrantLock 独占锁（可重入锁）----------https://www.cnblogs.com/takumicx/p/9338983.html</strong></p>
+<p>举例3，ABA问题的产生和解决方案代码场景。</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('3d98a718-e770-4631-8e5a-440c67455caf')"><img id="code_img_closed_3d98a718-e770-4631-8e5a-440c67455caf" class="code_img_closed" src="./images/CAS你知道吗？原子类AtomicInteger的ABA问题谈谈？0.png" alt="" /><img id="code_img_opened_3d98a718-e770-4631-8e5a-440c67455caf" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('3d98a718-e770-4631-8e5a-440c67455caf',event)" src="./images/CAS你知道吗？原子类AtomicInteger的ABA问题谈谈？1.png" alt="" />
+<src id="cnblogs_code_open_3d98a718-e770-4631-8e5a-440c67455caf" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ABADemo {
+    </span><span style="color: #0000ff;">static</span> AtomicReference&lt;Integer&gt; atomicReference = <span style="color: #0000ff;">new</span> AtomicReference&lt;&gt;(100<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">static</span> AtomicStampedReference&lt;Integer&gt; atomicStampedReference = <span style="color: #0000ff;">new</span> AtomicStampedReference&lt;&gt;(100, 1<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        System.out.println(</span>"======ABA问题的产生======"<span style="color: #000000;">);
+
+        </span><span style="color: #0000ff;">new</span> Thread(() -&gt;<span style="color: #000000;"> {
+            atomicReference.compareAndSet(</span>100, 101<span style="color: #000000;">);
+            atomicReference.compareAndSet(</span>101, 100<span style="color: #000000;">);
+        }, </span>"t1"<span style="color: #000000;">).start();
+
+        </span><span style="color: #0000ff;">new</span> Thread(() -&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                TimeUnit.SECONDS.sleep(</span>1<span style="color: #000000;">);
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+                e.printStackTrace();
+
+            }
+            System.out.println(atomicReference.compareAndSet(</span>100, 2019) + "\t" +<span style="color: #000000;"> atomicReference.get().toString());
+        }, </span>"t2"<span style="color: #000000;">).start();
+
+        </span><span style="color: #0000ff;">try</span> { TimeUnit.SECONDS.sleep(2); } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) { e.printStackTrace(); }
+
+        System.out.println(</span>"======ABA问题的解决======"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">new</span> Thread(() -&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">int</span> stamp =<span style="color: #000000;"> atomicStampedReference.getStamp();
+            System.out.println(Thread.currentThread().getName() </span>+ "\t第一次版本号： " +<span style="color: #000000;"> stamp);
+            </span><span style="color: #0000ff;">try</span> { TimeUnit.SECONDS.sleep(1); } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) { e.printStackTrace(); }
+            atomicStampedReference.compareAndSet(</span>100,101<span style="color: #000000;">,
+                    atomicStampedReference.getStamp(),atomicStampedReference.getStamp()</span>+1<span style="color: #000000;">);
+            System.out.println(Thread.currentThread().getName() </span>+ "\t第二次版本号： " +<span style="color: #000000;"> atomicStampedReference.getStamp());
+            atomicStampedReference.compareAndSet(</span>101,100<span style="color: #000000;">,
+                    atomicStampedReference.getStamp(),atomicStampedReference.getStamp()</span>+1<span style="color: #000000;">);
+            System.out.println(Thread.currentThread().getName() </span>+ "\t第三次版本号： " +<span style="color: #000000;"> atomicStampedReference.getStamp());
+        }, </span>"t3"<span style="color: #000000;">).start();
+
+        </span><span style="color: #0000ff;">new</span> Thread(() -&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">int</span> stamp =<span style="color: #000000;"> atomicStampedReference.getStamp();
+            System.out.println(Thread.currentThread().getName() </span>+ "\t第一次版本号： " +<span style="color: #000000;"> stamp);
+            </span><span style="color: #0000ff;">try</span> { TimeUnit.SECONDS.sleep(3); } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) { e.printStackTrace(); }
+            </span><span style="color: #0000ff;">boolean</span> result=atomicStampedReference.compareAndSet(100,2019<span style="color: #000000;">,
+                    stamp,stamp</span>+1<span style="color: #000000;">);
+            System.out.println(Thread.currentThread().getName()</span>+"\t修改成功与否："+result+"  当前最新版本号"+<span style="color: #000000;">atomicStampedReference.getStamp());
+            System.out.println(Thread.currentThread().getName()</span>+"\t当前实际值："+<span style="color: #000000;">atomicStampedReference.getReference());
+        }, </span>"t4"<span style="color: #000000;">).start();
+    }
+}</span></code></pre>
+
+<span class="cnblogs_code_collapse">ABA问题的产生和解决方案</span>
+<blockquote>
+<p>（3）<strong>CAS实现原子操作的三大问题。</strong></p>
+<p>&nbsp; &nbsp; &nbsp;CAS虽然采用自旋的方式高效的解决了原子操作，但任然存在三个问题.</p>
+<ol>
+<li><strong>ABA问题。</strong></li>
+<li><strong>循环时间长开销大。</strong></li>
+<li><strong>只能保证一个共享变量的原子操作。</strong></li>
+</ol></blockquote>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

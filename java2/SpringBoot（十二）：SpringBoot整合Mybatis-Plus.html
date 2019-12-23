@@ -1,0 +1,426 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot（十二）：SpringBoot整合Mybatis-Plus' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot（十二）：SpringBoot整合Mybatis-Plus</center></div><div class='banquan'>原文出处:本文由博客园博主探歌提供。<br/>
+原文连接:https://www.cnblogs.com/lgg20/p/11752946.html</div><br>
+    <p>本节版本虽然只用到了基本特性，但可以满足大部分的增删改查。</p>
+<p>一、环境准备<br />SpringBoot 1.5.10.RELEASE<br />Mybatis-Plus 2.1.9<br />Mybatis-Plus 官方地址：http://mp.baomidou.com/</p>
+<p>pom依赖，为了方便，全贴出来吧：</p>
+<src class="cnblogs_code">
+<pre><code>&lt;project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"&gt;
+  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+  &lt;groupId&gt;cn.demo&lt;/groupId&gt;
+  &lt;artifactId&gt;spriingboot_mybatis_plus&lt;/artifactId&gt;
+  &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+  
+    &lt;parent&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+        &lt;version&gt;1.5.10.RELEASE&lt;/version&gt;
+        &lt;relativePath/&gt; &lt;!-- lookup parent from repository --&gt;
+    &lt;/parent&gt;
+
+    &lt;properties&gt;
+        &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+        &lt;project.reporting.outputEncoding&gt;UTF-8&lt;/project.reporting.outputEncoding&gt;
+        &lt;java.version&gt;1.8&lt;/java.version&gt;
+        &lt;log4j.version&gt;1.3.8.RELEASE&lt;/log4j.version&gt;
+        &lt;druid.version&gt;1.0.26&lt;/druid.version&gt;
+        &lt;mybatis-plus.version&gt;2.1.9&lt;/mybatis-plus.version&gt;
+        &lt;mybatisplus-spring-boot-starter.version&gt;1.0.5&lt;/mybatisplus-spring-boot-starter.version&gt;
+    &lt;/properties&gt;
+
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter&lt;/artifactId&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- druid数据库连接池 --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.alibaba&lt;/groupId&gt;
+            &lt;artifactId&gt;druid&lt;/artifactId&gt;
+            &lt;version&gt;${druid.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- mysql connector --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;mysql&lt;/groupId&gt;
+            &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+            &lt;scope&gt;runtime&lt;/scope&gt;
+        &lt;/dependency&gt;
+
+        &lt;!-- Mybatis-plus --&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.baomidou&lt;/groupId&gt;
+            &lt;artifactId&gt;mybatisplus-spring-boot-starter&lt;/artifactId&gt;
+            &lt;version&gt;${mybatisplus-spring-boot-starter.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;com.baomidou&lt;/groupId&gt;
+            &lt;artifactId&gt;mybatis-plus&lt;/artifactId&gt;
+            &lt;version&gt;${mybatis-plus.version}&lt;/version&gt;
+        &lt;/dependency&gt;
+
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-boot-starter-test&lt;/artifactId&gt;
+            &lt;scope&gt;test&lt;/scope&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+
+    &lt;build&gt;
+        &lt;plugins&gt;
+            &lt;plugin&gt;
+                &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+                &lt;artifactId&gt;spring-boot-maven-plugin&lt;/artifactId&gt;
+            &lt;/plugin&gt;
+        &lt;/plugins&gt;
+    &lt;/build&gt;
+
+&lt;/project&gt;</code></pre>
+
+<h4 id="二项目结构">二、项目结构</h4>
+<p>先列出最初始的项目结构，至于model，mapper，service，mapper xml，controller之后都自动生成出来。</p>
+<p><img src="./images/SpringBoot（十二）：SpringBoot整合Mybatis-Plus0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>三、代码详情</strong><br />数据准备</p>
+<p>在test库建一个user表。</p>
+<p>CREATE TABLE `user` (<br />  `id` bigint(20) NOT NULL COMMENT '用户ID',<br />  `name` varchar(50) DEFAULT NULL COMMENT '用户名',<br />  PRIMARY KEY (`id`)<br />) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='用户表'</p>
+<p>insert into `user` (`id`, `name`) values('1','张三');<br />insert into `user` (`id`, `name`) values('2','李四');<br />insert into `user` (`id`, `name`) values('3','王五')</p>
+<p><strong>application.yml:</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">spring:
+  datasource:
+    driver</span>-<span style="color: #0000ff;">class</span>-<span style="color: #000000;">name: com.mysql.jdbc.Driver
+    url: jdbc:mysql:</span><span style="color: #008000;">//</span><span style="color: #008000;">192.168.1.20:3306/test</span>
+<span style="color: #000000;">    username: root
+    password: root123
+
+mybatis</span>-<span style="color: #000000;">plus:
+  # 如果是放在src</span>/main/java目录下 classpath:/com/yourpackage<span style="color: #008000;">/*</span><span style="color: #008000;">/mapper/*Mapper.xml
+  # 如果是放在resource目录 classpath:/mapper/*Mapper.xml
+  mapper-locations: classpath:mybatis/mappers/*Mapper.xml
+  #实体扫描，多个package用逗号或者分号分隔
+  typeAliasesPackage: cn.demo.model
+  global-config:
+    #主键类型  0:"数据库ID自增", 1:"用户输入ID",2:"全局唯一ID (数字类型唯一ID)", 3:"全局唯一ID UUID";
+    id-type: 0
+    #字段策略 0:"忽略判断",1:"非 NULL 判断"),2:"非空判断"
+    field-strategy: 1
+    #驼峰下划线转换
+    #db-column-underline: true
+    #刷新mapper 调试神器
+    refresh-mapper: true
+    #数据库大写下划线转换
+    #capital-mode: true
+    #Sequence序列接口实现类配置
+    #key-generator: com.baomidou.mybatisplus.incrementer.OracleKeyGenerator
+    #逻辑删除配置（下面3个配置）
+    #logic-delete-value: 1
+    #logic-not-delete-value: 0
+    #sql-injector: com.baomidou.mybatisplus.mapper.LogicSqlInjector
+    #自定义填充策略接口实现
+    #meta-object-handler: com.baomidou.springboot.MyMetaObjectHandler
+  configuration:
+    map-underscore-to-camel-case: true
+    cache-enabled: false
+    #配置JdbcTypeForNull
+    jdbc-type-for-null: 'null'
+    
+logging.level.com.demo.mapper: debug</span></code></pre>
+
+<p><strong>druid.properties:</strong></p>
+<src class="cnblogs_code">
+<pre><code>#--------------------------<span style="color: #000000;">
+# 下面为连接池的补充设置，应用到上面所有数据源中
+# 初始化大小，最小，最大
+spring.datasource.initialSize</span>=5<span style="color: #000000;">
+spring.datasource.minIdle</span>=1<span style="color: #000000;">
+spring.datasource.maxActive</span>=50<span style="color: #000000;">
+# 配置获取连接等待超时的时间
+spring.datasource.maxWait</span>=60000<span style="color: #000000;">
+# 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒
+spring.datasource.timeBetweenEvictionRunsMillis</span>=60000<span style="color: #000000;">
+# 配置一个连接在池中最小生存的时间，单位是毫秒
+spring.datasource.minEvictableIdleTimeMillis</span>=300000<span style="color: #000000;">
+spring.datasource.validationQuery</span>=SELECT 1<span style="color: #000000;"> FROM DUAL
+spring.datasource.testWhileIdle</span>=<span style="color: #0000ff;">true</span><span style="color: #000000;">
+spring.datasource.testOnBorrow</span>=<span style="color: #0000ff;">false</span><span style="color: #000000;">
+spring.datasource.testOnReturn</span>=<span style="color: #0000ff;">false</span><span style="color: #000000;">
+# 打开PSCache，并且指定每个连接上PSCache的大小
+spring.datasource.poolPreparedStatements</span>=<span style="color: #0000ff;">false</span><span style="color: #000000;">
+#spring.datasource.maxPoolPreparedStatementPerConnectionSize</span>=20<span style="color: #000000;">
+# 配置监控统计拦截的filters，去掉后监控界面sql无法统计，</span>'wall'<span style="color: #000000;">用于防火墙
+spring.datasource.filters</span>=<span style="color: #000000;">stat,wall,log4j
+# 通过connectProperties属性来打开mergeSql功能；慢SQL记录
+spring.datasource.connectionProperties</span>=druid.stat.mergeSql=<span style="color: #0000ff;">true</span>;druid.stat.slowSqlMillis=5000<span style="color: #000000;">
+# 合并多个DruidDataSource的监控数据
+#spring.datasource.useGlobalDataSourceStat</span>=<span style="color: #0000ff;">true</span></code></pre>
+
+<p><strong>DruidConfiguration.java</strong></p>
+<p><strong>由于这里不用controller接口方式演示，使用test演示，没引入starter-web，所以druid的servlet暂时注释，有要用的可以打开，加入依赖即可。</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.demo.config;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.alibaba.druid.pool.DruidDataSource;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.alibaba.druid.support.http.StatViewServlet;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.alibaba.druid.support.http.WebStatFilter;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.context.properties.ConfigurationProperties;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.web.servlet.FilterRegistrationBean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.web.servlet.ServletRegistrationBean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Bean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Configuration;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.PropertySource;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.sql.DataSource;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * @ClassName cn.saytime.config.DruidConfiguration
+ * @Description
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Configuration
+@PropertySource(value </span>= "classpath:druid.properties"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> DruidConfiguration {
+
+    @Bean(destroyMethod </span>= "close", initMethod = "init"<span style="color: #000000;">)
+    @ConfigurationProperties(prefix </span>= "spring.datasource"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> DataSource druidDataSource() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> DruidDataSource();
+    }
+
+</span><span style="color: #008000;">//</span>
+<span style="color: #008000;">//</span><span style="color: #008000;">  /**
+</span><span style="color: #008000;">//</span><span style="color: #008000;">   * 注册一个StatViewServlet
+</span><span style="color: #008000;">//</span><span style="color: #008000;">   *
+</span><span style="color: #008000;">//</span><span style="color: #008000;">   * @return
+</span><span style="color: #008000;">//</span><span style="color: #008000;">   */
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  @Bean
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  public ServletRegistrationBean druidStatViewServlet() {
+</span><span style="color: #008000;">//</span>      <span style="color: #008000;">//</span><span style="color: #008000;">org.springframework.boot.context.embedded.ServletRegistrationBean提供类的进行注册.
+</span><span style="color: #008000;">//</span><span style="color: #008000;">      ServletRegistrationBean servletRegistrationBean = new ServletRegistrationBean(new StatViewServlet(), "/druid/*");
+</span><span style="color: #008000;">//</span>
+<span style="color: #008000;">//</span>      <span style="color: #008000;">//</span><span style="color: #008000;">添加初始化参数：initParams
+</span><span style="color: #008000;">//</span>      <span style="color: #008000;">//</span><span style="color: #008000;">白名单：
+</span><span style="color: #008000;">//</span><span style="color: #008000;">      servletRegistrationBean.addInitParameter("allow", "127.0.0.1");
+</span><span style="color: #008000;">//</span>      <span style="color: #008000;">//</span><span style="color: #008000;">IP黑名单 (存在共同时，deny优先于allow) : 如果满足deny的话提示:Sorry, you are not permitted to view this page.</span><span style="color: #008000;">
+////</span><span style="color: #008000;">        servletRegistrationBean.addInitParameter("deny", "192.168.1.73");
+</span><span style="color: #008000;">//</span>      <span style="color: #008000;">//</span><span style="color: #008000;">登录查看信息的账号密码.
+</span><span style="color: #008000;">//</span><span style="color: #008000;">      servletRegistrationBean.addInitParameter("loginUsername", "admin");
+</span><span style="color: #008000;">//</span><span style="color: #008000;">      servletRegistrationBean.addInitParameter("loginPassword", "123456");
+</span><span style="color: #008000;">//</span>      <span style="color: #008000;">//</span><span style="color: #008000;">是否能够重置数据.
+</span><span style="color: #008000;">//</span><span style="color: #008000;">      servletRegistrationBean.addInitParameter("resetEnable", "false");
+</span><span style="color: #008000;">//</span><span style="color: #008000;">      return servletRegistrationBean;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  }
+</span><span style="color: #008000;">//</span>
+<span style="color: #008000;">//</span><span style="color: #008000;">  /**
+</span><span style="color: #008000;">//</span><span style="color: #008000;">   * 注册一个：filterRegistrationBean
+</span><span style="color: #008000;">//</span><span style="color: #008000;">   *
+</span><span style="color: #008000;">//</span><span style="color: #008000;">   * @return
+</span><span style="color: #008000;">//</span><span style="color: #008000;">   */
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  @Bean
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  public FilterRegistrationBean druidStatFilter() {
+</span><span style="color: #008000;">//</span>
+<span style="color: #008000;">//</span><span style="color: #008000;">      FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean(new WebStatFilter());
+</span><span style="color: #008000;">//</span>
+<span style="color: #008000;">//</span>      <span style="color: #008000;">//</span><span style="color: #008000;">添加过滤规则.
+</span><span style="color: #008000;">//</span><span style="color: #008000;">      filterRegistrationBean.addUrlPatterns("/*");
+</span><span style="color: #008000;">//</span>
+<span style="color: #008000;">//</span>      <span style="color: #008000;">//</span><span style="color: #008000;">添加不需要忽略的格式信息.
+</span><span style="color: #008000;">//</span><span style="color: #008000;">      filterRegistrationBean.addInitParameter("exclusions", "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*");
+</span><span style="color: #008000;">//</span><span style="color: #008000;">      return filterRegistrationBean;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  }</span>
+<span style="color: #000000;">    
+}</span></code></pre>
+
+<p><strong>MybatisConfiguration.java :注意这里的MapperScan，换成你项目mapper文件夹路径</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.demo.config;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.baomidou.mybatisplus.plugins.PaginationInterceptor;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.mybatis.spring.annotation.MapperScan;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Bean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Configuration;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;"> zh
+ * @ClassName cn.saytime.config.MybatisConfiguration
+ * @Description
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@Configuration
+@MapperScan(</span>"cn.demo.mapper*"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MybatisConfiguration {
+
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+    * 分页插件，自动识别数据库类型
+    * 多租户，请参考官网【插件扩展】
+    </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Bean
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> PaginationInterceptor paginationInterceptor() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> PaginationInterceptor();
+    }
+
+   </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+    * oracle数据库配置JdbcTypeForNull
+    * 参考：</span><span style="color: #008000; text-decoration: underline;">https://gitee.com/baomidou/mybatisplus-boot-starter/issues/IHS8X</span><span style="color: #008000;">
+    不需要这样配置了，参考 yml:
+    mybatis-plus:
+      confuguration
+        dbc-type-for-null: 'null'
+   @Bean
+   public ConfigurationCustomizer configurationCustomizer(){
+       return new MybatisPlusCustomizers();
+   }
+
+   class MybatisPlusCustomizers implements ConfigurationCustomizer {
+
+       @Override
+       public void customize(org.apache.ibatis.session.Configuration configuration) {
+           configuration.setJdbcTypeForNull(JdbcType.NULL);
+       }
+   }
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+
+}</span></code></pre>
+
+<p><strong>自动生成代码工具类Generator.java(换成数据库链接以及输出路径即可。)</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.demo.utils;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.baomidou.mybatisplus.generator.AutoGenerator;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.baomidou.mybatisplus.generator.config.DataSourceConfig;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.baomidou.mybatisplus.generator.config.GlobalConfig;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.baomidou.mybatisplus.generator.config.PackageConfig;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.baomidou.mybatisplus.generator.config.StrategyConfig;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.baomidou.mybatisplus.generator.config.rules.DbType;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.baomidou.mybatisplus.generator.config.rules.NamingStrategy;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">根据表名自动生成java文件</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Generator {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        String packageName </span>= "cn.demo"<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">boolean</span> serviceNameStartWithI = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        generateByTables(serviceNameStartWithI, packageName, </span>"li", "test", "user");<span style="color: #008000;">//</span><span style="color: #008000;">li作者。test数据库名。user表名。</span>
+        System.out.println("completed..."<span style="color: #000000;">);
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> serviceNameStartWithI
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> packageName   包名
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> author  作者
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> database  数据库名
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> tableNames 表名
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> generateByTables(<span style="color: #0000ff;">boolean</span><span style="color: #000000;"> serviceNameStartWithI, String packageName, String author, String database, String... tableNames) {
+        GlobalConfig config </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> GlobalConfig();
+        String dbUrl </span>= "jdbc:mysql://192.168.1.20:3306/" + database + "?useUnicode=true&amp;characterEncoding=utf8&amp;autoReconnect=true&amp;useSSL=false"<span style="color: #000000;">;
+        DataSourceConfig dataSourceConfig </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> DataSourceConfig();
+        dataSourceConfig.setDbType(DbType.MYSQL)
+                .setUrl(dbUrl)
+                .setUsername(</span>"root"<span style="color: #000000;">)
+                .setPassword(</span>"root123"<span style="color: #000000;">)
+                .setDriverName(</span>"com.mysql.jdbc.Driver"<span style="color: #000000;">);
+        StrategyConfig strategyConfig </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> StrategyConfig();
+        strategyConfig
+                .setCapitalMode(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">)
+                .setEntityLombokModel(</span><span style="color: #0000ff;">false</span><span style="color: #000000;">)
+                .setDbColumnUnderline(</span><span style="color: #0000ff;">true</span><span style="color: #000000;">)
+                .setNaming(NamingStrategy.underline_to_camel)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">              .setSuperMapperClass("cn.saytime.mapper.BaseMapper")</span>
+                .setInclude(tableNames);<span style="color: #008000;">//</span><span style="color: #008000;">修改替换成你需要的表名，多个表名传数组</span>
+        config.setActiveRecord(<span style="color: #0000ff;">false</span><span style="color: #000000;">)
+                .setAuthor(author)
+                .setOutputDir(</span>"e:\\codeGen")<span style="color: #008000;">//</span><span style="color: #008000;">生成的java到文件夹下</span>
+                .setFileOverride(<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+                .setEnableCache(</span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">serviceNameStartWithI) {
+            config.setServiceName(</span>"%sService"<span style="color: #000000;">);
+        }
+        </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> AutoGenerator().setGlobalConfig(config)
+                .setDataSource(dataSourceConfig)
+                .setStrategy(strategyConfig)
+                .setPackageInfo(
+                        </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> PackageConfig()
+                                .setParent(packageName)
+                                .setController(</span>"web")<span style="color: #008000;">//</span><span style="color: #008000;">生成的代码到文件夹下cn.demo.web</span>
+                                .setEntity("model"<span style="color: #000000;">)
+                                .setMapper(</span>"mapper"<span style="color: #000000;">)
+                                .setService(</span>"service"<span style="color: #000000;">)
+                                .setServiceImpl(</span>"service.impl"<span style="color: #000000;">)
+                                .setXml(</span>"mybatis.mappers"<span style="color: #000000;">)
+                ).execute();
+    }
+
+}</span></code></pre>
+
+<h4 id="四自动生成代码"><strong>四、自动生成代码</strong></h4>
+<p><strong>执行Generator Main方法，到输出路径，可以看到代码文件已经生成好了:</strong></p>
+<p><strong><img src="./images/SpringBoot（十二）：SpringBoot整合Mybatis-Plus1.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;<strong>将model,mapper,service拷贝到cn.demo目录下，将mybatis/mappers文件夹拷贝到src/main/resources目录下.</strong></p>
+<h4 id="五测试">五、测试</h4>
+<p>SpringbootMybatisPlusApplicationTests.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> cn.demo;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.runner.RunWith;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.test.context.SpringBootTest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.test.context.junit4.SpringRunner;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.demo.model.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> cn.demo.service.UserService;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+@RunWith(SpringRunner.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+@SpringBootTest
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> SpringbootMybatisPlusApplicationTests {
+
+    @Autowired
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> UserService userService;
+
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> contextLoads() {
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 所有用户</span>
+        List&lt;User&gt; users = userService.selectList(<span style="color: #0000ff;">null</span><span style="color: #000000;">);
+        System.out.println(users);
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">查询id=1的用户</span>
+        User user = userService.selectById(1<span style="color: #000000;">);
+        System.out.println(</span>"users1=="+<span style="color: #000000;">user);
+    }
+
+}</span></code></pre>
+
+<p>输出结果：</p>
+<p><img src="./images/SpringBoot（十二）：SpringBoot整合Mybatis-Plus2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>六、更多使用方式<br />列举几种常用的增删改查方式，其实最快的方式就是去官网看示例。</p>
+<p>查询id=1的用户<br />User user = userService.selectById(1);</p>
+<p><br />查询name=张三的用户<br />User user = userService.selectOne(new EntityWrapper&lt;User&gt;().eq("name", "张三"));</p>
+<p><br />查询id&gt;1的用户<br />List&lt;User&gt; userList = userService.selectList(new EntityWrapper&lt;User&gt;().gt("id", 1));<br />修改id=1的用户名<br />User user = userService.selectById(1);<br />user.setName("张三2");<br />boolean b = userService.updateById(user);<br /><br />添加用户<br />User user = new User();<br />user.setName("赵六");<br />boolean insert = userService.insert(user);<br /><br />删除用户<br />boolean b = userService.deleteById(1);<br /><br />分页查询用户<br />查询id&gt;1 每页一条数据，第二页，也就是第三条数据。</p>
+<p>Page&lt;User&gt; userPage = new Page&lt;&gt;();</p>
+<p><em id="__mceDel">userPage.setCurrent(2);<br />userPage.setSize(1);<br />userService.selectPage(userPage, new EntityWrapper&lt;User&gt;().gt("id", 1));<br />List&lt;User&gt; userList = userPage.getRecords();<br />System.out.println(userList);<br />[User{, id=3, name=王五}]<br /><br /></em></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

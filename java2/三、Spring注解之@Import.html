@@ -1,0 +1,69 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修三、Spring注解之@Import' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>三、Spring注解之@Import</center></div><div class='banquan'>原文出处:本文由博客园博主ねぇ提供。<br/>
+原文连接:https://www.cnblogs.com/lee0527/p/11735485.html</div><br>
+    <h2 id="spring注解之import">spring注解之@Import</h2>
+<h3 id="import">【1】@Import</h3>
+<p>​ 参数value接收一个Class数组，将你传入的类以全类名作为id加入IOC容器中</p>
+<p>​ 比较简单，此处不做详细解释</p>
+<h3 id="importselector">【2】ImportSelector</h3>
+<p>​ ImportSelector强调的是复用性，使用它需要创建一个类实现ImportSelector接口，实现方法的返回值是字符串数组，也就是需要注入容器中的组件的全类名。id同样也是全类名。</p>
+<p>​ 上代码：</p>
+<pre><code><code>//自定义逻辑返回需要导入的组件
+public class MyImportSelector implements ImportSelector {
+    // 返回值就是导入到容器中的组件全类名
+    // AnnotationMetadata：当前标注@Import注解的类的所有注解信息
+    public String[] selectImports(AnnotationMetadata importingClassMetadata) {
+        return new String[] { &quot;test.spring.ZhangSan&quot;, &quot;test.spring.LiSi&quot;, &quot;test.spring.WangWu&quot; };
+    }
+}</code></code></pre>
+<h3 id="importbeandefinitionregistrar">【3】ImportBeanDefinitionRegistrar</h3>
+<p>​ spring官方就是用这种方式，实现了@Component、@Service等注解的动态注入机制。定义一个ImportBeanDefinitionRegistrar的实现类，然后在有@Configuration注解的配置类上使用@Import导入</p>
+<p>​ 具体使用：创建一个ImportBeanDefinitionRegistrar的实现类，实现registerBeanDefinitions方法，对组件进行注入。</p>
+<pre><code><code>public class MyBeanDefinitionRegistrar implements ImportBeanDefinitionRegistrar {
+    /**
+     * @param annotationMetadata 当前标注@Import注解的类的所有注解信息
+     * @param beanDefinitionRegistry BeanDefinition的注册类
+     */
+    public void registerBeanDefinitions(AnnotationMetadata annotationMetadata, BeanDefinitionRegistry beanDefinitionRegistry) {
+        RootBeanDefinition beanDefinition = new RootBeanDefinition(Cat.class);
+        beanDefinitionRegistry.registerBeanDefinition(&quot;cat&quot;,beanDefinition);
+    }
+}</code></code></pre>
+<p>​ 配置类MyConfig：</p>
+<pre><code><code>@Configuration
+@Import(value = {MyBeanDefinitionRegistrar.class})
+public class MyConfig {
+}
+
+/**测试结果
+beanName: org.springframework.context.annotation.internalConfigurationAnnotationProcessor
+beanName: org.springframework.context.annotation.internalAutowiredAnnotationProcessor
+beanName: org.springframework.context.annotation.internalCommonAnnotationProcessor
+beanName: org.springframework.context.event.internalEventListenerProcessor
+beanName: org.springframework.context.event.internalEventListenerFactory
+beanName: myConfig
+beanName: cat
+*/</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

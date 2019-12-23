@@ -1,0 +1,160 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修springcloud学习之路 (三) springcloud集成Zuul网关' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>springcloud学习之路 (三) springcloud集成Zuul网关</center></div><div class='banquan'>原文出处:本文由博客园博主宅男大咖提供。<br/>
+原文连接:https://www.cnblogs.com/zhainan-blog/p/11640094.html</div><br>
+    <h4><span style="font-family: 'Microsoft YaHei';">网关就是做一下<code>过滤或拦截</code>操作 让我们的服务更加安全 用户访问我们服务的时候就要先通过网关 然后再由网关转发到我们的微服务</span></h4>
+<p><span style="font-family: 'Microsoft YaHei';">1. 新建一个网关服务Module</span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关0.png" alt="" /></span></p>
+<p>&nbsp;2. 依然选择springboot工程</p>
+<p><img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关1.png" alt="" /></p>
+<p>&nbsp;3. 老规矩起个名字</p>
+<p><img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关2.png" alt="" /></p>
+<p>&nbsp;4. 勾选注册中心客户端</p>
+<p><img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关3.png" alt="" /></p>
+<p>&nbsp;5. 勾选zuul网关模块</p>
+<p><img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关4.png" alt="" /></p>
+<p>&nbsp;6. 编写配置文件</p>
+<p><img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关5.png" alt="" /></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">server:
+  # 服务端口号
+  port: </span>8085<span style="color: #000000;">
+spring:
+  application:
+    # 服务名称 </span>-<span style="color: #000000;"> 服务之间使用名称进行通讯
+    name: service</span>-<span style="color: #000000;">zuul
+eureka:
+  client:
+    service</span>-<span style="color: #000000;">url:
+      # 填写注册中心服务器地址
+      defaultZone: http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8081/eureka</span>
+<span style="color: #000000;">zuul:
+  routes:
+    # 设置服务a 路径名称 随便起
+    service</span>-<span style="color: #000000;">a:
+      path: </span>/service-a<span style="color: #008000;">/**</span><span style="color: #008000;">
+      # 这里写a服务的注册名字
+      serviceId: service-objcat-a
+    # 设置服务b 路径名称 随便起
+    service-b:
+      path: /service-b/**
+      # 这里写b服务的注册名字
+      serviceId: service-objcat-b</span></code></pre>
+
+<p><span style="font-family: 'Microsoft YaHei';">&nbsp;7.&nbsp;<span style="font-family: 'Microsoft YaHei';">创建一个包 名字是<code>com.objcat.filter,&nbsp;</code>创建一个类<code>TokenFilter继承ZuulFilter</code>&nbsp;用来实现过滤规则</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><span style="font-family: 'Microsoft YaHei';"><img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关6.png" alt="" /></span></span></p>
+<p>&nbsp;&nbsp;8. 重写ZuulFilter中的方法,在run()方法中编写过滤逻辑</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.netflix.zuul.ZuulFilter;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.netflix.zuul.context.RequestContext;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Component;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.servlet.http.HttpServletRequest;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> TokenFilter <span style="color: #0000ff;">extends</span><span style="color: #000000;"> ZuulFilter {
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 过滤器类型 pre表示在请求之前进行逻辑操作
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String filterType() {
+        </span><span style="color: #0000ff;">return</span> "pre"<span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 过滤器执行顺序
+     * 当一个请求在同一个阶段存在多个过滤器的时候 过滤器的执行顺序
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> filterOrder() {
+        </span><span style="color: #0000ff;">return</span> 0<span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 是否开启过滤
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Override
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> shouldFilter() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 编写过滤器拦截业务逻辑代码
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Object run() {
+        RequestContext currentContext </span>=<span style="color: #000000;"> RequestContext.getCurrentContext();
+        HttpServletRequest request </span>=<span style="color: #000000;"> currentContext.getRequest();
+        String token </span>= request.getParameter("token"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">if</span> (token == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            currentContext.setSendZuulResponse(</span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+            currentContext.setResponseBody(</span>"token is null"<span style="color: #000000;">);
+            currentContext.setResponseStatusCode(</span>401<span style="color: #000000;">);
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p><span style="font-family: 'Microsoft YaHei';">逻辑很简单 就是校验客户端发来的请求token是否为空 如果为空就不能通过 返回&nbsp;<code>token is null</code></span></p>
+<p><span style="font-family: 'Microsoft YaHei';">9.&nbsp;<span style="font-family: 'Microsoft YaHei';">配置网关入口文件, 这个地方千万不要忘记实例化出来<code>filter</code>否则不生效</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><span style="font-family: 'Microsoft YaHei';"><img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关7.png" alt="" /></span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.servicezuul.filter.TokenFilter;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.SpringApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.SpringBootApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.cloud.netflix.zuul.EnableZuulProxy;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.context.annotation.Bean;
+
+@SpringBootApplication
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 添加注解声明是注册中心客户端</span>
+<span style="color: #000000;">@EnableEurekaClient
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 开启网管</span>
+<span style="color: #000000;">@EnableZuulProxy
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ServiceZuulApplication {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        SpringApplication.run(ServiceZuulApplication.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">, args);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实例化tokenfilter,否则网管不生效</span>
+<span style="color: #000000;">    @Bean
+    TokenFilter tokenFilter(){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> TokenFilter();
+    }
+
+}</span></code></pre>
+
+<p><span style="font-family: 'Microsoft YaHei';">10. 通过网关访问a服务</span></p>
+<p><span style="font-family: 'Microsoft YaHei';">只需要使用&nbsp;<span style="color: #ff0000;"><code>网关的地址 + 网关的端口号 + 服务的别名路径(配置文件中配置) + api名称</code></span>&nbsp;就可以访问了</span></p>
+<src>
+<p><a href="http://localhost:8085/service-a/testA" target="_blank">http://localhost:8085/service-a/testA</a></p>
+<p><img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关8.png" alt="" /></p>
+<p><a href="http://localhost:8085/service-a/testA?token=123" target="_blank">http://localhost:8085/service-a/testA?token=123</a></p>
+<p>&nbsp;<img src="./images/springcloud学习之路 (三) springcloud集成Zuul网关9.png" alt="" /></p>
+<p>&nbsp;当没有token的时候返回就是 <code>token is null,</code>当token有值的时候就可以正常进行访问了</p>
+<src class="cnblogs_code">
+<pre><code><span style="font-family: 'Microsoft YaHei';">这种网关转发之后的请求 就叫做<span style="color: #ff0000;">反向代理</span>你可以隐藏你本地的服务器的真实地址</span><br /><span style="font-family: 'Microsoft YaHei';">只暴露给外界网关的地址 然后由网关转发给服务器 从而做到安全性更高</span></code></pre>
+
+<p>&nbsp;</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

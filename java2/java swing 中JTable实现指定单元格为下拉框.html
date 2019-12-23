@@ -1,0 +1,48 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修java swing 中JTable实现指定单元格为下拉框' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>java swing 中JTable实现指定单元格为下拉框</center></div><div class='banquan'>原文出处:本文由博客园博主月下独酌一杯酒提供。<br/>
+原文连接:https://www.cnblogs.com/jungledove/p/11801982.html</div><br>
+    <src>
+<src>利用自定义的CellEditor实现第四列第二行为下拉框，本列其余行为文本框
+<src>利用默认的DefaultCellEditor设置第五列整列为下拉框
+<src>&nbsp;
+<src>package mypackage;
+<src>import java.awt.BorderLayout;<br />import java.awt.Component;<br />import java.awt.Dimension;<br />import java.util.EventObject;
+<src>import javax.swing.AbstractCellEditor;<br />import javax.swing.JComboBox;<br />import javax.swing.JPanel;<br />import javax.swing.JTable;<br />import javax.swing.JTextField;<br />import javax.swing.table.TableCellEditor;<br />/**<br />&nbsp;* 自定义celleditor实现<br />&nbsp;* 指定单元格设置下拉框，其他单元格设置文本框<br />&nbsp;*<br />&nbsp;*/<br />public class JBoxTestCell&nbsp; extends AbstractCellEditor implements<br />TableCellEditor {<br />&nbsp;&nbsp;&nbsp; int row;<br />&nbsp;&nbsp;&nbsp; private JTable table;<br />&nbsp;&nbsp;&nbsp; private JPanel p1;<br />&nbsp;&nbsp;&nbsp; private JComboBox jbox;<br />&nbsp;&nbsp;&nbsp; private Object val = null;<br />&nbsp;&nbsp;&nbsp; private JTextField jt_0=new JTextField();<br />&nbsp;&nbsp;&nbsp; private JTextField jt_2=new JTextField();<br />&nbsp;&nbsp;&nbsp; public JBoxTestCell() {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; p1 = new JPanel(new BorderLayout());<br />&nbsp;&nbsp; <br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; p1.setPreferredSize(new Dimension(300, 30));<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String[] interest1 = { "rap", "手指舞", "理发","冲天炮"};<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jbox = new JComboBox(interest1);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jbox.setPreferredSize(new Dimension(200,25));<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; jbox.setSelectedIndex(0);<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; p1.add(jbox, BorderLayout.CENTER);<br />&nbsp;&nbsp;&nbsp; }
+<src>&nbsp;&nbsp;&nbsp; @Override<br />&nbsp;&nbsp;&nbsp; public boolean isCellEditable(EventObject anEvent) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return true;<br />&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp; public void showSave() {<br />&nbsp;&nbsp;&nbsp; &nbsp;jbox.setVisible(true);<br />&nbsp;&nbsp;&nbsp; }
+<src>&nbsp;&nbsp;&nbsp; public Object getCellEditorValue() {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; if(row==1) {<br />&nbsp;&nbsp;&nbsp; &nbsp;String v1 = jbox.getSelectedItem().toString();<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return v1;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; String result="";<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; switch(this.row) {<br />&nbsp;&nbsp;case 0 : result = jt_0.getText().trim(); break;<br />&nbsp;&nbsp;case 2 : result = jt_2.getText().trim(); break;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; return result;<br />&nbsp;&nbsp;&nbsp; }<br />&nbsp;&nbsp;&nbsp; <br />&nbsp;&nbsp;&nbsp; public Component getTableCellEditorComponent(JTable table, Object value,<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; boolean isSelected, int row, int column) {<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.table = table;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; this.row = row;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; val = value;<br />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; JTextField result = new JTextField();<br />&nbsp;&nbsp;switch(this.row) {<br />&nbsp;&nbsp;case 0 : result = jt_0; break;<br />&nbsp;&nbsp;case 1 : return this.jbox;<br />&nbsp;&nbsp;case 2 : result = jt_2; break;<br />&nbsp;&nbsp;}<br />&nbsp;&nbsp;return result;<br />&nbsp;&nbsp;&nbsp; }<br />}
+<src>&nbsp;
+<src>&nbsp;
+<src>&nbsp;
+<src>&nbsp;
+
+
+<src>package mypackage;
+<src>import java.awt.Dimension;<br />import java.util.Vector;
+<src>import javax.swing.DefaultCellEditor;<br />import javax.swing.JComboBox;<br />import javax.swing.JFrame;<br />import javax.swing.JPanel;<br />import javax.swing.JScrollPane;<br />import javax.swing.JTable;<br />import javax.swing.ScrollPaneConstants;<br />import javax.swing.table.TableColumnModel;<br />import java.awt.Font;<br />/**<br />&nbsp;* 测试类 <br />&nbsp;* 实现第四列第二行为下拉框，其余行为文本框<br />&nbsp;* 第五列一列为下拉框<br />&nbsp;*/
+<src>public class Test {<br />&nbsp;<br />&nbsp;public static void main(String[] args) {<br />&nbsp;&nbsp;JFrame frame = new JFrame(); <br />&nbsp;&nbsp;frame.setBounds(100, 100, 500, 400);<br />&nbsp;&nbsp;frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); <br />&nbsp;&nbsp;frame.getContentPane().setLayout(null);<br />&nbsp;&nbsp;JPanel panel = new JPanel();<br />&nbsp;&nbsp;panel.setLayout(null);<br />&nbsp;&nbsp;panel.setBounds(0, 0, 484, 361);<br />&nbsp;&nbsp;frame.getContentPane().add(panel);<br />&nbsp;&nbsp;frame.setVisible(true);<br />&nbsp;&nbsp;<br />&nbsp;&nbsp;String[][] str= {{"小贾","13","160","帽子",""},{"阿P","16","165","rap",""},{"小李","19","158","做头发",""}};<br />&nbsp;&nbsp;String[] title= {"姓名","年龄","身高","爱好1","爱好2"};<br />&nbsp;&nbsp;JTable table = new JTable(str,title);//测试表格<br />&nbsp;&nbsp;table.setFont(new Font("微软雅黑", Font.PLAIN, 12));<br />&nbsp;&nbsp;<br />&nbsp;&nbsp;JScrollPane scrollPane_1 = new JScrollPane(table);//滚动组件<br />&nbsp;&nbsp;scrollPane_1.setBounds(0, 0, 484, 361);<br />&nbsp;&nbsp;scrollPane_1.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);<br />&nbsp;&nbsp;panel.add(scrollPane_1);<br />&nbsp;&nbsp;<br />&nbsp;&nbsp;JBoxTestCell jc = new JBoxTestCell();//第四列第二行为下拉框，其余行为文本框<br />&nbsp;&nbsp;TableColumnModel tcm = table.getColumnModel();<br />&nbsp;&nbsp;tcm.getColumn(3).setCellEditor(jc);<br />&nbsp;&nbsp;<br />&nbsp;&nbsp;String[] str2 = { "rap", "手指舞", "理发","冲天炮"};<br />&nbsp;&nbsp;JComboBox jbox= new JComboBox(str2);<br />&nbsp;&nbsp;jbox.setSelectedIndex(0);<br />&nbsp;&nbsp;TableColumnModel col = table.getColumnModel();<br />&nbsp;&nbsp;col.getColumn(4).setCellEditor(new DefaultCellEditor(jbox));//设置第5列一列为下拉框<br />&nbsp;}
+<src>}
+<src>&nbsp;
+<src>效果图：
+<src><img src="./images/java swing 中JTable实现指定单元格为下拉框0.png" alt="" />
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

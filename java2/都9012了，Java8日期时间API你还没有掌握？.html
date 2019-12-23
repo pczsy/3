@@ -1,0 +1,166 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修都9012了，Java8日期时间API你还没有掌握？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>都9012了，Java8日期时间API你还没有掌握？</center></div><div class='banquan'>原文出处:本文由博客园博主浪人~提供。<br/>
+原文连接:https://www.cnblogs.com/liqiangchn/p/11974355.html</div><br>
+    <p>工作这么久了，对于Java中时间日期的操作一直很蛋疼，一会用Date，一会用Calendar一会用LocalDateTime，始终没有认真总结过它们的联系与区别。迷迷糊糊用了好几年了，今天终于搞清楚了！</p>
+<h2 id="一java8日期时间api产生的前因后果">一，Java8日期时间API产生的前因后果</h2>
+<p><strong>1.1 为什么要重新定义一套日期时间API</strong></p>
+<ul>
+<li>操作不方便：java中最初的Date不能直接对<strong>指定字段进行加减</strong>操作也不支持<strong>国际化</strong>，后来新增了Calendar，但是Calendar又不支持格式化操作，需要转换成Date再进行格式化，总之一直在填坑，使用起来一点都不够优雅。</li>
+<li>线程不安全：Date，Caleandar，SimpleDateFormat都是可变的，线程不安全的，所以你需要编写额外的代码处理线程安全问题。</li>
+</ul>
+<p><strong>1.2 Java8重新定义</strong></p>
+<ul>
+<li>对时间日期相关操作进行细分：时间，日期，日期&amp;时间，时间戳，时间段，日期段，格式化等</li>
+<li>所有类都是不可变的，线程安全</li>
+<li>兼容旧的日期时间</li>
+</ul>
+<p><img src="./images/都9012了，Java8日期时间API你还没有掌握？0.png" /></p>
+<p>1.3Java8兼容旧版本的Date，同时也规范了日期时间的转换流程。</p>
+<p><img src="./images/都9012了，Java8日期时间API你还没有掌握？1.png" /></p>
+<h2 id="一给人读的-localdatetime-localdate-localtime">一，给人读的( LocalDateTime &amp; LocalDate &amp; LocalTime)</h2>
+<p>java8中将时间和日期进行的区分，用LocalDateTime表示日期和时间，LocalDate用来表示日期而LocalTime表示时间。内部实现也非常好理解，<strong>LocalDateTime = LocalDate + LocalTime</strong>，并且他们的内部api也一致，所以笔者就结合工作中的经验，介绍他们最常见的用法。</p>
+<p>1.1 获取当前时间</p>
+<pre><code><code>LocalDateTime localDateTime = LocalDateTime.now();
+// 打印结果: 2019-12-02T22:09:20.503</code></code></pre>
+<p>1.2 获取指定时间</p>
+<pre><code><code>// 获取 2019年12月02号 23 : 59 : 59 
+LocalDateTime localDateTime2 = LocalDateTime.of(2019, 12, 2, 23, 59, 59);
+// 打印结果： 2019-12-02T23:59:59</code></code></pre>
+<p>1.3 日期/时间加减操作</p>
+<pre><code><code>// localDateTime2的基础上加1天零1s
+LocalDateTime localDateTime3 = localDateTime2.plusDays(1).plusSeconds(1);
+// 打印结果：2019-12-04T00:00</code></code></pre>
+<p>1.4 获取指定的字段(年月日时分秒，纳秒，不支持毫秒)</p>
+<pre><code><code>System.out.println(&quot;现在是: &quot; + localDateTime.getYear() + &quot; 年中的第 &quot; + localDateTime.getDayOfYear() +&quot; 天&quot;);
+// 打印结果：现在是: 2019 年中的第 336 天 
+// 画外音： 快过年了呀，感觉这一年又没啥收获</code></code></pre>
+<h2 id="二给计算机读的instant">二，给计算机读的(Instant)</h2>
+<p>小知识:地球上不同地区经度不同会划分时区，以零度经线上为准(格林尼治天文台旧址，UTC时区)为准，将地球上各个部分分为了24个时区。向西走，每过一个时区，就要把表拨慢1个小时；同理每向东走一个时区，就要把表拨快1个小时。最后，中国处于东8区。</p>
+<p>2.1 获取UTC时间(格林尼治时间)</p>
+<pre><code><code>Instant instant = Instant.now();
+// 打印结果： 2019-12-02T14:31:41.661Z</code></code></pre>
+<p>2.2 获取北京时间(东8区)</p>
+<pre><code><code>// OffsetTime表示有时差的时间，除了UTC时间，都是OffsetTime
+OffsetDateTime offsetDateTime = instant.atOffset(ZoneOffset.ofHours(8));
+// 打印结果： 2019-12-02T22:31:41.661+08:00</code></code></pre>
+<p>2.3 获取毫秒数(1970-01-01T00:00:00Z开始计算)</p>
+<pre><code><code>long epochMilli = instant.toEpochMilli()
+// 打印结果：1575297101661</code></code></pre>
+<p>2.4 定义时间戳</p>
+<pre><code><code>Instant instant1 = Instant.ofEpochSecond(59);
+// 打印结果： 1970-01-01T00:00:59Z
+instant2 = instant1.plusSeconds(99)
+// 打印结果：1970-01-01T00:02:38Z
+</code></code></pre>
+<h2 id="三-时间间隔duration">三, 时间间隔(Duration)</h2>
+<p>3.1 计算日期间隔(参数位置影响结果哦)</p>
+<pre><code><code>Instant instant1 = Instant.now();
+Instant instant2 = instant1.plusSeconds(99);
+
+Duration duration1 = Duration.between(instant1, instant2);
+Duration duration2 = Duration.between(instant2, instant1);
+// 打印结果 duration1：PT1M39S
+// 打印结果 duration2：PT-1M-39S
+
+long duration1Seconds = duration1.getSeconds();
+long duration2Seconds = duration1.getSeconds();
+// 打印结果 duration1Seconds： 90
+// 打印结果 duration2Seconds： -90</code></code></pre>
+<p>3.2 操作时间间隔</p>
+<pre><code><code>Duration duration3 = duration1.plusDays(1);
+// 打印结果：PT24H1M39S</code></code></pre>
+<p>注意 : 仅支持时间操作(Instant， LocalTime，LocalDateTime)，不支持日期(LocalDate)</p>
+<h2 id="四日期间隔period">四，日期间隔(Period)</h2>
+<pre><code><code>LocalDate localDate1 = LocalDate.now();
+LocalDate localDate2 = localDate1.plusDays(1);
+Period period = Period.between(localDate1, localDate2);
+long days =  period.getDays();
+// 打印结果 peroid： P1D
+// 打印结果 days： 1</code></code></pre>
+<h2 id="五日期时间校正器temporaladjuster">五，日期/时间校正器(TemporalAdjuster)</h2>
+<p>5.1 获取指定日期或时间</p>
+<pre><code><code>LocalDateTime localDateTime1 = LocalDateTime.now();
+LocalDateTime localDateTime2 = localDateTime.withDayOfMonth(20);
+// 打印结果 localDateTime1：2019-12-02T22:57:47.674
+// 打印结果 localDateTime2：2019-12-20T22:57:47.674</code></code></pre>
+<p>5.2 获取下一个固定日期(下一个星期天)</p>
+<pre><code><code>LocalDateTime localDateTime3 = localDateTime.with(TemporalAdjusters.next(DayOfWeek.SUNDAY));
+// 打印结果 localDateTime33：2019-12-08T23:00:43.101</code></code></pre>
+<p>5.3 自定义矫正器</p>
+<pre><code><code>// 获取下一个工作日
+    LocalDateTime localDateTime4 = localDateTime.with((tempDateTime) -&gt; {
+            LocalDateTime localDateTime5 = (LocalDateTime) tempDateTime;
+            DayOfWeek dayOfWeek = localDateTime5.getDayOfWeek();
+            if (dayOfWeek.equals(DayOfWeek.FRIDAY)) {
+                    return localDateTime5.plusDays(3);
+            } else if (dayOfWeek.equals(DayOfWeek.SATURDAY)) {
+                    return localDateTime5.plusDays(2);
+            } else {
+                    return localDateTime5.plusDays(1);
+            }
+    });
+// 打印结果 localDateTime4：2019-12-03T23:00:43.101</code></code></pre>
+<h2 id="六日期时间格式化">六，日期时间格式化</h2>
+<pre><code><code>DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern(&quot;yyyy-MM-dd HH:mm:ss&quot;);
+LocalDateTime localDateTime = LocalDateTime.now();
+String dateStr =dateTimeFormatter.format(localDateTime);
+// 打印结果: 2019-12-02 23:08:55
+LocalDateTime localDateTime2 = LocalDateTime.parse(dateStr, dateTimeFormatter);
+// 打印结果: 2019-12-02T23:08:55
+LocalDate localDate = LocalDate.parse(dateStr, dateTimeFormatter);
+// 打印结果: 2019-12-02</code></code></pre>
+<h2 id="七基于instant进行转换">七，基于Instant进行转换</h2>
+<p>java8api对于时间戳，日期时间以及老版本的Date对象之间的转换也进行了兼容和适配，所有的转换操作都可以基于Instant对象进行。由于LocalDate，LocalTime和LocalDateTime三个类的操作完全一样，所以下文仍使用LocalDateTime演示。</p>
+<p>7.1 时间戳转LocalDate，LocalDate，LocalDateTime</p>
+<pre><code><code>long timestamp = Instant.now().toEpochMilli();
+LocalDateTime localDateTime = Instant.ofEpochMilli(timestamp).atOffset(ZoneOffset.ofHours(8)).toLocalDateTime();
+// 打印结果:2019-12-02T23:20:25.791</code></code></pre>
+<p>7.2 LocalDate，LocalDate，LocalDateTime转时间戳</p>
+<pre><code><code>LocalDateTime localDateTime = LocalDateTime.now();
+long timestamp = localDateTime.toInstant(ZoneOffset.ofHours(8)).toEpochMilli();
+// 打印结果：1575300368099 </code></code></pre>
+<p>7.3 兼容旧版本Date</p>
+<pre><code><code>LocalDateTime localDateTime3 = LocalDateTime.now();Date date = 
+Date.from(localDateTime.atZone(ZoneOffset.ofHours(8)).toInstant());LocalDateTime localDateTime4  = 
+localDateTime3.atZone(ZoneOffset.ofHours(8)).toLocalDateTime();
+// 打印结果 date：Mon Dec 02 23:32:53 CST 2019
+// 打印结果 lcoalDateTime4：2019-12-02T23:32:53.188</code></code></pre>
+<h2 id="八-qa">八， Q&amp;A</h2>
+<p>上一篇问题：在java中通常使用synchronized来实现方法同步，AQS中通过CAS保证了修改同步状态的一致性问题，那么对比synchronized，cas有什么优势不同与优势呢？你还知道其他无锁并发的策略吗？</p>
+<p><strong>8.1 Answer</strong></p>
+<p>Java中的无锁并发策略可以分为三种：</p>
+<ol>
+<li>基于乐观锁的CAS操作</li>
+<li>Copy On Write：写时复制是指：在并发访问的情景下，当需要修改JAVA中Containers的元素时，不直接修改该容器，而是先复制一份副本，在副本上进行修改。修改完成之后，将指向原来容器的引用指向新的容器(副本容器)</li>
+<li>ThreadLocal：线程本地存储，就是为每一个线程创建一个变量，只有本线程可以在该变量中查看和修改值。</li>
+</ol>
+<p><strong>8.2 Question</strong></p>
+<ol>
+<li><p>这是一道送分题：正如上文提到的，Java8之前的日期时间以及格式化类是线程不安全的，你知道怎么编写测试代码吗？</p></li>
+<li><p>如果优雅得获取昨天0点整的毫秒值？</p></li>
+</ol>
+<p>学习Java过程中可能遇到问题和困惑，关注我vx公众号 “cruder” ,后台留言，笔者帮你一起解决！（需要学习资料的请关注后后台留言，主要都是java相关，java基础，并发，mysql，redis，es，mq等都都有！）<br />
+<img src="./images/都9012了，Java8日期时间API你还没有掌握？2.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

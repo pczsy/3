@@ -1,0 +1,200 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修并发编程之线程池' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>并发编程之线程池</center></div><div class='banquan'>原文出处:本文由博客园博主codeobj提供。<br/>
+原文连接:https://www.cnblogs.com/codeobj/p/11675530.html</div><br>
+    <h1 id="一线程池">一、线程池</h1>
+<h2 id="什么是线程池">1、什么是线程池</h2>
+<p>Java中的线程池是运用场景最多的并发框架，几乎所有需要异步或并发执行任务的程序<br />
+都可以使用线程池。在开发过程中，合理地使用线程池能够带来3个好处。</p>
+<ul>
+<li>第一：降低资源消耗。通过重复利用已创建的线程降低线程创建和销毁造成的消耗。</li>
+<li>第二：提高响应速度。当任务到达时，任务可以不需要等到线程创建就能立即执行。</li>
+<li>第三：提高线程的可管理性。线程是稀缺资源，如果无限制地创建，不仅会消耗系统资源，还会降低系统的稳定性，使用线程池可以进行统一分配、调优和监控。但是，要做到合理利用</li>
+</ul>
+<p>频繁的创建多线程，非常占用CPU，线程过多时造成线程池溢出</p>
+<h2 id="线程池作用">2、线程池作用</h2>
+<p>线程池是为突然大量爆发的线程设计的，通过有限的几个固定线程为大量的操作服务，减少了创建和销毁线程所需的时间，从而提高效率。</p>
+<p>如果一个线程的时间非常长，就没必要用线程池了(不是不能作长时间操作，而是不宜。)，况且我们还不能控制线程池中线程的开始、挂起、和中止。</p>
+<h1 id="二线程池的分类">二、线程池的分类</h1>
+<h2 id="threadpoolexecutor">ThreadPoolExecutor</h2>
+<p>Executor框架的最顶层实现是ThreadPoolExecutor类，Executors工厂类中提供的newScheduledThreadPool、newFixedThreadPool、newCachedThreadPool方法其实也只是ThreadPoolExecutor的构造函数参数不同而已。通过传入不同的参数，就可以构造出适用于不同应用场景下的线程池。</p>
+<ul>
+<li>corePoolSize： 核心池的大小。 当有任务来之后，就会创建一个线程去执行任务，当线程池中的线程数目达到corePoolSize后，就会把到达的任务放到缓存队列当中</li>
+<li>maximumPoolSize： 线程池最大线程数，它表示在线程池中最多能创建多少个线程；</li>
+<li>keepAliveTime： 表示线程没有任务执行时最多保持多久时间会终止。</li>
+<li>unit： 参数keepAliveTime的时间单位，有7种取值，在TimeUnit类中有7种静态属性</li>
+</ul>
+<h2 id="线程池四种创建方式">1、线程池四种创建方式</h2>
+<p>Java通过Executors（jdk1.5并发包）提供四种线程池，分别为：</p>
+<ul>
+<li>newCachedThreadPool创建一个可缓存线程池，如果线程池长度超过处理需要，可灵活回收空闲线程，若无可回收，则新建线程。</li>
+<li>newFixedThreadPool 创建一个定长线程池，可控制线程最大并发数，超出的线程会在队列中等待。</li>
+<li>newScheduledThreadPool 创建一个定长线程池，支持定时及周期性任务执行。</li>
+<li>newSingleThreadExecutor 创建一个单线程化的线程池，它只会用唯一的工作线程来执行任务，保证所有任务按照指定顺序(FIFO, LIFO, 优先级)执行。</li>
+</ul>
+<h2 id="newcachedthreadpool">2、newCachedThreadPool</h2>
+<p>创建一个可缓存线程池，如果线程池长度超过处理需要，可灵活回收空闲线程，若无可回收，则新建线程。示例代码如下：</p>
+<pre><code><code>// 无限大小线程池 jvm自动回收
+        ExecutorService newCachedThreadPool = Executors.newCachedThreadPool();
+        for (int i = 0; i &lt; 10; i++) {
+            final int temp = i;
+            newCachedThreadPool.execute(new Runnable() {
+
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(100);
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                    }
+                    System.out.println(Thread.currentThread().getName() + &quot;,i:&quot; + temp);
+
+                }
+            });
+        }</code></code></pre>
+<p>总结: 线程池为无限大，当执行第二个任务时第一个任务已经完成，会复用执行第一个任务的线程，而不用每次新建线程。</p>
+<h2 id="newfixedthreadpool">3、newFixedThreadPool</h2>
+<p>创建一个定长线程池，可控制线程最大并发数，超出的线程会在队列中等待。示例代码如下：</p>
+<pre><code><code>ExecutorService newFixedThreadPool = Executors.newFixedThreadPool(5);
+        for (int i = 0; i &lt; 10; i++) {
+            final int temp = i;
+            newFixedThreadPool.execute(new Runnable() {
+
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(2000);
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                    }
+                    System.out.println(Thread.currentThread().getId() + &quot;,i:&quot; + temp);
+
+                }
+            });
+        }</code></code></pre>
+<p>总结:因为线程池大小为5，每个任务输出index后sleep 2秒，所以每两秒打印3个数字。<br />
+定长线程池的大小最好根据系统资源进行设置。如Runtime.getRuntime().availableProcessors()</p>
+<h2 id="newscheduledthreadpool">4、newScheduledThreadPool</h2>
+<p>创建一个定长线程池，支持定时及周期性任务执行。延迟执行示例代码如下：</p>
+<pre><code><code>ScheduledExecutorService newScheduledThreadPool = Executors.newScheduledThreadPool(5);
+        for (int i = 0; i &lt; 10; i++) {
+            final int temp = i;
+            newScheduledThreadPool.schedule(new Runnable() {
+                public void run() {
+                    System.out.println(&quot;i:&quot; + temp);
+                }
+            }, 3, TimeUnit.SECONDS);
+}</code></code></pre>
+<p>程序启动后会等待3秒，再执行</p>
+<h2 id="newsinglethreadexecutor">5、newSingleThreadExecutor</h2>
+<p>创建一个单线程化的线程池，它只会用唯一的工作线程来执行任务，保证所有任务按照指定顺序(FIFO, LIFO, 优先级)执行。示例代码如下：</p>
+<pre><code><code>ExecutorService newSingleThreadExecutor = Executors.newSingleThreadExecutor();
+        for (int i = 0; i &lt; 10; i++) {
+            final int index = i;
+            newSingleThreadExecutor.execute(new Runnable() {
+
+                @Override
+                public void run() {
+                    System.out.println(&quot;index:&quot; + index);
+                    try {
+                        Thread.sleep(200);
+                    } catch (Exception e) {
+                        // TODO: handle exception
+                    }
+                }
+            });
+        }</code></code></pre>
+<p>结果依次输出</p>
+<h2 id="线程池原理剖析">6、线程池原理剖析</h2>
+<p>提交一个任务到线程池中，线程池的处理流程如下：</p>
+<ul>
+<li>1、判断线程池里的核心线程是否都在执行任务，如果不是（核心线程空闲或者还有核心线程没有被创建）则创建一个新的工作线程来执行任务。如果核心线程都在执行任务，则进入下个流程。</li>
+<li>2、线程池判断工作队列是否已满，如果工作队列没有满，则将新提交的任务存储在这个工作队列里。如果工作队列满了，则进入下个流程。</li>
+<li>3、判断线程池里的线程是否都处于工作状态，如果没有，则创建一个新的工作线程来执行任务。如果已经满了，则交给饱和策略来处理这个任务。</li>
+</ul>
+<h2 id="自定义线程线程池">7、自定义线程线程池</h2>
+<ul>
+<li>corePoolSize： 核心池的大小。 当有任务来之后，就会创建一个线程去执行任务，当线程池中的线程数目达到corePoolSize后，就会把到达的任务放到缓存队列当中</li>
+<li>maximumPoolSize： 线程池最大线程数，它表示在线程池中最多能创建多少个线程；</li>
+<li>keepAliveTime： 表示线程没有任务执行时最多保持多久时间会终止。</li>
+<li>unit： 参数keepAliveTime的时间单位，有7种取值，在TimeUnit类中有7种静态属性</li>
+</ul>
+<pre><code><code>new ThreadPoolExecutor(corePoolSize, maximumPoolSize, keepAliveTime, unit, new ArrayBlockingQueue&lt;&gt;(3))
+new ThreadPoolExecutor(1, 2, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue&lt;&gt;(3))</code></code></pre>
+<p>如果当前线程池中的线程数目小于corePoolSize，则每来一个任务，就会创建一个线程去执行这个任务；</p>
+<p>如果当前线程池中的线程数目&gt;=corePoolSize，则每来一个任务，会尝试将其添加到任务缓存队列当中，若添加成功，则该任务会等待空闲线程将其取出去执行；若添加失败（一般来说是任务缓存队列已满），则会尝试创建新的线程去执行这个任务；</p>
+<p>如果队列已经满了，则在总线程数不大于maximumPoolSize的前提下，则创建新的线程</p>
+<p>如果当前线程池中的线程数目达到maximumPoolSize，则会采取任务拒绝策略进行处理；</p>
+<p>如果线程池中的线程数量大于 corePoolSize时，如果某线程空闲时间超过keepAliveTime，线程将被终止，直至线程池中的线程数目不大于corePoolSize；</p>
+<p>如果允许为核心池中的线程设置存活时间，那么核心池中的线程空闲时间超过keepAliveTime，线程也会被终止。</p>
+<pre><code><code>public class Test0007 {
+
+    public static void main(String[] args) {
+        ThreadPoolExecutor executor = new ThreadPoolExecutor(1, 2, 60L, TimeUnit.SECONDS, new ArrayBlockingQueue&lt;&gt;(3));
+        for (int i = 1; i &lt;= 6; i++) {
+            TaskThred t1 = new TaskThred(&quot;任务&quot; + i);
+            executor.execute(t1);
+        }
+        executor.shutdown();
+    }
+}
+
+class TaskThred implements Runnable {
+    private String taskName;
+
+    public TaskThred(String taskName) {
+        this.taskName = taskName;
+    }
+
+    @Override
+    public void run() {
+        System.out.println(Thread.currentThread().getName()+taskName);
+    }
+
+}</code></code></pre>
+<h2 id="cpu密集">8、CPU密集</h2>
+<p>CPU密集的意思是该任务需要大量的运算，而没有阻塞，CPU一直全速运行。<br />
+CPU密集任务只有在真正的多核CPU上才可能得到加速(通过多线程)，而在单核CPU上，无论你开几个模拟的多线程，该任务都不可能得到加速，因为CPU总的运算能力就那些。</p>
+<h2 id="io密集">9、IO密集</h2>
+<p>IO密集型，即该任务需要大量的IO，即大量的阻塞。在单线程上运行IO密集型的任务会导致浪费大量的CPU运算能力浪费在等待。所以在IO密集型任务中使用多线程可以大大的加速程序运行，即时在单核CPU上，这种加速主要就是利用了被浪费掉的阻塞时间。</p>
+<h2 id="总结">10、总结</h2>
+<p>要想合理的配置线程池的大小，首先得分析任务的特性，可以从以下几个角度分析：</p>
+<ol>
+<li>任务的性质：CPU密集型任务、IO密集型任务、混合型任务。</li>
+<li>任务的优先级：高、中、低。</li>
+<li>任务的执行时间：长、中、短。</li>
+<li>任务的依赖性：是否依赖其他系统资源，如数据库连接等。</li>
+</ol>
+<p>性质不同的任务可以交给不同规模的线程池执行。</p>
+<p>对于不同性质的任务来说，CPU密集型任务应配置尽可能小的线程，如配置CPU个数+1的线程数，IO密集型任务应配置尽可能多的线程，因为IO操作不占用CPU，不要让CPU闲下来，应加大线程数量，如配置两倍CPU个数+1，而对于混合型的任务，如果可以拆分，拆分成IO密集型和CPU密集型分别处理，前提是两者运行的时间是差不多的，如果处理时间相差很大，则没必要拆分了。</p>
+<p>若任务对其他系统资源有依赖，如某个任务依赖数据库的连接返回的结果，这时候等待的时间越长，则CPU空闲的时间越长，那么线程数量应设置得越大，才能更好的利用CPU。</p>
+<p>当然具体合理线程池值大小，需要结合系统实际情况，在大量的尝试下比较才能得出</p>
+<ul>
+<li>CPU密集型时，任务可以少配置线程数，大概和机器的cpu核数相当，这样可以使得每个线程都在执行任务</li>
+<li><p>IO密集型时，大部分线程都阻塞，故需要多配置线程数，2*cpu核数</p>
+<blockquote>
+<p>个人博客 <a href="https://www.codeobj.com/">蜗牛</a></p>
+</blockquote></li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

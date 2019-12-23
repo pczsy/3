@@ -1,0 +1,119 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修java包装类和值类型的关系' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>java包装类和值类型的关系</center></div><div class='banquan'>原文出处:本文由博客园博主redstone_torch提供。<br/>
+原文连接:https://www.cnblogs.com/redstone-torch/p/11790636.html</div><br>
+    <p>java包装类总是让人疑惑 它与值类型到底是怎么样一种关系? 本文将以int和Integer为例来探讨它们的关系</p>
+<p>&nbsp;</p>
+<p>java值类型有int short char boolean byte long float double</p>
+<p>除此之外的类型皆为引用类型 引用类型和值类型的区别大家都很熟悉 在这里就不多说了</p>
+<p>&nbsp;</p>
+<p>引用类型和值类型有一个很重要的区别 那就是引用类型继承Object类 值类型不是</p>
+<p>而java很多泛型容器都要求类型继承Object 调用虚方法要求必须是引用类型&nbsp;很明显这些值类型不满足这个要求 怎么办?&nbsp;包装类应运而生</p>
+<p>&nbsp;</p>
+<p>包装类有Integer Short Char Boolean Byte Long Float Double和上文的值类型是对应的</p>
+<p>&nbsp;</p>
+<p>既然包装类是引用类型 那么他就应该可以传递到别的方法被修改</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> change(Integer a)
+{
+    a </span>*= 6<span style="color: #000000;">;
+}
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args)
+{
+    Integer integer </span>= <span style="color: #0000ff;">new</span> Integer(5<span style="color: #000000;">);
+    change(integer);
+    System.out.println(integer);
+}</span></code></pre>
+
+<p>然而 以上程序输出的结果是5 跟下文代码的结果是相同的 这是为什么?</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> change(<span style="color: #0000ff;">int</span><span style="color: #000000;"> a)
+{
+    a </span>*= 6<span style="color: #000000;">;
+}
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+    </span><span style="color: #0000ff;">int</span> integer = 5<span style="color: #000000;">;
+    change(integer);
+    System.out.println(integer);
+}</span></code></pre>
+
+<p>这就得从包装类的设计讲起了 前文说过 包装类是为了能够弥补值类型的缺陷而设计的</p>
+<p>有了包装类后 对于一个整数的表达就出现了int和Integer这两个类型 一个是值类型一个是引用类型 这会让程序员在使用过程中产生困扰</p>
+<p>为了消除这种困扰 java在设计时就尽可能地减少它们的区别 让包装类表现得如同值类型 于是就出现了上文的结果</p>
+<p>&nbsp;</p>
+<p>这种区别减少是通过编译器完成 如果我们查看编译好的字节码 就会看到上文的Integer其实是这样工作的</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> change(Integer a)
+{
+    a </span>= Integer.valueOf(a.intValue() * 6<span style="color: #000000;">);
+}
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args)
+{
+    Integer integer </span>= <span style="color: #0000ff;">new</span> Integer(5<span style="color: #000000;">);
+    change(integer);
+    System.out.println(integer);
+}</span></code></pre>
+
+<p>a*=6的结果返回了一个新的Integer对象</p>
+<p>所以也就不可能修改传入的Integer的值了 就算要修改&nbsp; &nbsp;Integer这个类的成员是final修饰 还是无法修改</p>
+<p>&nbsp;</p>
+<p>然后我还发现了一点Object强制转换为int</p>
+<src class="cnblogs_code">
+<pre><code>Object obj = <span style="color: #0000ff;">new</span> Integer(5<span style="color: #000000;">);
+</span><span style="color: #0000ff;">int</span> a = (<span style="color: #0000ff;">int</span>)obj;</code></pre>
+
+<p>在编译器处理后 其实是这样的 这也进一步说明引用类型和值类型完全是两个世界的东西</p>
+<src class="cnblogs_code">
+<pre><code>Object obj = <span style="color: #0000ff;">new</span> Integer(5<span style="color: #000000;">);
+</span><span style="color: #0000ff;">int</span> a = ((Integer)obj).intValue();</code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">题外话:</span></p>
+<p>对于java的值类型和包装类的设计 我十分不喜欢</p>
+<p>java中一切都是对象 值类型除外</p>
+<p>对于同样一个整数类型 分成int Interger两个类型感觉很没必要</p>
+<p>&nbsp;</p>
+<p>c#的int是继承Object的 在需要调用虚函数的时候会自动装箱</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> a = <span style="color: #800080;">233</span><span style="color: #000000;">;
+a.ToString()</span></code></pre>
+
+<p>在jvm上跑的Kotlin 它有一套特殊映射法则 把Int根据情况自动变换成int和Integer 而在语言层面上只有一个Int</p>
+<src class="cnblogs_code">
+<pre><code>Int a = 233<span style="color: #000000;">;
+a.toString();</span></code></pre>
+
+<p>&nbsp;</p>
+<p>但是到了java 你只能这样</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> a = 233<span style="color: #000000;">;
+</span><span style="color: #0000ff;">new</span> Integer(a).toString();</code></pre>
+
+<p>或者是这样</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> a = 233<span style="color: #000000;">;
+((Integer)a).toString();</span></code></pre>
+
+<p>&nbsp;</p>
+<p>END</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

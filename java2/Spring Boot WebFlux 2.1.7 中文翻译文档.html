@@ -1,0 +1,238 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring Boot WebFlux 2.1.7 中文翻译文档' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring Boot WebFlux 2.1.7 中文翻译文档</center></div><div class='banquan'>原文出处:本文由博客园博主JMCui提供。<br/>
+原文连接:https://www.cnblogs.com/jmcui/p/11775217.html</div><br>
+    <h2 id="前言">1. 前言</h2>
+<p>从一开始学习 Netty 到 rxjava、Rector，再到 java8 的 CompletableFuture，就深深的为响应式编程着迷，这种区别于传统的顺序式编程，没准未来能在编程世界开辟一片天地呢！</p>
+<p>然后接触到了 WebFlux 框架，也是充满了浓厚的兴趣，想好好琢磨一番，奈何中文资料实在太少，就打起了英文文档的主意，可惜英文水平实在捉急，总是看下一句，忘了上一句。诶，要不咱一句句翻译出来吧，这样读起来就通顺了，顺便可以造福下后来学习者（想着翻译的东西要被人看，也是一份坚持的动力）。</p>
+<p>翻译并没有逐字逐句去纠结，力求语义通顺，有理解错误的地方，还麻烦大家指出，一起学习探讨。另外，文中还补充了一些自己练习的 demo。</p>
+<p>原文链接：<a href="https://docs.spring.io/spring-boot/docs/2.1.7.RELEASE/reference/htmlsingle/#boot-features-webflux" class="uri">https://docs.spring.io/spring-boot/docs/2.1.7.RELEASE/reference/htmlsingle/#boot-features-webflux</a></p>
+<p>github 练习 demo：<a href="https://github.com/JMCuixy/webflux" class="uri">https://github.com/JMCuixy/webflux</a></p>
+<p><b style="color:red">tips：</b>翻译是一项提高英语和学习技能一举两得的事呀！</p>
+<h2 id="webflux-简介">2. WebFlux 简介</h2>
+<p>Spring WebFlux 是 Spring 5.0 引入的新的响应式框架，区别于 Spring MVC，它不需要依赖Servlet API，它是完全异步非阻塞的，并且基于 Reactor 来实现响应式流规范。</p>
+<p>Spring WebFlux 有两种表现形式：基于配置和基于注释。基于注释的实现方式非常类似于 SpringMVC 模型，如以下实例：</p>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/users&quot;)
+public class MyRestController {
+
+    @GetMapping(&quot;/\{user}&quot;)
+    public Mono&lt;User&gt; getUser(@PathVariable Long user) {
+        // ...
+    }
+
+    @GetMapping(&quot;/\{user}/customers&quot;)
+    public Flux&lt;Customer&gt; getUserCustomers(@PathVariable Long user) {
+        // ...
+    }
+
+    @DeleteMapping(&quot;/\{user}&quot;)
+    public Mono&lt;User&gt; deleteUser(@PathVariable Long user) {
+        // ...
+    }
+
+}</code></code></pre>
+<p>基于配置的实现方式，把路由和具体请求逻辑分离开，如以下实例：</p>
+<pre><code><code>@Configuration
+public class RoutingConfiguration {
+
+    @Bean
+    public RouterFunction&lt;ServerResponse&gt; monoRouterFunction(UserHandler userHandler) {
+        return route(GET(&quot;/\{user}&quot;).and(accept(APPLICATION_JSON)), userHandler::getUser)
+                .andRoute(GET(&quot;/\{user}/customers&quot;).and(accept(APPLICATION_JSON)), userHandler::getUserCustomers)
+                .andRoute(DELETE(&quot;/\{user}&quot;).and(accept(APPLICATION_JSON)), userHandler::deleteUser);
+    }
+
+}
+
+@Component
+public class UserHandler {
+
+    public Mono&lt;ServerResponse&gt; getUser(ServerRequest request) {
+        // ...
+    }
+
+    public Mono&lt;ServerResponse&gt; getUserCustomers(ServerRequest request) {
+        // ...
+    }
+
+    public Mono&lt;ServerResponse&gt; deleteUser(ServerRequest request) {
+        // ...
+    }
+}</code></code></pre>
+<p>WebFlux 是 Spring 框架的一部分，其<a href="https://docs.spring.io/spring/docs/5.1.9.RELEASE/spring-framework-reference/web-reactive.html#webflux">参考文档</a>中提供了详细信息。</p>
+<p>你可以定义任意数量的 RouterFunction Bean，以对你的路由进行归纳整理。当然，你也可以针对多个 RouterFunction 设置优先级（@Order 注解）。</p>
+<p>开始一个 WebFlux 项目，首先，需要将 spring-boot-starter-webflux 模块引入你的项目。值得注意的是，如果你同时引入了 spring-boot-starter-web 和 spring-boot-starter-webflux 模块会导致 Spring Boot 自动配置Spring MVC，而不是 WebFlux。因为许多 Spring 开发人员引入 spring-boot-starter-webflux ，仅仅是为了使用它的响应式编程（这个理由也是绝了），当然你也可以强制把你的项目配置成 WebFlux：</p>
+<pre><code><code>SpringApplication.setWebApplicationType(WebApplicationType.REACTIVE)</code></code></pre>
+<h2 id="自动配置">3. 自动配置</h2>
+<p>Spring Boot 为 Spring WebFlux 提供的自动配置基本能适用于大多数应用。</p>
+<p>Spring Boot 的提供的自动配置主要做了以下两个工作：</p>
+<ul>
+<li>为 HttpMessageReader 和 HttpMessageWriter 实例配置 HTTP 编解码器</li>
+<li>支持服务静态资源映射，包括对 WebJars 资源的支持</li>
+</ul>
+<p>如果你想要保持 Spring Boot WebFlux 的自动配置功能，并且想添加额外的 WebFlux 配置项，你可以自定义 @Configuration 配置类，但不要添加 @EnableWebFlux 注解。</p>
+<p>如果你想要完全控制 WebFlux，你可以定义@Configuration 配置类，并且添加 @EnableWebFlux. 注解。</p>
+<h2 id="httpmessagereaders-和-httpmessagewriters-的-http-编解码器">4. HttpMessageReaders 和 HttpMessageWriters 的 HTTP 编解码器</h2>
+<p>Spring WebFlux 使用 HttpMessageReader 和 HttpMessageWriter 接口来转换 HTTP 请求和响应，可以通过 CodecConfigurer 得到它们的默认配置：</p>
+<pre><code><code>public interface CodecConfigurer {
+    ...
+
+    List&lt;HttpMessageReader&lt;?&gt;&gt; getReaders();
+
+    List&lt;HttpMessageWriter&lt;?&gt;&gt; getWriters();
+    ...
+}</code></code></pre>
+<p>Spring Boot 提供了 CodecCustomizer 接口，允许你进一步定制编解码器，通过其 customize() 方法可以获取到 CodecConfigurer 对象，从而可以注册新的编解码工具，或对现有的编解码工具进行替换等。如以下实例：</p>
+<pre><code><code>import org.springframework.boot.web.codec.CodecCustomizer;
+
+@Configuration
+public class MyConfiguration {
+
+    @Bean
+    public CodecCustomizer myCodecCustomizer() {
+        return codecConfigurer -&gt; {
+            // ...
+        }
+    }
+
+}</code></code></pre>
+<h2 id="静态资源">5. 静态资源</h2>
+<p>Spring Boot 默认从类路径的以下目录（/static、 /public 、/resources 、/META-INF/resources）加载静态资源，当然，你可以自定义配置类实现 WebFluxConfigurer 并重写 addResourceHandlers 方法来修改默认资源路径：</p>
+<pre><code><code>@Configuration
+public class MyWebFluxConfigurer implements WebFluxConfigurer {
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        // do more
+    }
+}</code></code></pre>
+<p>Spring Boot 默认将静态资源映射在 /** 的路径下，当然，你可以通过修改 spring.webflux.static-path-pattern 属性来调整默认映射，例如，将所有资源映射到 /resources/** 路径 ，可以通过以下方式实现：</p>
+<pre><code><code>spring.webflux.static-path-pattern=/resources/**</code></code></pre>
+<p>你也可以通过设置 spring.resources.static-locations 属性值来自定义资源目录，如果你这样做了，默认的欢迎页面检测也将会切换到你设置的资源目录。因此，在你的资源目录中，只要有一个 index.html 页面，都将会成为你的应用主页。</p>
+<p>除了前面介绍的标准静态资源外，还有一种特殊的情况，那就是 webjars 内容。如果静态资源被打包成了 webjars 的格式，那么访问这些资源的路径就变成了 /webjars/** 。</p>
+<p><b style="color:red">tips：</b>Spring WebFlux 应用程序不严格依赖 Servlet API，因此不能将它们部署为 war 文件，也不使用 src/main/webapp 目录。</p>
+<h2 id="模板引擎">6. 模板引擎</h2>
+<p>Spring WebFlux 除了提供 REST web 服务外，还支持渲染动态 HTML 内容，Spring WebFlux 支持一系列模板引擎，包括 Thymeleaf、FreeMarker 和 Mustache。</p>
+<p>Spring Boot 为以下的模板引擎提供了自动配置的支持：</p>
+<ul>
+<li><a href="https://freemarker.apache.org/docs/">FreeMarker</a></li>
+<li><a href="https://www.thymeleaf.org/">Thymeleaf</a></li>
+<li><a href="https://mustache.github.io/">Mustache</a></li>
+</ul>
+<p>当你使用了其中某个模板引擎，并选择了 Spring Boot 自动配置，你需要将你的模板文件放在 src/main/resources/templates 目录下，以便被 Spring Boot 发现。</p>
+<h2 id="异常处理">7. 异常处理</h2>
+<p>Spring Boot 提供了一个 WebExceptionHandler 用来处理所有错误，WebExceptionHandler 执行通常被认为是处理链中的最后一步，仅位于 WebFlux 提供服务之前。对于机器端，它通常是一个 JSON 响应，包含了HTTP 状态码、错误信息等；对于浏览器端，它通常是一个 “whitelabel” HTML 错误页面，页面渲染了相同的错误信息。当然，你也可以提供自定义的 HTML 模板来展示错误信息（下文会说到）。</p>
+<p>首先，定制此功能通常涉及利用现有机制，但要替换或增加错误内容，你可以添加 ErrorAttributes 类型的 Bean。</p>
+<p>若要更改错误处理行为，可以实现 ErrorWebExceptionHandler 并注册该类型的 bean 定义，但是 WebExceptionHandler 级别很低。因此 Spring Boot 还提供了一种方便的方式，即继承 AbstractErrorWebExceptionHandler，让你可以通过 WebFlux 的方式处理错误，如以下示例所示（这个配置贼复杂，建议还是乖乖的用默认配置吧）：</p>
+<pre><code><code>public class CustomErrorWebExceptionHandler extends AbstractErrorWebExceptionHandler {
+
+    // Define constructor here
+
+    @Override
+    protected RouterFunction&lt;ServerResponse&gt; getRoutingFunction(ErrorAttributes errorAttributes) {
+
+        return RouterFunctions
+                .route(aPredicate, aHandler)
+                .andRoute(anotherPredicate, anotherHandler);
+    }
+
+}</code></code></pre>
+<p>如果你想要为给定的错误码展示自定义的 HTML 错误页面，你可以在 /error 目录下添加一个错误页面文件。可以是静态HTML（即添加到任意静态资源文件夹下），也可以使用模板构建，文件名应为确切的状态码或系列掩码。</p>
+<p>例如，要映射 404 错误码到静态 HTML 文件，您的文件夹结构如下：</p>
+<pre><code><code>src/
+ +- main/
+     +- java/
+     |   + &lt;source code&gt;
+     +- resources/
+         +- public/
+             +- error/
+             |   +- 404.html
+             +- &lt;other public assets&gt;</code></code></pre>
+<p>使用 Mustache 模板对 5xx 错误码作映射，您的文件夹结构如下：</p>
+<pre><code><code>src/
+ +- main/
+     +- java/
+     |   + &lt;source code&gt;
+     +- resources/
+         +- templates/
+             +- error/
+             |   +- 5xx.mustache
+             +- &lt;other templates&gt;</code></code></pre>
+<h2 id="过滤器">8. 过滤器</h2>
+<p>Spring WebFlux 提供了一个 WebFilter 接口，用来对 HTTP 请求-响应路由进行过滤，在应用程序上下文中找到的 WebFilter bean 将自动用于过滤每个路由！以下是一个简单鉴权的过滤器 demo — 对于 没有 token 参数的请求返回 401 错误：</p>
+<pre><code><code>@Component
+public class CustomWebFilter implements WebFilter {
+
+    @Override
+    public Mono&lt;Void&gt; filter(ServerWebExchange exchange, WebFilterChain chain) {
+        ServerHttpRequest request = exchange.getRequest();
+        MultiValueMap&lt;String, String&gt; queryParams = request.getQueryParams();
+        if (queryParams == null || StringUtils.isEmpty(queryParams.getFirst(&quot;token&quot;))) {
+            Map&lt;String, String&gt; resultMap = new HashMap&lt;&gt;();
+            resultMap.put(&quot;code&quot;, &quot;401&quot;);
+            resultMap.put(&quot;msg&quot;, &quot;非法请求&quot;);
+            byte[] datas = new byte[0];
+            try {
+                datas = new ObjectMapper().writeValueAsBytes(resultMap);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+            ServerHttpResponse response = exchange.getResponse();
+            DataBuffer buffer = response.bufferFactory().wrap(datas);
+            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+            response.getHeaders().add(&quot;Content-Type&quot;, &quot;application/json;charset=UTF-8&quot;);
+            return response.writeWith(Mono.just(buffer));
+        }
+
+        return chain.filter(exchange).then(Mono.fromRunnable(() -&gt; {
+            ServerHttpResponse response = exchange.getResponse();
+            //Manipulate the response in some way
+        }));
+    }
+}</code></code></pre>
+<p>可以通过实现 Ordered 接口或使用 @Order 注释来设置过滤器的执行顺序（执行顺序是从小到大执行，较高的值被解释为较低的优先级）。Spring Boot 的自动配置功能已经为你提供了一些内置的过滤器，如下是它们的执行顺序：</p>
+<table>
+<thead>
+<tr class="header">
+<th>Web Filter</th>
+<th>Order</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>MetricsWebFilter</td>
+<td>Ordered.HIGHEST_PRECEDENCE + 1</td>
+</tr>
+<tr class="even">
+<td>WebFilterChainProxy (Spring Security)</td>
+<td>-100</td>
+</tr>
+<tr class="odd">
+<td>HttpTraceWebFilter</td>
+<td>Ordered.LOWEST_PRECEDENCE - 10</td>
+</tr>
+</tbody>
+</table>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

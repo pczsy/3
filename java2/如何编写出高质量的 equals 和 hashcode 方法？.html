@@ -1,0 +1,206 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何编写出高质量的 equals 和 hashcode 方法？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何编写出高质量的 equals 和 hashcode 方法？</center></div><div class='banquan'>原文出处:本文由博客园博主Java知己提供。<br/>
+原文连接:https://www.cnblogs.com/java-friend/p/11606011.html</div><br>
+    <h3 id="什么是-equals-和-hashcode-方法">什么是 equals 和 hashcode 方法？</h3>
+<p>这要从 Object 类开始说起，我们知道 Object 类是 Java 的超类，每个类都直接或者间接的继承了 Object 类，在 Object 中提供了 8 个基本的方法，equals 方法和 hashcode 方法就是其中的两个。</p>
+<p>：Object 类中的 equals 方法用于检测一个对象是否等于另一个对象，在 Object 类中，这个方法将判断两个对象是否具有相同的引用，如果两个对象具有相同的引用，它们一定是相等的。</p>
+<p><strong>hashcode 方法</strong>：用来获取散列码，散列码是由对象导出的一个整数值，散列码是没有规律的，如果 x 和 y 是两个不同的对象，那么 x.hashCode() 与 y.hashCode() 基本上不会相同</p>
+<h3 id="为什么要重写-equals-和-hashcode-方法">为什么要重写 equals 和 hashcode 方法？</h3>
+<p>为什么需要重写 equals 方法和 hashcode 方法，我想主要是基于以下两点来考虑：</p>
+<p>1、我们已经知道了 Object 中的 equals 方法是用来判断两个对象的引用是否相同，但是有时候我们并不需要判断两个对象的引用是否相等，我们只需要两个对象的某个特定状态是否相等。比如对于两篇文章来说，我只要判断两篇文章的链接是否相同，如果链接相同，那么它们就是同一篇文章，我并不需要去比较其它属性或者引用地址是否相同。</p>
+<p>2、在某些业务场景下，我们需要使用自定义类作为哈希表的键，这时候我们就需要重写，因为如果不做特定修改的话，每个对象产生的 hashcode 基本上不可能相同，而 hashcode 决定了该元素在哈希表中的位置，equals 决定了判断逻辑，所以特殊情况下就需要重写这两个方法，才能符合我们的要求。</p>
+<p>我们使用一个小 Demo 来模拟一下特殊场景，让我们更好的理解为什么需要重写 equals 和 hashcode 方法，我们的场景是：我们有很多篇文章，我需要判断文章是否已经存在 Set 中，两篇文章相同的条件是访问路径相同。</p>
+<p>好了，我们一起动手写 Demo 吧，我们建立一个文章类来存放文章信息，文章类具体设计如下：</p>
+<pre><code><code>class Article{
+    // 文章路径
+    String url;
+
+    // 文章标题
+    String title;
+    public Article(String url ,String title){
+        this.url = url;
+        this.title = title;
+    }
+    public String getUrl() {
+        return url;
+    }
+    public void setUrl(String url) {
+        this.url = url;
+    }
+    public String getTitle() {
+        return title;
+    }
+    public void setTitle(String title) {
+        this.title = title;
+    }
+}
+
+</code></code></pre>
+<p>文章类中有路径、标题两个属性，在这个类中我们并没有重写 equals 和 hashcode 方法，所以这里会使用超类 Object 中的 equals 和 hashcode 方法，为了防止你没有看过 Object 类中的 equals 和 hashcode 方法，我们先一起来看一下 Object 的类中的 equals 和 hashcode 方法：</p>
+<p><img src="./images/如何编写出高质量的 equals 和 hashcode 方法？0.png" /></p>
+<p><img src="./images/如何编写出高质量的 equals 和 hashcode 方法？1.png" /></p>
+<p>看完之后，接下来，我们编写一个测试类，测试类代码如下：</p>
+<pre><code><code>public class EqualsAndHashcode {
+    public static void main(String[] args) {
+        Article article = new Article(&quot;www.baidu.com&quot;,&quot;百度一下&quot;);
+        Article article1 = new Article(&quot;www.baidu.com&quot;,&quot;坑B百度&quot;);
+
+        Set&lt;Article&gt; set = new HashSet&lt;&gt;();
+        set.add(article);
+        System.out.println(set.contains(article1));
+
+    }
+}
+
+</code></code></pre>
+<p>在测试类中，我们实例化了两个文章对象，文章对象的 url 都是一样的，标题不一样，我们将 article 对象存入到 Set 中，判断 article1 对象是否存在 Set 中，按照我们的假设，两篇文章的 Url 相同，则两篇文章就应该是同一篇文章，所以这里应该给我们返回 True，我们运行 Main 方法。得到结果如下：</p>
+<p><img src="./images/如何编写出高质量的 equals 和 hashcode 方法？2.png" /><br />
+我们看到了结果不是你想要的 True 而是 False ，这个原因很简单，因为两篇文章的访问路径相同就是同一篇文章，这是我们定义的规则，我们并没有告诉我们的程序这个规则，我们没有重写 equals 和 hashcode 方法，所以系统在判断的时候使用的是 Object 类默认的 equals 和 hashcode 方法，默认的 equals 方法判断的是两个对象的引用地址是否相同，这里肯定是不一样的，得到的答案就是 False 。我们需要把相等的规则告诉我们的程序，那我们就把 equals 方法重写了。</p>
+<h5 id="重写-equals-方法">1、重写 equals 方法</h5>
+<p>在这里我们先使用 IDEA 工具生成的 equals 方法，把最后的逻辑返回逻辑修改一下就好了，具体的编写规则我们下面会介绍。最后我们的 equals 方法如下</p>
+<pre><code><code>/**
+ * 重写equals方法，只要两篇文章的url相同就是同一篇文章
+ * @param o
+ * @return
+ */
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Article article = (Article) o;
+        return Objects.equals(url, article.url);
+    }
+
+</code></code></pre>
+<p>再一次运行 Main 方法，你会发现还是 False ，这是为什么呢？我已经把判断两个对象相等的逻辑告诉程序了，不急，我们先来聊一聊哈希表吧，我们知道哈希表采用的是数组 + 链表的结构，每个数组上挂载着链表，链表的节点用来存储对象信息，而对象落到数组的位置由 hashcode()。所以当我们调用 HashSet 的 add(Object o) 方法时，首先会根据 o.hashCode() 的返回值定位到相应的数组位置，如果该数组位置上没有结点，则将 o 放到这里，如果已经有结点了, 则把 o 挂到链表末端。同理，当调用 contains(Object o) 时，Java 会通过 hashCode() 的返回值定位到相应的数组位置，然后再在对应的链表中的结点依次调用 equals() 方法来判断结点中的对象是否是你想要的对象。</p>
+<p>由于我们只重写了 equals 方法并没有重写 hashcode 方法，所以两篇文章的 hashcode 值不一样，这样映射到数组的位置就不一样，调用 set.contains(article1) 方法时，在哈希表中的情况可能如下图所示：</p>
+<p><img src="./images/如何编写出高质量的 equals 和 hashcode 方法？3.png" /></p>
+<p>article 对象被映射到了数组下标为 0 的位置，article1 对象被映射到了数组下标为 6 的位置，所以没有找到返回 False。既然只重写 equals 方法不行，那么我们把 hashcode 方法也重写了。</p>
+<h5 id="重写-hashcode-方法">2、重写 hashcode 方法</h5>
+<p>跟 equals 方法一样，我们也使用 idea 编辑器帮我们生成的 hashcode 方法，只需要做稍微的改动就可以，具体 hashcode 代码如下：</p>
+<pre><code><code>    @Override
+    public int hashCode() {
+        return Objects.hash(url);
+    }
+</code></code></pre>
+<p>重写好 hashcode 方法之后，再一次运行 Main 方法，这次得到的结果为 True，这会就是我们想要的结果了。重写 equals 和 hashcode 方法之后，在哈希表中的查找如下图所示：</p>
+<p><img src="./images/如何编写出高质量的 equals 和 hashcode 方法？4.png" /></p>
+<p>首先 article1 对象也会被映射到数组下标为 1 的位置，在数组下标为 1 的位置存在 article 数据节点，所以会执行 article1.equals(article) 命令，因为我们重写了 Article 对象的 equals 方法，这个是否会判断两个 Article 对象的 url 属性是否相等，如果相等就返回 True，在这里显然是相等的，所以这里就返回 True，得到我们想要的结果。</p>
+<h2 id="如何编写-equals-和-hashcode-方法">如何编写 equals 和 hashcode 方法？</h2>
+<p>需要自己重写 equals 方法？好的，我这就重写，噼里啪啦的敲出了下面这段代码：</p>
+<pre><code><code>public boolean equals(Article o) {
+    if (this == o) return true;
+    if (o == null || !(o instanceof  Article)) return false;
+    return o.url.equals(url);
+}
+
+</code></code></pre>
+<p>这样写对吗？虽然里面的逻辑看上的没什么问题，但是 equals 方法的参数变成了 Article。 其实你这跟重写 equals 方法没有半毛线关系，这完全是重新定义了一个参数类型为 Article 的 equals 方法，并没有去覆盖 Object 类中的 equals 方法。</p>
+<p>那该如何重写 equals 方法呢？其实 equals 方法是有通用规定的，当你重写 equals 方法时，你就需要重写 equals 方法的通用约定，在 Object 中有如下规范： equals 方法实现了一个等价关系（equivalence relation）。它有以下这些属性:</p>
+<ul>
+<li><strong>自反性</strong>：对于任何非空引用 x，x.equals(x) 必须返回 true</li>
+<li><strong>对称性</strong>：对于任何非空引用 x 和 y，如果且仅当 y.equals(x) 返回 true 时 x.equals(y) 必须返回 true</li>
+<li><strong>传递性</strong>：对于任何非空引用 x、y、z，如果 x.equals(y) 返回 true，y.equals(z) 返回 true，则 x.equals(z) 必须返回 true</li>
+<li><strong>一致性</strong>：对于任何非空引用 x 和 y，如果在 equals 比较中使用的信息没有修改，则 x.equals(y) 的多次调用必须始终返回 true 或始终返回 false</li>
+<li><strong>非空性</strong>：对于任何非空引用 x，x.equals(null) 必须返回 false</li>
+</ul>
+<p>现在我们已经知道了写 equals 方法的通用约定，那我们就参照重写 equals 方法的通用约定，再一次来重写 Article 对象的 equals() 方法。代码如下：</p>
+<pre><code><code>    // 使用 @Override 标记，这样就可以避免上面的错误
+    @Override
+    public boolean equals(Object o) {
+        // 1、判断是否等于自身
+        if (this == o) return true;
+        // 2、判断 o 对象是否为空 或者类型是否为 Article 
+        if (o == null || !(o instanceof  Article)) return false;
+        // 3、参数类型转换
+        Article article = (Article) o;
+        // 4、判断两个对象的 url 是否相等
+        return article.url.equals(url);
+    }
+
+</code></code></pre>
+<p>这一次我们使用了 @Override 标记，这样就可以避免我们上一个重写的错误，因为父类中并没有参数为 Article 的方法，所以编译器会报错，这对程序员来说是非常友好的。接下来我们进行了 自反性、非空性的验证，最后判断两个对象的 url 是否相等。这个 equals 方法就比上面那个要好很多，基本上没什么大毛病了。</p>
+<p>在 effective-java 书中总结了一套编写高质量 equals 方法的配方，配方如下：</p>
+<p>我们已经了解了怎么重写 equals 方法了，接下来就一起了解如何重写 hashcode 方法，我们知道 hashcode 方法返回的是一个 int 类型的方法，那好办呀，像下面这样重写就行了</p>
+<pre><code><code>@Override
+ public int hashCode() { 
+ return 1; 
+ }
+
+</code></code></pre>
+<p>这样写对吗？对错先不管，我们先来看一下 hashcode 在 Object 中的规定：</p>
+<ul>
+<li>1、当在一个应用程序执行过程中，如果在 equals 方法比较中没有修改任何信息，在一个对象上重复调用 hashCode 方法时，它必须始终返回相同的值。从一个应用程序到另一个应用程序的每一次执行返回的值可以是不一致的。</li>
+<li>2、如果两个对象根据 equals(Object) 方法比较是相等的，那么在两个对象上调用 hashCode 就必须产生的结果是相同的整数。</li>
+<li>3、如果两个对象根据 equals(Object) 方法比较并不相等，则不要求在每个对象上调用 hashCode 都必须产生不同的结果。</li>
+</ul>
+<p>结合 hashcode 的规范和散列表来看，要重写出一个高质量的 hashcode 方法，就需要尽可能保证每个元素产生不同的 hashcode 值，在 JDK 中，每个引用类型都重写了 hashcode 函数，我们看看 String 类中的 hashcode 是如何重写的：</p>
+<pre><code><code>public int hashCode() {
+    int h = hash;
+    if (h == 0 &amp;&amp; value.length &gt; 0) {
+        char val[] = value;
+
+        for (int i = 0; i &lt; value.length; i++) {
+            h = 31 * h + val[i];
+        }
+        hash = h;
+    }
+    return h;
+}
+
+</code></code></pre>
+<p>这个 hashcode 方法写的还是非常好的，我个人比较喜欢用官方的东西，我觉得他们考虑的肯定比我们多很多，所以我们 Article 类的 hashcode 方法就可以这样写</p>
+<pre><code><code>    /**
+     * 重写 hashcode方法，根据url返回hash值
+     * @return
+     */
+    @Override
+    public int hashCode() {
+        return url.hashCode();
+    }
+
+</code></code></pre>
+<p>我们直接调用 String 对象的 hashcode 方法。到此我们的 equals 方法和 hashcode 方法都重写完了，最后以 effective-java 里面的一段总结结尾吧。</p>
+<ul>
+<li><strong>1、当重写 equals 方法时，同时也要重写 hashCode 方法</strong></li>
+<li><strong>2、不要让 equals 方法试图太聪明。</strong></li>
+<li><strong>3、在 equal 时方法声明中，不要将参数 Object 替换成其他类型。</strong></li>
+</ul>
+<blockquote>
+<p>文章不足之处，望大家多多指点，共同学习，共同进步</p>
+</blockquote>
+<hr />
+<blockquote>
+<p>“不积跬步，无以至千里”，希望未来的你能：有梦为马 随处可栖！加油，少年！</p>
+</blockquote>
+<p>关注公众号:<strong>「Java 知己」</strong>，每天更新Java知识哦，期待你的到来！</p>
+<ul>
+<li>发送「<strong>Group</strong>」，与 10 万程序员一起进步。</li>
+<li>发送「<strong>面试</strong>」，领取BATJ面试资料、面试视频攻略。</li>
+<li>发送「<strong>玩转算法</strong>」，领取《玩转算法》系列视频教程。</li>
+<li>千万不要发送「<strong>1024</strong>」...</li>
+</ul>
+<p><img src="./images/如何编写出高质量的 equals 和 hashcode 方法？5.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

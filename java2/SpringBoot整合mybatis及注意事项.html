@@ -1,0 +1,165 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot整合mybatis及注意事项' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot整合mybatis及注意事项</center></div><div class='banquan'>原文出处:本文由博客园博主王炬提供。<br/>
+原文连接:https://www.cnblogs.com/wangju/p/11801879.html</div><br>
+    <h1>SpringBoot整合mybatis及注意事项</h1>
+<p><span style="font-size: 16px;">主要步骤</span></p>
+<ol>
+<li><span style="font-size: 16px;">添加依赖 mybatis</span></li>
+<li><span style="font-size: 16px;">在配置文件中配置数据源信息</span></li>
+<li><span style="font-size: 16px;">编写pojo mapper接口 mapeer映射文件</span></li>
+<li><span style="font-size: 16px;">手动配置mybatis的包扫描</span></li>
+</ol>
+<p><span style="font-size: 16px;">​ 　　　　在主启动类添加@MapperScan</span></p>
+<h2>1：导入依赖</h2>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;">&lt;dependency&gt;
+    &lt;groupId&gt;org.mybatis.spring.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;mybatis-spring-boot-starter&lt;/artifactId&gt;
+    &lt;version&gt;1.1.1&lt;/version&gt;
+&lt;/dependency&gt;</span></code></pre>
+
+<h2>2：配置数据源信息</h2>
+<p><span style="font-size: 16px;">在application.yml中进行配置</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #000000;">#DB Configation
+spring:
+  datasource:
+    driverClassName: com.mysql.jdbc.Driver
+　　　</span><span style="color: #008000;">//</span><span style="color: #008000;">注意如果出现了无法连接数据库问题，在tx后面添加  ?useUnicode=true&amp;characterEncoding=utf-8&amp;useSSL=false&amp;serverTimezone = GMT</span>
+    url: jdbc:mysql:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:3306/tx</span>
+<span style="color: #000000;">    username: root
+    password: </span>813100<span style="color: #000000;">
+  jpa:
+    database: MySQL
+    show</span>-sql: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    generate</span>-ddl: <span style="color: #0000ff;">true</span></span></code></pre>
+
+<h2>3：书写pojo实体类和对应的mapper接口及映射文件</h2>
+<p><span style="font-size: 16px;">pojo实体类</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.offcn.springbootdemo1.pojo;
+
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UUser {
+
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer id;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String username;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String password;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String name;
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">此处添加set，get，构造方法以及重写toString</span>
+}</span></code></pre>
+
+<p><span style="font-size: 16px;">mapper接口</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.offcn.springbootdemo1.mapper;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.offcn.springbootdemo1.pojo.UUser;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> UUserMapper {
+    List</span>&lt;UUser&gt;<span style="color: #000000;"> selectUUser();
+}</span></span></code></pre>
+
+<p><span style="font-size: 16px;">mapper映射文件</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;">&lt;?xml version="1.0" encoding="UTF-8" ?&gt;
+&lt;!<span style="color: #000000;">DOCTYPE mapper
+    PUBLIC </span>"-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd"&gt;
+
+&lt;mapper namespace="com.offcn.springbootdemo1.mapper.UUserMapper"&gt;
+&lt;select id="selectUUser" resultType="com.offcn.springbootdemo1.pojo.UUser"&gt;<span style="color: #000000;">
+    select </span>*<span style="color: #000000;"> from user
+  </span>&lt;/select&gt;
+&lt;/mapper&gt;</span></code></pre>
+
+<p><strong><span style="font-size: 16px;">注意：如果mapper接口和mapper映射文件放在同一个地方</span></strong></p>
+<p><span style="font-size: 16px;"><img src="./images/SpringBoot整合mybatis及注意事项0.png" alt="" /></span></p>
+<p><span style="font-size: 16px;">那么在运行会出现错误</span></p>
+<p><span style="font-size: 16px;"><span style="font-size: 16px;">解决方案：</span></span></p>
+<p><span style="font-size: 16px;"><span style="font-size: 16px;"><span style="font-size: 16px;">1：在resources目录下建立一个和mapper接口相同的目录结构，把mapper映射文件放进去</span></span></span></p>
+<p><span style="font-size: 16px;"><span style="font-size: 16px;"><span style="font-size: 16px;"><span style="font-size: 16px;">2：如果想把mapper接口和mapper映射文件放在一起</span></span></span></span></p>
+<p><span style="font-size: 16px;"><span style="font-size: 16px;"><span style="font-size: 16px;"><span style="font-size: 16px;"><span style="font-size: 16px;">那么在pom.xml中添加如下配置</span></span></span></span></span></p>
+<src class="cnblogs_code">
+<pre><code>　　<span style="font-size: 15px;">&lt;build&gt;
+        &lt;resources&gt;
+            &lt;resource&gt;
+                &lt;directory&gt;src/main/java&lt;/directory&gt;
+                &lt;includes&gt;
+                    &lt;include&gt;**<span style="color: #008000;">/*</span><span style="color: #008000;">.properties&lt;/include&gt;
+                    &lt;include&gt;*</span><span style="color: #008000;">*/</span>*.xml&lt;/include&gt;
+                &lt;/includes&gt;
+                &lt;filtering&gt;<span style="color: #0000ff;">false</span>&lt;/filtering&gt;
+            &lt;/resource&gt;
+            &lt;resource&gt;
+                &lt;directory&gt;src/main/resources&lt;/directory&gt;
+                &lt;includes&gt;
+                    &lt;include&gt;**<span style="color: #008000;">/*</span><span style="color: #008000;">.*&lt;/include&gt;
+                &lt;/includes&gt;
+                &lt;filtering&gt;false&lt;/filtering&gt;
+            &lt;/resource&gt;
+        &lt;/resources&gt;
+    &lt;/build&gt;</span></span></code></pre>
+
+<h2>4：手动配置mybatis扫描&nbsp;</h2>
+<p><span style="font-size: 16px;">&nbsp;在启动类上添加注解@MapperScan&nbsp;</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.offcn.springbootdemo1;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.mybatis.spring.annotation.MapperScan;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.SpringApplication;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+@MapperScan(basePackages </span>= "com.offcn.springbootdemo1.mapper"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Springbootdemo1Application {
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        SpringApplication.run(Springbootdemo1Application.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">, args);
+    }
+}</span></span></code></pre>
+
+<h2>5：在Controller中进行测试</h2>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 15px;"><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.offcn.springbootdemo1.controller;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">导包</span>
+<span style="color: #000000;">
+@Controller
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UUserController {
+    @Resource
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> UUserMapper userMapper;
+
+    @RequestMapping(</span>"aa"<span style="color: #000000;">)
+    @ResponseBody
+    </span><span style="color: #0000ff;">public</span> List&lt;UUser&gt;<span style="color: #000000;"> selectUUser(){
+        List</span>&lt;UUser&gt; uUsers =<span style="color: #000000;"> userMapper.selectUUser();
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> uUsers;
+    }
+}</span></span></code></pre>
+
+<h2>6：在浏览器中及结果</h2>
+<p><img src="./images/SpringBoot整合mybatis及注意事项1.png" alt="" /></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

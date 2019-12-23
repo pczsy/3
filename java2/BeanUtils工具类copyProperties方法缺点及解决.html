@@ -1,0 +1,102 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修BeanUtils工具类copyProperties方法缺点及解决' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>BeanUtils工具类copyProperties方法缺点及解决</center></div><div class='banquan'>原文出处:本文由博客园博主守望者zzz提供。<br/>
+原文连接:https://www.cnblogs.com/swz1104919/p/11743771.html</div><br>
+    <pre><code><br /><br />使用类为spring-beans:4.3.13release包中的 org.springframework.beans.BeanUtils<br /><br />BeanUtils.copyProperties(Object source, Object target); </code></pre>
+<pre><code>该方法会将source中同名属性的值赋值给target中的同名属性。（<span style="color: #ff0000;">前提是source中的改属性类型属于target中该属性类型【即为相同类或其子类，否则目标属性还是为原默认值】</span>）<em><br /></em></code></pre>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.alibaba.fastjson.JSON;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> lombok.Data;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.BeanUtils;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Arrays;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;">
+ * @date 2019/10/26
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> BeanUtil {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        Bean2 bean2 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bean2();
+        bean2.setIntField(</span>1<span style="color: #000000;">);
+        bean2.setStrField(</span>"str"<span style="color: #000000;">);
+        bean2.setObjField(</span>"obj"<span style="color: #000000;">);
+        bean2.setListIntegerField(Arrays.asList(</span>"1","2assdsdsf","3"<span style="color: #000000;">));
+        bean2.setObjField1(</span>"1"<span style="color: #000000;">);
+        Bean1 bean1 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bean1();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">属性中有元素不满足目标属性时依旧赋值成功Bean1.listIntegerField），未对能强转成功的属性做赋值处理(Bean1.objField1)</span>
+<span style="color: #000000;">        BeanUtils.copyProperties(bean2,bean1);
+
+        System.out.println(</span>"bean2:\t"+<span style="color: #000000;">bean2);
+        System.out.println(</span>"bean1:\t"+<span style="color: #000000;">bean1);
+        System.out.println(</span>"bean1.getListIntegerField:\t"+bean1.getListIntegerField().get(0));<span style="color: #008000;">//</span><span style="color: #008000;">调用到具体异常元素再抛出异常</span>
+<span style="color: #000000;">
+        System.out.println(</span>"--------------------分割线--------------------"<span style="color: #000000;">);
+
+        Bean1 bean11 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bean1();
+        bean11.setIntField(</span>1<span style="color: #000000;">);
+        bean11.setStrField(</span>"str"<span style="color: #000000;">);
+        bean11.setObjField(</span>"obj"<span style="color: #000000;">);
+        bean11.setListIntegerField(Arrays.asList(</span>1,2,3<span style="color: #000000;">));
+        bean11.setObjField1(</span>1<span style="color: #000000;">);
+        Bean2 bean21 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bean2();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">Bean2.objField1 类型大于Bean1.objField1类型，赋值成功</span>
+<span style="color: #000000;">        BeanUtils.copyProperties(bean11,bean21);
+
+        System.out.println(</span>"bean11:\t"+<span style="color: #000000;">bean11);
+        System.out.println(</span>"bean21:\t"+<span style="color: #000000;">bean21);
+        System.out.println(</span>"bean21.getListIntegerField:\t"+<span style="color: #000000;">bean21.getListIntegerField());<br /><br />　　　</span></code></pre>
+<pre><code>/*</code></pre>
+<pre><code><span style="color: #ff0000;">运行结果：</span></code></pre>
+<pre><code><br />        bean2: BeanUtil.Bean2(intField=1, strField=str, objField=obj, objField1=1, listIntegerField=[1, 2assdsdsf, 3])<br />        bean1: BeanUtil.Bean1(intField=1, strField=str, objField=obj, objField1=null,<span style="color: #ff0000;"> listIntegerField=[1, 2assdsdsf, 3]</span>)<br />        bean1.getListIntegerField: 1<br />                --------------------分割线--------------------<br />        bean11:    BeanUtil.Bean1(intField=1, strField=str, objField=obj, objField1=1, listIntegerField=[1, 2, 3])<br />        bean21:    BeanUtil.Bean2(intField=1, strField=str, objField=obj, objField1=1, listIntegerField=[1, 2, 3])<br />        bean21.getListIntegerField:    [1, 2, 3]<br /><br />*/</code></pre>
+<pre><code><span style="color: #000000;">    }
+
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> optimizeCopyProperties(){
+        Bean2 bean2 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Bean2();
+        bean2.setIntField(</span>1<span style="color: #000000;">);
+        bean2.setStrField(</span>"str"<span style="color: #000000;">);
+        bean2.setObjField(</span>"obj"<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        bean2.setListIntegerField(Arrays.asList("1assdsdsf","2","3"));</span>
+        bean2.setListIntegerField(Arrays.asList("1","2","3"<span style="color: #000000;">));
+        bean2.setObjField1(</span>"1"<span style="color: #000000;">);
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">借助json工具类，底层以字符串实现强转。对能强转成功的属性做赋值并赋值成功，若同名属性值强转赋值失败则抛出异常</span>
+        Bean1 bean1 = JSON.parseObject(JSON.toJSONBytes(bean2), Bean1.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+
+        System.out.println(</span>"bean2:\t"+<span style="color: #000000;">bean2);
+        System.out.println(</span>"bean1:\t"+<span style="color: #000000;">bean1);
+        System.out.println(</span>"bean1.getListIntegerField:\t"+<span style="color: #000000;">bean1.getListIntegerField());<br /><br /></span></code></pre>
+<pre><code>/*　　<span style="color: #ff0000;">运行结果：</span><br />        bean2: BeanUtil.Bean2(intField=1, strField=str, objField=obj, objField1=1, listIntegerField=[1, 2, 3])<br />        bean1: BeanUtil.Bean1(intField=1, strField=str, objField=obj, objField1=1, listIntegerField=[1, 2, 3])<br />        bean1.getListIntegerField: [1, 2, 3]<br />*/</code></pre>
+<pre><code><span style="color: #000000;">} <br /></span></code></pre>
+<pre><code>   @Data<br />    public static class Bean1{<br />        private int intField;<br />        private String strField;<br />        private Object objField;<br />        private Integer objField1;<br />        private List&lt;Integer&gt; listIntegerField;<br />    }<br />    @Data<br />    public static class Bean2{<br />        private int intField;<br />        private String strField;<br />        private Object objField;<br />        private Object objField1;<br />        private List&lt;String&gt; listIntegerField;<br />    }<br />}</code></pre>
+<pre><code><span style="color: #000000;">&nbsp;</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;">总结：可用阿里的json转换工具处理类似的属性赋值。其强转赋值对能用字符串强转的类型赋值更智能，属性元素的异常赋值检查也更严格。</span></p>
+<pre><code><em id="__mceDel">&nbsp;</em></code></pre>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,370 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修CentOS6.5下安装JDK1.7+MYSQL5.5+TOMCAT7+nginx1.7.5环境安装文档' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>CentOS6.5下安装JDK1.7+MYSQL5.5+TOMCAT7+nginx1.7.5环境安装文档</center></div><div class='banquan'>原文出处:本文由博客园博主alterem提供。<br/>
+原文连接:https://www.cnblogs.com/alterem/p/11819014.html</div><br>
+    <p>----------------CentOS6.5下安装JDK1.7+MYSQL5.5+TOMCAT7+nginx1.7.5环境安装文档-----------------------</p>
+<hr />
+<p>【JDK1.7安装】</p>
+<hr />
+<p>1)登录Sun的JDK官方下载网 址:http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html</p>
+<p>2)下载jdk-7u67-linux-x64.rpm文件</p>
+<p>》删除系统自带OpenJDK</p>
+<p>CentOs6.5 默认会安装OpenOffice之类，需要JAVA支持，系统默认安装了一个openjdk1.7版本</p>
+<p># java -version</p>
+<p>java version &quot;1.7.0&quot;</p>
+<p>OpenJDK Runtime Environment (build 1.7.0-b09)</p>
+<p>OpenJDK Client VM (build 1.7.0-b09, mixed mode)</p>
+<p>备注：</p>
+<p>无须删除原有的openjdk;否则，与之相关的openoffice等软件，也会自动随之删除；</p>
+<p>如果直接&quot;应用程序-添加/删除软件--基本系统--java“删除其他相关软件也会自动删除，所以删除前，最好安装配置好新的JDK环境</p>
+<p>1) 删除原有的JDK：</p>
+<p># rpm -qa|grep jdk</p>
+<p>查看安装的JDK，会显示多个java-1.7.0-openjdk-1.7.0相关的程序，在以下一一卸载。直到删完为止，如下：</p>
+<p># rpm -e --nodeps java-1.7.0-openjdk-1.7.0.65-2.5.1.2.el6_5.x86_64</p>
+<p># rpm -e --nodeps java-1.7.0-openjdk-devel-1.7.0.65-2.5.1.2.el6_5.x86_64</p>
+<p># rpm -e --nodeps java-1.7.0-openjdk-demo-1.7.0.65-2.5.1.2.el6_5.x86_64</p>
+<p>......</p>
+<p># rpm -qa|grep java</p>
+<p>查看安装的JAVA关联程序，在以下一一卸载。直到删完为止，如下：</p>
+<p># rpm -e --nodeps tzdata-java-2014h-1.el6.noarch</p>
+<p>......</p>
+<p>》配置新的JDK环境</p>
+<p>1）把安装文件文件保存在/usr/java/tools下 ,并切换到root用户</p>
+<p># mkdir /usr/java 创建/urs/java目录</p>
+<p># cd /usr/java/</p>
+<p># rpm -ivh ./tools/jdk-7u67-linux-x64.rpm</p>
+<p>》配置jdk1.6.0_22环境变量</p>
+<p># vi /etc/profile</p>
+<p>JAVA_HOME=/usr/java/jdk1.7.0_79</p>
+<p>JRE_HOME=/usr/java/jdk1.7.0_79/jre</p>
+<p>PATH=$PATH:$JAVA_HOME/bin:$JRE_HOME/bin</p>
+<p>CLASSPATH=:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib</p>
+<p>export JAVA_HOME JRE_HOME PATH CLASSPATH</p>
+<p>》使环境变量生效：</p>
+<p>#source /etc/profile</p>
+<p>》测试安装</p>
+<p>1)查看版本号</p>
+<p># java -version</p>
+<p>java version &quot;1.7.0_67&quot;</p>
+<p>Java(TM) SE Runtime Environment (build 1.7.0_67-b01)</p>
+<p>Java HotSpot(TM) 64-Bit Server VM (build 24.65-b04, mixed mode)</p>
+<p>Java HotSpot(TM) Client VM (build 17.1-b03, mixed mode, sharing)</p>
+<p>说明成功了。</p>
+<hr />
+<p>【MYSQL5.5的安装】</p>
+<hr />
+<p>安装方式分为rpm和源码编译安装两种，本文是采用mysql源码编译方式，编译器使用Cmake。软件需要mysql-5.5.40.tar.gz和cmake-2.8.10.2.tar.gz，请自行下载。</p>
+<p>》下载地址：</p>
+<p>http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.40.tar.gz</p>
+<p>http://www.cmake.org/files/v2.8/cmake-2.8.10.2.tar.gz</p>
+<p>其中mysql使用最新的稳定版本，即最新试用版的上一个版本，且非rc或者alpha的版本，Cmake直接用的最新版。</p>
+<p>》上传mysql-5.5.40.tar.gz和cmake-2.8.10.2.tar.gz到/usr/java/tools文件夹下。</p>
+<p>》CentOS安装g++和ncurses-devel</p>
+<p># yum install gcc-c++</p>
+<p># yum install ncurses-devel</p>
+<p>》cmake的安装</p>
+<p># mkdir -p /usr/java/make</p>
+<p># cd /usr/java/make</p>
+<p># mv ../tools/cmake-2.8.10.2.tar.gz ./</p>
+<p># tar -zxv -f cmake-2.8.10.2.tar.gz</p>
+<p># cd cmake-2.8.10.2</p>
+<p># ./configure</p>
+<p># make</p>
+<p># make install</p>
+<p>》将cmake永久加入系统环境变量</p>
+<p>》用vi在文件/etc/profile文件中增加变量，使其永久有效，</p>
+<p># vi /etc/profile</p>
+<p>》在文件PATH中加入MAKE_PATH环境变量：</p>
+<p>JAVA_HOME=/usr/java/jdk1.7.0_67</p>
+<p>JRE_HOME=/usr/java/jdk1.7.0_67/jre</p>
+<p>MAKE_PATH=/usr/java/cmake/cmake-2.8.10.2/bin</p>
+<p>PATH=$MAKE_PATH:$PATH:$JAVA_HOME/bin:$JRE_HOME/bin</p>
+<p>CLASSPATH=:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar:$JRE_HOME/lib</p>
+<p>export JAVA_HOME JRE_HOME PATH CLASSPATH</p>
+<p>》执行以下代码使刚才的修改生效：</p>
+<p># source /etc/profile</p>
+<p>》用 export 命令查看PATH值</p>
+<p># echo $PATH</p>
+<p>》创建mysql的安装目录及数据库存放目录</p>
+<p># mkdir -p /usr/java/mysql //安装mysql</p>
+<p># mkdir -p /usr/java/mysql/data //存放数据库</p>
+<p>》创建mysql用户及用户组</p>
+<p># groupadd mysql</p>
+<p># useradd -r -g mysql mysql</p>
+<p>》编译安装mysql</p>
+<p># cd /usr/java/mysql</p>
+<p># tar zxvf ../tools/mysql-5.5.40.tar.gz</p>
+<p># cd mysql-5.5.40/</p>
+<p># cmake -DCMAKE_INSTALL_PREFIX=/usr/java/mysql 
+<br />
+-DMYSQL_UNIX_ADDR=/usr/java/mysql/mysql.sock 
+<br />
+-DDEFAULT_CHARSET=utf8 
+<br />
+-DDEFAULT_COLLATION=utf8_general_ci 
+<br />
+-DWITH_MYISAM_STORAGE_ENGINE=1 
+<br />
+-DWITH_INNOBASE_STORAGE_ENGINE=1  </p>
+<p>-DWITH_MEMORY_STORAGE_ENGINE=1  </p>
+<p>-DWITH_READLINE=1  </p>
+<p>-DENABLED_LOCAL_INFILE=1  </p>
+<p>-DMYSQL_DATADIR=/usr/java/mysql/data  </p>
+<p>-DMYSQL_USER=mysql  </p>
+<p>-DMYSQL_TCP_PORT=6666</p>
+<p># make</p>
+<p># make install</p>
+<p>》检验是否安装成功</p>
+<p># cd /usr/java/mysql</p>
+<p>[root@fiona mysql]# ls</p>
+<p>bin data include lib mysql-5.5.40 mysql-test scripts sql-bench</p>
+<p>COPYING docs INSTALL-BINARY man mysql.sock README share support-files</p>
+<p>有bin等以上文件的话，恭喜你已经成功安装了mysql。</p>
+<p>》配置mysql</p>
+<p>》设置mysql目录权限</p>
+<p># cd /usr/java/mysql //把当前目录中所有文件的所有者设为root，所属组为mysql</p>
+<p># chown -R root:mysql .</p>
+<p># chown -R mysql:mysql data</p>
+<p>》将mysql的启动服务添加到系统服务中</p>
+<p># cp support-files/my-medium.cnf /etc/my.cnf</p>
+<p>cp：是否覆盖&quot;/etc/my.cnf&quot;？ y</p>
+<p>》创建系统数据库的表</p>
+<p># cd /usr/java/mysql</p>
+<p># scripts/mysql_install_db --user=mysql</p>
+<p>》设置环境变量</p>
+<p># vi /root/.bash_profile</p>
+<p>在修改PATH=$PATH:$HOME/bin为：</p>
+<p>PATH=$PATH:$HOME/bin:/usr/java/mysql/bin:/usr/java/mysql/lib</p>
+<p># source /root/.bash_profile //使刚才的修改生效</p>
+<p>》手动启动mysql</p>
+<p># ./bin/mysqld_safe --user=mysql &amp; //启动MySQL，但不能停止</p>
+<p>mysqladmin -u root -p shutdown //此时root还没密码，所以为空值，提示输入密码时，直接回车即可。</p>
+<p>》将mysql的启动服务添加到系统服务中</p>
+<p># cp support-files/mysql.server /etc/init.d/mysql</p>
+<p>》启动mysql</p>
+<p># service mysql start</p>
+<p>Starting MySQL... ERROR! The server quit without updating PID file (/usr/java/mysql/data/localhost.localdomain.pid).</p>
+<p>》启动失败：</p>
+<p>》我这里是权限问题，先改变权限</p>
+<p># chown -R mysql:mysql /usr/java/mysql</p>
+<p>》接着启动服务器</p>
+<p># /etc/init.d/mysql start</p>
+<p>》修改MySQL的root用户的密码以及打开远程连接</p>
+<p># mysql -u root mysql</p>
+<p>mysql&gt; use mysql;</p>
+<p>mysql&gt; desc user;</p>
+<p>mysql&gt; GRANT ALL PRIVILEGES ON <em>.</em> TO root@&quot;%&quot; IDENTIFIED BY &quot;root&quot;; //为root添加远程连接的能力</p>
+<p>mysql&gt; update user set Password = password('x123456.') where User='root'; //设置root用户密码</p>
+<p>mysql&gt; select Host,User,Password from user where User='root';</p>
+<p>mysql&gt; flush privileges;</p>
+<p>mysql&gt; exit</p>
+<p>》重新登录</p>
+<p># mysql -u root -p</p>
+<p>enter password:x123456.000</p>
+<p>》若还不能进行远程连接，关闭防火墙</p>
+<p>[root@localhost]# /etc/rc.d/init.d/iptables stop</p>
+<p>用远程工具连接上了表示成功了。</p>
+<hr />
+<p>【TOMCAT7.0的安装】</p>
+<hr />
+<p>》先下载apache-tomcat-7.0.56.tar.gz</p>
+<p>》下载地下：http://mirrors.hust.edu.cn/apache/tomcat/tomcat-7/v7.0.56/bin/apache-tomcat-7.0.56.tar.gz</p>
+<p># cd /usr/java</p>
+<p># tar -zxvf ./tools/apache-tomcat-7.0.56.tar.gz</p>
+<p># cd /etc/rc.d/init.d</p>
+<p># vi tomcat</p>
+<p>#----------输入以下信息---------------------</p>
+<p>#</p>
+<p># chkconfig: 345 80 15</p>
+<p># description: Tomcat is a Servlet+JSP Engine.</p>
+<p># Enter the jdk installation directory</p>
+<p>jdk_File=/usr/java/jdk1.7.0_67</p>
+<p># Enter the tomcat installation directory</p>
+<p>tomcat_File=/usr/java/apache-tomcat-7.0.56</p>
+<p>export JAVA_HOME=$jdk_File</p>
+<p># Source function library.</p>
+<p>. /etc/rc.d/init.d/functions</p>
+<p>start(){</p>
+<p>if [ -z $(/sbin/pidof java) ]; then</p>
+<p>echo &quot;Starting tomcat&quot;</p>
+<p>$tomcat_File/bin/startup.sh</p>
+<p>touch /var/lock/subsys/tomcat</p>
+<p>else</p>
+<p>echo &quot;tomcat allready running&quot;</p>
+<p>fi</p>
+<p>}</p>
+<p>stop(){</p>
+<p>if [ ! -z $(/sbin/pidof java) ]; then</p>
+<p>echo &quot;Shutting down tomcat&quot;</p>
+<p>$tomcat_File/bin/shutdown.sh</p>
+<p>until [ -z $(/sbin/pidof java) ]; do :; done</p>
+<p>rm -f /var/lock/subsys/tomcat</p>
+<p>else</p>
+<p>echo &quot;tomcat not running&quot;</p>
+<p>fi</p>
+<p>}</p>
+<p>case &quot;$1&quot; in</p>
+<p>start)</p>
+<p>start</p>
+<p>;;</p>
+<p>stop)</p>
+<p>stop</p>
+<p>;;</p>
+<p>restart)</p>
+<p>stop</p>
+<p>start</p>
+<p>;;</p>
+<p>status)</p>
+<p>$tomcat_File/bin/catalina.sh version</p>
+<p>;;</p>
+<p>*)</p>
+<p>echo &quot;Usage: $0 {start|stop|restart|status}&quot;</p>
+<p>esac</p>
+<p>exit 0</p>
+<p>#----------输入以下信息---------------------</p>
+<p>:wq! #保存退出</p>
+<p># chmod 755 /etc/rc.d/init.d/tomcat #添加执行权限</p>
+<p># chkconfig --add tomcat #添加服务</p>
+<p># chkconfig tomcat on #设置开机启动</p>
+<p># service tomcat stop #停止</p>
+<p># service tomcat start #启动</p>
+<p># service tomcat restart #重启</p>
+<p># service tomcat status #查看状态信息</p>
+<p>————————————————————————————————————————————————————————————————————————————————————————————</p>
+<p>【nginx-1.7.6.tar.gz的安装】</p>
+<hr />
+<p>》先下载nginx-1.7.6.tar.gz</p>
+<p>》下载URL:http://nginx.org/download/nginx-1.7.6.tar.gz</p>
+<p>》把nginx-1.7.6.tar.gz放到/usr/java/tools目录下</p>
+<p># cd /usr/local/</p>
+<p># tar -zxvf /usr/java/tools/nginx-1.7.5.tar.gz</p>
+<p># cd nginx-1.7.6/</p>
+<p># yum -y install pcre-devel</p>
+<p># yum install -y zlib-devel</p>
+<p># ./configure</p>
+<p># make &amp;&amp; make install</p>
+<p># cd /usr/local/nginx</p>
+<p># cd sbin</p>
+<p># ./nginx</p>
+<p># /etc/rc.d/init.d/iptables stop</p>
+<p>》配置服务器启动方式</p>
+<p># vi /etc/init.d/nginx</p>
+<p>#---------输入以下信息------------------</p>
+<p># nginx Startup script for the Nginx HTTP Server</p>
+<p># it is v.0.0.2 version.</p>
+<p># chkconfig: - 85 15</p>
+<p># description: Nginx is a high-performance web and proxy server.</p>
+<p># It has a lot of features, but it's not for everyone.</p>
+<p># processname: nginx</p>
+<p># pidfile: /software/nginx/logs/nginx.pid</p>
+<p># config: /software/nginx/conf/nginx.conf</p>
+<p>nginxd=/usr/local/nginx/sbin/nginx</p>
+<p>nginx_config=/usr/local/nginx/conf/nginx.conf</p>
+<p>nginx_pid=/usr/local/nginx/logs/nginx.pid</p>
+<p>RETVAL=0</p>
+<p>prog=&quot;nginx&quot;</p>
+<p># Source function library.</p>
+<p>. /etc/rc.d/init.d/functions</p>
+<p># Source networking configuration.</p>
+<p>. /etc/sysconfig/network</p>
+<p># Check that networking is up.</p>
+<p>[ ${NETWORKING} = &quot;no&quot; ] &amp;&amp; exit 0</p>
+<p>[ -x $nginxd ] || exit 0</p>
+<p># Start nginx daemons functions.</p>
+<p>start() {</p>
+<p>if [ -e $nginx_pid ];then</p>
+<p>echo &quot;nginx already running....&quot;</p>
+<p>exit 1</p>
+<p>fi</p>
+<p>echo -n $&quot;Starting $prog: &quot;</p>
+<p>daemon $nginxd -c ${nginx_config}</p>
+<p>RETVAL=$?</p>
+<p>echo</p>
+<p>[ $RETVAL = 0 ] &amp;&amp; touch /var/lock/subsys/nginx</p>
+<p>return $RETVAL</p>
+<p>}</p>
+<p># Stop nginx daemons functions.</p>
+<p>stop() {</p>
+<p>echo -n $&quot;Stopping $prog: &quot;</p>
+<p>killproc $nginxd</p>
+<p>RETVAL=$?</p>
+<p>echo</p>
+<p>[ $RETVAL = 0 ] &amp;&amp; rm -f /var/lock/subsys/nginx /usr/local/nginx/logs/nginx.pid</p>
+<p>}</p>
+<p>reload() {</p>
+<p>echo -n $&quot;Reloading $prog: &quot;</p>
+<p>#kill -HUP <code>cat ${nginx_pid}</code></p>
+<p>killproc $nginxd -HUP</p>
+<p>RETVAL=$?</p>
+<p>echo</p>
+<p>}</p>
+<p># See how we were called.</p>
+<p>case &quot;$1&quot; in</p>
+<p>start)</p>
+<p>start</p>
+<p>;;</p>
+<p>stop)</p>
+<p>stop</p>
+<p>;;</p>
+<p>reload)</p>
+<p>reload</p>
+<p>;;</p>
+<p>restart)</p>
+<p>stop</p>
+<p>start</p>
+<p>;;</p>
+<p>status)</p>
+<p>status $prog</p>
+<p>RETVAL=$?</p>
+<p>;;</p>
+<p>*)</p>
+<p>echo $&quot;Usage: $prog {start|stop|restart|reload|status|help}&quot;</p>
+<p>exit 1</p>
+<p>esac</p>
+<p>exit $RETVAL</p>
+<p>#---------输入以下信息------------------</p>
+<p># chmod 755 /etc/init.d/nginx &amp;&amp; chkconfig nginx on</p>
+<p># service nginx start</p>
+<p># service nginx stop</p>
+<p># service nginx restart</p>
+<p># ps -ef | grep nginx</p>
+<p># netstat -pant | grep 80</p>
+<p>》测试在浏览器中输入广域网IP看看能不能看到欢迎界面，如果能就表示成功了。</p>
+<p>————————————————————————————————————————————————————————————————————————————————————————————</p>
+<p>【配置规则】</p>
+<hr />
+<p># vi /etc/sysconfig/iptables</p>
+<p>增加如下配置:</p>
+<p>-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT</p>
+<p>-A INPUT -m state --state NEW -m tcp -p tcp --dport 8888 -j ACCEPT</p>
+<p>-A INPUT -m state --state NEW -m tcp -p tcp --dport 6666 -j ACCEPT</p>
+<p># service iptables restart</p>
+<p>》系统启动的方式为自启动</p>
+<p># chkconfig mysql on</p>
+<p># chkconfig nginx on</p>
+<p># chkconfig tomcat on</p>
+<p>----------------------------------------------------------------------------------------------------</p>
+<p>所有环境安装完成。欢迎使用CentOS6.5,祝大家一用便会。</p>
+<p>----------------------------------------------------------------------------------------------------</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

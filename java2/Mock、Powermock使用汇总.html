@@ -1,0 +1,405 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Mock、Powermock使用汇总' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Mock、Powermock使用汇总</center></div><div class='banquan'>原文出处:本文由博客园博主水木桶提供。<br/>
+原文连接:https://www.cnblogs.com/shuimutong/p/11743648.html</div><br>
+    <h1><strong>背景</strong></h1>
+<p>工作中经常用到单测，某对单测掌握的不好，所以趁此学习、总结一下。</p>
+<p>主要参考：https://www.jianshu.com/p/0c2480b1709e、https://www.cnblogs.com/ljw-bim/p/9391770.html</p>
+<h1><strong>一、不依赖外部方法的单测</strong></h1>
+<p>1、待测试类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.demo.junit;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 无依赖方法
+ * @ClassName:  NotStaticMethod   
+ * @Description:(这里用一句话描述这个类的作用)   
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;">: 水木桶
+ * @date:   2019年10月26日 上午10:37:09     
+ * @Copyright: 2019 [水木桶]  All rights reserved.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> NoRelayMethod {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> ADD_NUM = 2<span style="color: #000000;">;
+    
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> staticAddTwo(<span style="color: #0000ff;">int</span><span style="color: #000000;"> num) {
+        </span><span style="color: #0000ff;">return</span> num +<span style="color: #000000;"> ADD_NUM;
+    }
+    
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 非静态方法
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> num
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span> notStaticAddTwo(<span style="color: #0000ff;">int</span><span style="color: #000000;"> num) {
+        </span><span style="color: #0000ff;">return</span> num +<span style="color: #000000;"> ADD_NUM;
+    }
+    
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 私有非静态方法
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> num
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> privateNotStaticAddTow(<span style="color: #0000ff;">int</span><span style="color: #000000;"> num) {
+        </span><span style="color: #0000ff;">return</span> num +<span style="color: #000000;"> ADD_NUM;
+    }
+}<br /></span></code></pre>
+
+<p>&nbsp;2、单测类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.demo.junit;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.lang.reflect.Method;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Assert;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.runner.RunWith;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.mockito.InjectMocks;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.powermock.api.mockito.PowerMockito;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.powermock.core.classloader.annotations.PrepareForTest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.powermock.modules.junit4.PowerMockRunner;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 参照1：</span><span style="color: #008000; text-decoration: underline;">https://www.jianshu.com/p/0c2480b1709e</span><span style="color: #008000;">
+ * 参照2：</span><span style="color: #008000; text-decoration: underline;">https://www.cnblogs.com/ljw-bim/p/9391770.html</span><span style="color: #008000;">
+ * @ClassName:  NoRelayMethodTest   
+ * @Description:(这里用一句话描述这个类的作用)   
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;">: 水木桶
+ * @date:   2019年10月26日 下午4:14:48     
+ * @Copyright: 2019 [水木桶]  All rights reserved.
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@RunWith(PowerMockRunner.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+@PrepareForTest({NoRelayMethod.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">})
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> NoRelayMethodTest {
+    @InjectMocks
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> NoRelayMethod noRelayMethod;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">不需要mock，可以去除上面3个注解</span>
+<span style="color: #000000;">    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> staticAddTwo() {
+        </span><span style="color: #0000ff;">int</span> num = 3<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">int</span> result =<span style="color: #000000;"> NoRelayMethod.staticAddTwo(num);
+        Assert.assertTrue(result </span>== (num +<span style="color: #000000;"> NoRelayMethod.ADD_NUM));
+        
+    }
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">不需要mock，可以去除上面3个注解</span>
+<span style="color: #000000;">    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> notStaticAddTwo() {
+        </span><span style="color: #0000ff;">int</span> num = 1<span style="color: #000000;">;
+        NoRelayMethod noRelayMethod </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> NoRelayMethod();
+        </span><span style="color: #0000ff;">int</span> result =<span style="color: #000000;"> noRelayMethod.notStaticAddTwo(num);
+        Assert.assertTrue(result </span>== (num +<span style="color: #000000;"> NoRelayMethod.ADD_NUM));
+    }
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">需要mock
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">mock私有方法</span>
+<span style="color: #000000;">    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> privateNotStaticAddTow() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        Method method </span>= PowerMockito.method(NoRelayMethod.<span style="color: #0000ff;">class</span>, "privateNotStaticAddTow", <span style="color: #0000ff;">int</span>.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">int</span> num = 3<span style="color: #000000;">;
+        Object res </span>= method.invoke(noRelayMethod, 3<span style="color: #000000;">);
+        System.out.println(res);
+        Assert.assertEquals(num </span>+<span style="color: #000000;"> NoRelayMethod.ADD_NUM, res);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;3、备注</p>
+<p>staticAddTwo和notStaticAddTwo方法不需要RunWith、PrepareForTest、InjectMocks这3个注解。</p>
+<p>privateNotStaticAddTow涉及到私有方法，需要前面那3个注解。</p>
+<h1><strong>二、有依赖外部静态方法的单测</strong></h1>
+<p>1、待测试类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.demo.junit;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 有依赖其他静态方法
+ * @ClassName:  RelayMethod   
+ * @Description:(这里用一句话描述这个类的作用)   
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;">: 水木桶
+ * @date:   2019年10月26日 下午3:26:01     
+ * @Copyright: 2019 [水木桶]  All rights reserved.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RelayStaticMethod {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">static</span> String DEFAULT_VAL = "defaultVal"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">static</span> String SIGNED = "signed"<span style="color: #000000;">;
+    
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 依赖静态方法的
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> key
+     * </span><span style="color: #808080;">@return</span>
+     <span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span><span style="color: #000000;"> String checkAndCalc(String key) {
+        String returnVal </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        String savedVal </span>=<span style="color: #000000;"> RedisUtil.get(key);
+        </span><span style="color: #0000ff;">if</span>(savedVal == <span style="color: #0000ff;">null</span> || savedVal.length() &lt; 1<span style="color: #000000;">) {
+            returnVal </span>=<span style="color: #000000;"> DEFAULT_VAL;
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            returnVal </span>=  savedVal + "-" +<span style="color: #000000;"> SIGNED;
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> returnVal;
+    }
+    
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>1-1、依赖外部类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.demo.junit;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.UUID;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RedisUtil {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">boolean</span> INIT_STATE = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> String get(String key) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(INIT_STATE) {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> UUID.randomUUID().toString();
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> NullPointerException("资源未初始化"<span style="color: #000000;">);
+        }
+    }
+    
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;2、单测类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.demo.junit;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.UUID;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Assert;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.runner.RunWith;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.mockito.Mockito;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.powermock.api.mockito.PowerMockito;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.powermock.core.classloader.annotations.PrepareForTest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.powermock.modules.junit4.PowerMockRunner;
+
+
+@RunWith(PowerMockRunner.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">参考：</span><span style="color: #008000; text-decoration: underline;">https://www.jianshu.com/p/0c2480b1709e</span>
+<span style="color: #008000;">//</span><span style="color: #008000;">1、如果想要对某个类的静态方法进行mock，则必须在PrepareForTest后面加上相应的类名, 比如此例的RedisUtil.class。</span>
+@PrepareForTest({RedisUtil.<span style="color: #0000ff;">class</span><span style="color: #000000;">})
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RelayStaticMethodTest {
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * mock依赖的静态方法
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> checkAndCalc() {
+        String key1 </span>= "jack"<span style="color: #000000;">;
+        String key2 </span>= "john"<span style="color: #000000;">;
+        String val2 </span>=<span style="color: #000000;"> UUID.randomUUID().toString();
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">2、在对该类的某个方法进行mock之前，还必须先对整个类进行mock</span>
+        PowerMockito.mockStatic(RedisUtil.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+        PowerMockito.when(RedisUtil.get(Mockito.eq(key1))).thenReturn(</span><span style="color: #0000ff;">null</span><span style="color: #000000;">);
+        PowerMockito.when(RedisUtil.get(Mockito.eq(key2))).thenReturn(val2);
+        
+        RelayStaticMethod relayMethod </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> RelayStaticMethod();
+        String res </span>=<span style="color: #000000;"> relayMethod.checkAndCalc(key1);
+        System.out.println(</span>"res:" +<span style="color: #000000;"> res);
+        Assert.assertEquals(RelayStaticMethod.DEFAULT_VAL, res);
+        
+        res </span>=<span style="color: #000000;"> relayMethod.checkAndCalc(key2);
+        System.out.println(</span>"res:" +<span style="color: #000000;"> res);
+        Assert.assertTrue(res.contains(RelayStaticMethod.SIGNED));
+    }
+    
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;2-1、运行结果</p>
+<blockquote>
+<p>res:defaultVal<br />res:e76dc3b8-fcf5-42b8-9f79-1d308d137514-signed</p>
+
+
+</blockquote>
+<h1>&nbsp;三、有依赖外部非静态方法的单测</h1>
+<p>1、待测试类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.demo.junit;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 参照1：</span><span style="color: #008000; text-decoration: underline;">https://www.jianshu.com/p/0c2480b1709e</span><span style="color: #008000;">
+ * 参照2：</span><span style="color: #008000; text-decoration: underline;">https://www.cnblogs.com/ljw-bim/p/9391770.html</span><span style="color: #008000;">
+ * @ClassName:  UserController   
+ * @Description:(这里用一句话描述这个类的作用)   
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;">: 水木桶
+ * @date:   2019年10月26日 下午4:14:30     
+ * @Copyright: 2019 [水木桶]  All rights reserved.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserController {
+    </span><span style="color: #0000ff;">private</span> UserService userService = <span style="color: #0000ff;">new</span><span style="color: #000000;"> UserService();
+    
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User saveUser(String name) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userService.save(name);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>1-1、依赖非静态类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.demo.junit;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserService {
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User save(String name) {
+        System.out.println(</span>"UserService--save--name:" +<span style="color: #000000;"> name);
+        User u </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> User(name);
+        u.setId((</span><span style="color: #0000ff;">long</span>)(Math.random() * 1000) + 2<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> u;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;1-2、相关类User</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.demo.junit;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> User {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">long</span><span style="color: #000000;"> id;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String name;
+    
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User(String name) {
+        </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> User() {
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setName(String name) {
+        </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">long</span><span style="color: #000000;"> getId() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> id;
+    }
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setId(<span style="color: #0000ff;">long</span><span style="color: #000000;"> id) {
+        </span><span style="color: #0000ff;">this</span>.id =<span style="color: #000000;"> id;
+    }
+    @Override
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+        </span><span style="color: #0000ff;">return</span> "User [id=" + id + ", name=" + name + "]"<span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;2、单测类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.demo.junit;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Assert;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.runner.RunWith;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.mockito.InjectMocks;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.mockito.Mock;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.mockito.Mockito;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.powermock.api.mockito.PowerMockito;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.powermock.core.classloader.annotations.PrepareForTest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.powermock.modules.junit4.PowerMockRunner;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * 参照1：</span><span style="color: #008000; text-decoration: underline;">https://www.jianshu.com/p/0c2480b1709e</span><span style="color: #008000;">
+ * 参照2：</span><span style="color: #008000; text-decoration: underline;">https://www.cnblogs.com/ljw-bim/p/9391770.html</span><span style="color: #008000;">
+ * @ClassName:  UserControllerTest   
+ * @Description:(这里用一句话描述这个类的作用)   
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;">: 水木桶
+ * @date:   2019年10月26日 下午4:13:51     
+ * @Copyright: 2019 [水木桶]  All rights reserved.
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+@RunWith(PowerMockRunner.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">)
+@PrepareForTest({UserController.</span><span style="color: #0000ff;">class</span><span style="color: #000000;">})
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserControllerTest {
+    @Mock
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> UserService userService;
+    @InjectMocks
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> UserController userController;
+    
+    @Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> saveUser() {
+        String name </span>= "jack"<span style="color: #000000;">;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">执行userService的实际方法</span>
+<span style="color: #000000;">        PowerMockito.when(userService.save(Mockito.anyString())).thenCallRealMethod();
+        User returnUser </span>=<span style="color: #000000;"> userController.saveUser(name);
+        System.out.println(</span>"returnUser:" +<span style="color: #000000;"> returnUser);
+        Assert.assertTrue(returnUser.getId() </span>&gt; 1<span style="color: #000000;">);
+        
+        </span><span style="color: #0000ff;">long</span> id = 1L<span style="color: #000000;">;
+        User u1 </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> User(name);
+        u1.setId(id);
+        System.out.println(</span>"u1:" +<span style="color: #000000;"> u1);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">mock userService的方法</span>
+<span style="color: #000000;">        Mockito.when(userService.save(name)).thenReturn(u1);
+        returnUser </span>=<span style="color: #000000;"> userController.saveUser(name);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">verify验证mock次数</span>
+        Mockito.verify(userService, Mockito.times(2<span style="color: #000000;">)).save(name);
+        Assert.assertEquals(id, returnUser.getId());
+        Assert.assertEquals(u1, returnUser);
+        System.out.println(</span>"returnUser:" +<span style="color: #000000;"> returnUser);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>2-1、执行结果</p>
+<blockquote>
+<p>UserService--save--name:jack<br />returnUser:User [id=51, name=jack]<br />u1:User [id=1, name=jack]<br />UserService--save--name:jack<br />returnUser:User [id=1, name=jack]</p>
+
+
+</blockquote>
+<h1>四、相关环境</h1>
+<p>1、依赖jar</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>junit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>junit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>4.11<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.mockito<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>mockito-core<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.10.0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.powermock<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>powermock-api-mockito2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.0.2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.powermock<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>powermock-module-junit4<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>2.0.2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">version</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p>2、源码地址</p>
+<p><a href="https://gitee.com/simpleha/useDemo/tree/master/junit" target="_blank">https://gitee.com/simpleha/useDemo/tree/master/junit</a></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

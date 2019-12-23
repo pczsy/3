@@ -1,0 +1,188 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot2 整合 ClickHouse数据库，实现高性能数据查询分析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot2 整合 ClickHouse数据库，实现高性能数据查询分析</center></div><div class='banquan'>原文出处:本文由博客园博主知了一笑提供。<br/>
+原文连接:https://www.cnblogs.com/cicada-smile/p/11632251.html</div><br>
+    <p>本文源码：<a href="https://github.com/cicadasmile/middle-ware-parent">GitHub·点这里</a> || <a href="https://gitee.com/cicadasmile/middle-ware-parent">GitEE·点这里</a></p>
+<h1 id="一clickhouse简介">一、ClickHouse简介</h1>
+<h2 id="基础简介">1、基础简介</h2>
+<blockquote>
+<p>Yandex开源的数据分析的数据库，名字叫做ClickHouse，适合流式或批次入库的时序数据。ClickHouse不应该被用作通用数据库，而是作为超高性能的海量数据快速查询的分布式实时处理平台，在数据汇总查询方面(如GROUP BY)，ClickHouse的查询速度非常快。</p>
+</blockquote>
+<h2 id="数据分析能力">2、数据分析能力</h2>
+<ul>
+<li>OLAP场景特征</li>
+</ul>
+<pre><code><code>· 大多数是读请求
+· 数据总是以相当大的批(&gt; 1000 rows)进行写入
+· 不修改已添加的数据
+· 每次查询都从数据库中读取大量的行，但是同时又仅需要少量的列
+· 宽表，即每个表包含着大量的列
+· 较少的查询(通常每台服务器每秒数百个查询或更少)
+· 对于简单查询，允许延迟大约50毫秒
+· 列中的数据相对较小： 数字和短字符串(例如，每个URL 60个字节)
+· 处理单个查询时需要高吞吐量（每个服务器每秒高达数十亿行）
+· 事务不是必须的
+· 对数据一致性要求低
+· 每一个查询除了一个大表外都很小
+· 查询结果明显小于源数据，换句话说，数据被过滤或聚合后能够被盛放在单台服务器的内存中</code></code></pre>
+<ul>
+<li>列式数据存储</li>
+</ul>
+<p>(1)、行式数据</p>
+<p><img src="./images/SpringBoot2 整合 ClickHouse数据库，实现高性能数据查询分析0.png" /></p>
+<p>(2)、列式数据</p>
+<p><img src="./images/SpringBoot2 整合 ClickHouse数据库，实现高性能数据查询分析1.png" /></p>
+<p>(3)、对比分析</p>
+<blockquote>
+<p>分析类查询，通常只需要读取表的一小部分列。在列式数据库中可以只读取需要的数据。数据总是打包成批量读取的，所以压缩是非常容易的。同时数据按列分别存储这也更容易压缩。这进一步降低了I/O的体积。由于I/O的降低，这将帮助更多的数据被系统缓存。</p>
+</blockquote>
+<h1 id="二整合springboot框架">二、整合SpringBoot框架</h1>
+<blockquote>
+<p>该案例基于：Druid连接池和mybatis进行整合。Druid 1.1.10 版本 SQL Parser对clickhouse的开始提供支持。</p>
+</blockquote>
+<h2 id="核心依赖">1、核心依赖</h2>
+<pre><code><code>&lt;dependency&gt;
+    &lt;groupId&gt;ru.yandex.clickhouse&lt;/groupId&gt;
+    &lt;artifactId&gt;clickhouse-jdbc&lt;/artifactId&gt;
+    &lt;version&gt;0.1.53&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<h2 id="配属数据源">2、配属数据源</h2>
+<pre><code><code>spring:
+  datasource:
+    type: com.alibaba.druid.pool.DruidDataSource
+    click:
+      driverClassName: ru.yandex.clickhouse.ClickHouseDriver
+      url: jdbc:clickhouse://127.0.0.1:8123/default
+      initialSize: 10
+      maxActive: 100
+      minIdle: 10
+      maxWait: 6000</code></code></pre>
+<h2 id="druid连接池配置">3、Druid连接池配置</h2>
+<pre><code><code>@Configuration
+public class DruidConfig {
+    @Resource
+    private JdbcParamConfig jdbcParamConfig ;
+    @Bean
+    public DataSource dataSource() {
+        DruidDataSource datasource = new DruidDataSource();
+        datasource.setUrl(jdbcParamConfig.getUrl());
+        datasource.setDriverClassName(jdbcParamConfig.getDriverClassName());
+        datasource.setInitialSize(jdbcParamConfig.getInitialSize());
+        datasource.setMinIdle(jdbcParamConfig.getMinIdle());
+        datasource.setMaxActive(jdbcParamConfig.getMaxActive());
+        datasource.setMaxWait(jdbcParamConfig.getMaxWait());
+        return datasource;
+    }
+}</code></code></pre>
+<h2 id="参数配置类">4、参数配置类</h2>
+<pre><code><code>@Component
+@ConfigurationProperties(prefix = &quot;spring.datasource.click&quot;)
+public class JdbcParamConfig {
+    private String driverClassName ;
+    private String url ;
+    private Integer initialSize ;
+    private Integer maxActive ;
+    private Integer minIdle ;
+    private Integer maxWait ;
+    // 省略 GET 和 SET
+}</code></code></pre>
+<p>这样整合代码就完成了。</p>
+<h1 id="三操作案例演示">三、操作案例演示</h1>
+<h2 id="mapper接口">1、Mapper接口</h2>
+<pre><code><code>public interface UserInfoMapper {
+    // 写入数据
+    void saveData (UserInfo userInfo) ;
+    // ID 查询
+    UserInfo selectById (@Param(&quot;id&quot;) Integer id) ;
+    // 查询全部
+    List&lt;UserInfo&gt; selectList () ;
+}</code></code></pre>
+<p>这里就演示简单的三个接口。</p>
+<h2 id="mapper.xml文件">2、Mapper.xml文件</h2>
+<pre><code><code>&lt;mapper namespace=&quot;com.click.house.mapper.UserInfoMapper&quot;&gt;
+    &lt;resultMap id=&quot;BaseResultMap&quot; type=&quot;com.click.house.entity.UserInfo&quot;&gt;
+        &lt;id column=&quot;id&quot; jdbcType=&quot;INTEGER&quot; property=&quot;id&quot; /&gt;
+        &lt;result column=&quot;user_name&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;userName&quot; /&gt;
+        &lt;result column=&quot;pass_word&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;passWord&quot; /&gt;
+        &lt;result column=&quot;phone&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;phone&quot; /&gt;
+        &lt;result column=&quot;email&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;email&quot; /&gt;
+        &lt;result column=&quot;create_day&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;createDay&quot; /&gt;
+    &lt;/resultMap&gt;
+    &lt;sql id=&quot;Base_Column_List&quot;&gt;
+        id,user_name,pass_word,phone,email,create_day
+    &lt;/sql&gt;
+    &lt;insert id=&quot;saveData&quot; parameterType=&quot;com.click.house.entity.UserInfo&quot; &gt;
+        INSERT INTO cs_user_info
+        (id,user_name,pass_word,phone,email,create_day)
+        VALUES
+        (#{id,jdbcType=INTEGER},#{userName,jdbcType=VARCHAR},#{passWord,jdbcType=VARCHAR},
+        #{phone,jdbcType=VARCHAR},#{email,jdbcType=VARCHAR},#{createDay,jdbcType=VARCHAR})
+    &lt;/insert&gt;
+    &lt;select id=&quot;selectById&quot; parameterType=&quot;java.lang.Integer&quot; resultMap=&quot;BaseResultMap&quot;&gt;
+        select
+        &lt;include refid=&quot;Base_Column_List&quot; /&gt;
+        from cs_user_info
+        where id = #{id,jdbcType=INTEGER}
+    &lt;/select&gt;
+    &lt;select id=&quot;selectList&quot; resultMap=&quot;BaseResultMap&quot; &gt;
+        select
+        &lt;include refid=&quot;Base_Column_List&quot; /&gt;
+        from cs_user_info
+    &lt;/select&gt;
+&lt;/mapper&gt;</code></code></pre>
+<p>这里 create_day 是以字符串的方式在转换，这里需要注意下。</p>
+<h2 id="控制层接口">3、控制层接口</h2>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/user&quot;)
+public class UserInfoController {
+    @Resource
+    private UserInfoService userInfoService ;
+    @RequestMapping(&quot;/saveData&quot;)
+    public String saveData (){
+        UserInfo userInfo = new UserInfo () ;
+        userInfo.setId(4);
+        userInfo.setUserName(&quot;winter&quot;);
+        userInfo.setPassWord(&quot;567&quot;);
+        userInfo.setPhone(&quot;13977776789&quot;);
+        userInfo.setEmail(&quot;winter&quot;);
+        userInfo.setCreateDay(&quot;2020-02-20&quot;);
+        userInfoService.saveData(userInfo);
+        return &quot;sus&quot;;
+    }
+    @RequestMapping(&quot;/selectById&quot;)
+    public UserInfo selectById () {
+        return userInfoService.selectById(1) ;
+    }
+    @RequestMapping(&quot;/selectList&quot;)
+    public List&lt;UserInfo&gt; selectList () {
+        return userInfoService.selectList() ;
+    }
+}</code></code></pre>
+<h1 id="四源代码地址">四、源代码地址</h1>
+<pre><code><code>GitHub·地址
+https://github.com/cicadasmile/middle-ware-parent
+GitEE·地址
+https://gitee.com/cicadasmile/middle-ware-parent</code></code></pre>
+<p><img src="./images/SpringBoot2 整合 ClickHouse数据库，实现高性能数据查询分析2.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

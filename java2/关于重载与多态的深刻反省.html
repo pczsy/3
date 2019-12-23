@@ -1,0 +1,155 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于重载与多态的深刻反省' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于重载与多态的深刻反省</center></div><div class='banquan'>原文出处:本文由博客园博主chiayhon提供。<br/>
+原文连接:https://www.cnblogs.com/chiayhon/p/11736004.html</div><br>
+    <h2><strong><span style="font-size: 18pt;">前言</span></strong></h2>
+<p>　　<span style="font-size: 14px;">有时候，人在长时间重复盯着一个汉字或者一个单词时，会突然发生不认识该字或者单词的情况，这是一种神经心理学现象，被称为&ldquo;语义饱和&rdquo;或者&ldquo;完形崩坏&rdquo;。有时候，人在长时间不复习一个名词或者一个概念的时，会突然发生不理解该名词或者概念的情况，这是一种认知心理学现象，被称为&ldquo;基础不牢固&rdquo;或者&ldquo;学习不认真&rdquo;。</span></p>
+<p><span style="font-size: 14px;">　　就像一提到重载和多态。你问我什么是重载？我唰唰两下背出来：<em><strong>重载，编译时多态，主要是指同一个类里同名方法具有不同的参数列表（参数类型、参数数目、参数次序），且不能通过返回值判断是否重载</strong>。</em>顺带买一送一：<strong><em>多态，分为编译时多态与运行时多态，指同一种行为具有多种不同表现形式或形态的能力。其中编译时多态表现形式为方法重载（overload），运行时多态表现形式为方法重写（override）。实现多态必要条件是：① 继承 ②重写 ③父类引用指向子类对象。</em></strong></span></p>
+<p><span style="font-size: 14px;">　　看似好像没啥不对，可突然我发现，编译时多态不满足多态必要条件，也就是说编译时多态不是多态？这可把我整懵了。为此必须得纠结一会重载是不是多态的概念问题。</span></p>
+<p>　</p>
+<h2><span style="font-size: 18pt;"><strong>何为多态</strong></span></h2>
+<h3><span style="font-size: 14px;"><strong>　　</strong><span style="font-size: 16px;"><strong>关于定义</strong></span></span></h3>
+<p><span style="font-size: 14pt;">　　　<span style="font-size: 14px;">在维基百科里，多态是这么定义的:</span></span><strong><br /></strong></p>
+<blockquote>
+<p><span style="font-size: 14pt;"><span style="font-size: 14px;">　　　<em>　</em><em>在编程语言和类型论中，多态（英语：</em><span lang="en"><em>polymorphism）指为不同数据类型的实体提供统一的接口</em></span><em><br /></em></span></span></p>
+
+
+
+
+
+
+
+
+
+
+
+</blockquote>
+<p>&nbsp;</p>
+<p>　　　　也就是说多态是<strong>面向接口编程</strong>。<span>多态性使我们能够以不同的方式执行单个动作。</span><span>换句话说，多态允许我们定义一个接口并具有多种实现。</span></p>
+<p>&nbsp;</p>
+<h3><span style="font-size: 14px;"><strong>　　<span style="font-size: 16px;">关于多态分类</span></strong></span></h3>
+<blockquote>
+<p><em><em><em>　　　　子类型</em>多态（inclusion polymorphism）：</em>...子程序编写为可在超类型的元素上操作的函数或函数也可以在子类型的元素上操作...也被称为<em><em>包含</em></em>多态（Subtype polymorphism）。在面向对象程序设计中，这被直接称为<strong>多态</strong>。</em></p>
+<p>　　　　参数多态性<em>（</em>Parametric polymorphism<em>）：...由于这种关联处理于编译期而非运行期，因此被称为&ldquo;<strong>静态</strong>&rdquo;。...参数多态性在几种面向对象的语言中也可用。例如Java中的<strong>泛型</strong>名称....</em></p>
+<p><em><em>　　　　临时多态（<span id="Ad_hoc_polymorphism" class="mw-headline">Ad hoc polymorphism</span></em></em>）：...把类型作为参数的多态...<em>但是其行为取决于所应用自变量的类型（也称为<strong>函数重载</strong>或<strong>运算符重载</strong>）...</em></p>
+<p>　　　　强制多态：编译程序通过语义操作，把操作对象的类型强行加以变换，以符合函数或操作符的要求。</p>
+
+
+
+</blockquote>
+<h3><span style="font-size: 14px;"><strong>　　<span style="font-size: 16px;">总结</span></strong></span></h3>
+<ul>
+<li style="list-style-type: none;">
+<ul>
+<li style="list-style-type: none;">
+<ul>
+<li>子类型多态也称为<strong>运行时多态,</strong>即<strong>面向对象中的多态。</strong></li>
+<li>参数多态性是把类型作为参数的多态<strong>，</strong>即<strong>泛型</strong>。</li>
+<li>临时多态性<em>取决于应用自变量的类型，即</em><strong>重载</strong>。</li>
+<li>强制多态也称为（隐式或显式）强制转换，当没有符合的方法，则将类型尽可能的进行转换。</li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+</li>
+
+
+
+
+
+
+
+
+
+
+
+
+</ul>
+<p>　　　　其中参数多态和临时多态都是静态绑定，即在编译时能确定调用哪个方法，为静态多态；子类型多态和强制多态是动态绑定，即运行时才能确定具体调用哪个方法，为动态多态。</p>
+<hr />
+<p style="text-align: center;">（相关例子待补充）</p>
+<p style="text-align: center;">（相关例子待补充）</p>
+<p style="text-align: center;">（相关例子待补充）</p>
+<hr />
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　至此我应该搞清楚了多态和重载之间的关系了：</p>
+<p>　　　　　多态分为编译时多态和运行时多态，而编译时多态又分为参数多态和临时多态，运行时多态分为子类型多态和强制多态。在面向对象编程里的多态一般指子类型多态，即要满足<em>① 继承 ②重写 ③父类引用指向子类对象</em><strong><em>。</em></strong></p>
+<p>　　　　　重载也是多态表现形式的一种，即临时多态。但重载不是面向对象的，因此重载所对应的多态自然不适用面向对象中定义的多态满足条件。</p>
+<p>　　　　　另外，可以说重载是编译时多态，而不能说编译时多态是重载，因为编译时多态还包括泛型。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>参考资料：</p>
+<p><a href="https://en.wikipedia.org/wiki/Polymorphism_(computer_science)">https://en.wikipedia.org/wiki/Polymorphism_(computer_science)</a></p>
+<p>&nbsp;</p>
+<p><em id="__mceDel"><a href="https://zh.wikipedia.org/wiki/%E5%A4%9A%E5%9E%8B_(%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6)">https://zh.wikipedia.org/wiki/%E5%A4%9A%E5%9E%8B_(%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6)</a></em></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

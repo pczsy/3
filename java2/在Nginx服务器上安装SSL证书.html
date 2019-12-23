@@ -1,0 +1,102 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在Nginx服务器上安装SSL证书' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在Nginx服务器上安装SSL证书</center></div><div class='banquan'>原文出处:本文由博客园博主布禾卡斐先生提供。<br/>
+原文连接:https://www.cnblogs.com/seve/p/11692003.html</div><br>
+    <h3 id="配置nginx">配置nginx</h3>
+<p>1.下载证书文件<br />
+<img src="./images/在Nginx服务器上安装SSL证书0.png" /></p>
+<p>2.在nginx的conf目录中创建目录cert目录，并将证书文件拷贝进去。</p>
+<p>3.配置nginx.conf，完整的nginx.conf如下：</p>
+<pre><code><code>
+#user  nobody;
+worker_processes  1;
+
+#error_log  logs/error.log;
+#error_log  logs/error.log  notice;
+#error_log  logs/error.log  info;
+
+#pid        logs/nginx.pid;
+
+
+events {
+    worker_connections  1024;
+}
+
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    #log_format  main  &#39;$remote_addr - $remote_user [$time_local] &quot;$request&quot; &#39;
+    #                  &#39;$status $body_bytes_sent &quot;$http_referer&quot; &#39;
+    #                  &#39;&quot;$http_user_agent&quot; &quot;$http_x_forwarded_for&quot;&#39;;
+
+    #access_log  logs/access.log  main;
+
+    sendfile        on;
+    #tcp_nopush     on;
+
+    #keepalive_timeout  0;
+    keepalive_timeout  65;
+
+    #gzip  on;
+
+    server {
+        listen       80;
+        server_name  xxx.com;#替换成你的域名
+
+        location / {
+            rewrite ^(.*)$ https://xxx.com/$1 permanent;#替换成你的域名
+        }
+    }
+
+    server {
+        listen 443;
+        server_name xxx.com;  # 替换成你的域名
+        ssl on;   #设置为on启用SSL功能。
+        root html;
+        index index.html index.htm;
+        ssl_certificate cert/2946730_www.xxx.com.pem;   #替换成你的pem文件名称
+        ssl_certificate_key cert/2946730_www.xxx.com.key;   #替换成你的key文件名称
+        ssl_session_timeout 5m;
+        ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:ECDHE:ECDH:AES:HIGH:!NULL:!aNULL:!MD5:!ADH:!RC4;  #使用此加密套件。
+        ssl_protocols TLSv1 TLSv1.1 TLSv1.2;   #使用该协议进行配置。
+        ssl_prefer_server_ciphers on;   
+        location / {
+            proxy_pass http://localhost:8080/;  #请求转发
+        }
+    }
+
+}
+</code></code></pre>
+<p>4.启动nginx，然后进行访问：<br />
+<img src="./images/在Nginx服务器上安装SSL证书1.png" /></p>
+<h3 id="启动时nginxemergunknown-directive-ssl错误">启动时nginx:[emerg]unknown directive ssl错误</h3>
+<p>原因是nginx缺少SSL模块，需要重新将SSL模块添加进去，然后再启动nginx：</p>
+<ol>
+<li>在<strong>解压目录</strong>(不是安装目录)执行命令：<strong>./configure --with-http_ssl_module</strong></li>
+<li>继续执行命令：<strong>make</strong></li>
+<li>将objs目录下的nginx文件复制到/usr/local/nginx/sbin/下覆盖，然后重新启动即可。</li>
+</ol>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

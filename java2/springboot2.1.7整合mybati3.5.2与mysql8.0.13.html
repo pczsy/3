@@ -1,0 +1,245 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修springboot2.1.7整合mybati3.5.2与mysql8.0.13' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>springboot2.1.7整合mybati3.5.2与mysql8.0.13</center></div><div class='banquan'>原文出处:本文由博客园博主坤~~提供。<br/>
+原文连接:https://www.cnblogs.com/zjk-main/p/11468614.html</div><br>
+    <h3 data-source-line="2"><span style="font-size: 14pt;">springboot2.x已经发布一段时间，博主在这里使用springboot2.1.7整合mybatis3.5.2，使用的数据库为mysql8.0.13</span></h3>
+<h3 data-source-line="2"><span style="font-size: 14pt;">1. 导入依赖</span></h3>
+<src class="cnblogs_Highlighter">
+<pre><code>&lt;!--mysql--&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;mysql&lt;/groupId&gt;
+    &lt;artifactId&gt;mysql-connector-java&lt;/artifactId&gt;
+    &lt;version&gt;8.0.13&lt;/version&gt;
+&lt;/dependency&gt;    
+&lt;!--mybatis-spring-boot-starter--&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.mybatis.spring.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;mybatis-spring-boot-starter&lt;/artifactId&gt;
+    &lt;version&gt;2.1.0&lt;/version&gt;
+&lt;/dependency&gt;
+</code></pre>
+
+<h3 id="2-在applicationproperties配置数据源" data-source-line="18"><span style="font-size: 14pt;">2. 在application.properties配置数据源(此文件会被springboot自动扫描)</span></h3>
+<src class="cnblogs_Highlighter">
+<pre><code>spring.datasource.url=jdbc:mysql://localhost:3306/test?useSSL=false&amp;serverTimezone=UTC&amp;characterEncoding=utf8
+spring.datasource.username=root
+spring.datasource.password=*********
+#mysql8以上版本使用这个
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+#mybatis读取根目录下mapper文件夹下的所有以.xml结尾的文件
+mybatis.mapper-locations=classpath:/mapper/*.xml
+</code></pre>
+
+<h3 id="3-编写controllerservicedaomapperxml" data-source-line="28"><span style="font-size: 14pt;">3. 编写controller,service,dao,mapper.xml</span></h3>
+<p><span style="font-size: 16px;">AdminController：</span></p>
+<src class="cnblogs_Highlighter">
+<pre><code>package com.gl.pin.web.controller;
+
+import com.gl.pin.service.api.system.entity.AdminEntity;
+import com.gl.pin.service.api.system.res.DubboRes;
+import com.gl.pin.service.api.system.service.AdminServiceI;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiImplicitParam;
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiParam;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * @Auther: zjk
+ * @Date: 2019/9/3
+ * @Description:
+ */
+
+@ResponseBody
+@Controller
+@RequestMapping(value = "/admin")
+public class AdminController {
+
+    @Autowired
+    AdminServiceI adminServiceI;
+
+    @PostMapping(value = "/login")
+    public AdminEntity login(@RequestParam(value = "userName") String userName , @RequestParam (value = "password") String password){
+         return adminServiceI.login(userName,password);
+    }
+
+}
+</code></pre>
+
+<p><span style="font-size: 16px;">&nbsp;AdminService:(AdminServiceI 自行脑补)</span></p>
+<src class="cnblogs_Highlighter">
+<pre><code>package com.gl.pin.service.system.service;
+
+import com.gl.pin.service.api.system.entity.AdminEntity;
+import com.gl.pin.service.api.system.res.DubboRes;
+import com.gl.pin.service.api.system.service.AdminServiceI;
+import com.gl.pin.service.system.dao.AdminDao;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+/**
+ * @Auther: zjk
+ * @Date: 2019/9/4
+ * @Description:
+ */
+@Service
+public class AdminService implements AdminServiceI {
+
+    @Autowired
+    AdminDao adminDao;
+
+    @Override
+    public AdminEntity login(String userName , String password) {
+        return adminDao.login(userName,password);
+    }
+}
+</code></pre>
+
+<p><span style="font-size: 16px;">&nbsp;AdminDao：</span></p>
+<src class="cnblogs_Highlighter">
+<pre><code>package com.gl.pin.service.system.dao;
+
+import com.gl.pin.service.api.system.entity.AdminEntity;
+import org.apache.ibatis.annotations.Mapper;
+import org.springframework.stereotype.Repository;
+
+/**
+ * @Auther: zjk
+ * @Date: 2019/9/4
+ * @Description:
+ */
+@Repository
+@Mapper
+public interface AdminDao {
+
+    /**
+     * 管理员登录
+     * @param userName
+     * @param password
+     * @return AdminEntity
+     */
+    AdminEntity login(String userName,String password);
+}
+</code></pre>
+
+<p><span style="font-size: 16px;">&nbsp;resoures/mapper/AdminDao.xml(映射文件)：</span></p>
+<src class="cnblogs_code">
+<pre><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;!<span style="color: #000000;">DOCTYPE mapper PUBLIC
+        </span>"-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd"&gt;
+&lt;mapper namespace="com.gl.pin.service.system.dao.AdminDao"&gt;
+    &lt;!--AdminEntity与数据库中的列的映射--&gt;
+    &lt;resultMap id="adminDao" type="com.gl.pin.service.api.system.entity.AdminEntity"&gt;
+        &lt;id property="id" column="a_id"/&gt;
+        &lt;result property="userName" column="a_userName"/&gt;
+        &lt;result property="password" column="a_password"/&gt;
+    &lt;/resultMap&gt;
+
+    &lt;!--admin login --&gt;
+    &lt;select id="login1" parameterType="java.lang.String" resultMap="adminDao"&gt;<span style="color: #000000;">
+        SELECT a_id,a_userName,a_password FROM sys_admin WHERE a_userName</span>=#{userName} AND a_password=<span style="color: #000000;">#{password}
+    </span>&lt;/select&gt;
+&lt;/mapper&gt;</code></pre>
+
+<p>&nbsp;</p>
+<h3 id="4-如何将dao装配在spring容器中" data-source-line="29"><span style="font-size: 14pt; color: #ff0000;">4. 如何将dao装配在spring容器中？</span></h3>
+<h5 id="方法一在dao接口类上加上注解mapper" data-source-line="30"><span style="font-size: 16px;">方法一：在dao接口类上加上注解@Mapper</span></h5>
+<src class="cnblogs_Highlighter">
+<pre><code>@Repository
+@Mapper
+public interface AdminDao {
+
+    /**
+     * 管理员登录
+     * @param userName
+     * @param password
+     * @return AdminEntity
+     */
+    AdminEntity login(String userName,String password);
+
+}
+</code></pre>
+
+<h5 id="方法二在springboot启动类上加注解mapperscan" data-source-line="46"><span style="font-size: 16px;">方法二：在springboot启动类上加注解@MapperScan</span></h5>
+<src class="cnblogs_Highlighter">
+<pre><code>@SpringBootApplication
+@MapperScan("com.gl.pin.service.system.dao")
+public class PinServiceSystemApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(PinServiceSystemApplication.class, args);
+    }
+
+}
+</code></pre>
+
+<h3 id="5-报错总结" data-source-line="59"><span style="font-size: 14pt; color: #ff0000;">5. 报错总结</span></h3>
+<h5 id="1springboot启动失败-找不到接口类br" data-source-line="60"><span style="font-size: 16px;">1.springboot启动失败---找不到接口类</span></h5>
+<p><span style="font-size: 16px;">错误详情：</span></p>
+<src class="cnblogs_Highlighter">
+<pre><code>Description:
+
+Field adminDao in com.gl.pin.service.system.service.AdminService required a bean of type 'com.gl.pin.service.system.dao.AdminDao' that could not be found.
+
+The injection point has the following annotations:
+	- @org.springframework.beans.factory.annotation.Autowired(required=true)
+
+
+Action:
+
+Consider defining a bean of type 'com.gl.pin.service.system.dao.AdminDao' in your configuration.
+</code></pre>
+
+<p><span style="font-size: 16px;">&nbsp;解决方案：没有使用@Mapper或@MapperScan，或者错误使用（@MapperScan扫描包的路径不对等等）</span></p>
+<h5 id="2-springboot启动成功发送请求报错-dao和mapperxml绑定失败找不到对应方法" data-source-line="77"><span style="font-size: 16px;">2. springboot启动成功，发送请求报错---dao和mapper.xml绑定失败，找不到对应方法</span></h5>
+<p><span style="font-size: 16px;">错误详情：</span></p>
+<src class="cnblogs_Highlighter">
+<pre><code>org.apache.ibatis.binding.BindingException: Invalid bound statement (not found): com.gl.pin.service.system.dao.AdminDao.login
+</code></pre>
+
+<p><span style="font-size: 16px;">&nbsp;解决方案：</span></p>
+<p><span style="font-size: 16px;">2.1 dao接口所在包与mapper.xml映射文件中的namespace不一致</span></p>
+<src class="cnblogs_Highlighter">
+<pre><code>&lt;mapper namespace="com.gl.pin.service.system.dao.AdminDao"&gt;
+</code></pre>
+
+<p><span style="font-size: 16px;">2.2 dao中有的方法，但mapper.xml中没有</span><br /><span style="font-size: 16px;">2.3 dao中的方法名和mapper.xml中id的不一样</span></p>
+<src class="cnblogs_Highlighter">
+<pre><code>&lt;select id="login" parameterType="java.lang.String" resultMap="adminDao"&gt;
+</code></pre>
+
+<p><strong><span style="background-color: #ffffff; color: #ff0000;">&nbsp;2.4 mapper.xml文件压根没被解析，需要在application.properties中配置</span></strong></p>
+<src class="cnblogs_Highlighter">
+<pre><code>#最好使用"/"，用"."可能在多级文件情况下有问题
+mybatis.mapper-locations=classpath:/mapper/*.xml
+</code></pre>
+
+<p>&nbsp;springboot整合mybatis肯定会有这样那样的问题，这些错误总结就是博主踩过的大坑，特别贴出来供大家参考。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

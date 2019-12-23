@@ -1,0 +1,108 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot Controller接收参数的几种常用方式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot Controller接收参数的几种常用方式</center></div><div class='banquan'>原文出处:本文由博客园博主执偕提供。<br/>
+原文连接:https://www.cnblogs.com/zhixie/p/11683411.html</div><br>
+    <h1 id="第一类请求路径参数">第一类：请求路径参数</h1>
+<p><strong>1. @PathVariable</strong></p>
+<p>获取路径参数。即url/{id}这种形式。</p>
+<p><strong>2. @RequestParam</strong></p>
+<p>获取查询参数。即url?name=这种形式</p>
+<p><strong>例子</strong></p>
+<p>GET<br />
+http://localhost:8080/demo/123?name=suki_rong<br />
+对应的java代码</p>
+<pre><code><code>@GetMapping(&quot;/demo/{id}&quot;)
+public void demo(@PathVariable(name = &quot;id&quot;) String id, @RequestParam(name = &quot;name&quot;) String name) {
+    System.out.println(&quot;id=&quot;+id);
+    System.out.println(&quot;name=&quot;+name);
+}</code></code></pre>
+<h1 id="第二类body参数">第二类：Body参数</h1>
+<p>因为是POST请求，这里用Postman的截图结合代码说明<br />
+<strong>1. @RequestBody</strong><br />
+<strong>例子</strong><br />
+<img src="./images/SpringBoot Controller接收参数的几种常用方式0.png" /></p>
+<p>对应的java代码：</p>
+<pre><code><code>@PostMapping(path = &quot;/demo1&quot;)
+public void demo1(@RequestBody Person person) {
+    System.out.println(person.toString());
+}</code></code></pre>
+<p>输出结果：<br />
+name:suki_rong;age=18;hobby:programing</p>
+<p>也可以是这样:</p>
+<pre><code><code>@PostMapping(path = &quot;/demo1&quot;)
+public void demo1(@RequestBody Map&lt;String, String&gt; person) {
+    System.out.println(person.get(&quot;name&quot;));
+}</code></code></pre>
+<p>输出结果：<br />
+suki_rong<br />
+<strong>2.无注解 </strong><br />
+<strong>例子</strong><br />
+<img src="./images/SpringBoot Controller接收参数的几种常用方式1.png" /></p>
+<p>对应的java代码：</p>
+<pre><code><code>@PostMapping(path = &quot;/demo2&quot;)
+public void demo2(Person person) {
+    System.out.println(person.toString());
+}</code></code></pre>
+<p>输出结果：<br />
+name:suki_rong;age=18;hobby:programing<br />
+<strong>Person类</strong></p>
+<pre><code><code>public class Person {
+
+    private long id;
+    private String name;
+    private int age;
+    private String hobby;
+
+    @Override
+    public String toString(){
+        return &quot;name:&quot;+name+&quot;;age=&quot;+age+&quot;;hobby:&quot;+hobby;
+    }
+
+    // getters and setters
+}</code></code></pre>
+<h1 id="第三类请求头参数以及cookie">第三类：请求头参数以及Cookie</h1>
+<p><strong>1. @RequestHeader</strong><br />
+<strong>2. @CookieValue</strong></p>
+<p><strong>例子</strong></p>
+<p>java代码：</p>
+<pre><code><code>@GetMapping(&quot;/demo3&quot;)
+public void demo3(@RequestHeader(name = &quot;myHeader&quot;) String myHeader,
+        @CookieValue(name = &quot;myCookie&quot;) String myCookie) {
+    System.out.println(&quot;myHeader=&quot; + myHeader);
+    System.out.println(&quot;myCookie=&quot; + myCookie);
+}</code></code></pre>
+<p>也可以这样</p>
+<pre><code><code>@GetMapping(&quot;/demo3&quot;)
+public void demo3(HttpServletRequest request) {
+    System.out.println(request.getHeader(&quot;myHeader&quot;));
+    for (Cookie cookie : request.getCookies()) {
+        if (&quot;myCookie&quot;.equals(cookie.getName())) {
+            System.out.println(cookie.getValue());
+        }
+    }
+}</code></code></pre>
+<blockquote>
+<p>欢迎大家关注我的公众号<情系IT>，每日推送文章供大家学习参考。</p>
+</blockquote>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,260 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修github认证登陆' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>github认证登陆</center></div><div class='banquan'>原文出处:本文由博客园博主LTomCat提供。<br/>
+原文连接:https://www.cnblogs.com/awsljava/p/11596077.html</div><br>
+    <h1 class="md-end-block md-heading md-focus"><span class="md-plain">使用github OAuth实现用户登录</span></h1>
+<p class="md-end-block md-p"><span class="md-plain">做登录功能时，允许使用第三方网站的身份，这称为"第三方登录"。</span></p>
+<h2 class="md-end-block md-heading"><span class="md-plain">原理</span></h2>
+<p><span class="md-plain"><img src="./images/github认证登陆0.png" alt="" /></span></p>
+<p class="md-end-block md-p"><span class="md-image md-img-loaded" data-src="C:%5CUsers%5CAdministrator%5CDesktop%5CJava%E7%AC%94%E8%AE%B0%5C%E7%AC%94%E8%AE%B0%E6%88%AA%E5%9B%BE%5C%E8%AE%A4%E8%AF%81%E6%B5%81%E7%A8%8B.png"><img src="file://C:/Users/Administrator/Desktop/Java%E7%AC%94%E8%AE%B0/%E7%AC%94%E8%AE%B0%E6%88%AA%E5%9B%BE/%E8%AE%A4%E8%AF%81%E6%B5%81%E7%A8%8B.png?lastModify=1569550190" alt="" /></span></p>
+<h1 class="md-end-block md-heading"><span class="md-plain">github内的认证方法</span></h1>
+<p class="md-end-block md-p"><span class="md-plain">在github上申请OAuth App，进入个人的Github首页，Settings-&gt;Applications-&gt;Developer applications-&gt;Register a new application</span></p>
+<p class="md-end-block md-p"><span class="md-plain"><img src="./images/github认证登陆2.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p class="md-end-block md-p"><span class="md-image md-img-loaded" data-src="C:%5CUsers%5CAdministrator%5CDesktop%5CJava%E7%AC%94%E8%AE%B0%5C%E7%AC%94%E8%AE%B0%E6%88%AA%E5%9B%BE%5Cgithub_Athurize.png"><img src="file://C:/Users/Administrator/Desktop/Java%E7%AC%94%E8%AE%B0/%E7%AC%94%E8%AE%B0%E6%88%AA%E5%9B%BE/github_Athurize.png?lastModify=1569550190" alt="" /></span></p>
+<p class="md-end-block md-p"><span class="md-plain">注册这个app的目的：You can enable other users to authorize your OAuth App.</span></p>
+<p class="md-end-block md-p"><span class="md-plain">您可以让其他用户授权您的OAuth应用程序。</span></p>
+<h2 class="md-end-block md-heading"><span class="md-plain">获取code和state</span></h2>
+<pre><code>&nbsp;<span>&lt;a href="https://github.com/login/oauth/authorize?client_id=1d1f99e3efc33edcbf45&amp;redirect_uri=http://localhost:8080/callback&amp;scope=user&amp;state=1"&gt;登陆&lt;/a&gt;</span></code></pre>
+<p class="md-end-block md-p"><span><code>scope</code><span class="md-plain">属性列出了用户授予的附加到令牌的范围。通常，这些范围将与您要求的范围相同。但是，用户可以编辑其范围，从而有效地授予您的应用程序比您最初请求的访问权限少的权限。此外，用户可以在OAuth流完成后编辑令牌作用域。您应该意识到这种可能性，并相应地调整应用程序的行为。</span></span></p>
+<p class="md-end-block md-p"><span class="md-plain">处理用户选择授予您的访问权限比您最初请求的权限少的错误情况非常重要。例如，应用程序可以警告其用户或以其他方式与其用户进行通信，告知他们功能将减少或无法执行某些操作。</span></p>
+<p class="md-end-block md-p"><span class="md-plain">此外，应用程序始终可以再次将用户发送回流程，以获取其他权限，但是请不要忘记用户总是可以拒绝。</span></p>
+<p class="md-end-block md-p"><span class="md-plain">client_id就是注册给的那个,redirect_uri就是你写的回调地址,通过访问这个地址获取令牌</span></p>
+<table class="md-table">
+<thead>
+<tr class="md-end-block"><th><span class="td-span"><span class="md-plain">Name</span></span></th><th><span class="td-span"><span class="md-plain">Type</span></span></th><th><span class="td-span"><span class="md-plain">Description</span></span></th></tr>
+</thead>
+<tbody>
+<tr class="md-end-block">
+<td><span class="td-span"><span><code>client_id</code></span></span></td>
+<td><span class="td-span"><span><code>string</code></span></span></td>
+<td><span class="td-span"><span><strong><span class="md-plain">Required</span></strong><span class="md-plain">. The client ID you received from GitHub when you registered 必需的。注册时从GitHub收到的客户端ID。</span></span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span><code>redirect_uri</code></span></span></td>
+<td><span class="td-span"><span><code>string</code></span></span></td>
+<td><span class="td-span"><span class="md-plain">The URL in your application where users will be sent after authorization. See details below about redirect urls应用程序中的URL，用户将在授权后发送到该URL。请参阅下面关于重定向url的详细信息。</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span><code>login</code></span></span></td>
+<td><span class="td-span"><span><code>string</code></span></span></td>
+<td><span class="td-span"><span class="md-plain">Suggests a specific account to use for signing in and authorizing the app.建议使用一个特定的帐户来登录和授权应用程序。</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span><code>scope</code></span></span></td>
+<td><span class="td-span"><span class="md-plain">`string</span></span></td>
+<td><span class="td-span"><span class="md-plain">以空格分隔的范围列表。如果没有提供作用域，对于没有为应用程序授权任何作用域的用户，作用域默认为空列表。对于已经为应用程序授权了范围的用户，不会显示带有范围列表的OAuth授权页面。相反，流的这一步将使用用户为应用程序授权的范围集自动完成。例如，如果用户已经执行了两次web流，并且授权了一个具有用户范围的令牌和另一个具有回购范围的令牌，则第三个web流不提供sc</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span><code>state</code></span></span></td>
+<td><span class="td-span"><span><code>string</code></span></span></td>
+<td><span class="td-span"><span class="md-plain">An unguessable random string. It is used to protect against cross-site request forgery attacks.不可猜测的随机字符串。它用于防止跨站点请求伪造攻击。</span></span></td>
+</tr>
+<tr class="md-end-block">
+<td><span class="td-span"><span><code>allow_signup</code></span></span></td>
+<td><span class="td-span"><span><code>string</code></span></span></td>
+<td><span class="td-span"><span class="md-plain">Whether or not unauthenticated users will be offered an option to sign up for GitHub during the OAuth flow. The default is <span><code>true</code><span class="md-plain">. Use <span><code>false</code><span class="md-plain"> in the case that a policy prohibits signups.在OAuth流期间，是否会为未经身份验证的用户提供一个注册GitHub的选项。默认值为true。在策略禁止注册的情况下使用false。</span></span></span></span></span></span></td>
+</tr>
+</tbody>
+</table>
+<h2 class="md-end-block md-heading"><span class="md-plain">通过获取的code和state,利用httpclient来获取AccessToken</span></h2>
+<p class="md-end-block md-p"><span class="md-plain">java代码callback接口如下:</span></p>
+<pre><code>&nbsp;</code></pre>
+<src class="cnblogs_code">
+<pre><code>   @Value("${github.client.id}"<span style="color: #000000;">)
+     </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String id;
+     @Value(</span>"${github.client.secret}"<span style="color: #000000;">)
+     </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String secret;
+     @Value(</span>"${github.redirect.uri}"<span style="color: #000000;">)
+     </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String uri; 
+     @RequestMapping(</span>"/callback"<span style="color: #000000;">)
+     </span><span style="color: #0000ff;">public</span> String callback(@RequestParam(name = "code"<span style="color: #000000;">) String code,
+                            @RequestParam(name </span>= "state"<span style="color: #000000;">) String state,
+                            HttpServletResponse response) {
+         </span><span style="color: #008000;">//</span><span style="color: #008000;">通过一个DTO对象封装,接收的code state</span>
+         AccessTokenDTO accessTokenDTO = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AccessTokenDTO();
+         accessTokenDTO.setCode(code);
+         accessTokenDTO.setClient_id(id);
+         accessTokenDTO.setClient_secret(secret);
+         accessTokenDTO.setState(state);
+         accessTokenDTO.setRedirect_uri(uri);
+         </span><span style="color: #008000;">//</span><span style="color: #008000;">得到github传回来的数据 code + Client Secret+Client id来获取token</span>
+         String accessToken =<span style="color: #000000;"> githubProvider.getAccessToken(accessTokenDTO);
+         </span><span style="color: #008000;">//</span><span style="color: #008000;">通过解析封装成一个对象</span>
+         GithubUser githubUser =<span style="color: #000000;"> githubProvider.getUser(accessToken);
+             </span><span style="color: #0000ff;">if</span> (githubUser != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                 </span><span style="color: #008000;">//</span><span style="color: #008000;">写入数据库</span>
+<span style="color: #000000;">        
+             }
+             </span><span style="color: #008000;">//</span><span style="color: #008000;">login success
+             </span><span style="color: #008000;">//</span><span style="color: #008000;">  request.getSession().setAttribute("user",githubUser);</span>
+             <span style="color: #0000ff;">return</span> "redirect:/"<span style="color: #000000;">;
+         } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+           
+             </span><span style="color: #0000ff;">return</span> "redirect:/"<span style="color: #000000;">;
+         }</span></code></pre>
+
+<p>&nbsp;</p>
+<h2 class="md-end-block md-heading"><span class="md-plain">利用获取过来的AccessToken来再次访问github来获取用户信息</span></h2>
+<p class="md-end-block md-p"><span class="md-plain">其中githubprovider代码如下:</span></p>
+<pre><code>&nbsp;</code></pre>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getAccessToken(AccessTokenDTO accessTokenDTO) {
+       </span><span style="color: #008000;">//</span><span style="color: #008000;">设置从GitHub那里获取的数据设置成josn格式</span>
+         MediaType mediaType = MediaType.get("application/json; charset=utf-8"<span style="color: #000000;">);
+         OkHttpClient client </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OkHttpClient();
+         </span><span style="color: #008000;">//</span><span style="color: #008000;">通过okhttclient来获取github传过来的用户信息,要利用到AceessTokenDTO内的数据!
+          </span><span style="color: #008000;">//</span><span style="color: #008000;">将传过来的accesstokendto转化为json格式,通过post形式传给github</span>
+         RequestBody body =<span style="color: #000000;"> RequestBody.create(mediaType, JSON.toJSONString(accessTokenDTO));
+         Request request </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Request.Builder()
+                 .url(</span>"https://github.com/login/oauth/access_token"<span style="color: #000000;">)
+                 .post(body)
+                 .build();
+         </span><span style="color: #0000ff;">try</span> (Response response =<span style="color: #000000;"> client.newCall(request).execute()) {
+             String string </span>=<span style="color: #000000;"> response.body().string();
+             </span><span style="color: #008000;">//</span><span style="color: #008000;">把传过来的token解析</span>
+             String token = string.split("&amp;")[0].split("=")[1<span style="color: #000000;">];
+             </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+         } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+             </span><span style="color: #008000;">//</span><span style="color: #008000;">log.error("getAccessToken error,{}", accessTokenDTO, e);</span>
+<span style="color: #000000;">         }
+         </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+     }
+ ​
+     </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> GithubUser getUser(String accessToken) {
+         </span><span style="color: #008000;">//</span><span style="color: #008000;">通过得到的token获取user</span>
+         OkHttpClient client = <span style="color: #0000ff;">new</span><span style="color: #000000;"> OkHttpClient();
+         Request request </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Request.Builder()
+                 .url(</span>"https://api.github.com/user?access_token=" +<span style="color: #000000;"> accessToken)
+                 .build();
+         </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+             Response response </span>=<span style="color: #000000;"> client.newCall(request).execute();
+             String string </span>=<span style="color: #000000;"> response.body().string();
+             </span><span style="color: #008000;">//</span><span style="color: #008000;">封装</span>
+             GithubUser githubUser = JSON.parseObject(string, GithubUser.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+             </span><span style="color: #008000;">//</span><span style="color: #008000;">System.out.println(string);</span>
+             <span style="color: #0000ff;">return</span><span style="color: #000000;"> githubUser;
+         } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> log.error("getUser error,{}", accessToken, e);</span>
+<span style="color: #000000;">         }
+         </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+     }</span></code></pre>
+
+<p>&nbsp;</p>
+<p class="md-end-block md-p"><span class="md-plain">获取的json内容如下：</span></p>
+<src class="cnblogs_code">
+<pre><code> <span style="color: #008000;">//</span><span style="color: #008000;">封装</span>
+ JSON.parseObject(string, GithubUser.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+ 
+
+ {
+     </span>"login": "Diamondtest"<span style="color: #000000;">,
+     </span>"id": 28478049<span style="color: #000000;">,
+     </span>"avatar_url": "https://avatars0.githubusercontent.com/u/28478049?v=3"<span style="color: #000000;">,
+     </span>"gravatar_id": ""<span style="color: #000000;">,
+     </span>"url": "https://api.github.com/users/Diamondtest"<span style="color: #000000;">,
+     </span>"html_url": "https://github.com/Diamondtest"<span style="color: #000000;">,
+     </span>"followers_url": "https://api.github.com/users/Diamondtest/followers"<span style="color: #000000;">,
+     </span>"following_url": "https://api.github.com/users/Diamondtest/following{/other_user}"<span style="color: #000000;">,
+     </span>"gists_url": "https://api.github.com/users/Diamondtest/gists{/gist_id}"<span style="color: #000000;">,
+     </span>"starred_url": "https://api.github.com/users/Diamondtest/starred{/owner}{/repo}"<span style="color: #000000;">,
+     </span>"subscriptions_url": "https://api.github.com/users/Diamondtest/subscriptions"<span style="color: #000000;">,
+     </span>"organizations_url": "https://api.github.com/users/Diamondtest/orgs"<span style="color: #000000;">,
+     </span>"repos_url": "https://api.github.com/users/Diamondtest/repos"<span style="color: #000000;">,
+     </span>"events_url": "https://api.github.com/users/Diamondtest/events{/privacy}"<span style="color: #000000;">,
+     </span>"received_events_url": "https://api.github.com/users/Diamondtest/received_events"<span style="color: #000000;">,
+     </span>"type": "User"<span style="color: #000000;">,
+     </span>"site_admin": <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+     </span>"name": <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+     </span>"company": <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+     </span>"blog": ""<span style="color: #000000;">,
+     </span>"location": <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+     </span>"email": <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+     </span>"hireable": <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+     </span>"bio": <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+     </span>"public_repos": 0<span style="color: #000000;">,
+     </span>"public_gists": 0<span style="color: #000000;">,
+     </span>"followers": 0<span style="color: #000000;">,
+     </span>"following": 0<span style="color: #000000;">,
+     </span>"created_at": "2017-05-06T08:08:09Z"<span style="color: #000000;">,
+     </span>"updated_at": "2017-05-06T08:16:22Z"<span style="color: #000000;">
+ }</span></code></pre>
+
+<p>&nbsp;</p>
+<p class="md-end-block md-p"><span class="md-plain">授权之后,每次登陆都不需要再次授权,可更换浏览器或者选择revoke all user tokens 就可以了!</span></p>
+<p class="md-end-block md-p"><span class="md-image md-img-loaded" data-src="C:%5CUsers%5CAdministrator%5CDesktop%5CJava%E7%AC%94%E8%AE%B0%5C%E7%AC%94%E8%AE%B0%E6%88%AA%E5%9B%BE%5CgithubRevoke.png"><img src="file://C:/Users/Administrator/Desktop/Java%E7%AC%94%E8%AE%B0/%E7%AC%94%E8%AE%B0%E6%88%AA%E5%9B%BE/githubRevoke.png?lastModify=1569550190" alt="" /></span></p>
+<h1 class="md-end-block md-heading"><span class="md-plain">okhttpclient的用例与介绍</span></h1>
+<h2 class="md-end-block md-heading"><span class="md-plain">介绍</span></h2>
+<p class="md-end-block md-p"><span class="md-plain">OkHttp是一个HTTP客户机，默认情况下是高效的：</span></p>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">http/2支持允许对同一主机的所有请求共享套接字。</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">连接池可以减少请求延迟(如果HTTP/2不可用)。</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">透明GZIP缩小下载大小。</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">响应缓存完全避免了重复请求的网络。</span></p>
+<p class="md-end-block md-p">&nbsp;</p>
+</li>
+</ul>
+<src class="cnblogs_code">
+<pre><code> OkHttpClient client = <span style="color: #0000ff;">new</span><span style="color: #000000;"> OkHttpClient();
+ </span><span style="color: #008000;">//</span><span style="color: #008000;">获取URL
+ </span><span style="color: #008000;">//</span><span style="color: #008000;">访问URL并获取该网站返回过来的字符串</span>
+ String run(String url) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+   Request request </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Request.Builder()
+       .url(url)
+       .build();
+ ​
+   </span><span style="color: #0000ff;">try</span> (Response response =<span style="color: #000000;"> client.newCall(request).execute()) {
+     </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> response.body().string();
+   }
+ }
+ 
+
+ </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> MediaType JSON
+     </span>= MediaType.get("application/json; charset=utf-8"<span style="color: #000000;">);
+ ​
+ OkHttpClient client </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> OkHttpClient();
+ </span><span style="color: #008000;">//</span><span style="color: #008000;">发送到服务器
+ </span><span style="color: #008000;">//</span><span style="color: #008000;">通过build一个request 并将需要的参数封装到body 访问url,执行client.newCall(request).execute(),得到返回值,一般是一个json格式的字符串,当然也可以自己选择它的返回数据格式!</span>
+ String post(String url, String json) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+   RequestBody body </span>=<span style="color: #000000;"> RequestBody.create(json, JSON);
+   Request request </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Request.Builder()
+       .url(url)
+       .post(body)
+       .build();
+   </span><span style="color: #0000ff;">try</span> (Response response =<span style="color: #000000;"> client.newCall(request).execute()) {
+     </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> response.body().string();
+   }
+ }</span></code></pre>
+
+<p>&nbsp;</p>
+<p class="md-end-block md-p"><span class="md-plain">详情参见:<span class=" md-link"><a href="https://square.github.io/okhttp/"><span class="md-plain">okhttp</span></a></span></span></p>
+<p class="md-end-block md-p"><span class=" md-link"><a href="https://developer.github.com/apps/building-oauth-apps/authorizing-oauth-apps/"><span class="md-plain">githubdeveloper手册</span></a></span></p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

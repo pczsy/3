@@ -1,0 +1,260 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java IO编程——文件拷贝' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java IO编程——文件拷贝</center></div><div class='banquan'>原文出处:本文由博客园博主Pluto_H提供。<br/>
+原文连接:https://www.cnblogs.com/CSAH/p/11777930.html</div><br>
+    <p>在操作系统里面有一个copy命令，这个命令的主要功能是可以实现文件的拷贝处理，现在要求模拟这个命令，通过初始化参数输入拷贝的源文件路径与拷贝的目标路径实现文件的拷贝处理。</p>
+<h2>需求分析：</h2>
+<p>&nbsp; &nbsp;&middot;需要实现文件的拷贝操作，那么这种拷贝就有可能拷贝各种类型的文件，所以肯定使用字节流；</p>
+<p>&nbsp; &nbsp;&middot;在进行拷贝的时候有可能需要考虑到大文件的拷贝问题；</p>
+<h2>实现方案：</h2>
+<p>&nbsp; &nbsp;&middot;<strong>方案一</strong>：使用InputStream将全部要拷贝的内容直接读取到程序里面，而后一次性的输出到目标文件；</p>
+<p>　　|- 如果现在拷贝的文件很大，基本上程序就死了；</p>
+<p>&nbsp; &nbsp;&middot;<strong>方案二</strong>：采用部分拷贝，读取一部分输出一部分数据，如果现在要采用第二种做法，核心的操作方法：</p>
+<p>&nbsp; &nbsp; &nbsp; |- InputStream：public int read​(byte[] b) throws IOException；</p>
+<p>&nbsp; &nbsp; &nbsp; |- OutputStream：public void write​(byte[] b,int off, int len) throws IOException；</p>
+<p class="MsoNormal"><strong>范例：实现文件拷贝处理</strong></p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('928df544-fcf3-4ebf-b17e-857884be8c57')"><img id="code_img_closed_928df544-fcf3-4ebf-b17e-857884be8c57" class="code_img_closed" src="./images/Java IO编程——文件拷贝0.png" alt="" /><img id="code_img_opened_928df544-fcf3-4ebf-b17e-857884be8c57" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('928df544-fcf3-4ebf-b17e-857884be8c57',event)" src="./images/Java IO编程——文件拷贝1.png" alt="" />
+<src id="cnblogs_code_open_928df544-fcf3-4ebf-b17e-857884be8c57" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.File;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.FileInputStream;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.FileOutputStream;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.InputStream;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.OutputStream;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">class</span> FileUtil {    <span style="color: #008000;">//</span><span style="color: #008000;"> 定义一个文件操作的工具类</span>
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">private</span> File srcFile ; <span style="color: #008000;">//</span><span style="color: #008000;"> 源文件路径</span>
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">private</span> File desFile ; <span style="color: #008000;">//</span><span style="color: #008000;"> 目标文件路径</span>
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> FileUtil(String src,String des) {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">this</span>(<span style="color: #0000ff;">new</span> File(src),<span style="color: #0000ff;">new</span><span style="color: #000000;"> File(des)) ;
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> FileUtil(File srcFile,File desFile) {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">this</span>.srcFile =<span style="color: #000000;"> srcFile ;
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">this</span>.desFile =<span style="color: #000000;"> desFile ;
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> copy() <span style="color: #0000ff;">throws</span> Exception {    <span style="color: #008000;">//</span><span style="color: #008000;"> 文件拷贝处理</span>
+<span style="color: #008080;">17</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span>.srcFile.exists()) {    <span style="color: #008000;">//</span><span style="color: #008000;"> 源文件必须存在!</span>
+<span style="color: #008080;">18</span>             System.out.println("拷贝的源文件不存在！"<span style="color: #000000;">);
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span> ; <span style="color: #008000;">//</span><span style="color: #008000;"> 拷贝失败</span>
+<span style="color: #008080;">20</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">21</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.desFile.getParentFile().exists()) { 
+</span><span style="color: #008080;">22</span>             <span style="color: #0000ff;">this</span>.desFile.getParentFile().mkdirs() ; <span style="color: #008000;">//</span><span style="color: #008000;"> 创建父目录</span>
+<span style="color: #008080;">23</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">byte</span> data [] = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">byte</span>[1024] ; <span style="color: #008000;">//</span><span style="color: #008000;"> 开辟一个拷贝的缓冲区</span>
+<span style="color: #008080;">25</span>         InputStream input = <span style="color: #0000ff;">null</span><span style="color: #000000;"> ;
+</span><span style="color: #008080;">26</span>         OutputStream output = <span style="color: #0000ff;">null</span><span style="color: #000000;"> ;
+</span><span style="color: #008080;">27</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">28</span>             input = <span style="color: #0000ff;">new</span> FileInputStream(<span style="color: #0000ff;">this</span><span style="color: #000000;">.srcFile) ;
+</span><span style="color: #008080;">29</span>             output = <span style="color: #0000ff;">new</span> FileOutputStream(<span style="color: #0000ff;">this</span><span style="color: #000000;">.desFile) ;
+</span><span style="color: #008080;">30</span>             <span style="color: #0000ff;">int</span> len = 0<span style="color: #000000;"> ;
+</span><span style="color: #008080;">31</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 1、读取数据到数组之中，随后返回读取的个数、len = input.read(data
+</span><span style="color: #008080;">32</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 2、判断个数是否是-1，如果不是则进行写入、(len = input.read(data)) != -1</span>
+<span style="color: #008080;">33</span>             <span style="color: #0000ff;">while</span> ((len = input.read(data)) != -1<span style="color: #000000;">) {
+</span><span style="color: #008080;">34</span>                 output.write(data, 0<span style="color: #000000;">, len);
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">36</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;"> ; 
+</span><span style="color: #008080;">37</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">38</span>             <span style="color: #0000ff;">throw</span><span style="color: #000000;"> e ;
+</span><span style="color: #008080;">39</span>         } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">40</span>             <span style="color: #0000ff;">if</span> (input != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">                input.close();    
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">            } 
+</span><span style="color: #008080;">43</span>             <span style="color: #0000ff;">if</span> (output != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">                output.close() ;
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">49</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JavaAPIDemo {
+</span><span style="color: #008080;">50</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">51</span>         <span style="color: #0000ff;">if</span> (args.length != 2) {    <span style="color: #008000;">//</span><span style="color: #008000;"> 程序执行出错</span>
+<span style="color: #008080;">52</span>             System.out.println("命令执行错误，执行结构：java JavaAPIDemo 拷贝源文件路径 拷贝目标文件路径"<span style="color: #000000;">);
+</span><span style="color: #008080;">53</span>             System.exit(1<span style="color: #000000;">); 
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">55</span>         <span style="color: #0000ff;">long</span> start =<span style="color: #000000;"> System.currentTimeMillis() ;
+</span><span style="color: #008080;">56</span>         FileUtil fu = <span style="color: #0000ff;">new</span> FileUtil(args[0],args[1<span style="color: #000000;">]) ;
+</span><span style="color: #008080;">57</span>         System.out.println(fu.copy() ? "文件拷贝成功！" : "文件拷贝失败！"<span style="color: #000000;">);
+</span><span style="color: #008080;">58</span>         <span style="color: #0000ff;">long</span> end =<span style="color: #000000;"> System.currentTimeMillis() ;
+</span><span style="color: #008080;">59</span>         System.out.println("拷贝完成的时间：" + (end -<span style="color: #000000;"> start));
+</span><span style="color: #008080;">60</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">61</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">JavaAPIDemo </span>
+<p>&nbsp;&nbsp;<img src="./images/Java IO编程——文件拷贝2.png" alt="" /></p>
+<p>&nbsp;&nbsp;<img src="./images/Java IO编程——文件拷贝3.png" alt="" /></p>
+<p>&nbsp;&nbsp; &nbsp;但是需要注意的是，以上的做法是属于文件拷贝的最原始的实现，而从JDK1.9开始InputStream和Reader类中都追加有数据转存的处理操作方法：</p>
+<p>&nbsp; &nbsp; &nbsp; &middot;<strong>InputStream</strong>：public long transferTo​(OutputStream out) throws IOException；</p>
+<p>&nbsp; &nbsp; &nbsp; &middot;<strong>Reader</strong>：public long transferTo​(Writer out) throws IOException；</p>
+<p><strong>范例：使用转存的方式处理</strong></p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('ebdb8108-2e4a-4916-977a-be34cd4e6269')"><img id="code_img_closed_ebdb8108-2e4a-4916-977a-be34cd4e6269" class="code_img_closed" src="./images/Java IO编程——文件拷贝0.png" alt="" /><img id="code_img_opened_ebdb8108-2e4a-4916-977a-be34cd4e6269" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ebdb8108-2e4a-4916-977a-be34cd4e6269',event)" src="./images/Java IO编程——文件拷贝1.png" alt="" />
+<src id="cnblogs_code_open_ebdb8108-2e4a-4916-977a-be34cd4e6269" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.File;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.FileInputStream;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.FileOutputStream;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.InputStream;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.OutputStream;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">class</span> FileUtil {    <span style="color: #008000;">//</span><span style="color: #008000;"> 定义一个文件操作的工具类</span>
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">private</span> File srcFile ; <span style="color: #008000;">//</span><span style="color: #008000;"> 源文件路径</span>
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">private</span> File desFile ; <span style="color: #008000;">//</span><span style="color: #008000;"> 目标文件路径</span>
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> FileUtil(String src,String des) {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">this</span>(<span style="color: #0000ff;">new</span> File(src),<span style="color: #0000ff;">new</span><span style="color: #000000;"> File(des)) ;
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> FileUtil(File srcFile,File desFile) {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">this</span>.srcFile =<span style="color: #000000;"> srcFile ;
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">this</span>.desFile =<span style="color: #000000;"> desFile ;
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> copy() <span style="color: #0000ff;">throws</span> Exception {    <span style="color: #008000;">//</span><span style="color: #008000;"> 文件拷贝处理</span>
+<span style="color: #008080;">17</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span>.srcFile.exists()) {    <span style="color: #008000;">//</span><span style="color: #008000;"> 源文件必须存在!</span>
+<span style="color: #008080;">18</span>             System.out.println("拷贝的源文件不存在！"<span style="color: #000000;">);
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span> ; <span style="color: #008000;">//</span><span style="color: #008000;"> 拷贝失败</span>
+<span style="color: #008080;">20</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">21</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.desFile.getParentFile().exists()) { 
+</span><span style="color: #008080;">22</span>             <span style="color: #0000ff;">this</span>.desFile.getParentFile().mkdirs() ; <span style="color: #008000;">//</span><span style="color: #008000;"> 创建父目录</span>
+<span style="color: #008080;">23</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">24</span>         InputStream input = <span style="color: #0000ff;">null</span><span style="color: #000000;"> ;
+</span><span style="color: #008080;">25</span>         OutputStream output = <span style="color: #0000ff;">null</span><span style="color: #000000;"> ;
+</span><span style="color: #008080;">26</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">27</span>             input = <span style="color: #0000ff;">new</span> FileInputStream(<span style="color: #0000ff;">this</span><span style="color: #000000;">.srcFile) ;
+</span><span style="color: #008080;">28</span>             output = <span style="color: #0000ff;">new</span> FileOutputStream(<span style="color: #0000ff;">this</span><span style="color: #000000;">.desFile) ;
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">            input.transferTo(output) ;
+</span><span style="color: #008080;">30</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;"> ; 
+</span><span style="color: #008080;">31</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">32</span>             <span style="color: #0000ff;">throw</span><span style="color: #000000;"> e ;
+</span><span style="color: #008080;">33</span>         } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">34</span>             <span style="color: #0000ff;">if</span> (input != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">                input.close();    
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">            } 
+</span><span style="color: #008080;">37</span>             <span style="color: #0000ff;">if</span> (output != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                output.close() ;
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">43</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JavaAPIDemo {
+</span><span style="color: #008080;">44</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">45</span>         <span style="color: #0000ff;">if</span> (args.length != 2) {    <span style="color: #008000;">//</span><span style="color: #008000;"> 程序执行出错</span>
+<span style="color: #008080;">46</span>             System.out.println("命令执行错误，执行结构：java JavaAPIDemo 拷贝源文件路径 拷贝目标文件路径"<span style="color: #000000;">);
+</span><span style="color: #008080;">47</span>             System.exit(1<span style="color: #000000;">); 
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">49</span>         <span style="color: #0000ff;">long</span> start =<span style="color: #000000;"> System.currentTimeMillis() ;
+</span><span style="color: #008080;">50</span>         FileUtil fu = <span style="color: #0000ff;">new</span> FileUtil(args[0],args[1<span style="color: #000000;">]) ;
+</span><span style="color: #008080;">51</span>         System.out.println(fu.copy() ? "文件拷贝成功！" : "文件拷贝失败！"<span style="color: #000000;">);
+</span><span style="color: #008080;">52</span>         <span style="color: #0000ff;">long</span> end =<span style="color: #000000;"> System.currentTimeMillis() ;
+</span><span style="color: #008080;">53</span>         System.out.println("拷贝完成的时间：" + (end -<span style="color: #000000;"> start));
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">55</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">JavaAPIDemo </span>
+<p>&nbsp;&nbsp;<span style="text-indent: 21pt;">此时千万要注意程序的运行版本问题。如果说现在对此程序要求进一步扩展，可以实现一个文件目录的拷贝呢？一旦进行了文件目录的拷贝还需要拷贝所有的子目录中的文件。</span></p>
+<hr />
+<p>&nbsp;</p>
+<p class="MsoNormal"><strong>范例：文件夹拷贝</strong></p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('100c652e-2676-47c8-86e8-a450b888f2b7')"><img id="code_img_closed_100c652e-2676-47c8-86e8-a450b888f2b7" class="code_img_closed" src="./images/Java IO编程——文件拷贝0.png" alt="" /><img id="code_img_opened_100c652e-2676-47c8-86e8-a450b888f2b7" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('100c652e-2676-47c8-86e8-a450b888f2b7',event)" src="./images/Java IO编程——文件拷贝1.png" alt="" />
+<src id="cnblogs_code_open_100c652e-2676-47c8-86e8-a450b888f2b7" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.File;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.FileInputStream;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.FileOutputStream;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.InputStream;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.OutputStream;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">class</span> FileUtil {    <span style="color: #008000;">//</span><span style="color: #008000;"> 定义一个文件操作的工具类</span>
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">private</span> File srcFile ; <span style="color: #008000;">//</span><span style="color: #008000;"> 源文件路径</span>
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">private</span> File desFile ; <span style="color: #008000;">//</span><span style="color: #008000;"> 目标文件路径</span>
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> FileUtil(String src,String des) {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">this</span>(<span style="color: #0000ff;">new</span> File(src),<span style="color: #0000ff;">new</span><span style="color: #000000;"> File(des)) ;
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> FileUtil(File srcFile,File desFile) {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">this</span>.srcFile =<span style="color: #000000;"> srcFile ;
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">this</span>.desFile =<span style="color: #000000;"> desFile ;
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">16</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> copyDir() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">18</span>             <span style="color: #0000ff;">this</span>.copyImpl(<span style="color: #0000ff;">this</span><span style="color: #000000;">.srcFile) ;
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;"> ;
+</span><span style="color: #008080;">20</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">21</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;"> ; 
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">24</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> copyImpl(File file) <span style="color: #0000ff;">throws</span> Exception {    <span style="color: #008000;">//</span><span style="color: #008000;"> 递归操作</span>
+<span style="color: #008080;">25</span>         <span style="color: #0000ff;">if</span> (file.isDirectory()) {    <span style="color: #008000;">//</span><span style="color: #008000;"> 是目录</span>
+<span style="color: #008080;">26</span>             File results [] = file.listFiles() ; <span style="color: #008000;">//</span><span style="color: #008000;"> 列出全部目录组成</span>
+<span style="color: #008080;">27</span>             <span style="color: #0000ff;">if</span> (results != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">28</span>                 <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> x = 0 ; x &lt; results.length ; x ++<span style="color: #000000;">) {
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                    copyImpl(results[x]) ;
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">32</span>         } <span style="color: #0000ff;">else</span> {    <span style="color: #008000;">//</span><span style="color: #008000;"> 是文件</span>
+<span style="color: #008080;">33</span>             String newFilePath = file.getPath().replace(<span style="color: #0000ff;">this</span>.srcFile.getPath() + File.separator, ""<span style="color: #000000;">) ;
+</span><span style="color: #008080;">34</span>             File newFile = <span style="color: #0000ff;">new</span> File(<span style="color: #0000ff;">this</span>.desFile,newFilePath) ; <span style="color: #008000;">//</span><span style="color: #008000;"> 拷贝的目标路径</span>
+<span style="color: #008080;">35</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.copyFileImpl(file, newFile) ;
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">38</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">boolean</span> copyFileImpl(File srcFile,File desFile) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">39</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">desFile.getParentFile().exists()) { 
+</span><span style="color: #008080;">40</span>             desFile.getParentFile().mkdirs() ; <span style="color: #008000;">//</span><span style="color: #008000;"> 创建父目录</span>
+<span style="color: #008080;">41</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">42</span>         InputStream input = <span style="color: #0000ff;">null</span><span style="color: #000000;"> ;
+</span><span style="color: #008080;">43</span>         OutputStream output = <span style="color: #0000ff;">null</span><span style="color: #000000;"> ;
+</span><span style="color: #008080;">44</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">45</span>             input = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileInputStream(srcFile) ;
+</span><span style="color: #008080;">46</span>             output = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileOutputStream(desFile) ;
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">            input.transferTo(output) ;
+</span><span style="color: #008080;">48</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;"> ;
+</span><span style="color: #008080;">49</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">50</span>             <span style="color: #0000ff;">throw</span><span style="color: #000000;"> e ;
+</span><span style="color: #008080;">51</span>         } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">52</span>             <span style="color: #0000ff;">if</span> (input != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">                input.close();    
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">            } 
+</span><span style="color: #008080;">55</span>             <span style="color: #0000ff;">if</span> (output != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">                output.close() ;
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">59</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">60</span>     
+<span style="color: #008080;">61</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> copy() <span style="color: #0000ff;">throws</span> Exception {    <span style="color: #008000;">//</span><span style="color: #008000;"> 文件拷贝处理</span>
+<span style="color: #008080;">62</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span>.srcFile.exists()) {    <span style="color: #008000;">//</span><span style="color: #008000;"> 源文件必须存在!</span>
+<span style="color: #008080;">63</span>             System.out.println("拷贝的源文件不存在！"<span style="color: #000000;">);
+</span><span style="color: #008080;">64</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span> ; <span style="color: #008000;">//</span><span style="color: #008000;"> 拷贝失败</span>
+<span style="color: #008080;">65</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">66</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.copyFileImpl(<span style="color: #0000ff;">this</span>.srcFile, <span style="color: #0000ff;">this</span><span style="color: #000000;">.desFile) ;
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">68</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">69</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> JavaAPIDemo {
+</span><span style="color: #008080;">70</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+</span><span style="color: #008080;">71</span>         <span style="color: #0000ff;">if</span> (args.length != 2) {    <span style="color: #008000;">//</span><span style="color: #008000;"> 程序执行出错</span>
+<span style="color: #008080;">72</span>             System.out.println("命令执行错误，执行结构：java JavaAPIDemo 拷贝源文件路径 拷贝目标文件路径"<span style="color: #000000;">);
+</span><span style="color: #008080;">73</span>             System.exit(1<span style="color: #000000;">); 
+</span><span style="color: #008080;">74</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">75</span>         <span style="color: #0000ff;">long</span> start =<span style="color: #000000;"> System.currentTimeMillis() ;
+</span><span style="color: #008080;">76</span>         FileUtil fu = <span style="color: #0000ff;">new</span> FileUtil(args[0],args[1<span style="color: #000000;">]) ;
+</span><span style="color: #008080;">77</span>         <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">new</span> File(args[0]).isFile()) {    <span style="color: #008000;">//</span><span style="color: #008000;"> 文件拷贝</span>
+<span style="color: #008080;">78</span>             System.out.println(fu.copy() ? "文件拷贝成功！" : "文件拷贝失败！"<span style="color: #000000;">);
+</span><span style="color: #008080;">79</span>         } <span style="color: #0000ff;">else</span> {    <span style="color: #008000;">//</span><span style="color: #008000;"> 目录拷贝</span>
+<span style="color: #008080;">80</span>             System.out.println(fu.copyDir() ? "文件拷贝成功！" : "文件拷贝失败！"<span style="color: #000000;">);
+</span><span style="color: #008080;">81</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">82</span>         <span style="color: #0000ff;">long</span> end =<span style="color: #000000;"> System.currentTimeMillis() ;
+</span><span style="color: #008080;">83</span>         System.out.println("拷贝完成的时间：" + (end -<span style="color: #000000;"> start));
+</span><span style="color: #008080;">84</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">85</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">JavaAPIDemo</span>
+<src style="white-space: pre-wrap; text-indent: 28px; line-height: 1.75;">本程序是IO操作的核心代码，本程序可以理解整个的IO处理机制就非常容易理解了。
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

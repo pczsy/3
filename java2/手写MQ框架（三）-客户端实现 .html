@@ -1,0 +1,264 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修手写MQ框架（三）-客户端实现 ' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>手写MQ框架（三）-客户端实现 </center></div><div class='banquan'>原文出处:本文由博客园博主水木桶提供。<br/>
+原文连接:https://www.cnblogs.com/shuimutong/p/11923420.html</div><br>
+    <h1>一、背景</h1>
+<p>书接<a class="entry" href="https://www.cnblogs.com/shuimutong/p/11923296.html" target="_blank">手写MQ框架（二）-服务端实现</a>&nbsp; ，前面介绍了服务端的实现。但是具体使用框架过程中，用户肯定是以客户端的形式跟服务端打交道的。客户端的好坏直接影响了框架使用的便利性。</p>
+<p>虽然框架目前是通过web的形式提供功能的，但是某的目标其实是通过socket实现，所以不仅需要有客户端，还要包装一下，让用户在使用过程中不需要关心服务端是如何实现的。</p>
+<p>简单来说，就是客户端使用必须方便。</p>
+<h1>二、客户端实现</h1>
+<h2>1、HttpUtil</h2>
+<p>目前客户端的核心功能是HttpUtil这个类，使用httpClient实现的，主要是为了请求服务端。</p>
+<p>具体实现如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.gmq.client.util;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.net.URISyntaxException;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.ArrayList;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Map;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.HttpEntity;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.NameValuePair;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.client.entity.UrlEncodedFormEntity;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.client.methods.CloseableHttpResponse;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.client.methods.HttpGet;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.client.methods.HttpPost;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.client.utils.URIBuilder;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.impl.client.CloseableHttpClient;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.impl.client.HttpClients;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.message.BasicNameValuePair;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.http.util.EntityUtils;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.Logger;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.slf4j.LoggerFactory;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.client.bean.HttpResponseBean;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gutil.common.GUtilCommonUtil;
+
+</span><span style="color: #008000;">/**</span><span style="color: #008000;">
+ * http请求工具类
+ * @ClassName: HttpUtil
+ * @Description:(这里用一句话描述这个类的作用)
+ * </span><span style="color: #808080;">@author</span><span style="color: #008000;">: 水木桶
+ * @date: 2019年10月29日 下午9:43:54
+ * @Copyright: 2019 [水木桶] All rights reserved.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> HttpUtil {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">static</span> Logger log = LoggerFactory.getLogger(HttpUtil.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> CloseableHttpClient HTTP_CLIENT =<span style="color: #000000;"> HttpClients.createMinimal();
+    </span><span style="color: #0000ff;">static</span><span style="color: #000000;"> {
+        Runtime.getRuntime().addShutdownHook(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread() {
+            @Override
+            </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+                </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    HTTP_CLIENT.close();
+                } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (IOException e) {
+                    log.error(</span>"HTTP_CLIENT-closeException"<span style="color: #000000;">, e);
+                }
+            }
+        });
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * get请求
+     * 
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> url
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> IOException
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> HttpResponseBean get(String url) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+        HttpResponseBean responseBean </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        HttpGet httpGet </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpGet(url);
+        CloseableHttpResponse res </span>=<span style="color: #000000;"> HTTP_CLIENT.execute(httpGet);
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            HttpEntity httpEntity </span>=<span style="color: #000000;"> res.getEntity();
+            String body </span>=<span style="color: #000000;"> EntityUtils.toString(httpEntity);
+            responseBean </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpResponseBean(res.getStatusLine(), body);
+            EntityUtils.consume(httpEntity);
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+            res.close();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseBean;
+    }
+    
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 带参数的get请求
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> url
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> requsetParams
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> IOException
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> URISyntaxException
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> HttpResponseBean get(String url, Map&lt;String, String&gt; requsetParams) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+        HttpResponseBean responseBean </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        HttpGet httpGet;
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            URIBuilder uriBuilder </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> URIBuilder(url);
+            </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">GUtilCommonUtil.checkListEmpty(requsetParams)) {
+                List</span>&lt;NameValuePair&gt; nvps = <span style="color: #0000ff;">new</span> ArrayList&lt;NameValuePair&gt;<span style="color: #000000;">();
+                requsetParams.forEach((k,v) </span>-&gt;<span style="color: #000000;"> {
+                    nvps.add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> BasicNameValuePair(k, v));
+                });
+                uriBuilder.setParameters(nvps);
+            }
+            httpGet </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpGet(uriBuilder.build());
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> IOException(e);
+        }
+        CloseableHttpResponse res </span>=<span style="color: #000000;"> HTTP_CLIENT.execute(httpGet);
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            HttpEntity httpEntity </span>=<span style="color: #000000;"> res.getEntity();
+            String body </span>=<span style="color: #000000;"> EntityUtils.toString(httpEntity);
+            responseBean </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpResponseBean(res.getStatusLine(), body);
+            EntityUtils.consume(httpEntity);
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+            res.close();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseBean;
+    }
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * post请求
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> url
+     * </span><span style="color: #808080;">@param</span><span style="color: #008000;"> requsetParams
+     * </span><span style="color: #808080;">@return</span><span style="color: #008000;">
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> IOException
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> HttpResponseBean post(String url, Map&lt;String, String&gt; requsetParams) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+        HttpResponseBean responseBean </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        HttpPost httpPost </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpPost(url);
+        </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">GUtilCommonUtil.checkListEmpty(requsetParams)) {
+            List</span>&lt;NameValuePair&gt; nvps = <span style="color: #0000ff;">new</span> ArrayList&lt;NameValuePair&gt;<span style="color: #000000;">();
+            requsetParams.forEach((k,v) </span>-&gt;<span style="color: #000000;"> {
+                nvps.add(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> BasicNameValuePair(k, v));
+            });
+            httpPost.setEntity(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> UrlEncodedFormEntity(nvps));
+        }
+        CloseableHttpResponse response </span>=<span style="color: #000000;"> HTTP_CLIENT.execute(httpPost);
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            HttpEntity httpEntity </span>=<span style="color: #000000;"> response.getEntity();
+            String body </span>=<span style="color: #000000;"> EntityUtils.toString(httpEntity);
+            responseBean </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpResponseBean(response.getStatusLine(), body);
+            EntityUtils.consume(httpEntity);
+        } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+            response.close();
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> responseBean;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>封装了get请求和post请求，封装了响应结果。</p>
+<p>加了一个钩子，在jvm关闭时能够主动关闭创建的资源。</p>
+<h2>2、订阅消息、生产消息</h2>
+<p>这两部分主要就是调用上面的HttpUtil，然后将结果包装一下。</p>
+<p>具体代码请参考前文的git。</p>
+<h2>3、实例管理</h2>
+<p>为了使得用户不需要关心具体实现，所以建了实例管理类。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.shuimutong.gmq.client.util;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.client.cache.CommonObjCache;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.client.cache.impl.CommonObjCacheImpl;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.client.consumer.GmqConsumer;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.shuimutong.gmq.client.producer.GmqProducer;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> GmqInstanceManage {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> GmqProducer getGmqProducer(String gmqServerUrl) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> GmqProducer(gmqServerUrl);
+    }
+    
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> GmqConsumer getGmqConsumer(String gmqServerUrl) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> GmqConsumer(gmqServerUrl);
+    }
+    
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> CommonObjCache getCommonCache(String serverUrl) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> CommonObjCacheImpl(serverUrl);
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p>主要是为了封装变化。因为之后再迭代的话，实例的具体实现肯定不是目前这么简单，所以要尽量让使用者少关心具体实现。</p>
+<p>使用时关心的越多，后续项目迭代肯定越困难。</p>
+<h1>三、使用示例</h1>
+<h2>1、生产消息</h2>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> produceMsg() {
+        GmqProducer producer </span>=<span style="color: #000000;"> GmqInstanceManage.getGmqProducer(gmqServerUrl);
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i=0; i&lt;5; i++<span style="color: #000000;">) {
+            String message </span>= "message:" +<span style="color: #000000;"> i;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                SendMqResult res </span>=<span style="color: #000000;"> producer.sendMq(topic, message);
+                System.out.println(res.getRes());
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SendMqException e) {
+                e.printStackTrace();
+            }
+        }
+    }</span></code></pre>
+
+<p>&nbsp;</p>
+<p>2、消费消息</p>
+<p>主要思路是：消费消息之前，先查询当前已经消费到了哪条消息。消息消费之后，将消费的编号存入缓存。</p>
+<p>典型的主动拉消息，消息是否消费由自己负责的模式。</p>
+<p>实现如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Test
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> comsumerMsgByCache() {
+        GmqConsumer comsumer </span>=<span style="color: #000000;"> GmqInstanceManage.getGmqConsumer(gmqServerUrl);
+        CommonObjCache commonCache </span>=<span style="color: #000000;"> GmqInstanceManage.getCommonCache(gmqServerUrl);
+        String gmqSign </span>= "gmq_consumer_id"<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">long</span> consumerId = 0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">int</span> size = 2<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i=0; i&lt;5; i++<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                CacheObj cacheId </span>=<span style="color: #000000;"> commonCache.getById(gmqSign);
+                </span><span style="color: #0000ff;">if</span>(cacheId != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                    consumerId </span>=<span style="color: #000000;"> Long.parseLong(cacheId.getContent());
+                }
+                
+                List</span>&lt;MqContent&gt; res =<span style="color: #000000;"> comsumer.getMq(topic, consumerId, size);
+                </span><span style="color: #0000ff;">for</span><span style="color: #000000;">(MqContent mq : res) {
+                    System.out.println(JSONObject.toJSONString(mq));
+                    </span><span style="color: #0000ff;">if</span>(mq.getId() &gt;<span style="color: #000000;"> consumerId) {
+                        consumerId </span>=<span style="color: #000000;"> mq.getId();
+                    }
+                }
+                commonCache.save(gmqSign, String.valueOf(consumerId));
+                System.out.println(</span>"保存consumerId:" +<span style="color: #000000;"> consumerId);
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }</span></code></pre>
+
+<p>&nbsp;</p>
+<h1>四、总结</h1>
+<p>gmq的初版至今已经完成，当然这只是开始。</p>
+<p>后续计划先将gmvc框架替换掉，直接使用netty进行通信。</p>
+<p>然后把消息存到数据库改为存到磁盘上。</p>
+<p>然后就是服务的高可用改造。</p>
+<p>届时欢迎指导。</p>
+<p>第2版设计、开发中&hellip;&hellip;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

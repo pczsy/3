@@ -1,0 +1,559 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring Boot 2 + jpa + mysql例子' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring Boot 2 + jpa + mysql例子</center></div><div class='banquan'>原文出处:本文由博客园博主gdjlc提供。<br/>
+原文连接:https://www.cnblogs.com/gdjlc/p/11748875.html</div><br>
+    <p><strong>Spring Data框架为数据访问提供了一个通用的模型，无论访问哪种数据库，都可以使用同样的方式</strong>，<strong>主要有以下几个功能</strong>：<br />(1)提供数据与对象映射的抽象层，同一个对象，可以被映射为不同数据库的数据；<br />(2)根据数据存储接口的方法名，自动实现数据查询；<br />(3)为各个领域模型提供最基本的实现，例如增删改查功能；<br />(4)可在原有逻辑的基础上实现自定义数据库操作逻辑。<br /><strong>JPA是Spring Data框架的其中一个模块，全称为Java Persistence API，是一个持久层规范，Hibernate框架是JPA实现之一。</strong><br />本文内容：<br />(1)项目构建<br />(2)数据访问层与业务层<br />(3)自定义数据存储逻辑<br />(4)方法名查询<br />(5)使用@Query注解</p>
+<p><span style="color: #888888;">开发环境：IntelliJ IDEA 2019.2.2</span><br /><span style="color: #888888;">Spring Boot版本：2.1.8</span></p>
+<p><span style="font-size: 16px;"><strong>一、项目构建</strong></span></p>
+<p>1、新建一个名称为demo的Spring Boot项目。<br />2、pom.xml</p>
+<src class="cnblogs_code">
+<pre><code>       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-web<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-data-jpa<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>mysql<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>mysql-connector-java<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-thymeleaf<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-starter-test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>test<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scope</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>org.springframework.boot<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">groupId</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>spring-boot-devtools<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">artifactId</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">dependency</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>3、application.yml</p>
+<src class="cnblogs_code">
+<pre><code>spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/testdb?useSSL=false&amp;serverTimezone=UTC
+    username: root
+    password:</code></pre>
+
+<p>4、打开Navicat for MySQL，在测试数据库testdb中创建表user</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">CREATE</span> <span style="color: #0000ff;">TABLE</span> `<span style="color: #ff00ff;">user</span><span style="color: #000000;">` (
+`id` </span><span style="color: #0000ff;">int</span>(<span style="color: #800000; font-weight: bold;">11</span>) <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span><span style="color: #000000;"> AUTO_INCREMENT,
+`name` </span><span style="color: #0000ff;">varchar</span>(<span style="color: #800000; font-weight: bold;">32</span>) <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span><span style="color: #000000;">,
+`age` </span><span style="color: #0000ff;">tinyint</span>(<span style="color: #800000; font-weight: bold;">4</span>) <span style="color: #808080;">NOT</span> <span style="color: #0000ff;">NULL</span><span style="color: #000000;">,
+</span><span style="color: #0000ff;">PRIMARY</span> <span style="color: #0000ff;">KEY</span><span style="color: #000000;"> (`id`)
+) ENGINE</span><span style="color: #808080;">=</span>InnoDB AUTO_INCREMENT<span style="color: #808080;">=</span><span style="color: #800000; font-weight: bold;">3</span> <span style="color: #0000ff;">DEFAULT</span> CHARSET<span style="color: #808080;">=</span>utf8mb4;</code></pre>
+
+<p>5、实体类 User.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.entity;
+
+</span><span style="color: #0000ff;">import</span> javax.persistence.*<span style="color: #000000;">;
+
+@Entity
+@Table(name </span>= "user"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> User {
+    @Id
+    @GeneratedValue(strategy </span>=<span style="color: #000000;"> GenerationType.IDENTITY)
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer id;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String name;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer age;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getId() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> id;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setId(Integer id) {
+        </span><span style="color: #0000ff;">this</span>.id =<span style="color: #000000;"> id;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String getName() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setName(String name) {
+        </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getAge() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> age;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setAge(Integer age) {
+        </span><span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>二、数据访问层与业务层</strong></span></p>
+<p>数据访问层继承JpaRepository后会自动实现很多内置的方法，拥有基本的数据库CRUD操作。</p>
+<p>1、数据访问层 UserRepository.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.repository;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.demo.entity.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.jpa.repository.JpaRepository;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> UserRepository <span style="color: #0000ff;">extends</span> JpaRepository&lt;User,Integer&gt;<span style="color: #000000;">{
+   
+}</span></code></pre>
+
+<p>2、业务层 UserService.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.service;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.demo.entity.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.demo.repository.UserRepository;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.beans.factory.annotation.Autowired;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.domain.Page;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.domain.Pageable;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.stereotype.Service;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Optional;
+
+@Service
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserService {
+    @Autowired
+    UserRepository userRepository;
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> save(User user) {
+        userRepository.save(user);
+    }
+
+    </span><span style="color: #0000ff;">public</span> Page&lt;User&gt;<span style="color: #000000;"> getUserPage(Pageable pageable) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.findAll(pageable);
+    }
+
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUsers(){
+        List</span>&lt;User&gt; users =<span style="color: #000000;"> userRepository.findAll();
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> users;
+    }
+
+    </span><span style="color: #0000ff;">public</span> Optional&lt;User&gt;<span style="color: #000000;"> findById(Integer id) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.findById(id);
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> deleteById(Integer id) {
+        userRepository.deleteById(id);
+    }
+}</span></code></pre>
+
+<p>3、控制器 UserController.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.demo.entity.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.demo.service.UserService;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.domain.Page;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.domain.PageRequest;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.domain.Pageable;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.domain.Sort;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RequestMapping;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.web.bind.annotation.RestController;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.annotation.Resource;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Optional;
+
+@RestController
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> UserController {
+    @Resource
+    UserService userService;
+
+    @RequestMapping(</span>"/save"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String save(){
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i=1;i&lt;=20;i++<span style="color: #000000;">){
+            User user </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> User();
+            user.setName(</span>"a" +<span style="color: #000000;"> i);
+            user.setAge(i);
+            userService.save(user);
+        }
+        </span><span style="color: #0000ff;">return</span> "添加成功"<span style="color: #000000;">;
+    }
+
+    @RequestMapping(</span>"/getUserPage"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> Page&lt;User&gt;<span style="color: #000000;"> getUserPage(Integer page, Integer size){
+        Sort sort </span>= <span style="color: #0000ff;">new</span> Sort(Sort.Direction.ASC, "id"<span style="color: #000000;">);
+        Pageable pageable </span>=<span style="color: #000000;"> PageRequest.of(page,size,sort);
+        Page</span>&lt;User&gt; users =<span style="color: #000000;"> userService.getUserPage(pageable);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> users;
+    }
+
+    @RequestMapping(</span>"/getUsers"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> getUsers(){
+        List</span>&lt;User&gt; users =<span style="color: #000000;"> userService.getUsers();
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> users;
+    }
+
+    @RequestMapping(</span>"/findById"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> Optional&lt;User&gt;<span style="color: #000000;"> findById(Integer id){
+        Optional</span>&lt;User&gt; user =<span style="color: #000000;"> userService.findById(id);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> user;
+    }
+
+    @RequestMapping(</span>"/deleteById"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> String deleteById(Integer id){
+        userService.deleteById(id);
+        </span><span style="color: #0000ff;">return</span> "删除成功"<span style="color: #000000;">;
+    }
+}</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>三、自定义数据存储逻辑</strong></span></p>
+<p>继承JpaRepository可以完成很多工作，但有时需要实现自定义数据存储逻辑。</p>
+<p>使用例子：</p>
+<p>1、新建一个接口&nbsp;UserRepositoryCustom.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.repository;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.demo.entity.User;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> UserRepositoryCustom {
+    List</span>&lt;User&gt;<span style="color: #000000;"> myQuery();
+}</span></code></pre>
+
+<p>2、新建接口&nbsp;UserRepositoryCustom的实现类UserRepositoryCustomImpl.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.repository.impl;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.demo.entity.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.demo.repository.UserRepositoryCustom;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.persistence.EntityManager;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.persistence.PersistenceContext;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> javax.persistence.Query;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UserRepositoryImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> UserRepositoryCustom {
+    @PersistenceContext
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> EntityManager em;
+
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> myQuery(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">说明：下面这个User不是数据库表名，而是实体类名，并且区分大小写</span>
+        Query q = em.createQuery("from User"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> q.getResultList();
+    }
+}</span></code></pre>
+
+<p>3、修改原来的&nbsp;UserRepository.java，同时继承JpaRepository和UserRepositoryCustom</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> com.example.demo.repository;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> com.example.demo.entity.User;
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> org.springframework.data.jpa.repository.JpaRepository;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> UserRepository <span style="color: #0000ff;">extends</span> JpaRepository&lt;User,Integer&gt;<span style="color: #000000;">,UserRepositoryCustom {
+   
+}</span></code></pre>
+
+<p>4、修改原来的 UserService.java，增加方法</p>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> myQuery(){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.myQuery();
+    }</span></code></pre>
+
+<p>5、修改原来的 UserController.java，代码略。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>四、方法名查询</strong></span></p>
+<p>JpaRepository支持接口规范方法名查询，即如果在接口中定义的查询方法符合它的命名规则，就可以不用写实现逻辑。<br />例如根据对象User的字段name进行查询，实现类似&ldquo;from User where name=?&rdquo;查询，直接在接口中写&ldquo;List&lt;User&gt; name(String name);&rdquo;，方法名也可写findByName，Spring Data JPA框架在进行方法名解析时，会先把方法名多余的前缀截取掉，比如find、findBy、read、readBy、get、getBy，然后对剩下部分进行解析。另外还可以根据特定关键字实现条件查询，如下表所示：&nbsp;</p>
+<table border="1" cellspacing="1" cellpadding="1">
+<tbody>
+<tr>
+<td>关键字</td>
+<td>例子</td>
+<td>对应的SQL</td>
+
+
+
+
+</tr>
+<tr>
+<td>IsNotNull</td>
+<td>findByAgeNotNull</td>
+<td>... &nbsp;where x.age not null</td>
+
+
+
+
+</tr>
+<tr>
+<td>Like</td>
+<td>findByNameLike</td>
+<td>... &nbsp;where x.name like ?1</td>
+
+
+
+
+</tr>
+<tr>
+<td>NotLike</td>
+<td>findByNameNotLike</td>
+<td>... &nbsp;where x.name not like ?1</td>
+
+
+
+
+</tr>
+<tr>
+<td>StartingWith</td>
+<td>findByNameStartingWith</td>
+<td>... &nbsp;where x.name like ?1(parameter bound with appended %)</td>
+
+
+
+
+</tr>
+<tr>
+<td>EndingWith</td>
+<td>findByNameEndingWith</td>
+<td>... &nbsp;where x.name like ?1(parameter bound with prepended %)</td>
+
+
+
+
+</tr>
+<tr>
+<td>Containing</td>
+<td>findByNameContaining</td>
+<td>... &nbsp;where x.name like ?1(parameter bound wrapped in %)</td>
+
+
+
+
+</tr>
+<tr>
+<td>OrderBy</td>
+<td>findByAgeOrderByName</td>
+<td>... &nbsp;where x.age = ?1 order by x.name desc</td>
+
+
+
+
+</tr>
+<tr>
+<td>Not</td>
+<td>findByNameNot</td>
+<td>... &nbsp;where x.name &lt;&gt; ?1</td>
+
+
+
+
+</tr>
+<tr>
+<td>In</td>
+<td>findByAgeIn</td>
+<td>... &nbsp;where x.age in ?1</td>
+
+
+
+
+</tr>
+<tr>
+<td>NotIn</td>
+<td>findByAgeNotIn</td>
+<td>... &nbsp;where x.age not in ?1</td>
+
+
+
+
+</tr>
+<tr>
+<td>True</td>
+<td>findByActiveTrue</td>
+<td>... &nbsp;where x.avtive = true</td>
+
+
+
+
+</tr>
+<tr>
+<td>Flase</td>
+<td>findByActiveFalse</td>
+<td>... &nbsp;where x.active = false</td>
+
+
+
+
+</tr>
+<tr>
+<td>And&nbsp;</td>
+<td>findByNameAndAge</td>
+<td>... &nbsp;where x.name = ?1 and x.age = ?2</td>
+
+
+
+
+</tr>
+<tr>
+<td>Or</td>
+<td>findByNameOrAge</td>
+<td>... &nbsp;where x.name = ?1 or x.age = ?2</td>
+
+
+
+
+</tr>
+<tr>
+<td>Between</td>
+<td>findBtAgeBetween</td>
+<td>... &nbsp;where x.age between ?1 and ?2</td>
+
+
+
+
+</tr>
+<tr>
+<td>LessThan</td>
+<td>findByAgeLessThan</td>
+<td>... &nbsp;where x.age &nbsp;&lt; &nbsp;?1</td>
+
+
+
+
+</tr>
+<tr>
+<td>GreaterThan</td>
+<td>findByAgeGreaterThan</td>
+<td>... &nbsp;where x.age &gt; ?1</td>
+
+
+
+
+</tr>
+<tr>
+<td>After/Before</td>
+<td>...</td>
+<td>...</td>
+
+
+
+
+</tr>
+<tr>
+<td>IsNull</td>
+<td>findByAgeIsNull</td>
+<td>... &nbsp;where x.age is null</td>
+
+
+
+
+</tr>
+
+
+
+
+</tbody>
+
+
+
+
+</table>
+<p><br />使用例子：</p>
+<p>1、修改原来的 UserRepository.java，增加方法</p>
+<src class="cnblogs_code">
+<pre><code>    @RequestMapping("/id"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> id(Integer id){
+        List</span>&lt;User&gt; users =<span style="color: #000000;"> userService.id(id);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> users;
+    }
+    @RequestMapping(</span>"/name"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> name(String name){
+        List</span>&lt;User&gt; users =<span style="color: #000000;"> userService.name(name);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> users;
+    }
+    @RequestMapping(</span>"/age"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> age(Integer age){
+        List</span>&lt;User&gt; users =<span style="color: #000000;"> userService.age(age);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> users;
+    }
+    @RequestMapping(</span>"/findByIdAndName"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> findByIdAndName(Integer id, String name){
+        List</span>&lt;User&gt; users =<span style="color: #000000;"> userService.findByIdAndName(id, name);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> users;
+    }
+    @RequestMapping(</span>"/findByAgeBetween"<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> findByAgeBetween(Integer startAge, Integer endAge){
+        List</span>&lt;User&gt; users =<span style="color: #000000;"> userService.findByAgeBetween(startAge, endAge);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> users;
+    }</span></code></pre>
+
+<p>2、修改原来的 UserService.java，增加方法</p>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> id(Integer id){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.id(id);
+    }
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> name(String name){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.name(name);
+    }
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> age(Integer age){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.age(age);
+    }
+
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> findByIdAndName(Integer id, String name){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.findByIdAndName(id, name);
+    }
+
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> findByAgeBetween(Integer startAge, Integer endAge){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.findByAgeBetween(startAge, endAge);
+    }</span></code></pre>
+
+<p>3、修改原来的 UserController.java，代码略。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>五、使用@Query注解</strong></span></p>
+<p>在方法中使用@Query注解，提供JPQL（Java Presistence Query Language）或SQL语句，同样可以实现查询功能。</p>
+<p>使用例子：</p>
+<p>1、修改原来的 UserRepository.java，增加方法</p>
+<src class="cnblogs_code">
+<pre><code>    @Query("select u from User u where u.name = ?1"<span style="color: #000000;">)
+    List</span>&lt;User&gt;<span style="color: #000000;"> findUserName(String name);
+
+    @Query(value </span>= "select * from user u where u.name = ?1", nativeQuery = <span style="color: #0000ff;">true</span><span style="color: #000000;">)
+    List</span>&lt;User&gt; findNativeByName(String name);</code></pre>
+
+<p>2、修改原来的 UserService.java，增加方法&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code>    <span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> findUserName(String name){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.findUserName(name);
+    }
+
+    </span><span style="color: #0000ff;">public</span> List&lt;User&gt;<span style="color: #000000;"> findNativeByName(String name){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> userRepository.findNativeByName(name);
+    }</span></code></pre>
+
+<p>3、修改原来的 UserController.java，代码略。</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

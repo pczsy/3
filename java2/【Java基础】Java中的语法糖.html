@@ -1,0 +1,505 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【Java基础】Java中的语法糖' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【Java基础】Java中的语法糖</center></div><div class='banquan'>原文出处:本文由博客园博主写代码的木公提供。<br/>
+原文连接:https://www.cnblogs.com/54chensongxia/p/11665843.html</div><br>
+    <hr />
+<p><strong>语法糖（Syntactic Sugar）</strong>，也称糖衣语法，指在计算机语言中添加的<strong>某种语法</strong>，这种语法对语言本身的功能来说没有什么影响，只是为了方便程序员进行开发，提高开发效率，使用这种语法写出来的程序可读性也更高。说白了，语法糖就是对现有语法的一个封装。</p>
+<p><strong>但其实，Java虚拟机是并不支持语法糖的，语法糖在程序编译阶段就会被还原成简单的基础语法结构，这个过程就是解语法糖</strong>。所以在Java中真正支持语法糖的是Java编译器。</p>
+<p><img src="./images/【Java基础】Java中的语法糖0.png" /></p>
+<hr />
+<h2 id="java中的语法糖">Java中的语法糖</h2>
+<p>Java编程语言提供了很多语法糖，整理了下，主要有下面几种常用的语法糖。</p>
+<ul>
+<li>switch-case对String和枚举类的支持</li>
+<li>泛型</li>
+<li>包装类自动装箱与拆箱</li>
+<li>方法变长参数</li>
+<li>枚举</li>
+<li>内部类</li>
+<li>条件编译</li>
+<li>断言</li>
+<li>数值字面量</li>
+<li>增强for循环</li>
+<li>try-with-resource语法</li>
+<li>Lambda表达式</li>
+<li>字符串+号语法</li>
+</ul>
+<h2 id="switch对string和枚举类的支持">switch对String和枚举类的支持</h2>
+<p>switch对枚举和String的支持原理其实是差不多的。下面以String为列子介绍下具体的原理。</p>
+<p>switch关键字原生只能支持整数类型。如果switch后面是String类型的话，编译器会将其转换成String的hashCode的值，所以其实switch-case语法比较的是String的hashCode值。</p>
+<p>如果switch后面是Enum类型的话，编译器会将其转换为这个枚举定义的下标（ordinal）。其实最后都是比较的整数类型。下面以Stirng举个列子。</p>
+<p>源代码</p>
+<pre><code><code>public class SwitchDemoString {
+    public static void main(String[] args) {
+        String str = &quot;world&quot;;
+        switch (str) {
+            case &quot;hello&quot;:
+                System.out.println(&quot;hello&quot;);
+                break;
+            case &quot;world&quot;:
+                System.out.println(&quot;world&quot;);
+                break;
+            default:
+                break;
+        }
+    }
+}</code></code></pre>
+<p>反编译后的代码</p>
+<pre><code><code>public class SwitchDemoString
+{
+    public switchDemoString()
+    {
+    }
+    public static void main(String args[])
+    {
+        String str = &quot;world&quot;;
+        String s;
+        switch((s = str).hashCode())
+        {
+        default:
+            break;
+        case 99162322:
+            //这边需要再次通过equals方法进行判断，因为不同字符串的hashCode值是可能相同的，比如“Aa”和“BB”的hashCode就是一样的
+            if(s.equals(&quot;hello&quot;))
+                System.out.println(&quot;hello&quot;);
+            break;
+        case 113318802:
+            if(s.equals(&quot;world&quot;))
+                System.out.println(&quot;world&quot;);
+            break;
+        }
+    }
+}</code></code></pre>
+<p>通过反编译可以发现，进行switch的实际是哈希值，然后通过使用equals方法比较进行安全检查，这个检查是必要的，因为哈希可能会发生碰撞。因此它的性能是不如使用枚举进行switch或者使用纯整数常量。</p>
+<p>PS：这边顺带简单介绍一个Java的反编译软件<code>Jad</code>。下载地址的话大家可以在网上找下。使用起来非常简单：</p>
+<pre class="bash"><code>jad -p SwitchDemoString.class &gt; SwitchDemoString.java</code></code></pre>
+<p>上面的命令就可以将class文件反编译成Java文件。这个只是<code>Jad</code>的最简单的使用，详细用法可以参考这篇<a href="https://www.cnblogs.com/dkblog/archive/2008/04/07/1980817.html">博客</a></p>
+<h2 id="对泛型的支持">对泛型的支持</h2>
+<p>在JDK5中，Java语言引入了泛型机制。但是这种泛型机制其实是通过类型擦除来实现的，即Java中的泛型只在程序源代码中有效（源代码阶段提供类型检查），在编译后的字节码中自动用强制类型转换进行替代。也就是说，Java语言中的泛型机制其实就是一颗语法糖，相较与C++、C#相比，其泛型实现实在是不那么优雅。</p>
+<pre><code><code>/**
+* 在源代码中存在泛型
+*/
+public static void main(String[] args) {
+    Map&lt;String,String&gt; map = new HashMap&lt;String,String&gt;(16);
+    map.put(&quot;name&quot;,&quot;csx-mg&quot;);
+    String name = map.get(&quot;name&quot;);
+    System.out.println(name);
+}</code></code></pre>
+<p>通过<code>jad</code>反编译出来的代码</p>
+<pre><code><code>public static void main(String[] args) {
+    //类型擦除
+    Map map = new HashMap();
+    map.put(&quot;name&quot;, &quot;csx-mg&quot;);
+    //强制转换
+    String name = (String)map.get(&quot;name&quot;);
+    System.out.println(name);
+}</code></code></pre>
+<p>通过上面反编译后的代码我们发现虚拟机中其实是没有泛型的，只有普通类和普通方法，所有泛型类的类型参数在编译时都会被擦除，泛型类并没有自己独有的Class类对象。</p>
+<h2 id="包装类型的自动装箱和拆箱">包装类型的自动装箱和拆箱</h2>
+<p>我们知道在 Java 中的8个基本类型和对应的包装类型之间是可以互相赋值的（这个过程叫自动装箱、拆箱过程）。其实这背后的原理是编译器做了优化。如下面代码，将基本类型赋值给包装类其实是调用了包装类的valueOf()方法创建了一个包装类再赋值给了基本类型。而包装类赋值给基本类型就是调用了包装类的xxxValue()方法拿到基本数据类型后再赋值的。</p>
+<pre><code><code>public static void main(String[] args) {
+    Integer a = 1;
+    int b = 2;
+    int c = a + b;
+    System.out.println(c);
+}</code></code></pre>
+<p>通过<code>jad</code>反编译出来的代码</p>
+<pre><code><code>public static void main(String[] args) {
+    // 自动装箱
+    Integer a = Integer.valueOf(1); 
+    byte b = 2;
+    //自动拆箱
+    int c = a.intValue() + b;
+    System.out.println(c);
+}</code></code></pre>
+<h2 id="变长方法参数">变长方法参数</h2>
+<p>变长参数特性是在JDK 5中引入的，使用变长参数有两个条件，一是变长的那一部分参数具有相同的类型，二是变长参数必须位于方法参数列表的最后面。变长参数同样是Java中的语法糖，<strong>其内部实现是编译器在编译源代码的时候将变长参数部分转换成了Java数组。</strong></p>
+<pre><code><code>public class Test {
+
+    public static void main(String[] args) {
+        m1(&quot;csx-mg&quot;,&quot;reading&quot;,&quot;writing&quot;,&quot;fishing&quot;);
+    }
+
+    public static void m1(String name,String... hobbits){
+        System.out.println(&quot;l am &quot;+name);
+        System.out.print(&quot;l have hobbits:[&quot;);
+        for (int i = 0; i &lt; hobbits.length; i++) {
+            if(i!=hobbits.length-1) {
+                System.out.print(hobbits[i]+&quot;,&quot;);
+            }else {
+                System.out.print(hobbits[i]+&quot;]&quot;);
+            }
+        }
+    }
+}</code></code></pre>
+<p>上面代码输出：</p>
+<pre><code><code>l am csx-mg
+l have hobbits:[reading,writing,fishing]</code></code></pre>
+<p>通过<code>jad</code>反编译出来的代码</p>
+<pre><code><code>public class Test
+{
+
+    public Test()
+    {
+    }
+
+    public static void main(String args[])
+    {
+        //入参也被转成成了数组
+        m1(&quot;csx-mg&quot;, new String[] {
+            &quot;reading&quot;, &quot;writing&quot;, &quot;fishing&quot;
+        });
+    }
+    
+    //这边已经将变长参数转换成了数组
+    public static transient void m1(String name, String hobbits[])
+    {
+        System.out.println((new StringBuilder()).append(&quot;l am &quot;).append(name).toString());
+        System.out.print(&quot;l have hobbits:[&quot;);
+        for(int i = 0; i &lt; hobbits.length; i++)
+            if(i != hobbits.length - 1)
+                System.out.print((new StringBuilder()).append(hobbits[i]).append(&quot;,&quot;).toString());
+            else
+                System.out.print((new StringBuilder()).append(hobbits[i]).append(&quot;]&quot;).toString());
+
+    }
+}</code></code></pre>
+<h2 id="枚举">枚举</h2>
+<p>java中类的定义使用class，枚举类的定义使用enum。但在Java的字节码结构中，其实并没有枚举类型，<strong>枚举类型只是一个语法糖，在编译完成后就会被编译成一个普通的类，也是用Class修饰。这个类继承java.lang.Enum，并被final关键字修饰。</strong></p>
+<pre><code><code>public enum Fruit {
+    APPLE,ORINGE
+}   </code></code></pre>
+<p>将Fruit的class文件进行反编译</p>
+<pre><code><code>//继承java.lang.Enum并声明为final
+public final class Fruit extends Enum
+{
+
+    public static Fruit[] values()
+    {
+        return (Fruit[])$VALUES.clone();
+    }
+
+    public static Fruit valueOf(String s)
+    {
+        return (Fruit)Enum.valueOf(Fruit, s);
+    }
+
+    private Fruit(String s, int i)
+    {
+        super(s, i);
+    }
+    //枚举类型常量
+    public static final Fruit APPLE;
+    public static final Fruit ORANGE;
+    private static final Fruit $VALUES[];//使用数组进行维护
+
+    static
+    {
+        APPLE = new Fruit(&quot;APPLE&quot;, 0);
+        ORANGE = new Fruit(&quot;ORANGE&quot;, 1);
+        $VALUES = (new Fruit[] {
+            APPLE, ORANGE
+        });
+    }
+}</code></code></pre>
+<p>通过上面反编译的代码，我们可以知道当我们使用enmu来定义一个枚举类型的时候，编译器会自动帮我们创建一个final类型的类继承Enum类，所以枚举类型不能被继承。</p>
+<h2 id="内部类">内部类</h2>
+<p>Java语言中之所以引入内部类，是因为有些时候一个类只想在一个类中有用，我们不想让其在另外一个地方被使用。内部类之所以是语法糖，是因为其只是一个编译时的概念，一旦编译完成，编译器就会为内部类生成一个单独的class文件，名为outer$innter.class。</p>
+<pre><code><code>public class Outer {
+    class Inner{
+    }
+}</code></code></pre>
+<p>使用javac编译后，生成两个class文件Outer.class和Outer$Inner.class，其中Outer$Inner.class的内容如下：</p>
+<pre><code><code>class Outer$Inner {
+    Outer$Inner(Outer var1) {
+        this.this$0 = var1;
+    }
+}</code></code></pre>
+<h2 id="条件编译">条件编译</h2>
+<p>一般情况下，源程序中所有的行都参加编译。但有时希望对其中一部分内容只在满足一定条件下才进行编译，即对一部分内容指定编译条件，这就是“条件编译”（conditional compile）。</p>
+<p>Java中的条件编译是通过编译器的优化原则实现的：</p>
+<ul>
+<li>如果if的条件是false，则在编译时忽略这个if语句。</li>
+<li>忽略未使用的变量。</li>
+</ul>
+<pre><code><code>public class ConditionalCompilation02
+{
+    public static void main(String[] args) {
+        if(CompilationConfig.DEBUG_MODE)
+        {
+            System.out.println(&quot;[DEBUG MODE]You can print sth&quot;);
+        }
+        else
+        {
+            System.out.println(&quot;[RELEASE MODE]You can print sth&quot;);
+        }
+    }
+}</code></code></pre>
+<p>所以，Java语法的条件编译，是通过判断条件为常量的if语句实现的。根据if判断条件的真假，编译器直接把分支为false的代码块消除。通过该方式实现的条件编译，必须在方法体内实现，而无法在正整个Java类的结构或者类的属性上进行条件编译。</p>
+<h2 id="断言">断言</h2>
+<p>在Java中，assert关键字是从Java 4开始引入的，为了避免和老版本的Java代码中使用了assert关键字导致错误，Java在执行的时候默认是不启动断言检查的（这个时候，所有的断言语句都将忽略！）。</p>
+<p>如果要开启断言检查，则需要用开关-enableassertions或-ea来开启。</p>
+<p>其实断言的底层实现就是if语言，如果断言结果为true，则什么都不做，程序继续执行，如果断言结果为false，则程序抛出AssertError来打断程序的执行。</p>
+<pre><code><code>public class Test {
+    public static void main(String[] args) {
+        System.out.println(&quot;begin to test assert...&quot;);
+        boolean flag;
+        //当布尔值为true的时候不会抛出错误
+        flag = true;
+        assert flag;
+        //这边会抛出AssertionError错误，但是需要加入vm参数-ea
+        flag = false;
+        assert flag;
+    }
+}</code></code></pre>
+<p>代码输出</p>
+<pre><code><code>begin to test assert...
+Exception in thread &quot;main&quot; java.lang.AssertionError
+    at com.csx.demo.spring.boot.utildemo.Test.main(Test.java:8)</code></code></pre>
+<p>通过<code>jad</code>反编译出来的代码</p>
+<pre><code><code>public class Test
+{
+
+    public Test()
+    {
+    }
+
+    public static void main(String args[])
+    {
+        System.out.println(&quot;begin to test assert...&quot;);
+        boolean flag = true;
+        if(!$assertionsDisabled &amp;&amp; !flag)
+            throw new AssertionError();
+        flag = false;
+        if(!$assertionsDisabled &amp;&amp; !flag)
+            throw new AssertionError();
+        else
+            return;
+    }
+
+    static final boolean $assertionsDisabled = !com/csx/demo/spring/boot/utildemo/Test.desiredAssertionStatus();
+
+}</code></code></pre>
+<p>通过反编译后的代码可以看出assert断言就是通过对布尔标志位进行了一个if判断。（需要注意的是如果需要使用断言，需要设置JVM参数-ea开始断言）</p>
+<h2 id="数值字面量">数值字面量</h2>
+<p>Java中支持如下形式的数值字面量</p>
+<ul>
+<li>十进制：默认的</li>
+<li>八进制：整数之前加数字0来表示</li>
+<li>十六进制：整数之前加&quot;0x&quot;或&quot;0X&quot;</li>
+<li>二进制（新加的）：整数之前加&quot;0b&quot;或&quot;0B&quot;</li>
+</ul>
+<p>另外在在jdk7中，数值字面量，不管是整数还是浮点数，都允许在数字之间插入任意多个下划线。这些下划线不会对字面量的数值产生影响，目的就是方便阅读。比如：</p>
+<ul>
+<li>1_500_000</li>
+<li>5_6.3_4</li>
+<li>89_3___1</li>
+</ul>
+<p>下划线只能出现在数字中间，前后必须是数字。所以“_100”、“0b_101“是不合法的，无法通过编译。这样限制的动机就是可以降低实现的复杂度。有了这个限制，Java编译器只需在扫描源代码的时候将所发现的数字中间的下划线直接删除就可以了。如果不添加这个限制，编译器需要进行语法分析才能做出判断。比如：_100,可能是一个整数字面量100，也可能是一个变量名称。这就要求编译器的实现做出更复杂的改动。</p>
+<pre><code><code>public class Test {
+    public static void main(String[] args) {
+        //十进制
+        int a = 10;
+        //二进制
+        int b = 0B1010;
+        //八进制
+        int c = 012;
+        //十六进制
+        int d = 0XA;
+
+        double e = 12_234_234.23;
+        System.out.println(&quot;a：&quot;+a);
+        System.out.println(&quot;b：&quot;+b);
+        System.out.println(&quot;c：&quot;+c);
+        System.out.println(&quot;d：&quot;+d);
+        System.out.println(&quot;e：&quot;+e);
+    }
+}</code></code></pre>
+<p>通过<code>jad</code>反编译出来的代码</p>
+<pre><code><code>public class Test
+{
+
+    public Test()
+    {
+    }
+
+    public static void main(String args[])
+    {
+        int a = 10;
+        //编译器已经将二进制，八进制，十六进制数转换成了10进制数
+        int b = 10;
+        int c = 10;
+        int d = 10;
+        //编译器已经将下滑线删除
+        double e = 12234234.23D;
+        System.out.println((new StringBuilder()).append(&quot;a\uFF1A&quot;).append(a).toString());
+        System.out.println((new StringBuilder()).append(&quot;b\uFF1A&quot;).append(b).toString());
+        System.out.println((new StringBuilder()).append(&quot;c\uFF1A&quot;).append(c).toString());
+        System.out.println((new StringBuilder()).append(&quot;d\uFF1A&quot;).append(d).toString());
+        System.out.println((new StringBuilder()).append(&quot;e\uFF1A&quot;).append(e).toString());
+    }
+}</code></code></pre>
+<h2 id="增强for循环">增强for循环</h2>
+<p>增强for循环的对象要么是一个数组，要么实现了Iterable接口。这个语法糖主要用来对数组或者集合进行遍历，其在循环过程中不能改变集合的大小。增强for循环主要使代码更加简洁，其背后的原理是编译器将增强for循环转换成了普通的for循环或者while循环。</p>
+<pre><code><code>public static void main(String[] args) {
+    String[] params = new String[]{&quot;hello&quot;,&quot;world&quot;};
+    //增强for循环对象为数组
+    for(String str : params){
+        System.out.println(str);
+    }
+
+    List&lt;String&gt; lists = Arrays.asList(&quot;hello&quot;,&quot;world&quot;);
+    //增强for循环对象实现Iterable接口
+    for(String str : lists){
+        System.out.println(str);
+    }
+}</code></code></pre>
+<p>编译器编译后的代码</p>
+<pre><code><code>public static void main(String[] args) {
+   String[] params = new String[]{&quot;hello&quot;, &quot;world&quot;};
+   String[] lists = params;
+   int var3 = params.length;
+   //数组形式的增强for退化为普通for
+   for(int str = 0; str &lt; var3; ++str) {
+       String str1 = lists[str];
+       System.out.println(str1);
+   }
+
+   List var6 = Arrays.asList(new String[]{&quot;hello&quot;, &quot;world&quot;});
+   Iterator var7 = var6.iterator();
+   //实现Iterable接口的增强for使用iterator接口进行遍历
+   while(var7.hasNext()) {
+       String var8 = (String)var7.next();
+       System.out.println(var8);
+   }
+
+}</code></code></pre>
+<h2 id="try-with-resource语法">try-with-resource语法</h2>
+<p>当一个外部资源的句柄对象实现了AutoCloseable接口，JDK7中便可以利用try-with-resource语法更优雅的关闭资源，消除板式代码。</p>
+<pre><code><code>public static void main(String[] args) {
+    try (FileInputStream inputStream = new FileInputStream(new File(&quot;test&quot;))) {
+        System.out.println(inputStream.read());
+    } catch (IOException e) {
+        throw new RuntimeException(e.getMessage(), e);
+    }
+}</code></code></pre>
+<p>将外部资源的句柄对象的创建放在try关键字后面的括号中，当这个try-catch代码块执行完毕后，Java会确保外部资源的close方法被调用。代码是不是瞬间简洁许多！try-with-resource并不是JVM虚拟机的新增功能，只是JDK实现了一个语法糖，当你将上面代码反编译后会发现，其实对JVM虚拟机而言，它看到的依然是之前的写法：</p>
+<pre><code><code>public static void main(String[] args) {
+    try {
+        FileInputStream inputStream = new FileInputStream(new File(&quot;test&quot;));
+        Throwable var2 = null;
+        try {
+            System.out.println(inputStream.read());
+        } catch (Throwable var12) {
+            var2 = var12;
+            throw var12;
+        } finally {
+            if (inputStream != null) {
+                if (var2 != null) {
+                    try {
+                        inputStream.close();
+                    } catch (Throwable var11) {
+                        var2.addSuppressed(var11);
+                    }
+                } else {
+                    inputStream.close();
+                }
+            }
+        }
+
+    } catch (IOException var14) {
+        throw new RuntimeException(var14.getMessage(), var14);
+    }
+}</code></code></pre>
+<p>其实背后的原理也很简单，那些我们没有做的关闭资源的操作，编译器都帮我们做了。</p>
+<h2 id="lambda表达式">Lambda表达式</h2>
+<p>Lambda表达式虽然看着很先进，但其实Lambda表达式的本质只是一个&quot;语法糖&quot;,<strong>由编译器推断并帮你转换包装为常规的代码</strong>,因此你可以使用更少的代码来实现同样的功能。<strong>本人建议不要乱用,因为这就和某些很高级的黑客写的代码一样,简洁,难懂,难以调试,维护人员想骂娘</strong>。</p>
+<p>lambda表达式允许你通过表达式来代替功能接口。Lambda表达式还增强了集合库。 Java SE 8添加了2个对集合数据进行批量操作的包: java.util.function 包以及java.util.stream 包。 流(stream)就如同迭代器(iterator),但附加了许多额外的功能。 总的来说,lambda表达式和 stream 是自Java语言添加泛型(Generics)和注解(annotation)以来最大的变化。</p>
+<h3 id="lambda表达式的语法">Lambda表达式的语法</h3>
+<pre><code><code>基本语法:
+(parameters) -&gt; expression
+或
+(parameters) -&gt;{ statements; }</code></code></pre>
+<p>Lambda表达式的一些简单列子</p>
+<pre><code><code>// 1. 不需要参数,返回值为 5  
+() -&gt; 5  
+  
+// 2. 接收一个参数(数字类型),返回其2倍的值  
+x -&gt; 2 * x  
+  
+// 3. 接受2个参数(数字),并返回他们的差值  
+(x, y) -&gt; x – y  
+  
+// 4. 接收2个int型整数,返回他们的和  
+(int x, int y) -&gt; x + y  
+  
+// 5. 接受一个 string 对象,并在控制台打印,不返回任何值(看起来像是返回void)  
+(String s) -&gt; System.out.print(s)</code></code></pre>
+<h3 id="基本的lambda例子实现功能接口">基本的Lambda例子(实现功能接口)</h3>
+<pre><code><code>String[] atp = {&quot;Rafael Nadal&quot;, &quot;Novak Djokovic&quot;,
+                &quot;Stanislas Wawrinka&quot;,
+                &quot;David Ferrer&quot;, &quot;Roger Federer&quot;,
+                &quot;Andy Murray&quot;, &quot;Tomas Berdych&quot;,
+                &quot;Juan Martin Del Potro&quot;};
+
+        List&lt;String&gt; players =  Arrays.asList(atp);
+
+        //实现功能接口
+        players.forEach((String player) -&gt;{
+            System.out.println(player);
+        });
+        Runnable runnable = () -&gt; {
+            System.out.println(&quot;l am a new thread...&quot;);
+        };
+        new Thread(runnable).start();   </code></code></pre>
+<h3 id="使用lambdas排序集合">使用Lambdas排序集合</h3>
+<pre><code><code>players.sort(new Comparator&lt;String&gt;() {
+            @Override
+            public int compare(String o1, String o2) {
+                return o1.compareTo(o2);
+            }
+        });
+Comparator&lt;String&gt; comparator = (String o1,String o2) -&gt;{return o1.compareTo(o2);};
+players.sort(comparator);</code></code></pre>
+<h3 id="使用lambdas和streams">使用Lambdas和Streams</h3>
+<p>Stream是对集合的包装,通常和lambda一起使用。 使用lambdas可以支持许多操作,如 map, filter, limit, sorted, count, min, max, sum, collect 等等。 同样,Stream使用懒运算,他们并不会真正地读取所有数据,遇到像getFirst() 这样的方法就会结束链式语法。</p>
+<h2 id="字符串对号的支持">字符串对+号的支持</h2>
+<pre><code><code>String s=null;
+s=s+&quot;abc&quot;;
+System.out.println(s);</code></code></pre>
+<p>上面的代码输出什么？</p>
+<p>字符串+号拼接原理：运行时，两个字符串str1, str2的拼接首先会new一个<code>StringBuilder</code>对象，然后分别对字符串进行append操作，最后调用<code>toString()</code>方法。</p>
+<p>看下反编译出来的代码：</p>
+<pre><code><code>public static void main(String args[])
+{
+    String s = null;
+    s = (new StringBuilder()).append(s).append(&quot;abc&quot;).toString();
+    System.out.println(s);
+}</code></code></pre>
+<p>所以答案是：nullabc</p>
+<h2 id="参考">参考</h2>
+<p>https://www.cnblogs.com/wanshiming/p/7685684.html<br />
+https://www.cnblogs.com/franson-2016/p/5593080.html<br />
+https://www.jb51.net/article/138519.htm</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

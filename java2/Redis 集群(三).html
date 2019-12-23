@@ -1,0 +1,57 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Redis 集群(三)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Redis 集群(三)</center></div><div class='banquan'>原文出处:本文由博客园博主sanri1993提供。<br/>
+原文连接:https://www.cnblogs.com/sanri1993/p/11610253.html</div><br>
+    <h2 id="为什么为有集群">为什么为有集群</h2>
+<ul>
+<li>在 Redis3 版本之前，每台 Redis 机器需要存储所有 Redis key ，这要求每台 Redis 机器有足够大的内存</li>
+<li>而且只能是主节点写，从节点读，对于高并发情况下会有性能瓶颈</li>
+<li>虽然有哨兵模式来保证服务的高用，但是切换主节点还是需要时间的（实测）</li>
+</ul>
+<h2 id="分布式数据库">分布式数据库</h2>
+<p>分布式数据库指将数据均匀的分布到每个节点上，可以做数据冗余来排除故障，每个节点负责数据的一个子集</p>
+<h3 id="如何进行分区">如何进行分区</h3>
+<p>常见的分区规则 <strong>哈希分区</strong>，<strong>顺序分区</strong>，Redis 集群使用了哈希分区 <strong>虚拟槽分区</strong> 方式</p>
+<p>所有的键根据哈希函数 (CRC16[key]&amp;16383) 映射到0－16383槽内，共16384个槽位，每个节点维护部分槽及槽所映射的键值数据</p>
+<p>哈希函数: Hash()=CRC16[key]&amp;16383 按位与</p>
+<p>Redis用虚拟槽分区原因：解耦数据与节点关系，节点自身维护槽映射关系，分布式存储</p>
+<h2 id="redis集群的不足">Redis集群的不足</h2>
+<ul>
+<li>键的批量操作支持有限，比如mset, mget，如果多个键映射在不同的槽，就不支持了</li>
+<li>键事务支持有限，当多个key分布在不同节点时无法使用事务，同一节点是支持事务</li>
+<li>键是数据分区的最小粒度，不能将一个很大的键值对映射到不同的节点</li>
+<li>不支持多数据库，只支持 0 数据库</li>
+<li>主从结构只支持单层结构，不支持树型结构</li>
+</ul>
+<h2 id="搭建集群">搭建集群</h2>
+<p>参考我的另一篇文章 <a href="https://blog.csdn.net/sanri1993/article/details/101720686" class="uri">https://blog.csdn.net/sanri1993/article/details/101720686</a></p>
+<h2 id="一点小推广">一点小推广</h2>
+<p>创作不易，希望可以支持下我的开源软件，及我的小工具，欢迎来 gitee 点星，fork ，提 bug 。</p>
+<p>Excel 通用导入导出，支持 Excel 公式<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/100601578" class="uri">https://blog.csdn.net/sanri1993/article/details/100601578</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-excel-poi" class="uri">https://gitee.com/sanri/sanri-excel-poi</a></p>
+<p>使用模板代码 ，从数据库生成代码 ，及一些项目中经常可以用到的小工具<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/98664034" class="uri">https://blog.csdn.net/sanri1993/article/details/98664034</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-tools-maven" class="uri">https://gitee.com/sanri/sanri-tools-maven</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

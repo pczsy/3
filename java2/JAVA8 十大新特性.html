@@ -1,0 +1,571 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JAVA8 十大新特性' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JAVA8 十大新特性</center></div><div class='banquan'>原文出处:本文由博客园博主zsq_fengchen提供。<br/>
+原文连接:https://www.cnblogs.com/zhaosq/p/11663072.html</div><br>
+    <p><span style="font-size: 16px;"><strong>java8 十大新特性如下:</strong></span><br />1.接口的默认方法<br />2.Lambda 表达式<br />3.函数式接口<br />4.方法与构造函数引用<br />5.Lambda 作用域<br />6.访问局部变量<br />7.访问对象字段与静态变量<br />8.访问接口的默认方法<br />9.Date API<br />10.Annotation 注解</p>
+<h1>一、接口的默认方法</h1>
+<p>Java 8允许我们给接口添加一个非抽象的方法实现，只需要使用 default关键字即可，这个特征又叫做扩展方法，示例如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> Formula {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">double</span> calculate(<span style="color: #0000ff;">int</span><span style="color: #000000;"> a);
+</span><span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span>     <span style="color: #0000ff;">default</span> <span style="color: #0000ff;">double</span> sqrt(<span style="color: #0000ff;">int</span><span style="color: #000000;"> a) {
+</span><span style="color: #008080;">5</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> Math.sqrt(a);
+</span><span style="color: #008080;">6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">7</span> }</code></pre>
+
+<p>Formula接口在拥有calculate方法之外同时还定义了sqrt方法，实现了Formula接口的子类只需要实现一个calculate方法，默认方法sqrt将在子类上可以直接使用。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Formula formula = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Formula() {
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">double</span> calculate(<span style="color: #0000ff;">int</span><span style="color: #000000;"> a) {
+</span><span style="color: #008080;">4</span>         <span style="color: #0000ff;">return</span> sqrt(a * 100<span style="color: #000000;">);
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">6</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">7</span> 
+<span style="color: #008080;">8</span> formula.calculate(100);     <span style="color: #008000;">//</span><span style="color: #008000;"> 100.0</span>
+<span style="color: #008080;">9</span> formula.sqrt(16);           <span style="color: #008000;">//</span><span style="color: #008000;"> 4.0</span></code></pre>
+
+<p>文中的formula被实现为一个匿名类的实例，该代码非常容易理解，6行代码实现了计算 sqrt(a * 100)。在下一节中，我们将会看到实现单方法接口的更简单的做法。</p>
+<p>译者注： 在Java中只有单继承，如果要让一个类赋予新的特性，通常是使用接口来实现，在C++中支持多继承，允许一个子类同时具有多个父类的接口与功能，在其他语言中，让一个类同时具有其他的可复用代码的方法叫做mixin。新的Java 8 的这个特新在编译器实现的角度上来说更加接近Scala的trait。 在C#中也有名为扩展方法的概念，允许给已存在的类型扩展方法，和Java 8的这个在语义上有差别。</p>
+<h1>二、Lambda 表达式</h1>
+<p>首先看看在老版本的Java中是如何排列字符串的：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> List&lt;String&gt; names = Arrays.asList("peter", "anna", "mike", "xenia"<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> Collections.sort(names, <span style="color: #0000ff;">new</span> Comparator&lt;String&gt;<span style="color: #000000;">() {
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">5</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> compare(String a, String b) {
+</span><span style="color: #008080;">6</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> b.compareTo(a);
+</span><span style="color: #008080;">7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">8</span> });</code></pre>
+
+<p>只需要给静态方法 Collections.sort 传入一个List对象以及一个比较器来按指定顺序排列。通常做法都是创建一个匿名的比较器对象然后将其传递给sort方法。</p>
+<p>在Java 8 中你就没必要使用这种传统的匿名对象的方式了，Java 8提供了更简洁的语法，lambda表达式：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Collections.sort(names, (String a, String b) -&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> b.compareTo(a);
+</span><span style="color: #008080;">3</span> });</code></pre>
+
+<p>看到了吧，代码变得更段且更具有可读性，但是实际上还可以写得更短：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Collections.sort(names, (String a, String b) -&gt; b.compareTo(a));</code></pre>
+
+<p>对于函数体只有一行代码的，你可以去掉大括号{}以及return关键字，但是你还可以写得更短点：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Collections.sort(names, (a, b) -&gt; b.compareTo(a));</code></pre>
+
+<p>Java编译器可以自动推导出参数类型，所以你可以不用再写一次类型。接下来我们看看lambda表达式还能作出什么更方便的东西来</p>
+<h1>三、函数式接口</h1>
+<p>Lambda表达式是如何在java的类型系统中表示的呢？每一个lambda表达式都对应一个类型，通常是接口类型。而&ldquo;函数式接口&rdquo;是指仅仅只包含一个抽象方法的接口，每一个该类型的lambda表达式都会被匹配到这个抽象方法。因为 默认方法 不算抽象方法，所以你也可以给你的函数式接口添加默认方法。</p>
+<p>我们可以将lambda表达式当作任意只包含一个抽象方法的接口类型，确保你的接口一定达到这个要求，你只需要给你的接口添加 @FunctionalInterface 注解，编译器如果发现你标注了这个注解的接口有多于一个抽象方法的时候会报错的。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">@FunctionalInterface
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">interface</span> Converter&lt;F, T&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">    T convert(F from);
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">5</span> Converter&lt;String, Integer&gt; converter = (from) -&gt;<span style="color: #000000;"> Integer.valueOf(from);
+</span><span style="color: #008080;">6</span> Integer converted = converter.convert("123"<span style="color: #000000;">);
+</span><span style="color: #008080;">7</span> System.out.println(converted);    <span style="color: #008000;">//</span><span style="color: #008000;"> 123</span></code></pre>
+
+<p>需要注意如果@FunctionalInterface如果没有指定，上面的代码也是对的。</p>
+<p>译者注 将lambda表达式映射到一个单方法的接口上，这种做法在Java 8之前就有别的语言实现，比如Rhino JavaScript解释器，如果一个函数参数接收一个单方法的接口而你传递的是一个function，Rhino 解释器会自动做一个单接口的实例到function的适配器，典型的应用场景有 org.w3c.dom.events.EventTarget 的addEventListener 第二个参数 EventListener。</p>
+<h1>四、方法与构造函数引用</h1>
+<p>前一节中的代码还可以通过静态方法引用来表示：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Converter&lt;String, Integer&gt; converter =<span style="color: #000000;"> Integer::valueOf;
+</span><span style="color: #008080;">2</span> Integer converted = converter.convert("123"<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> System.out.println(converted);   <span style="color: #008000;">//</span><span style="color: #008000;"> 123</span></code></pre>
+
+<p>Java 8 允许你使用 :: 关键字来传递方法或者构造函数引用，上面的代码展示了如何引用一个静态方法，我们也可以引用一个对象的方法：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> converter =<span style="color: #000000;"> something::startsWith;
+</span><span style="color: #008080;">2</span> String converted = converter.convert("Java"<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> System.out.println(converted);    <span style="color: #008000;">//</span><span style="color: #008000;"> "J"</span></code></pre>
+
+<p>接下来看看构造函数是如何使用::关键字来引用的，首先我们定义一个包含多个构造函数的简单类：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Person {
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    String firstName;
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">    String lastName;
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #000000;">    Person() {}
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">    Person(String firstName, String lastName) {
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">this</span>.firstName =<span style="color: #000000;"> firstName;
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">this</span>.lastName =<span style="color: #000000;"> lastName;
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span> }</code></pre>
+
+<p>接下来我们指定一个用来创建Person对象的对象工厂接口：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">interface</span> PersonFactory&lt;P <span style="color: #0000ff;">extends</span> Person&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">    P create(String firstName, String lastName);
+</span><span style="color: #008080;">3</span> }</code></pre>
+
+<p>这里我们使用构造函数引用来将他们关联起来，而不是实现一个完整的工厂：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> PersonFactory&lt;Person&gt; personFactory = Person::<span style="color: #0000ff;">new</span><span style="color: #000000;">;
+</span><span style="color: #008080;">2</span> Person person = personFactory.create("Peter", "Parker");</code></pre>
+
+<p>我们只需要使用 Person::new 来获取Person类构造函数的引用，Java编译器会自动根据PersonFactory.create方法的签名来选择合适的构造函数。</p>
+<h1>五、Lambda 作用域</h1>
+<p>在lambda表达式中访问外层作用域和老版本的匿名对象中的方式很相似。你可以直接访问标记了final的外层局部变量，或者实例的字段以及静态变量。</p>
+<h1>六、访问局部变量</h1>
+<p>我们可以直接在lambda表达式中访问外层的局部变量：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span> num = 1<span style="color: #000000;">;
+</span><span style="color: #008080;">2</span> Converter&lt;Integer, String&gt; stringConverter =
+<span style="color: #008080;">3</span>         (from) -&gt; String.valueOf(from +<span style="color: #000000;"> num);
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> stringConverter.convert(2);     <span style="color: #008000;">//</span><span style="color: #008000;"> 3</span></code></pre>
+
+<p>但是和匿名对象不同的是，这里的变量num可以不用声明为final，该代码同样正确：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">int</span> num = 1<span style="color: #000000;">;
+</span><span style="color: #008080;">2</span> Converter&lt;Integer, String&gt; stringConverter =
+<span style="color: #008080;">3</span>         (from) -&gt; String.valueOf(from +<span style="color: #000000;"> num);
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> stringConverter.convert(2);     <span style="color: #008000;">//</span><span style="color: #008000;"> 3</span></code></pre>
+
+<p>不过这里的num必须不可被后面的代码修改（即隐性的具有final的语义），例如下面的就无法编译：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">int</span> num = 1<span style="color: #000000;">;
+</span><span style="color: #008080;">2</span> Converter&lt;Integer, String&gt; stringConverter =
+<span style="color: #008080;">3</span>         (from) -&gt; String.valueOf(from +<span style="color: #000000;"> num);
+</span><span style="color: #008080;">4</span> num = 3;</code></pre>
+
+<p>在lambda表达式中试图修改num同样是不允许的。</p>
+<h1>七、访问对象字段与静态变量</h1>
+<p>和本地变量不同的是，lambda内部对于实例的字段以及静态变量是即可读又可写。该行为和匿名对象是一致的：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Lambda4 {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> outerStaticNum;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">int</span><span style="color: #000000;"> outerNum;
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">void</span><span style="color: #000000;"> testScopes() {
+</span><span style="color: #008080;"> 6</span>         Converter&lt;Integer, String&gt; stringConverter1 = (from) -&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 7</span>             outerNum = 23<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> String.valueOf(from);
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>         Converter&lt;Integer, String&gt; stringConverter2 = (from) -&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">12</span>             outerStaticNum = 72<span style="color: #000000;">;
+</span><span style="color: #008080;">13</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> String.valueOf(from);
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">16</span> }</code></pre>
+
+<h1>八、访问接口的默认方法</h1>
+<p>还记得第一节中的formula例子么，接口Formula定义了一个默认方法sqrt可以直接被formula的实例包括匿名对象访问到，但是在lambda表达式中这个是不行的。<br />Lambda表达式中是无法访问到默认方法的，以下代码将无法编译：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Formula formula = (a) -&gt; sqrt( a * 100<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> Built-in Functional Interfaces</code></pre>
+
+<p>JDK 1.8 API包含了很多内建的函数式接口，在老Java中常用到的比如Comparator或者Runnable接口，这些接口都增加了@FunctionalInterface注解以便能用在lambda上。<br />Java 8 API同样还提供了很多全新的函数式接口来让工作更加方便，有一些接口是来自Google Guava库里的，即便你对这些很熟悉了，还是有必要看看这些是如何扩展到lambda上使用的。</p>
+<p>Predicate接口</p>
+<p>Predicate 接口只有一个参数，返回boolean类型。该接口包含多种默认方法来将Predicate组合成其他复杂的逻辑（比如：与，或，非）：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> Predicate&lt;String&gt; predicate = (s) -&gt; s.length() &gt; 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> predicate.test("foo");              <span style="color: #008000;">//</span><span style="color: #008000;"> true</span>
+<span style="color: #008080;"> 4</span> predicate.negate().test("foo");     <span style="color: #008000;">//</span><span style="color: #008000;"> false</span>
+<span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> Predicate&lt;Boolean&gt; nonNull =<span style="color: #000000;"> Objects::nonNull;
+</span><span style="color: #008080;"> 7</span> Predicate&lt;Boolean&gt; isNull =<span style="color: #000000;"> Objects::isNull;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> Predicate&lt;String&gt; isEmpty =<span style="color: #000000;"> String::isEmpty;
+</span><span style="color: #008080;">10</span> Predicate&lt;String&gt; isNotEmpty = isEmpty.negate();</code></pre>
+
+<p>Function 接口</p>
+<p>Function 接口有一个参数并且返回一个结果，并附带了一些可以和其他函数组合的默认方法（compose, andThen）：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Function&lt;String, Integer&gt; toInteger =<span style="color: #000000;"> Integer::valueOf;
+</span><span style="color: #008080;">2</span> Function&lt;String, String&gt; backToString =<span style="color: #000000;"> toInteger.andThen(String::valueOf);
+</span><span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span> backToString.apply("123");     <span style="color: #008000;">//</span><span style="color: #008000;"> "123"</span></code></pre>
+
+<p>Supplier 接口</p>
+<p>Supplier 接口返回一个任意范型的值，和Function接口不同的是该接口没有任何参数</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Supplier&lt;Person&gt; personSupplier = Person::<span style="color: #0000ff;">new</span><span style="color: #000000;">;
+</span><span style="color: #008080;">2</span> personSupplier.get();   <span style="color: #008000;">//</span><span style="color: #008000;"> new Person</span></code></pre>
+
+<p>Consumer 接口</p>
+<p>Consumer 接口表示执行在单个参数上的操作。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Consumer&lt;Person&gt; greeter = (p) -&gt; System.out.println("Hello, " +<span style="color: #000000;"> p.firstName);
+</span><span style="color: #008080;">2</span> greeter.accept(<span style="color: #0000ff;">new</span> Person("Luke", "Skywalker"));</code></pre>
+
+<p>Comparator 接口</p>
+<p>Comparator 是老Java中的经典接口， Java 8在此之上添加了多种默认方法：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Comparator&lt;Person&gt; comparator = (p1, p2) -&gt;<span style="color: #000000;"> p1.firstName.compareTo(p2.firstName);
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> Person p1 = <span style="color: #0000ff;">new</span> Person("John", "Doe"<span style="color: #000000;">);
+</span><span style="color: #008080;">4</span> Person p2 = <span style="color: #0000ff;">new</span> Person("Alice", "Wonderland"<span style="color: #000000;">);
+</span><span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span> comparator.compare(p1, p2);             <span style="color: #008000;">//</span><span style="color: #008000;"> &gt; 0</span>
+<span style="color: #008080;">7</span> comparator.reversed().compare(p1, p2);  <span style="color: #008000;">//</span><span style="color: #008000;"> &lt; 0</span></code></pre>
+
+<p>Optional 接口</p>
+<p>Optional 不是函数是接口，这是个用来防止NullPointerException异常的辅助类型，这是下一届中将要用到的重要概念，现在先简单的看看这个接口能干什么：</p>
+<p>Optional 被定义为一个简单的容器，其值可能是null或者不是null。在Java 8之前一般某个函数应该返回非空对象但是偶尔却可能返回了null，而在Java 8中，不推荐你返回null而是返回Optional。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Optional&lt;String&gt; optional = Optional.of("bam"<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> optional.isPresent();           <span style="color: #008000;">//</span><span style="color: #008000;"> true</span>
+<span style="color: #008080;">4</span> optional.get();                 <span style="color: #008000;">//</span><span style="color: #008000;"> "bam"</span>
+<span style="color: #008080;">5</span> optional.orElse("fallback");    <span style="color: #008000;">//</span><span style="color: #008000;"> "bam"</span>
+<span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> optional.ifPresent((s) -&gt; System.out.println(s.charAt(0)));     <span style="color: #008000;">//</span><span style="color: #008000;"> "b"</span></code></pre>
+
+<p>Stream 接口</p>
+<p>java.util.Stream 表示能应用在一组元素上一次执行的操作序列。Stream 操作分为中间操作或者最终操作两种，最终操作返回一特定类型的计算结果，而中间操作返回Stream本身，这样你就可以将多个操作依次串起来。Stream 的创建需要指定一个数据源，比如 java.util.Collection的子类，List或者Set， Map不支持。Stream的操作可以串行执行或者并行执行。</p>
+<p>首先看看Stream是怎么用，首先创建实例代码的用到的数据List：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> List&lt;String&gt; stringCollection = <span style="color: #0000ff;">new</span> ArrayList&lt;&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">2</span> stringCollection.add("ddd2"<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> stringCollection.add("aaa2"<span style="color: #000000;">);
+</span><span style="color: #008080;">4</span> stringCollection.add("bbb1"<span style="color: #000000;">);
+</span><span style="color: #008080;">5</span> stringCollection.add("aaa1"<span style="color: #000000;">);
+</span><span style="color: #008080;">6</span> stringCollection.add("bbb3"<span style="color: #000000;">);
+</span><span style="color: #008080;">7</span> stringCollection.add("ccc"<span style="color: #000000;">);
+</span><span style="color: #008080;">8</span> stringCollection.add("bbb2"<span style="color: #000000;">);
+</span><span style="color: #008080;">9</span> stringCollection.add("ddd1");</code></pre>
+
+<p>Java 8扩展了集合类，可以通过 Collection.stream() 或者 Collection.parallelStream() 来创建一个Stream。下面几节将详细解释常用的Stream操作：</p>
+<p>Filter 过滤</p>
+<p>过滤通过一个predicate接口来过滤并只保留符合条件的元素，该操作属于中间操作，所以我们可以在过滤后的结果来应用其他Stream操作（比如forEach）。forEach需要一个函数来对过滤后的元素依次执行。forEach是一个最终操作，所以我们不能在forEach之后来执行其他Stream操作。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">stringCollection
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">    .stream()
+</span><span style="color: #008080;">3</span>     .filter((s) -&gt; s.startsWith("a"<span style="color: #000000;">))
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">    .forEach(System.out::println);
+</span><span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span> <span style="color: #008000;">//</span><span style="color: #008000;"> "aaa2", "aaa1"</span></code></pre>
+
+<p>Sort 排序</p>
+<p>排序是一个中间操作，返回的是排序好后的Stream。如果你不指定一个自定义的Comparator则会使用默认排序。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">stringCollection
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">    .stream()
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">    .sorted()
+</span><span style="color: #008080;">4</span>     .filter((s) -&gt; s.startsWith("a"<span style="color: #000000;">))
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    .forEach(System.out::println);
+</span><span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> <span style="color: #008000;">//</span><span style="color: #008000;"> "aaa1", "aaa2"</span></code></pre>
+
+<p>Map 映射<br />中间操作map会将元素根据指定的Function接口来依次将元素转成另外的对象，下面的示例展示了将字符串转换为大写字符串。你也可以通过map来讲对象转换成其他类型，map返回的Stream类型是根据你map传递进去的函数的返回值决定的。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">stringCollection
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">    .stream()
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">    .map(String::toUpperCase)
+</span><span style="color: #008080;">4</span>     .sorted((a, b) -&gt;<span style="color: #000000;"> b.compareTo(a))
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    .forEach(System.out::println);
+</span><span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> <span style="color: #008000;">//</span><span style="color: #008000;"> "DDD2", "DDD1", "CCC", "BBB3", "BBB2", "AAA2", "AAA1"</span></code></pre>
+
+<p>Match 匹配</p>
+<p>Stream提供了多种匹配操作，允许检测指定的Predicate是否匹配整个Stream。所有的匹配操作都是最终操作，并返回一个boolean类型的值。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">boolean</span> anyStartsWithA = 
+<span style="color: #008080;"> 2</span> <span style="color: #000000;">    stringCollection
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        .stream()
+</span><span style="color: #008080;"> 4</span>         .anyMatch((s) -&gt; s.startsWith("a"<span style="color: #000000;">));
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> System.out.println(anyStartsWithA);      <span style="color: #008000;">//</span><span style="color: #008000;"> true</span>
+<span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> <span style="color: #0000ff;">boolean</span> allStartsWithA = 
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">    stringCollection
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">        .stream()
+</span><span style="color: #008080;">11</span>         .allMatch((s) -&gt; s.startsWith("a"<span style="color: #000000;">));
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span> System.out.println(allStartsWithA);      <span style="color: #008000;">//</span><span style="color: #008000;"> false</span>
+<span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span> <span style="color: #0000ff;">boolean</span> noneStartsWithZ = 
+<span style="color: #008080;">16</span> <span style="color: #000000;">    stringCollection
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">        .stream()
+</span><span style="color: #008080;">18</span>         .noneMatch((s) -&gt; s.startsWith("z"<span style="color: #000000;">));
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span> System.out.println(noneStartsWithZ);      <span style="color: #008000;">//</span><span style="color: #008000;"> true</span></code></pre>
+
+<p>Count 计数<br />计数是一个最终操作，返回Stream中元素的个数，返回值类型是long。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">long</span> startsWithB = 
+<span style="color: #008080;">2</span> <span style="color: #000000;">    stringCollection
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">        .stream()
+</span><span style="color: #008080;">4</span>         .filter((s) -&gt; s.startsWith("b"<span style="color: #000000;">))
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">        .count();
+</span><span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> System.out.println(startsWithB);    <span style="color: #008000;">//</span><span style="color: #008000;"> 3</span></code></pre>
+
+<p>Reduce 规约</p>
+<p>这是一个最终操作，允许通过指定的函数来讲stream中的多个元素规约为一个元素，规越后的结果是通过Optional接口表示的：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> ptional&lt;String&gt; reduced =
+<span style="color: #008080;">2</span> <span style="color: #000000;">    stringCollection
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">        .stream()
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">        .sorted()
+</span><span style="color: #008080;">5</span>         .reduce((s1, s2) -&gt; s1 + "#" +<span style="color: #000000;"> s2);
+</span><span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> <span style="color: #000000;">reduced.ifPresent(System.out::println);
+</span><span style="color: #008080;">8</span> <span style="color: #008000;">//</span><span style="color: #008000;"> "aaa1#aaa2#bbb1#bbb2#bbb3#ccc#ddd1#ddd2"</span></code></pre>
+
+<p>并行Streams</p>
+<p>前面提到过Stream有串行和并行两种，串行Stream上的操作是在一个线程中依次完成，而并行Stream则是在多个线程上同时执行。</p>
+<p>下面的例子展示了是如何通过并行Stream来提升性能：</p>
+<p>首先我们创建一个没有重复元素的大表</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">int</span> max = 1000000<span style="color: #000000;">;
+</span><span style="color: #008080;">2</span> List&lt;String&gt; values = <span style="color: #0000ff;">new</span> ArrayList&lt;&gt;<span style="color: #000000;">(max);
+</span><span style="color: #008080;">3</span> <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; max; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">4</span>     UUID uuid =<span style="color: #000000;"> UUID.randomUUID();
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    values.add(uuid.toString());
+</span><span style="color: #008080;">6</span> }</code></pre>
+
+<p>然后我们计算一下排序这个Stream要耗时多久，<br />串行排序：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">long</span> t0 =<span style="color: #000000;"> System.nanoTime();
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">long</span> count =<span style="color: #000000;"> values.stream().sorted().count();
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">System.out.println(count);
+</span><span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span> <span style="color: #0000ff;">long</span> t1 =<span style="color: #000000;"> System.nanoTime();
+</span><span style="color: #008080;">7</span> 
+<span style="color: #008080;">8</span> <span style="color: #0000ff;">long</span> millis = TimeUnit.NANOSECONDS.toMillis(t1 -<span style="color: #000000;"> t0);
+</span><span style="color: #008080;">9</span> System.out.println(String.format("sequential sort took: %d ms", millis));</code></pre>
+
+<p>// 串行耗时: 899 ms</p>
+<p>并行排序：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">long</span> t0 =<span style="color: #000000;"> System.nanoTime();
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">long</span> count =<span style="color: #000000;"> values.parallelStream().sorted().count();
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">System.out.println(count);
+</span><span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span> <span style="color: #0000ff;">long</span> t1 =<span style="color: #000000;"> System.nanoTime();
+</span><span style="color: #008080;">7</span> 
+<span style="color: #008080;">8</span> <span style="color: #0000ff;">long</span> millis = TimeUnit.NANOSECONDS.toMillis(t1 -<span style="color: #000000;"> t0);
+</span><span style="color: #008080;">9</span> System.out.println(String.format("parallel sort took: %d ms", millis));</code></pre>
+
+<p>// 并行排序耗时: 472 ms<br />上面两个代码几乎是一样的，但是并行版的快了50%之多，唯一需要做的改动就是将stream()改为parallelStream()。</p>
+<p>Map</p>
+<p>前面提到过，Map类型不支持stream，不过Map提供了一些新的有用的方法来处理一些日常任务。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Map&lt;Integer, String&gt; map = <span style="color: #0000ff;">new</span> HashMap&lt;&gt;<span style="color: #000000;">();
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; 10; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">4</span>     map.putIfAbsent(i, "val" +<span style="color: #000000;"> i);
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> map.forEach((id, val) -&gt; System.out.println(val));</code></pre>
+
+<p>以上代码很容易理解， putIfAbsent 不需要我们做额外的存在性检查，而forEach则接收一个Consumer接口来对map里的每一个键值对进行操作。</p>
+<p>下面的例子展示了map上的其他有用的函数：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> map.computeIfPresent(3, (num, val) -&gt; val +<span style="color: #000000;"> num);
+</span><span style="color: #008080;"> 2</span> map.get(3);             <span style="color: #008000;">//</span><span style="color: #008000;"> val33</span>
+<span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> map.computeIfPresent(9, (num, val) -&gt; <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> map.containsKey(9);     <span style="color: #008000;">//</span><span style="color: #008000;"> false</span>
+<span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> map.computeIfAbsent(23, num -&gt; "val" +<span style="color: #000000;"> num);
+</span><span style="color: #008080;"> 8</span> map.containsKey(23);    <span style="color: #008000;">//</span><span style="color: #008000;"> true</span>
+<span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span> map.computeIfAbsent(3, num -&gt; "bam"<span style="color: #000000;">);
+</span><span style="color: #008080;">11</span> map.get(3);             <span style="color: #008000;">//</span><span style="color: #008000;"> val33</span></code></pre>
+
+<p>接下来展示如何在Map里删除一个键值全都匹配的项</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> map.remove(3, "val3"<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> map.get(3);             <span style="color: #008000;">//</span><span style="color: #008000;"> val33</span>
+<span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span> map.remove(3, "val33"<span style="color: #000000;">);
+</span><span style="color: #008080;">5</span> map.get(3);             <span style="color: #008000;">//</span><span style="color: #008000;"> null</span></code></pre>
+
+<p>另外一个有用的方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> map.getOrDefault(42, "not found");  <span style="color: #008000;">//</span><span style="color: #008000;"> not found</span></code></pre>
+
+<p>对Map的元素做合并也变得很容易了：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> map.merge(9, "val9", (value, newValue) -&gt;<span style="color: #000000;"> value.concat(newValue));
+</span><span style="color: #008080;">2</span> map.get(9);             <span style="color: #008000;">//</span><span style="color: #008000;"> val9</span>
+<span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span> map.merge(9, "concat", (value, newValue) -&gt;<span style="color: #000000;"> value.concat(newValue));
+</span><span style="color: #008080;">5</span> map.get(9);             <span style="color: #008000;">//</span><span style="color: #008000;"> val9concat</span></code></pre>
+
+<p>Merge做的事情是如果键名不存在则插入，否则则对原键对应的值做合并操作并重新插入到map中。</p>
+<h1>九、Date API</h1>
+<p>Java 8 在包java.time下包含了一组全新的时间日期API。新的日期API和开源的Joda-Time库差不多，但又不完全一样，下面的例子展示了这组新API里最重要的一些部分：</p>
+<p>Clock 时钟</p>
+<p>Clock类提供了访问当前日期和时间的方法，Clock是时区敏感的，可以用来取代 System.currentTimeMillis() 来获取当前的微秒数。某一个特定的时间点也可以使用Instant类来表示，Instant类也可以用来创建老的java.util.Date对象。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Clock clock =<span style="color: #000000;"> Clock.systemDefaultZone();
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">long</span> millis =<span style="color: #000000;"> clock.millis();
+</span><span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span> Instant instant =<span style="color: #000000;"> clock.instant();
+</span><span style="color: #008080;">5</span> Date legacyDate = Date.from(instant);   <span style="color: #008000;">//</span><span style="color: #008000;"> legacy java.util.Date</span></code></pre>
+
+<p>Timezones 时区</p>
+<p>在新API中时区使用ZoneId来表示。时区可以很方便的使用静态方法of来获取到。 时区定义了到UTS时间的时间差，在Instant时间点对象到本地日期对象之间转换的时候是极其重要的。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">System.out.println(ZoneId.getAvailableZoneIds());<br />
+</span><span style="color: #008080;"> 2</span> <span style="color: #008000;">//</span><span style="color: #008000;"> prints all available timezone ids</span>
+<span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> ZoneId zone1 = ZoneId.of("Europe/Berlin"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> ZoneId zone2 = ZoneId.of("Brazil/East"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">System.out.println(zone1.getRules());
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">System.out.println(zone2.getRules());
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">//</span><span style="color: #008000;"> ZoneRules[currentStandardOffset=+01:00]
+</span><span style="color: #008080;">10</span> <span style="color: #008000;">//</span><span style="color: #008000;"> ZoneRules[currentStandardOffset=-03:00]</span></code></pre>
+
+<p>LocalTime 本地时间</p>
+<p>LocalTime 定义了一个没有时区信息的时间，例如 晚上10点，或者 17:30:15。下面的例子使用前面代码创建的时区创建了两个本地时间。之后比较时间并以小时和分钟为单位计算两个时间的时间差：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> LocalTime now1 =<span style="color: #000000;"> LocalTime.now(zone1);
+</span><span style="color: #008080;"> 2</span> LocalTime now2 =<span style="color: #000000;"> LocalTime.now(zone2);
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> System.out.println(now1.isBefore(now2));  <span style="color: #008000;">//</span><span style="color: #008000;"> false</span>
+<span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">long</span> hoursBetween =<span style="color: #000000;"> ChronoUnit.HOURS.between(now1, now2);
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">long</span> minutesBetween =<span style="color: #000000;"> ChronoUnit.MINUTES.between(now1, now2);
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> System.out.println(hoursBetween);       <span style="color: #008000;">//</span><span style="color: #008000;"> -3</span>
+<span style="color: #008080;">10</span> System.out.println(minutesBetween);     <span style="color: #008000;">//</span><span style="color: #008000;"> -239</span></code></pre>
+
+<p>LocalTime 提供了多种工厂方法来简化对象的创建，包括解析时间字符串。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> LocalTime late = LocalTime.of(23, 59, 59<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> System.out.println(late);       <span style="color: #008000;">//</span><span style="color: #008000;"> 23:59:59</span>
+<span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> DateTimeFormatter germanFormatter =
+<span style="color: #008080;"> 5</span> <span style="color: #000000;">    DateTimeFormatter
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">        .ofLocalizedTime(FormatStyle.SHORT)
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        .withLocale(Locale.GERMAN);
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> LocalTime leetTime = LocalTime.parse("13:37"<span style="color: #000000;">, germanFormatter);
+</span><span style="color: #008080;">10</span> System.out.println(leetTime);   <span style="color: #008000;">//</span><span style="color: #008000;"> 13:37</span></code></pre>
+
+<p>LocalDate 本地日期</p>
+<p>LocalDate 表示了一个确切的日期，比如 2014-03-11。该对象值是不可变的，用起来和LocalTime基本一致。下面的例子展示了如何给Date对象加减天/月/年。另外要注意的是这些对象是不可变的，操作返回的总是一个新实例。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> LocalDate today =<span style="color: #000000;"> LocalDate.now();
+</span><span style="color: #008080;">2</span> LocalDate tomorrow = today.plus(1<span style="color: #000000;">, ChronoUnit.DAYS);
+</span><span style="color: #008080;">3</span> LocalDate yesterday = tomorrow.minusDays(2<span style="color: #000000;">);
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> LocalDate independenceDay = LocalDate.of(2014, Month.JULY, 4<span style="color: #000000;">);
+</span><span style="color: #008080;">6</span> DayOfWeek dayOfWeek =<span style="color: #000000;"> independenceDay.getDayOfWeek();
+</span><span style="color: #008080;">7</span> 
+<span style="color: #008080;">8</span> System.out.println(dayOfWeek);    <span style="color: #008000;">//</span><span style="color: #008000;"> FRIDAY</span></code></pre>
+
+<p>从字符串解析一个LocalDate类型和解析LocalTime一样简单：</p>
+<src class="cnblogs_code">
+<pre><code>DateTimeFormatter germanFormatter =<span style="color: #000000;">
+    DateTimeFormatter
+        .ofLocalizedDate(FormatStyle.MEDIUM)
+        .withLocale(Locale.GERMAN);
+
+LocalDate xmas </span>= LocalDate.parse("24.12.2014"<span style="color: #000000;">, germanFormatter);
+System.out.println(xmas);   </span><span style="color: #008000;">//</span><span style="color: #008000;"> 2014-12-24</span></code></pre>
+
+<p>LocalDateTime 本地日期时间</p>
+<p>LocalDateTime 同时表示了时间和日期，相当于前两节内容合并到一个对象上了。LocalDateTime和LocalTime还有LocalDate一样，都是不可变的。LocalDateTime提供了一些能访问具体字段的方法。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> LocalDateTime sylvester = LocalDateTime.of(2014, Month.DECEMBER, 31, 23, 59, 59<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> DayOfWeek dayOfWeek =<span style="color: #000000;"> sylvester.getDayOfWeek();
+</span><span style="color: #008080;"> 4</span> System.out.println(dayOfWeek);      <span style="color: #008000;">//</span><span style="color: #008000;"> WEDNESDAY</span>
+<span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> Month month =<span style="color: #000000;"> sylvester.getMonth();
+</span><span style="color: #008080;"> 7</span> System.out.println(month);          <span style="color: #008000;">//</span><span style="color: #008000;"> DECEMBER</span>
+<span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #0000ff;">long</span> minuteOfDay =<span style="color: #000000;"> sylvester.getLong(ChronoField.MINUTE_OF_DAY);
+</span><span style="color: #008080;">10</span> System.out.println(minuteOfDay);    <span style="color: #008000;">//</span><span style="color: #008000;"> 1439</span></code></pre>
+
+<p>只要附加上时区信息，就可以将其转换为一个时间点Instant对象，Instant时间点对象可以很容易的转换为老式的java.util.Date。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Instant instant =<span style="color: #000000;"> sylvester
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">        .atZone(ZoneId.systemDefault())
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">        .toInstant();
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> Date legacyDate =<span style="color: #000000;"> Date.from(instant);
+</span><span style="color: #008080;">6</span> System.out.println(legacyDate);     <span style="color: #008000;">//</span><span style="color: #008000;"> Wed Dec 31 23:59:59 CET 2014</span></code></pre>
+
+<p>格式化LocalDateTime和格式化时间和日期一样的，除了使用预定义好的格式外，我们也可以自己定义格式：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> DateTimeFormatter formatter =
+<span style="color: #008080;">2</span> <span style="color: #000000;">    DateTimeFormatter
+</span><span style="color: #008080;">3</span>         .ofPattern("MMM dd, yyyy - HH:mm"<span style="color: #000000;">);
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> LocalDateTime parsed = LocalDateTime.parse("Nov 03, 2014 - 07:13"<span style="color: #000000;">, formatter);
+</span><span style="color: #008080;">6</span> String string =<span style="color: #000000;"> formatter.format(parsed);
+</span><span style="color: #008080;">7</span> System.out.println(string);     <span style="color: #008000;">//</span><span style="color: #008000;"> Nov 03, 2014 - 07:13</span></code></pre>
+
+<p>和java.text.NumberFormat不一样的是新版的DateTimeFormatter是不可变的，所以它是线程安全的。</p>
+<h1>十、Annotation 注解</h1>
+<p>在Java 8中支持多重注解了，先看个例子来理解一下是什么意思。<br />首先定义一个包装类Hints注解用来放置一组具体的Hint注解：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> @<span style="color: #0000ff;">interface</span><span style="color: #000000;"> Hints {
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">    Hint[] value();
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> @Repeatable(Hints.<span style="color: #0000ff;">class</span><span style="color: #000000;">)
+</span><span style="color: #008080;">6</span> @<span style="color: #0000ff;">interface</span><span style="color: #000000;"> Hint {
+</span><span style="color: #008080;">7</span> <span style="color: #000000;">    String value();
+</span><span style="color: #008080;">8</span> }</code></pre>
+
+<p>Java 8允许我们把同一个类型的注解使用多次，只需要给该注解标注一下@Repeatable即可。</p>
+<p>例 1: 使用包装类当容器来存多个注解（老方法）</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> @Hints({@Hint("hint1"), @Hint("hint2"<span style="color: #000000;">)})
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">class</span> Person {}</code></pre>
+
+<p>例 2：使用多重注解（新方法）</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> @Hint("hint1"<span style="color: #000000;">)
+</span><span style="color: #008080;">2</span> @Hint("hint2"<span style="color: #000000;">)
+</span><span style="color: #008080;">3</span> <span style="color: #0000ff;">class</span> Person {}</code></pre>
+
+<p>第二个例子里java编译器会隐性的帮你定义好@Hints注解，了解这一点有助于你用反射来获取这些信息：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Hint hint = Person.<span style="color: #0000ff;">class</span>.getAnnotation(Hint.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> System.out.println(hint);                   <span style="color: #008000;">//</span><span style="color: #008000;"> null</span>
+<span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span> Hints hints1 = Person.<span style="color: #0000ff;">class</span>.getAnnotation(Hints.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+</span><span style="color: #008080;">5</span> System.out.println(hints1.value().length);  <span style="color: #008000;">//</span><span style="color: #008000;"> 2</span>
+<span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> Hint[] hints2 = Person.<span style="color: #0000ff;">class</span>.getAnnotationsByType(Hint.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+</span><span style="color: #008080;">8</span> System.out.println(hints2.length);          <span style="color: #008000;">//</span><span style="color: #008000;"> 2</span></code></pre>
+
+<p>即便我们没有在Person类上定义@Hints注解，我们还是可以通过 getAnnotation(Hints.class) 来获取 @Hints注解，更加方便的方法是使用 getAnnotationsByType 可以直接获取到所有的@Hint注解。<br />另外Java 8的注解还增加到两种新的target上了：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">@Target({ElementType.TYPE_PARAMETER, ElementType.TYPE_USE})
+</span><span style="color: #008080;">2</span> @<span style="color: #0000ff;">interface</span> MyAnnotation {}</code></pre>
+
+<p>关于Java 8的新特性就写到这了。</p>
+<p>好文转载自:<a href="https://www.jianshu.com/p/0bf8fe0f153b">https://www.jianshu.com/p/0bf8fe0f153b</a></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

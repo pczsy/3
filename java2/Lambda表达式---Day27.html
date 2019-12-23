@@ -1,0 +1,278 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Lambda表达式---Day27' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Lambda表达式---Day27</center></div><div class='banquan'>原文出处:本文由博客园博主CeliaTodd提供。<br/>
+原文连接:https://www.cnblogs.com/hpcz190911/p/11974325.html</div><br>
+    <p><strong>函数式编程思想概述</strong></p>
+<p>　　在数学中，函数就是有输入量、输出量的一套计算方案，也就是&ldquo;拿什么东西做什么事情&rdquo;。相对而言，面向对象过 分强调&ldquo;必须通过对象的形式来做事情&rdquo;，而函数式思想则尽量忽略面向对象的复杂语法&mdash;&mdash;强调做什么，而不是以 什么形式做。</p>
+<p>　　面向对象的思想: 做一件事情,找一个能解决这个事情的对象,调用对象的方法,完成事情.</p>
+<p>　　函数式编程思想: 只要能获取到结果,谁去做的,怎么做的都不重要,重视的是结果,不重视过程 </p>
+<p><strong>冗余的Runnable代码</strong></p>
+<p><strong>　　传统写法:</strong>当需要启动一个线程去完成任务时，通常会通过 java.lang.Runnable 接口来定义任务内容，并使用 java.lang.Thread 类来启动该线程</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RunnableDemo1 {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;"> 5</span>         <span style="color: #008000;">//</span><span style="color: #008000;">匿名内部类</span>
+<span style="color: #008080;"> 6</span>         Runnable task = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Runnable() {
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">            @Override
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+</span><span style="color: #008080;"> 9</span>                 System.out.println("多线程任务执行"<span style="color: #000000;">);
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">12</span>         <span style="color: #0000ff;">new</span> Thread(task).start();<span style="color: #008000;">//</span><span style="color: #008000;">启动线程</span>
+<span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span> }</code></pre>
+
+<p>　　对上述代码分析:</p>
+<p>　　　　1.Thread 类需要 Runnable 接口作为参数，其中的抽象 run 方法是用来指定线程任务内容的核心</p>
+<p>　　　　2.为了指定 run 的方法体，不得不需要 Runnable 接口的实现类</p>
+<p>　　　　3.为了省去定义一个 RunnableImpl 实现类的麻烦，不得不使用匿名内部类；&nbsp;</p>
+<p>　　　　4.必须覆盖重写抽象 run 方法，所以方法名称、方法参数、方法返回值不得不再写一遍，且不能写错；&nbsp;</p>
+<p>　　　　5.而实际上，似乎只有方法体才是关键所在</p>
+<p><strong>lambda更优的写法</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 4</span> <span style="color: #008000;"> * Lambda写法
+</span><span style="color: #008080;"> 5</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> LambdaDemo1 {
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">new</span> Thread(() -&gt; System.out.println("多线程任务执行")).start();<span style="color: #008000;">//</span><span style="color: #008000;">启动线程</span>
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span> }</code></pre>
+
+<p>　　以上代码和上一个代码是同样的执行效果，lambda写法需要在1.8以上的编译才能通过</p>
+<p><strong>回顾匿名内部类</strong></p>
+<p>　　1.使用实现类</p>
+<p>　　　　要启动一个线程，需要创建一个 Thread 类的对象并调用 start 方法。而为了指定线程执行的内容，需要调用 Thread 类的构造方法：public&nbsp;Thread(Runnable&nbsp;target)</p>
+<p>　　　　　　为了获取 Runnable 接口的实现对象，可以为该接口定义一个实现类 RunnableImpl ：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> RunnableImpl <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Runnable{
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">5</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+</span><span style="color: #008080;">6</span>         System.out.println("多线程任务执行"<span style="color: #000000;">);
+</span><span style="color: #008080;">7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">8</span> }</code></pre>
+
+<p>　　　　然后创建该实现类的对象作为 Thread 类的构造参数：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RunnableImplTest {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;"> 5</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建RunnableImpl对象</span>
+<span style="color: #008080;"> 6</span>         RunnableImpl ri = <span style="color: #0000ff;">new</span><span style="color: #000000;"> RunnableImpl();
+</span><span style="color: #008080;"> 7</span>         <span style="color: #008000;">//</span><span style="color: #008000;">启动线程</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">new</span><span style="color: #000000;"> Thread(ri).start();
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span> }</code></pre>
+
+<p>　　2.使用匿名内部类</p>
+<p>　　　　这个 RunnableImpl 类只是为了实现 Runnable 接口而存在的，而且仅被使用了唯一一次，所以使用匿名内部类的 语法即可省去该类的单独定义，即匿名内部类：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 4</span> <span style="color: #008000;"> * 使用匿名内部类
+</span><span style="color: #008080;"> 5</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> RunnableImplInit {
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">new</span> Thread(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Runnable() {
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">            @Override
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> run() {
+</span><span style="color: #008080;">11</span>                 System.out.println("多线程任务执行"<span style="color: #000000;">);
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        }).start();
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span> }</code></pre>
+
+<p><strong>　　</strong>对上述匿名内部类方法分析</p>
+<p><strong>　　　　</strong>仔细分析该代码中的语义， Runnable 接口只有一个 run 方法的定义：public abstract void run();</p>
+<p>　　　　无参数：不需要任何条件即可执行该方案。</p>
+<p>　　　　无返回值：该方案不产生任何结果。</p>
+<p>　　　　代码块（方法体）：该方案的具体执行步骤</p>
+<p>　　而使用lambda语法要更加简单：</p>
+<p>　　　　() ‐&gt; System.out.println("多线程任务执行！")</p>
+<p>　　　　　　前面的一对小括号即 run 方法的参数（无），代表不需要任何条件；</p>
+<p>　　　　　　中间的一个箭头代表将前面的参数传递给后面的代码；</p>
+<p>　　　　　　后面的输出语句即业务逻辑代码。</p>
+<p>　　匿名内部类的好处与弊端&nbsp;</p>
+<p><strong>　　　　</strong>一方面，匿名内部类可以帮我们省去实现类的定义；另一方面，匿名内部类的语法&mdash;&mdash;确实太复杂了</p>
+<p><strong>Lambda表达式的标准格式</strong></p>
+<p>　　Lambda省去面向对象的条条框框，格式由3个部分组成：</p>
+<p>　　　　1.一些参数 2.一个箭头 3.一段代码</p>
+<p>　　Lambda表达式的标准格式为：(参数类型 参数名称) ‐&gt; { 代码语句 }</p>
+<p>　　格式说明：</p>
+<p>　　　　1.小括号内的语法与传统方法参数列表一致：无参数则留空；</p>
+<p>　　　　2.多个参数则用逗号分隔。 -&gt; 是新引入的语法格式，代表指向动作。 </p>
+<p>　　　　3.大括号内的语法与传统方法体要求基本一致。&nbsp;</p>
+<p><strong>Lambda省略格式&nbsp;</strong><strong><br /></strong></p>
+<p>　　省略规则：</p>
+<p>　　　　1. 小括号内参数的类型可以省略； </p>
+<p>　　　　2. 如果小括号内有且仅有一个参，则小括号可以省略； </p>
+<p>　　　　3. 如果大括号内有且仅有一个语句，则无论是否有返回值，都可以省略大括号、return关键字及语句分号</p>
+<p><strong>Lambda的使用前提</strong></p>
+<p>　　Lambda的语法非常简洁，完全没有面向对象复杂的束缚。但是使用时有几个问题需要特别注意</p>
+<p>　　　　1. 使用Lambda必须具有接口，且要求接口中有且仅有一个抽象方法。 无论是JDK内置的 Runnable 、 Comparator 接口还是自定义的接口，只有当接口中的抽象方法存在且唯一 时，才可以使用Lambda。 </p>
+<p>　　　　2. 使用Lambda必须具有上下文推断。 也就是方法的参数或局部变量类型必须为Lambda对应的接口类型，才能使用Lambda作为该接口的实例。</p>
+<p>　　　　备注：有且仅有一个抽象方法的接口，称为&ldquo;函数式接口&rdquo;。</p>
+<p><strong>使用lambda标准格式（无参无返回）</strong></p>
+<p>　　给定一个厨子 Cook 接口，内含唯一的抽象方法 makeFood ，且无参数、无返回值。如下：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;">4</span> <span style="color: #008000;"> * 给定一个厨子 Cook 接口，内含唯一的抽象方法 makeFood ，且无参数、无返回值。如下：
+</span><span style="color: #008080;">5</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;">6</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> Cook {
+</span><span style="color: #008080;">7</span>     <span style="color: #0000ff;">void</span><span style="color: #000000;"> makeFood();
+</span><span style="color: #008080;">8</span> }</code></pre>
+
+<p>　　在下面的代码中，请使用Lambda的标准格式调用 invokeCook 方法，打印输出&ldquo;吃饭啦！&rdquo;字样：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #008000;">/**</span>
+<span style="color: #008080;"> 4</span> <span style="color: #008000;"> * 在下面的代码中，请使用Lambda的标准格式调用 invokeCook 方法，打印输出&ldquo;吃饭啦！&rdquo;字样：
+</span><span style="color: #008080;"> 5</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> InvokeCook {
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;"> 8</span> <span style="color: #008000;">//</span><span style="color: #008000;">        invokeCook(() -&gt; {
+</span><span style="color: #008080;"> 9</span> <span style="color: #008000;">//</span><span style="color: #008000;">            System.out.println("吃饭了");
+</span><span style="color: #008080;">10</span> <span style="color: #008000;">//</span><span style="color: #008000;">        });
+</span><span style="color: #008080;">11</span>         
+<span style="color: #008080;">12</span>         <span style="color: #008000;">//</span><span style="color: #008000;">省略格式</span>
+<span style="color: #008080;">13</span>         invokeCook(() -&gt; System.out.println("吃饭了"<span style="color: #000000;">));
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> invokeCook(Cook cook) {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">        cook.makeFood();
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">19</span> }</code></pre>
+
+<p>　　备注：小括号代表 Cook 接口 makeFood 抽象方法的参数为空，大括号代表 makeFood 的方法体。&nbsp;</p>
+<p><strong>使用Lambda标准格式（有参有返回）</strong></p>
+<p>　　给定一个计算器 Calculator 接口，内含抽象方法 calc 可以将两个int数字相加得到和值：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> Calculator {
+</span><span style="color: #008080;">4</span>     <span style="color: #0000ff;">int</span> cal(<span style="color: #0000ff;">int</span> a, <span style="color: #0000ff;">int</span><span style="color: #000000;"> b);
+</span><span style="color: #008080;">5</span> }</code></pre>
+
+<p>　　在下面的代码中，请使用Lambda的标准格式调用 invokeCalc 方法，完成120和130的相加计算：</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> invokeCal {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;"> 5</span> <span style="color: #008000;">//</span><span style="color: #008000;">        invokeCal(120,130,(int a , int b) -&gt; {
+</span><span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;">            return a + b;
+</span><span style="color: #008080;"> 7</span> <span style="color: #008000;">//</span><span style="color: #008000;">        });
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>         <span style="color: #008000;">//</span><span style="color: #008000;">省略格式</span>
+<span style="color: #008080;">10</span>         invokeCal(120,130,(<span style="color: #0000ff;">int</span> a , <span style="color: #0000ff;">int</span> b) -&gt; a +<span style="color: #000000;"> b);
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> invokeCal(<span style="color: #0000ff;">int</span> a , <span style="color: #0000ff;">int</span><span style="color: #000000;"> b , Calculator calculator){
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">int</span> result =<span style="color: #000000;"> calculator.cal(a, b);
+</span><span style="color: #008080;">15</span>         System.out.println("输出结果:"+<span style="color: #000000;">result);
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">17</span> }</code></pre>
+
+<p><strong>Lambda的参数和返回值</strong></p>
+<p>　　需求:&nbsp; &nbsp; &nbsp;1.使用数组存储多个Person对象&nbsp; &nbsp; &nbsp;2.对数组中的Person对象使用Arrays的sort方法通过年龄进行升序排序</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Person {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String name;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> age;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Person() {
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>     <span style="color: #0000ff;">public</span> Person(String name, <span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+</span><span style="color: #008080;">12</span>         <span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getName() {
+</span><span style="color: #008080;">16</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setName(String name) {
+</span><span style="color: #008080;">20</span>         <span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getAge() {
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> age;
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setAge(<span style="color: #0000ff;">int</span><span style="color: #000000;"> age) {
+</span><span style="color: #008080;">28</span>         <span style="color: #0000ff;">this</span>.age =<span style="color: #000000;"> age;
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">30</span> 
+<span style="color: #008080;">31</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">32</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String toString() {
+</span><span style="color: #008080;">33</span>         <span style="color: #0000ff;">return</span> "Person{" +
+<span style="color: #008080;">34</span>                 "name='" + name + '\'' +
+<span style="color: #008080;">35</span>                 ", age=" + age +
+<span style="color: #008080;">36</span>                 '}'<span style="color: #000000;">;
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">38</span> }</code></pre>
+
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> demosummary.lambda;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Arrays;
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> LambdaComparator {
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+</span><span style="color: #008080;"> 7</span>         Person[] array =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 8</span>                 <span style="color: #0000ff;">new</span> Person("古力娜扎",22<span style="color: #000000;">),
+</span><span style="color: #008080;"> 9</span>                 <span style="color: #0000ff;">new</span> Person("迪丽热巴",21<span style="color: #000000;">),
+</span><span style="color: #008080;">10</span>                 <span style="color: #0000ff;">new</span> Person("欧阳娜娜",19<span style="color: #000000;">)
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span> <span style="color: #008000;">//</span><span style="color: #008000;">        Arrays.sort(array,(Person a, Person b)-&gt;{
+</span><span style="color: #008080;">14</span> <span style="color: #008000;">//</span><span style="color: #008000;">            return a.getAge() - b.getAge();
+</span><span style="color: #008080;">15</span> <span style="color: #008000;">//</span><span style="color: #008000;">        });
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span>         <span style="color: #008000;">//</span><span style="color: #008000;">省略格式</span>
+<span style="color: #008080;">18</span>         Arrays.sort(array,(Person a, Person b) -&gt; a.getAge() -<span style="color: #000000;"> b.getAge());
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span>         <span style="color: #0000ff;">for</span><span style="color: #000000;"> (Person person : array) {
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">            System.out.println(person);
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">24</span> }</code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

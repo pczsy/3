@@ -1,0 +1,356 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修了解Java线程优先级，更要知道对应操作系统的优先级，不然会踩坑' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>了解Java线程优先级，更要知道对应操作系统的优先级，不然会踩坑</center></div><div class='banquan'>原文出处:本文由博客园博主LieBrother提供。<br/>
+原文连接:https://www.cnblogs.com/liebrother/p/11576477.html</div><br>
+    <p><img src="./images/了解Java线程优先级，更要知道对应操作系统的优先级，不然会踩坑0.png" /></p>
+<blockquote>
+<p>Java 多线程系列第 6 篇。</p>
+</blockquote>
+<p>这篇我们来看看 Java 线程的优先级。</p>
+<h2 id="java-线程优先级">Java 线程优先级</h2>
+<p><code>Thread</code> 类中，使用如下属性来代表优先级。</p>
+<pre><code><code>private int priority;</code></code></pre>
+<p>我们可以通过 <code>setPriority(int newPriority)</code> 来设置新的优先级，通过 <code>getPriority()</code> 来获取线程的优先级。</p>
+<p>有些资料通过下面的例子就得出了一个结论：<del><strong>Java 线程默认优先级是 5</strong></del>。</p>
+<pre><code><code>public static void main(String[] args) {
+    Thread thread = new Thread();
+    System.out.println(thread.getPriority());
+}
+
+// 打印结果：5</code></code></pre>
+<p>其实这是大错特错的，只是看到了表面，看看下面的例子，我们把当前线程的优先级改为 4，发现子线程 thread 的优先级也是 4。</p>
+<pre><code><code>public static void main(String[] args) {
+    Thread.currentThread().setPriority(4);
+    Thread thread = new Thread();
+    System.out.println(thread.getPriority());
+}
+
+// 打印结果：4</code></code></pre>
+<p>这啪啪啪打脸了，如果是线程默认优先级是 5，我们新创建的 thread 线程，没设置优先级，理应是 5，但实际是 4。我们看看 <code>Thread</code> 初始化 <code>priority</code> 的源代码。</p>
+<pre><code><code>Thread parent = currentThread();
+this.priority = parent.getPriority();</code></code></pre>
+<p>原来，线程默认的优先级是继承父线程的优先级，上面例子我们把父线程的优先级设置为 4，所以导致子线程的优先级也变成 4。</p>
+<p>严谨一点说，<strong>子线程默认优先级和父线程一样，Java 主线程默认的优先级是 5。</strong></p>
+<p>Java 中定义了 3 种优先级，分别是<code>最低优先级（1）</code>、<code>正常优先级（5）</code>、<code>最高优先级（10）</code>，代码如下所示。Java 优先级范围是 <strong>[1, 10]</strong>，设置其他数字的优先级都会抛出 <code>IllegalArgumentException</code> 异常。</p>
+<pre><code><code>/**
+ * The minimum priority that a thread can have.
+ */
+public final static int MIN_PRIORITY = 1;
+
+/**
+ * The default priority that is assigned to a thread.
+ */
+public final static int NORM_PRIORITY = 5;
+
+/**
+ * The maximum priority that a thread can have.
+ */
+public final static int MAX_PRIORITY = 10;</code></code></pre>
+<p>接下来说说线程优先级的作用。先看下面代码，代码逻辑是创建了 3000 个线程，分别是： 1000 个优先级为 1 的线程， 1000 个优先级为 5 的线程，1000 个优先级为 10 的线程。用 <code>minTimes</code> 来记录 1000 个 <code>MIN_PRIORITY</code> 线程运行时时间戳之和，用 <code>normTimes</code> 来记录 1000 个 <code>NORM_PRIORITY</code> 线程运行时时间戳之和，用 <code>maxTimes</code> 来记录 1000 个 <code>MAX_PRIORITY</code> 线程运行时时间戳之和。通过统计每个优先级的运行的时间戳之和，值越小代表的就是越优先执行。我们运行看看。</p>
+<pre><code><code>public class TestPriority {
+    static AtomicLong minTimes = new AtomicLong(0);
+    static AtomicLong normTimes = new AtomicLong(0);
+    static AtomicLong maxTimes = new AtomicLong(0);
+
+    public static void main(String[] args) {
+        List&lt;MyThread&gt; minThreadList = new ArrayList&lt;&gt;();
+        List&lt;MyThread&gt; normThreadList = new ArrayList&lt;&gt;();
+        List&lt;MyThread&gt; maxThreadList = new ArrayList&lt;&gt;();
+
+        int count = 1000;
+        for (int i = 0; i &lt; count; i++) {
+            MyThread myThread = new MyThread(&quot;min----&quot; + i);
+            myThread.setPriority(Thread.MIN_PRIORITY);
+            minThreadList.add(myThread);
+        }
+        for (int i = 0; i &lt; count; i++) {
+            MyThread myThread = new MyThread(&quot;norm---&quot; + i);
+            myThread.setPriority(Thread.NORM_PRIORITY);
+            normThreadList.add(myThread);
+        }
+        for (int i = 0; i &lt; count; i++) {
+            MyThread myThread = new MyThread(&quot;max----&quot; + i);
+            myThread.setPriority(Thread.MAX_PRIORITY);
+            maxThreadList.add(myThread);
+        }
+
+        for (int i = 0; i &lt; count; i++) {
+            maxThreadList.get(i).start();
+            normThreadList.get(i).start();
+            minThreadList.get(i).start();
+        }
+
+        try {
+            Thread.sleep(3000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println(&quot;maxPriority 统计：&quot; + maxTimes.get());
+        System.out.println(&quot;normPriority 统计：&quot; + normTimes.get());
+        System.out.println(&quot;minPriority 统计：&quot; + minTimes.get());
+        System.out.println(&quot;普通优先级与最高优先级相差时间：&quot; + (normTimes.get() - maxTimes.get()) + &quot;ms&quot;);
+        System.out.println(&quot;最低优先级与普通优先级相差时间：&quot; + (minTimes.get() - normTimes.get()) + &quot;ms&quot;);
+
+    }
+
+    static class MyThread extends Thread {
+
+        public MyThread(String name) {
+            super(name);
+        }
+
+        @Override
+        public void run() {
+            System.out.println(this.getName() + &quot; priority: &quot; + this.getPriority());
+            switch (this.getPriority()) {
+                case Thread.MAX_PRIORITY :
+                    maxTimes.getAndAdd(System.currentTimeMillis());
+                    break;
+                case Thread.NORM_PRIORITY :
+                    normTimes.getAndAdd(System.currentTimeMillis());
+                    break;
+                case Thread.MIN_PRIORITY :
+                    minTimes.getAndAdd(System.currentTimeMillis());
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+}</code></code></pre>
+<p>执行结果如下：</p>
+<pre><code><code># 第一部分
+max----0 priority: 10
+norm---0 priority: 5
+max----1 priority: 10
+max----2 priority: 10
+norm---2 priority: 5
+min----4 priority: 1
+.......
+max----899 priority: 10
+min----912 priority: 1
+min----847 priority: 5
+min----883 priority: 1
+
+# 第二部分
+maxPriority 统计：1568986695523243
+normPriority 统计：1568986695526080
+minPriority 统计：1568986695545414
+普通优先级与最高优先级相差时间：2837ms
+最低优先级与普通优先级相差时间：19334ms</code></code></pre>
+<p>我们一起来分析一下结果。先看看第一部分，最开始执行的线程高优先级、普通优先级、低优先级都有，最后执行的线程也都有各个优先级的，这说明了：<strong>优先级高的线程不代表一定比优先级低的线程优先执行</strong>。也可以换另一种说法：<strong>代码执行顺序跟线程的优先级无关</strong>。看看第二部分的结果，我们可以发现最高优先级的 1000 个线程执行时间戳之和最小，而最低优先级的 1000 个线程执行时间戳之和最大，因此可以得知：<strong>一批高优先级的线程会比一批低优先级的线程优先执行</strong>，即<strong>高优先级的线程大概率比低优先的线程优先获得 CPU 资源</strong>。</p>
+<h2 id="各操作系统中真有-10-个线程等级么">各操作系统中真有 10 个线程等级么？</h2>
+<p>Java 作为跨平台语言，线程有 10 个等级，但是映射到不同操作系统的线程优先级值不一样。接下来教大家怎么在 <code>OpenJDK</code> 源码中查各个操作系统中线程优先级映射的值。</p>
+<ol>
+<li>看到 <strong>Thread</strong> 源代码，设置线程优先级最终调用了本地方法 <code>setPriority0()</code>；</li>
+</ol>
+<pre><code><code>private native void setPriority0(int newPriority);</code></code></pre>
+<ol>
+<li>接着我们在 <strong>OpenJDK</strong> 的 <code>Thread.c</code> 代码中找到 <code>setPriority0()</code> 对应的方法 <code>JVM_SetThreadPriority</code>；</li>
+</ol>
+<pre><code><code>static JNINativeMethod methods[] = {
+    ...
+    {&quot;setPriority0&quot;,     &quot;(I)V&quot;,       (void *)&amp;JVM_SetThreadPriority},
+    ...
+};</code></code></pre>
+<ol>
+<li>我们根据 <code>JVM_SetThreadPriority</code> 找到 <strong>jvm.cpp</strong> 中对应的代码段；</li>
+</ol>
+<pre><code><code>JVM_ENTRY(void, JVM_SetThreadPriority(JNIEnv* env, jobject jthread, jint prio))
+  JVMWrapper(&quot;JVM_SetThreadPriority&quot;);
+  // Ensure that the C++ Thread and OSThread structures aren&#39;t freed before we operate
+  MutexLocker ml(Threads_lock);
+  oop java_thread = JNIHandles::resolve_non_null(jthread);
+  java_lang_Thread::set_priority(java_thread, (ThreadPriority)prio);
+  JavaThread* thr = java_lang_Thread::thread(java_thread);
+  if (thr != NULL) {                  // Thread not yet started; priority pushed down when it is
+    Thread::set_priority(thr, (ThreadPriority)prio);
+  }
+JVM_END</code></code></pre>
+<ol>
+<li>根据第 3 步中的代码，我们可以发现关键是 <code>java_lang_Thread::set_Priority()</code> 这段代码，继续找 <strong>thread.cpp</strong> 代码中的 <code>set_Priority()</code> 方法；</li>
+</ol>
+<pre><code><code>void Thread::set_priority(Thread* thread, ThreadPriority priority) {
+  trace(&quot;set priority&quot;, thread);
+  debug_only(check_for_dangling_thread_pointer(thread);)
+  // Can return an error!
+  (void)os::set_priority(thread, priority);
+}</code></code></pre>
+<ol>
+<li>发现上面代码最终调用的是 <code>os::set_priority()</code>，接着继续找出 <strong>os.cpp</strong> 的 <code>set_priority()</code> 方法；</li>
+</ol>
+<pre><code><code>OSReturn os::set_priority(Thread* thread, ThreadPriority p) {
+#ifdef ASSERT
+  if (!(!thread-&gt;is_Java_thread() ||
+         Thread::current() == thread  ||
+         Threads_lock-&gt;owned_by_self()
+         || thread-&gt;is_Compiler_thread()
+        )) {
+    assert(false, &quot;possibility of dangling Thread pointer&quot;);
+  }
+#endif
+
+  if (p &gt;= MinPriority &amp;&amp; p &lt;= MaxPriority) {
+    int priority = java_to_os_priority[p];
+    return set_native_priority(thread, priority);
+  } else {
+    assert(false, &quot;Should not happen&quot;);
+    return OS_ERR;
+  }
+}</code></code></pre>
+<ol>
+<li>终于发现了最终转换为各操作系统的优先级代码 <code>java_to_os_priority[p]</code>，接下来就是找各个操作系统下的该数组的值。比如下面是 <strong>Linux</strong> 系统的优先级值。</li>
+</ol>
+<pre><code><code>int os::java_to_os_priority[CriticalPriority + 1] = {
+  19,              // 0 Entry should never be used
+
+   4,              // 1 MinPriority
+   3,              // 2
+   2,              // 3
+
+   1,              // 4
+   0,              // 5 NormPriority
+  -1,              // 6
+
+  -2,              // 7
+  -3,              // 8
+  -4,              // 9 NearMaxPriority
+
+  -5,              // 10 MaxPriority
+
+  -5               // 11 CriticalPriority
+};</code></code></pre>
+<p>好了，大家应该知道怎么找出 Java 线程优先级 [1,10] 一一对应各个操作系统中的优先级值。下面给大家统计一下。</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Java 线程优先级</th>
+<th style="text-align: left;">Linux</th>
+<th style="text-align: left;">Windows</th>
+<th style="text-align: left;">Apple</th>
+<th style="text-align: left;">Bsd</th>
+<th style="text-align: left;">Solaris</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">THREAD_PRIORITY_LOWEST(-2)</td>
+<td style="text-align: left;">27</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">THREAD_PRIORITY_LOWEST(-2)</td>
+<td style="text-align: left;">28</td>
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">32</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">3</td>
+<td style="text-align: left;">2</td>
+<td style="text-align: left;">THREAD_PRIORITY_BELOW_NORMAL(-1)</td>
+<td style="text-align: left;">29</td>
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">64</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">4</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">THREAD_PRIORITY_BELOW_NORMAL(-1)</td>
+<td style="text-align: left;">30</td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">96</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">5</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">THREAD_PRIORITY_NORMAL(0)</td>
+<td style="text-align: left;">31</td>
+<td style="text-align: left;">15</td>
+<td style="text-align: left;">127</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">6</td>
+<td style="text-align: left;">-1</td>
+<td style="text-align: left;">THREAD_PRIORITY_NORMAL(0)</td>
+<td style="text-align: left;">32</td>
+<td style="text-align: left;">18</td>
+<td style="text-align: left;">127</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">7</td>
+<td style="text-align: left;">-2</td>
+<td style="text-align: left;">THREAD_PRIORITY_ABOVE_NORMAL(1)</td>
+<td style="text-align: left;">33</td>
+<td style="text-align: left;">21</td>
+<td style="text-align: left;">127</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">8</td>
+<td style="text-align: left;">-3</td>
+<td style="text-align: left;">THREAD_PRIORITY_ABOVE_NORMAL(1)</td>
+<td style="text-align: left;">34</td>
+<td style="text-align: left;">25</td>
+<td style="text-align: left;">127</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">9</td>
+<td style="text-align: left;">-4</td>
+<td style="text-align: left;">THREAD_PRIORITY_HIGHEST(2)</td>
+<td style="text-align: left;">35</td>
+<td style="text-align: left;">28</td>
+<td style="text-align: left;">127</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">-5</td>
+<td style="text-align: left;">THREAD_PRIORITY_HIGHEST(2)</td>
+<td style="text-align: left;">36</td>
+<td style="text-align: left;">31</td>
+<td style="text-align: left;">127</td>
+</tr>
+</tbody>
+</table>
+<p>Windows 系统的在 <strong>OpenJDK</strong> 源码中只找到上面的常量，值是通过微软提供的函数接口文档查到的，链接在这：<a href="https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadpriority?redirectedfrom=MSDN">setthreadpriority</a></p>
+<p>我们从这个表格中也可以发现一些问题，即使我们在 Java 代码中设置了比较高的优先级，其实映射到操作系统的线程里面，并不一定比设置了低优先级的线程高，很有可能是相同的优先级。看看 <strong>Solaris 操作系统</strong> 这个极端的例子，优先级 5 到 10 映射的是相同的线程等级。</p>
+<p>回头想想上面的例子为什么 3000 个线程，<code>MAX_PRIORITY</code> 优先级的 1000 个线程会优先执行呢？因为我们的 3 个优先级分别映射到 <strong>Windows</strong> 操作系统线程的 3 个不同的等级，所以才会生效。假设将 1、5、10 改成 5、6、7，运行结果那就不大一样了。</p>
+<p>最后记住：<strong>切莫把线程优先级当做银弹，优先级高的线程不一定比优先级低的线程优先执行</strong>。</p>
+<p>这篇<strong>线程优先级</strong>文章也告段落了，朋友们看完觉得有用麻烦帮点个<code>在看</code>，推荐给身边朋友看看，原创不易。</p>
+<p><code>推荐阅读</code></p>
+<p><a href="https://mp.weixin.qq.com/s/Fh8d9ITNhvwYlfF2kY8P-g">了解Java线程优先级，更要知道对应操作系统的优先级，不然会踩坑</a></p>
+<p><a href="https://mp.weixin.qq.com/s/NSlEeXMK22-clfDv44h60w">线程最最基础的知识</a></p>
+<p><a href="https://mp.weixin.qq.com/s/cIj_uzT6gZjROO44rNFHFQ">老板叫你别阻塞了</a></p>
+<p><a href="https://mp.weixin.qq.com/s/Euc2NKvK_TsqvcT-DWpD5A">吃个快餐都能学到串行、并行、并发</a></p>
+<p><a href="https://mp.weixin.qq.com/s/yWqFw_S7suYpqszuJFDsGg">泡一杯茶，学一学同异步</a></p>
+<p><a href="https://mp.weixin.qq.com/s/HJIVxnzyDesYPGGyJsaFyQ">进程知多少？</a></p>
+<p><a href="https://mp.weixin.qq.com/s/WiPwb7AyVlxyr1_kYXt96w">设计模式看了又忘，忘了又看？</a></p>
+<p><strong>后台回复『设计模式』可以获取《一故事一设计模式》电子书</strong></p>
+<p><code>觉得文章有用帮忙转发&amp;点赞，多谢朋友们！</code></p>
+<p><img src="./images/了解Java线程优先级，更要知道对应操作系统的优先级，不然会踩坑1.png" alt="LieBrother" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

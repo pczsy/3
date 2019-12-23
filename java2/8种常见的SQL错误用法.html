@@ -1,0 +1,412 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修8种常见的SQL错误用法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>8种常见的SQL错误用法</center></div><div class='banquan'>原文出处:本文由博客园博主HG-93提供。<br/>
+原文连接:https://www.cnblogs.com/cxydmx/p/11728419.html</div><br>
+    <src class="article-hide-content">
+<src class="content-detail unsafe markdown-body">
+
+
+<h2 id="2">常见SQL错误用法</h2>
+
+<h3 id="3">1. LIMIT 语句</h3>
+
+<p>分页查询是最常用的场景之一，但也通常也是最容易出问题的地方。比如对于下面简单的语句，一般DBA想到的办法是在type, name, create_time字段上加组合索引。这样条件排序都能有效的利用到索引，性能迅速提升。</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span> * 
+<span class="hljs-keyword">FROM</span>   operation 
+<span class="hljs-keyword">WHERE</span>  <span class="hljs-keyword">type</span> = <span class="hljs-string">'SQLStats'</span> 
+       <span class="hljs-keyword">AND</span> <span class="hljs-keyword">name</span> = <span class="hljs-string">'SlowLog'</span> 
+<span class="hljs-keyword">ORDER</span>  <span class="hljs-keyword">BY</span> create_time 
+<span class="hljs-keyword">LIMIT</span>  <span class="hljs-number">1000</span>, <span class="hljs-number">10</span>; 
+</code></code></pre>
+
+<p>好吧，可能90%以上的DBA解决该问题就到此为止。但当 LIMIT 子句变成 “LIMIT 1000000,10” 时，程序员仍然会抱怨：我只取10条记录为什么还是慢？</p>
+
+<p>要知道数据库也并不知道第1000000条记录从什么地方开始，即使有索引也需要从头计算一次。出现这种性能问题，多数情形下是程序员偷懒了。在前端数据浏览翻页，或者大数据分批导出等场景下，是可以将上一页的最大值当成参数作为查询条件的。SQL重新设计如下：</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span>   * 
+<span class="hljs-keyword">FROM</span>     operation 
+<span class="hljs-keyword">WHERE</span>    <span class="hljs-keyword">type</span> = <span class="hljs-string">'SQLStats'</span> 
+<span class="hljs-keyword">AND</span>      <span class="hljs-keyword">name</span> = <span class="hljs-string">'SlowLog'</span> 
+<span class="hljs-keyword">AND</span>      create_time &gt; <span class="hljs-string">'2019-10-19 14:00:00'</span> 
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> create_time <span class="hljs-keyword">limit</span> <span class="hljs-number">10</span>;
+</code></code></pre>
+
+<p>在新设计下查询时间基本固定，不会随着数据量的增长而发生变化。</p>
+
+<h3 id="4">2. 隐式转换</h3>
+<p>SQL语句中查询变量和字段定义类型不匹配是另一个常见的错误。比如下面的语句：</p>
+
+<pre><code><code class="hljs perl">mysql&gt; explain extended SELECT * 
+     &gt; FROM   my_balance b 
+     &gt; WHERE  b.bpn = <span class="hljs-number">14000000123</span> 
+     &gt;       AND b.isverified IS NULL ;
+mysql&gt; show warnings;
+| Warning | <span class="hljs-number">1739</span> | Cannot <span class="hljs-keyword">use</span> <span class="hljs-keyword">ref</span> access on <span class="hljs-keyword">index</span> <span class="hljs-string">'bpn'</span> due to type <span class="hljs-keyword">or</span> collation conversion on field <span class="hljs-string">'bpn'</span>
+</code></code></pre>
+
+<p>其中字段bpn的定义为varchar(20)，MySQL的策略是将字符串转换为数字之后再比较。函数作用于表字段，索引失效。</p>
+
+<p>上述情况可能是应用程序框架自动填入的参数，而不是程序员的原意。现在应用框架很多很繁杂，使用方便的同时也小心它可能给自己挖坑。</p>
+
+<h3 id="5">3. 关联更新、删除</h3>
+<p>虽然MySQL5.6引入了物化特性，但需要特别注意它目前仅仅针对查询语句的优化。对于更新或删除需要手工重写成JOIN。</p>
+
+<p>比如下面UPDATE语句，MySQL实际执行的是循环/嵌套子查询（DEPENDENT SUBQUERY)，其执行时间可想而知。</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">UPDATE</span> operation o 
+<span class="hljs-keyword">SET</span>    <span class="hljs-keyword">status</span> = <span class="hljs-string">'applying'</span> 
+<span class="hljs-keyword">WHERE</span>  o.id <span class="hljs-keyword">IN</span> (<span class="hljs-keyword">SELECT</span> <span class="hljs-keyword">id</span> 
+                <span class="hljs-keyword">FROM</span>   (<span class="hljs-keyword">SELECT</span> o.id, 
+                               o.status 
+                        <span class="hljs-keyword">FROM</span>   operation o 
+                        <span class="hljs-keyword">WHERE</span>  o.group = <span class="hljs-number">123</span> 
+                               <span class="hljs-keyword">AND</span> o.status <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">IN</span> ( <span class="hljs-string">'done'</span> ) 
+                        <span class="hljs-keyword">ORDER</span>  <span class="hljs-keyword">BY</span> o.parent, 
+                                  o.id 
+                        <span class="hljs-keyword">LIMIT</span>  <span class="hljs-number">1</span>) t); 
+</code></code></pre>
+
+<p>执行计划：</p>
+
+<pre><code><code class="hljs ruby">+----+--------------------+-------+-------+---------------+---------+---------+-------+------+-----------------------------------------------------+
+<span class="hljs-params">| id |</span> select_type        <span class="hljs-params">| table |</span> type  <span class="hljs-params">| possible_keys |</span> key     <span class="hljs-params">| key_len |</span> ref   <span class="hljs-params">| rows |</span> Extra                                               <span class="hljs-params">|
++----+--------------------+-------+-------+---------------+---------+---------+-------+------+-----------------------------------------------------+
+|</span> <span class="hljs-number">1</span>  <span class="hljs-params">| PRIMARY            |</span> o     <span class="hljs-params">| index |</span>               <span class="hljs-params">| PRIMARY |</span> <span class="hljs-number">8</span>       <span class="hljs-params">|       |</span> <span class="hljs-number">24</span>   <span class="hljs-params">| Using where; Using temporary                        |</span>
+<span class="hljs-params">| 2  |</span> DEPENDENT SUBQUERY <span class="hljs-params">|       |</span>       <span class="hljs-params">|               |</span>         <span class="hljs-params">|         |</span>       <span class="hljs-params">|      |</span> Impossible WHERE noticed after reading const tables <span class="hljs-params">|
+|</span> <span class="hljs-number">3</span>  <span class="hljs-params">| DERIVED            |</span> o     <span class="hljs-params">| ref   |</span> idx_2,idx_5   <span class="hljs-params">| idx_5   |</span> <span class="hljs-number">8</span>       <span class="hljs-params">| const |</span> <span class="hljs-number">1</span>    <span class="hljs-params">| Using where; Using filesort                         |</span>
++----+--------------------+-------+-------+---------------+---------+---------+-------+------+-----------------------------------------------------+
+</code></code></pre>
+
+<p>重写为JOIN之后，子查询的选择模式从DEPENDENT SUBQUERY变成DERIVED,执行速度大大加快，从7秒降低到2毫秒。</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">UPDATE</span> operation o 
+       <span class="hljs-keyword">JOIN</span>  (<span class="hljs-keyword">SELECT</span> o.id, 
+                            o.status 
+                     <span class="hljs-keyword">FROM</span>   operation o 
+                     <span class="hljs-keyword">WHERE</span>  o.group = <span class="hljs-number">123</span> 
+                            <span class="hljs-keyword">AND</span> o.status <span class="hljs-keyword">NOT</span> <span class="hljs-keyword">IN</span> ( <span class="hljs-string">'done'</span> ) 
+                     <span class="hljs-keyword">ORDER</span>  <span class="hljs-keyword">BY</span> o.parent, 
+                               o.id 
+                     <span class="hljs-keyword">LIMIT</span>  <span class="hljs-number">1</span>) t
+         <span class="hljs-keyword">ON</span> o.id = t.id 
+<span class="hljs-keyword">SET</span>    <span class="hljs-keyword">status</span> = <span class="hljs-string">'applying'</span> 
+</code></code></pre>
+
+<p>执行计划简化为：</p>
+
+<pre><code><code class="hljs ruby">+----+-------------+-------+------+---------------+-------+---------+-------+------+-----------------------------------------------------+
+<span class="hljs-params">| id |</span> select_type <span class="hljs-params">| table |</span> type <span class="hljs-params">| possible_keys |</span> key   <span class="hljs-params">| key_len |</span> ref   <span class="hljs-params">| rows |</span> Extra                                               <span class="hljs-params">|
++----+-------------+-------+------+---------------+-------+---------+-------+------+-----------------------------------------------------+
+|</span> <span class="hljs-number">1</span>  <span class="hljs-params">| PRIMARY     |</span>       <span class="hljs-params">|      |</span>               <span class="hljs-params">|       |</span>         <span class="hljs-params">|       |</span>      <span class="hljs-params">| Impossible WHERE noticed after reading const tables |</span>
+<span class="hljs-params">| 2  |</span> DERIVED     <span class="hljs-params">| o     |</span> ref  <span class="hljs-params">| idx_2,idx_5   |</span> idx_5 <span class="hljs-params">| 8       |</span> const <span class="hljs-params">| 1    |</span> Using where; Using filesort                         <span class="hljs-params">|
++----+-------------+-------+------+---------------+-------+---------+-------+------+-----------------------------------------------------+
+</span></code></code></pre>
+
+<h3 id="6">4. 混合排序</h3>
+<p>MySQL不能利用索引进行混合排序。但在某些场景，还是有机会使用特殊方法提升性能的。</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span> * 
+<span class="hljs-keyword">FROM</span>   my_order o 
+       <span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> my_appraise a <span class="hljs-keyword">ON</span> a.orderid = o.id 
+<span class="hljs-keyword">ORDER</span>  <span class="hljs-keyword">BY</span> a.is_reply <span class="hljs-keyword">ASC</span>, 
+          a.appraise_time <span class="hljs-keyword">DESC</span> 
+<span class="hljs-keyword">LIMIT</span>  <span class="hljs-number">0</span>, <span class="hljs-number">20</span> 
+</code></code></pre>
+
+<p>执行计划显示为全表扫描：</p>
+
+<pre><code><code class="hljs ruby">+----+-------------+-------+--------+-------------+---------+---------+---------------+---------+-+
+<span class="hljs-params">| id |</span> select_type <span class="hljs-params">| table |</span> type   <span class="hljs-params">| possible_keys     |</span> key     <span class="hljs-params">| key_len |</span> ref      <span class="hljs-params">| rows    |</span> Extra    
++----+-------------+-------+--------+-------------+---------+---------+---------------+---------+-+
+<span class="hljs-params">|  1 |</span> SIMPLE      <span class="hljs-params">| a     |</span> ALL    <span class="hljs-params">| idx_orderid |</span> NULL    <span class="hljs-params">| NULL    |</span> NULL    <span class="hljs-params">| 1967647 |</span> Using filesort <span class="hljs-params">|
+|</span>  <span class="hljs-number">1</span> <span class="hljs-params">| SIMPLE      |</span> o     <span class="hljs-params">| eq_ref |</span> PRIMARY     <span class="hljs-params">| PRIMARY |</span> <span class="hljs-number">122</span>     <span class="hljs-params">| a.orderid |</span>       <span class="hljs-number">1</span> <span class="hljs-params">| NULL           |</span>
++----+-------------+-------+--------+---------+---------+---------+-----------------+---------+-+
+</code></code></pre>
+
+<p>由于is_reply只有0和1两种状态，我们按照下面的方法重写后，执行时间从1.58秒降低到2毫秒。</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span> * 
+<span class="hljs-keyword">FROM</span>   ((<span class="hljs-keyword">SELECT</span> *
+         <span class="hljs-keyword">FROM</span>   my_order o 
+                <span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> my_appraise a 
+                        <span class="hljs-keyword">ON</span> a.orderid = o.id 
+                           <span class="hljs-keyword">AND</span> is_reply = <span class="hljs-number">0</span> 
+         <span class="hljs-keyword">ORDER</span>  <span class="hljs-keyword">BY</span> appraise_time <span class="hljs-keyword">DESC</span> 
+         <span class="hljs-keyword">LIMIT</span>  <span class="hljs-number">0</span>, <span class="hljs-number">20</span>) 
+        <span class="hljs-keyword">UNION</span> ALL 
+        (<span class="hljs-keyword">SELECT</span> *
+         <span class="hljs-keyword">FROM</span>   my_order o 
+                <span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> my_appraise a 
+                        <span class="hljs-keyword">ON</span> a.orderid = o.id 
+                           <span class="hljs-keyword">AND</span> is_reply = <span class="hljs-number">1</span> 
+         <span class="hljs-keyword">ORDER</span>  <span class="hljs-keyword">BY</span> appraise_time <span class="hljs-keyword">DESC</span> 
+         <span class="hljs-keyword">LIMIT</span>  <span class="hljs-number">0</span>, <span class="hljs-number">20</span>)) t 
+<span class="hljs-keyword">ORDER</span>  <span class="hljs-keyword">BY</span>  is_reply <span class="hljs-keyword">ASC</span>, 
+          appraisetime <span class="hljs-keyword">DESC</span> 
+<span class="hljs-keyword">LIMIT</span>  <span class="hljs-number">20</span>; 
+</code></code></pre>
+
+<h3 id="7">5. EXISTS语句</h3>
+<p>MySQL对待EXISTS子句时，仍然采用嵌套子查询的执行方式。如下面的SQL语句：</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span> *
+<span class="hljs-keyword">FROM</span>   my_neighbor n 
+       <span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> my_neighbor_apply sra 
+              <span class="hljs-keyword">ON</span> n.id = sra.neighbor_id 
+                 <span class="hljs-keyword">AND</span> sra.user_id = <span class="hljs-string">'xxx'</span> 
+<span class="hljs-keyword">WHERE</span>  n.topic_status &lt; <span class="hljs-number">4</span> 
+       <span class="hljs-keyword">AND</span> <span class="hljs-keyword">EXISTS</span>(<span class="hljs-keyword">SELECT</span> <span class="hljs-number">1</span> 
+                  <span class="hljs-keyword">FROM</span>   message_info m 
+                  <span class="hljs-keyword">WHERE</span>  n.id = m.neighbor_id 
+                         <span class="hljs-keyword">AND</span> m.inuser = <span class="hljs-string">'xxx'</span>) 
+       <span class="hljs-keyword">AND</span> n.topic_type &lt;&gt; <span class="hljs-number">5</span> 
+</code></code></pre>
+
+<p>执行计划为：</p>
+
+<pre><code><code class="hljs ruby">+----+--------------------+-------+------+-----+------------------------------------------+---------+-------+---------+ -----+
+<span class="hljs-params">| id |</span> select_type        <span class="hljs-params">| table |</span> type <span class="hljs-params">| possible_keys     |</span> key   <span class="hljs-params">| key_len |</span> ref   <span class="hljs-params">| rows    |</span> Extra   <span class="hljs-params">|
++----+--------------------+-------+------+ -----+------------------------------------------+---------+-------+---------+ -----+
+|</span>  <span class="hljs-number">1</span> <span class="hljs-params">| PRIMARY            |</span> n     <span class="hljs-params">| ALL  |</span>  <span class="hljs-params">| NULL     |</span> NULL    <span class="hljs-params">| NULL  |</span> <span class="hljs-number">1086041</span> <span class="hljs-params">| Using where                   |</span>
+<span class="hljs-params">|  1 |</span> PRIMARY            <span class="hljs-params">| sra   |</span> ref  <span class="hljs-params">|  |</span> idx_user_id <span class="hljs-params">| 123     |</span> const <span class="hljs-params">|       1 |</span> Using where          <span class="hljs-params">|
+|</span>  <span class="hljs-number">2</span> <span class="hljs-params">| DEPENDENT SUBQUERY |</span> m     <span class="hljs-params">| ref  |</span>  <span class="hljs-params">| idx_message_info   |</span> <span class="hljs-number">122</span>     <span class="hljs-params">| const |</span>       <span class="hljs-number">1</span> <span class="hljs-params">| Using index condition; Using where |</span>
++----+--------------------+-------+------+ -----+------------------------------------------+---------+-------+---------+ -----+
+</code></code></pre>
+
+<p>去掉exists更改为join，能够避免嵌套子查询，将执行时间从1.93秒降低为1毫秒。</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span> *
+<span class="hljs-keyword">FROM</span>   my_neighbor n 
+       <span class="hljs-keyword">INNER</span> <span class="hljs-keyword">JOIN</span> message_info m 
+               <span class="hljs-keyword">ON</span> n.id = m.neighbor_id 
+                  <span class="hljs-keyword">AND</span> m.inuser = <span class="hljs-string">'xxx'</span> 
+       <span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> my_neighbor_apply sra 
+              <span class="hljs-keyword">ON</span> n.id = sra.neighbor_id 
+                 <span class="hljs-keyword">AND</span> sra.user_id = <span class="hljs-string">'xxx'</span> 
+<span class="hljs-keyword">WHERE</span>  n.topic_status &lt; <span class="hljs-number">4</span> 
+       <span class="hljs-keyword">AND</span> n.topic_type &lt;&gt; <span class="hljs-number">5</span> 
+</code></code></pre>
+
+<p>新的执行计划：</p>
+
+<pre><code><code class="hljs ruby">+----+-------------+-------+--------+ -----+------------------------------------------+---------+ -----+------+ -----+
+<span class="hljs-params">| id |</span> select_type <span class="hljs-params">| table |</span> type   <span class="hljs-params">| possible_keys     |</span> key       <span class="hljs-params">| key_len |</span> ref   <span class="hljs-params">| rows |</span> Extra                 <span class="hljs-params">|
++----+-------------+-------+--------+ -----+------------------------------------------+---------+ -----+------+ -----+
+|</span>  <span class="hljs-number">1</span> <span class="hljs-params">| SIMPLE      |</span> m     <span class="hljs-params">| ref    |</span> <span class="hljs-params">| idx_message_info   |</span> <span class="hljs-number">122</span>     <span class="hljs-params">| const    |</span>    <span class="hljs-number">1</span> <span class="hljs-params">| Using index condition |</span>
+<span class="hljs-params">|  1 |</span> SIMPLE      <span class="hljs-params">| n     |</span> eq_ref <span class="hljs-params">| |</span> PRIMARY   <span class="hljs-params">| 122     |</span> ighbor_id <span class="hljs-params">|    1 |</span> Using where      <span class="hljs-params">|
+|</span>  <span class="hljs-number">1</span> <span class="hljs-params">| SIMPLE      |</span> sra   <span class="hljs-params">| ref    |</span> <span class="hljs-params">| idx_user_id |</span> <span class="hljs-number">123</span>     <span class="hljs-params">| const     |</span>    <span class="hljs-number">1</span> <span class="hljs-params">| Using where           |</span>
++----+-------------+-------+--------+ -----+------------------------------------------+---------+ -----+------+ -----+
+</code></code></pre>
+
+<h3 id="8">6. 条件下推</h3>
+
+<p>外部查询条件不能够下推到复杂的视图或子查询的情况有：</p>
+
+<ol>
+<li>聚合子查询；</li>
+  <li>含有LIMIT的子查询；</li>
+  <li>UNION 或UNION ALL子查询；</li>
+  <li>输出字段中的子查询；</li>
+</ol>
+<p>如下面的语句，从执行计划可以看出其条件作用于聚合子查询之后：</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span> * 
+<span class="hljs-keyword">FROM</span>   (<span class="hljs-keyword">SELECT</span> target, 
+               <span class="hljs-keyword">Count</span>(*) 
+        <span class="hljs-keyword">FROM</span>   operation 
+        <span class="hljs-keyword">GROUP</span>  <span class="hljs-keyword">BY</span> target) t 
+<span class="hljs-keyword">WHERE</span>  target = <span class="hljs-string">'rm-xxxx'</span> 
+</code></code></pre>
+
+<pre><code><code class="hljs ruby">+----+-------------+------------+-------+---------------+-------------+---------+-------+------+-------------+
+<span class="hljs-params">| id |</span> select_type <span class="hljs-params">| table      |</span> type  <span class="hljs-params">| possible_keys |</span> key         <span class="hljs-params">| key_len |</span> ref   <span class="hljs-params">| rows |</span> Extra       <span class="hljs-params">|
++----+-------------+------------+-------+---------------+-------------+---------+-------+------+-------------+
+|</span>  <span class="hljs-number">1</span> <span class="hljs-params">| PRIMARY     |</span> &lt;derived2&gt; <span class="hljs-params">| ref   |</span> &lt;auto_key<span class="hljs-number">0</span>&gt;   <span class="hljs-params">| &lt;auto_key0&gt; |</span> <span class="hljs-number">514</span>     <span class="hljs-params">| const |</span>    <span class="hljs-number">2</span> <span class="hljs-params">| Using where |</span>
+<span class="hljs-params">|  2 |</span> DERIVED     <span class="hljs-params">| operation  |</span> index <span class="hljs-params">| idx_4         |</span> idx_4       <span class="hljs-params">| 519     |</span> NULL  <span class="hljs-params">|   20 |</span> Using index <span class="hljs-params">|
++----+-------------+------------+-------+---------------+-------------+---------+-------+------+-------------+
+</span></code></code></pre>
+
+<p>确定从语义上查询条件可以直接下推后，重写如下：</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span> target, 
+       <span class="hljs-keyword">Count</span>(*) 
+<span class="hljs-keyword">FROM</span>   operation 
+<span class="hljs-keyword">WHERE</span>  target = <span class="hljs-string">'rm-xxxx'</span> 
+<span class="hljs-keyword">GROUP</span>  <span class="hljs-keyword">BY</span> target
+</code></code></pre>
+
+<p>执行计划变为：</p>
+
+<pre><code><code class="hljs ruby">+----+-------------+-----------+------+---------------+-------+---------+-------+------+--------------------+
+<span class="hljs-params">| id |</span> select_type <span class="hljs-params">| table |</span> type <span class="hljs-params">| possible_keys |</span> key <span class="hljs-params">| key_len |</span> ref <span class="hljs-params">| rows |</span> Extra <span class="hljs-params">|
++----+-------------+-----------+------+---------------+-------+---------+-------+------+--------------------+
+|</span> <span class="hljs-number">1</span> <span class="hljs-params">| SIMPLE |</span> operation <span class="hljs-params">| ref |</span> idx_4 <span class="hljs-params">| idx_4 |</span> <span class="hljs-number">514</span> <span class="hljs-params">| const |</span> <span class="hljs-number">1</span> <span class="hljs-params">| Using where; Using index |</span>
++----+-------------+-----------+------+---------------+-------+---------+-------+------+--------------------+
+</code></code></pre>
+
+<p>关于MySQL外部条件不能下推的详细解释说明请参考以前文章：<a href="https://yq.aliyun.com/go/articleRenderRedirect?url=http%3A%2F%2Fmysql.taobao.org%2Fmonthly%2F2016%2F07%2F08%2F" data-url="http://mysql.taobao.org/monthly/2016/07/08/">MySQL · 性能优化 · 条件下推到物化表</a></p>
+
+<h3 id="9">7. 提前缩小范围</h3>
+
+<p>先上初始SQL语句：</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span> * 
+<span class="hljs-keyword">FROM</span>   my_order o 
+       <span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> my_userinfo u 
+              <span class="hljs-keyword">ON</span> o.uid = u.uid
+       <span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> my_productinfo p 
+              <span class="hljs-keyword">ON</span> o.pid = p.pid 
+<span class="hljs-keyword">WHERE</span>  ( o.display = <span class="hljs-number">0</span> ) 
+       <span class="hljs-keyword">AND</span> ( o.ostaus = <span class="hljs-number">1</span> ) 
+<span class="hljs-keyword">ORDER</span>  <span class="hljs-keyword">BY</span> o.selltime <span class="hljs-keyword">DESC</span> 
+<span class="hljs-keyword">LIMIT</span>  <span class="hljs-number">0</span>, <span class="hljs-number">15</span> 
+</code></code></pre>
+
+<p>该SQL语句原意是：先做一系列的左连接，然后排序取前15条记录。从执行计划也可以看出，最后一步估算排序记录数为90万，时间消耗为12秒。</p>
+
+<pre><code><code class="hljs ruby">+----+-------------+-------+--------+---------------+---------+---------+-----------------+--------+----------------------------------------------------+
+<span class="hljs-params">| id |</span> select_type <span class="hljs-params">| table |</span> type   <span class="hljs-params">| possible_keys |</span> key     <span class="hljs-params">| key_len |</span> ref             <span class="hljs-params">| rows   |</span> Extra                                              <span class="hljs-params">|
++----+-------------+-------+--------+---------------+---------+---------+-----------------+--------+----------------------------------------------------+
+|</span>  <span class="hljs-number">1</span> <span class="hljs-params">| SIMPLE      |</span> o     <span class="hljs-params">| ALL    |</span> NULL          <span class="hljs-params">| NULL    |</span> NULL    <span class="hljs-params">| NULL            |</span> <span class="hljs-number">909119</span> <span class="hljs-params">| Using where; Using temporary; Using filesort       |</span>
+<span class="hljs-params">|  1 |</span> SIMPLE      <span class="hljs-params">| u     |</span> eq_ref <span class="hljs-params">| PRIMARY       |</span> PRIMARY <span class="hljs-params">| 4       |</span> o.uid <span class="hljs-params">|      1 |</span> NULL                                               <span class="hljs-params">|
+|</span>  <span class="hljs-number">1</span> <span class="hljs-params">| SIMPLE      |</span> p     <span class="hljs-params">| ALL    |</span> PRIMARY       <span class="hljs-params">| NULL    |</span> NULL    <span class="hljs-params">| NULL            |</span>      <span class="hljs-number">6</span> <span class="hljs-params">| Using where; Using join buffer (Block Nested Loop) |</span>
++----+-------------+-------+--------+---------------+---------+---------+-----------------+--------+----------------------------------------------------+
+</code></code></pre>
+
+<p>由于最后WHERE条件以及排序均针对最左主表，因此可以先对my_order排序提前缩小数据量再做左连接。SQL重写后如下，执行时间缩小为1毫秒左右。</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span> * 
+<span class="hljs-keyword">FROM</span> (
+<span class="hljs-keyword">SELECT</span> * 
+<span class="hljs-keyword">FROM</span>   my_order o 
+<span class="hljs-keyword">WHERE</span>  ( o.display = <span class="hljs-number">0</span> ) 
+       <span class="hljs-keyword">AND</span> ( o.ostaus = <span class="hljs-number">1</span> ) 
+<span class="hljs-keyword">ORDER</span>  <span class="hljs-keyword">BY</span> o.selltime <span class="hljs-keyword">DESC</span> 
+<span class="hljs-keyword">LIMIT</span>  <span class="hljs-number">0</span>, <span class="hljs-number">15</span>
+) o 
+     <span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> my_userinfo u 
+              <span class="hljs-keyword">ON</span> o.uid = u.uid 
+     <span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> my_productinfo p 
+              <span class="hljs-keyword">ON</span> o.pid = p.pid 
+<span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span>  o.selltime <span class="hljs-keyword">DESC</span>
+<span class="hljs-keyword">limit</span> <span class="hljs-number">0</span>, <span class="hljs-number">15</span>
+</code></code></pre>
+
+<p>再检查执行计划：子查询物化后（select_type=DERIVED)参与JOIN。虽然估算行扫描仍然为90万，但是利用了索引以及LIMIT 子句后，实际执行时间变得很小。</p>
+
+<pre><code><code class="hljs ruby">
++----+-------------+------------+--------+---------------+---------+---------+-------+--------+----------------------------------------------------+
+<span class="hljs-params">| id |</span> select_type <span class="hljs-params">| table      |</span> type   <span class="hljs-params">| possible_keys |</span> key     <span class="hljs-params">| key_len |</span> ref   <span class="hljs-params">| rows   |</span> Extra                                              <span class="hljs-params">|
++----+-------------+------------+--------+---------------+---------+---------+-------+--------+----------------------------------------------------+
+|</span>  <span class="hljs-number">1</span> <span class="hljs-params">| PRIMARY     |</span> &lt;derived2&gt; <span class="hljs-params">| ALL    |</span> NULL          <span class="hljs-params">| NULL    |</span> NULL    <span class="hljs-params">| NULL  |</span>     <span class="hljs-number">15</span> <span class="hljs-params">| Using temporary; Using filesort                    |</span>
+<span class="hljs-params">|  1 |</span> PRIMARY     <span class="hljs-params">| u          |</span> eq_ref <span class="hljs-params">| PRIMARY       |</span> PRIMARY <span class="hljs-params">| 4       |</span> o.uid <span class="hljs-params">|      1 |</span> NULL                                               <span class="hljs-params">|
+|</span>  <span class="hljs-number">1</span> <span class="hljs-params">| PRIMARY     |</span> p          <span class="hljs-params">| ALL    |</span> PRIMARY       <span class="hljs-params">| NULL    |</span> NULL    <span class="hljs-params">| NULL  |</span>      <span class="hljs-number">6</span> <span class="hljs-params">| Using where; Using join buffer (Block Nested Loop) |</span>
+<span class="hljs-params">|  2 |</span> DERIVED     <span class="hljs-params">| o          |</span> index  <span class="hljs-params">| NULL          |</span> idx_1   <span class="hljs-params">| 5       |</span> NULL  <span class="hljs-params">| 909112 |</span> Using where                                        <span class="hljs-params">|
++----+-------------+------------+--------+---------------+---------+---------+-------+--------+----------------------------------------------------+
+</span></code></code></pre>
+
+<h3 id="10">8. 中间结果集下推</h3>
+
+<p>再来看下面这个已经初步优化过的例子(左连接中的主表优先作用查询条件)：</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span>    a.*, 
+          c.allocated 
+<span class="hljs-keyword">FROM</span>      ( 
+              <span class="hljs-keyword">SELECT</span>   resourceid 
+              <span class="hljs-keyword">FROM</span>     my_distribute d 
+                   <span class="hljs-keyword">WHERE</span>    isdelete = <span class="hljs-number">0</span> 
+                   <span class="hljs-keyword">AND</span>      cusmanagercode = <span class="hljs-string">'1234567'</span> 
+                   <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> salecode <span class="hljs-keyword">limit</span> <span class="hljs-number">20</span>) a 
+<span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> 
+          ( 
+              <span class="hljs-keyword">SELECT</span>   resourcesid， <span class="hljs-keyword">sum</span>(<span class="hljs-keyword">ifnull</span>(allocation, <span class="hljs-number">0</span>) * <span class="hljs-number">12345</span>) allocated 
+              <span class="hljs-keyword">FROM</span>     my_resources 
+                   <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> resourcesid) c 
+<span class="hljs-keyword">ON</span>        a.resourceid = c.resourcesid
+</code></code></pre>
+
+<p>那么该语句还存在其它问题吗？不难看出子查询 c 是全表聚合查询，在表数量特别大的情况下会导致整个语句的性能下降。</p>
+
+<p>其实对于子查询 c，左连接最后结果集只关心能和主表resourceid能匹配的数据。因此我们可以重写语句如下，执行时间从原来的2秒下降到2毫秒。</p>
+
+<pre><code><code class="hljs sql"><span class="hljs-keyword">SELECT</span>    a.*, 
+          c.allocated 
+<span class="hljs-keyword">FROM</span>      ( 
+                   <span class="hljs-keyword">SELECT</span>   resourceid 
+                   <span class="hljs-keyword">FROM</span>     my_distribute d 
+                   <span class="hljs-keyword">WHERE</span>    isdelete = <span class="hljs-number">0</span> 
+                   <span class="hljs-keyword">AND</span>      cusmanagercode = <span class="hljs-string">'1234567'</span> 
+                   <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> salecode <span class="hljs-keyword">limit</span> <span class="hljs-number">20</span>) a 
+<span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> 
+          ( 
+                   <span class="hljs-keyword">SELECT</span>   resourcesid， <span class="hljs-keyword">sum</span>(<span class="hljs-keyword">ifnull</span>(allocation, <span class="hljs-number">0</span>) * <span class="hljs-number">12345</span>) allocated 
+                   <span class="hljs-keyword">FROM</span>     my_resources r, 
+                            ( 
+                                     <span class="hljs-keyword">SELECT</span>   resourceid 
+                                     <span class="hljs-keyword">FROM</span>     my_distribute d 
+                                     <span class="hljs-keyword">WHERE</span>    isdelete = <span class="hljs-number">0</span> 
+                                     <span class="hljs-keyword">AND</span>      cusmanagercode = <span class="hljs-string">'1234567'</span> 
+                                     <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> salecode <span class="hljs-keyword">limit</span> <span class="hljs-number">20</span>) a 
+                   <span class="hljs-keyword">WHERE</span>    r.resourcesid = a.resourcesid 
+                   <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> resourcesid) c 
+<span class="hljs-keyword">ON</span>        a.resourceid = c.resourcesid
+</code></code></pre>
+
+<p>但是子查询 a 在我们的SQL语句中出现了多次。这种写法不仅存在额外的开销，还使得整个语句显的繁杂。使用WITH语句再次重写：</p>
+
+<pre><code><code class="hljs sql">WITH a AS 
+( 
+         <span class="hljs-keyword">SELECT</span>   resourceid 
+         <span class="hljs-keyword">FROM</span>     my_distribute d 
+         <span class="hljs-keyword">WHERE</span>    isdelete = <span class="hljs-number">0</span> 
+         <span class="hljs-keyword">AND</span>      cusmanagercode = <span class="hljs-string">'1234567'</span> 
+         <span class="hljs-keyword">ORDER</span> <span class="hljs-keyword">BY</span> salecode <span class="hljs-keyword">limit</span> <span class="hljs-number">20</span>)
+<span class="hljs-keyword">SELECT</span>    a.*, 
+          c.allocated 
+<span class="hljs-keyword">FROM</span>      a 
+<span class="hljs-keyword">LEFT</span> <span class="hljs-keyword">JOIN</span> 
+          ( 
+                   <span class="hljs-keyword">SELECT</span>   resourcesid， <span class="hljs-keyword">sum</span>(<span class="hljs-keyword">ifnull</span>(allocation, <span class="hljs-number">0</span>) * <span class="hljs-number">12345</span>) allocated 
+                   <span class="hljs-keyword">FROM</span>     my_resources r, 
+                            a 
+                   <span class="hljs-keyword">WHERE</span>    r.resourcesid = a.resourcesid 
+                   <span class="hljs-keyword">GROUP</span> <span class="hljs-keyword">BY</span> resourcesid) c 
+<span class="hljs-keyword">ON</span>        a.resourceid = c.resourcesid
+</code></code></pre>
+
+
+<h2 id="11">总结</h2>
+
+<ol>
+<li>数据库编译器产生执行计划，决定着SQL的实际执行方式。但是编译器只是尽力服务，所有数据库的编译器都不是尽善尽美的。上述提到的多数场景，在其它数据库中也存在性能问题。了解数据库编译器的特性，才能避规其短处，写出高性能的SQL语句。</li>
+  <li>程序员在设计数据模型以及编写SQL语句时，要把算法的思想或意识带进来。</li>
+  <li>编写复杂SQL语句要养成使用WITH语句的习惯。简洁且思路清晰的SQL语句也能减小数据库的负担 ^^。</li>
+</ol>
+
+<p><br><br />
+<hr><br />
+<font color="Darkorange" size="4px"><b>关注微信公众号【<a style="text-decoration:none" href="http://mp.weixin.qq.com/s?__biz=MzU0OTg3ODQxNA==&mid=100000173&idx=1&sn=1af862786cc9126634f630a5d4d37d17&chksm=7ba86e4c4cdfe75aa0ce43095cbc2babff63affb0a5e18b5e8ff6a8f6fdc4b4bc129d6e7af10#rd">程序员的梦想</a>】，专注于Java，SpringBoot，SpringCloud，微服务，Docker以及前后端分离等全栈技术。</b></font></p>
+<p><img src="./images/8种常见的SQL错误用法0.png" alt="在这里插入图片描述" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,137 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java String 对象，你真的了解了吗？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java String 对象，你真的了解了吗？</center></div><div class='banquan'>原文出处:本文由博客园博主平头哥的技术博文提供。<br/>
+原文连接:https://www.cnblogs.com/jamaler/p/11576754.html</div><br>
+    <h3 id="string-对象的实现">String 对象的实现</h3>
+<p><code>String</code>对象是 Java 中使用最频繁的对象之一，所以 Java 公司也在不断的对<code>String</code>对象的实现进行优化，以便提升<code>String</code>对象的性能，看下面这张图，一起了解一下<code>String</code>对象的优化过程。</p>
+<p><img src="./images/Java String 对象，你真的了解了吗？0.png" /></p>
+<h5 id="在-java6-以及之前的版本中">1. 在 Java6 以及之前的版本中</h5>
+<p><code>String</code>对象是对 char 数组进行了封装实现的对象，主要有四个成员变量： char 数组、偏移量 offset、字符数量 count、哈希值 hash。</p>
+<p><code>String</code>对象是通过 offset 和 count 两个属性来定位 char[] 数组，获取字符串。这么做可以高效、快速地共享数组对象，同时节省内存空间，但这种方式很有可能会导致内存泄漏。</p>
+<h5 id="从-java7-版本开始到-java8-版本">2. 从 Java7 版本开始到 Java8 版本</h5>
+<p>从 Java7 版本开始,Java 对<code>String</code>类做了一些改变。<code>String</code>类中不再有 offset 和 count 两个变量了。这样的好处是<code>String</code>对象占用的内存稍微少了些，同时 String.substring 方法也不再共享 char[]，从而解决了使用该方法可能导致的内存泄漏问题。</p>
+<h5 id="从-java9-版本开始">3. 从 Java9 版本开始</h5>
+<p>将 char[] 数组改为了 byte[] 数组，为什么需要这样做呢？我们知道 char 是两个字节，如果用来存一个字节的字符有点浪费，为了节约空间，Java 公司就改成了一个字节的byte来存储字符串。这样在存储一个字节的字符是就避免了浪费。</p>
+<p>在 Java9 维护了一个新的属性 coder，它是编码格式的标识，在计算字符串长度或者调用 indexOf() 函数时，需要根据这个字段，判断如何计算字符串长度。coder 属性默认有 0 和 1 两个值， 0 代表Latin-1（单字节编码），1 代表 UTF-16 编码。如果 <code>String</code>判断字符串只包含了 Latin-1，则 coder 属性值为 0 ，反之则为 1。</p>
+<h3 id="string-对象的创建方式">String 对象的创建方式</h3>
+<h4 id="通过字符串常量的方式">1、通过字符串常量的方式</h4>
+<p><code>String str= &quot;pingtouge&quot;</code>的形式，使用这种形式创建字符串时， JVM 会在字符串常量池中先检查是否存在该对象，如果存在，返回该对象的引用地址，如果不存在，则在字符串常量池中创建该字符串对象并且返回引用。使用这种方式创建的好处是：避免了相同值的字符串重复创建，节约了内存</p>
+<h4 id="string构造函数的方式">2、String()构造函数的方式</h4>
+<p><code>String str = new String(&quot;pingtouge&quot;)</code>的形式，使用这种方式创建字符串对象过程就比较复杂，分成两个阶段，首先在编译时，字符串<code>pingtouge</code>会被加入到常量结构中，类加载时候就会在常量池中创建该字符串。然后就是在调用new()时，JVM 将会调用<code>String</code>的构造函数，同时引用常量池中的<code>pingtouge</code>字符串，<br />
+在堆内存中创建一个<code>String</code>对象并且返回堆中的引用地址。</p>
+<p>了解了<code>String</code>对象两种创建方式，我们来分析一下下面这段代码，加深我们对这两种方式的理解，下面这段代码片中，<code>str</code>是否等于<code>str1</code>呢？</p>
+<pre><code><code>  String str = &quot;pingtouge&quot;;
+  String str1 = new String(&quot;pingtouge&quot;);
+  system.out.println(str==str1)</code></code></pre>
+<p>我们逐一来分析这几行代码，首先从<code>String str = &quot;pingtouge&quot;</code>开始，这里使用了字符串常量的方式创建字符串对象，在创建<code>pingtouge</code>字符串对象时，JVM会去常量池中查找是否存在该字符串，这里的答案肯定是没有的，所以JVM将会在常量池中创建该字符串对象并且返回对象的地址引用，所以<code>str</code>指向的是<code>pingtouge</code>字符串对象在常量池中的地址引用。</p>
+<p>然后是<code>String str1 = new String(&quot;pingtouge&quot;)</code>这行代码，这里使用的是构造函数的方式创建字符串对象，根据我们上面对构造函数方式创建字符串对象的理解，<code>str1</code>得到的应该是堆中<code>pingtouge</code>字符串的引用地址。由于<code>str</code>指向的是<code>pingtouge</code>字符串对象在常量池中的地址引用而<code>str1</code>指向的是堆中<code>pingtouge</code>字符串的引用地址，所以<code>str</code>肯定不等于<code>str1</code>。</p>
+<h3 id="string-对象的不可变性">String 对象的不可变性</h3>
+<p>从我们知道<code>String</code>对象的那一刻起，我想大家都知道了<code>String</code>对象是不可变的。那它不可变是怎么做到的呢？<code>Java</code> 这么做能带来哪些好处？我们一起来简单的探讨一下，先来看看<code>String</code> 对象的一段源码：</p>
+<pre><code><code>public final class String
+    implements java.io.Serializable, Comparable&lt;String&gt;, CharSequence {
+    /** The value is used for character storage. */
+    private final char value[];
+
+    /** Cache the hash code for the string */
+    private int hash; // Default to 0
+
+    /** use serialVersionUID from JDK 1.0.2 for interoperability */
+    private static final long serialVersionUID = -6849794470754667710L;
+    }</code></code></pre>
+<p>从这段源码中可以看出，<code>String</code>类用了 final 修饰符，我们知道当一个类被 final 修饰时，表明这个类不能被继承，所以<code>String</code>类不能被继承。这是<code>String</code>不可变的第一点</p>
+<p>再往下看，用来存储字符串的<code>char value[]</code>数组被<code>private</code> 和<code>final</code>修饰，我们知道对于一个被<code>final</code>的基本数据类型的变量，则其数值一旦在初始化之后便不能更改。这是<code>String</code>不可变的第二点。</p>
+<p>Java 公司为什么要将<code>String</code>设置成不可变的，主要从以下三方面考虑：</p>
+<ul>
+<li>1、保证 String 对象的安全性。假设 String 对象是可变的，那么 String 对象将可能被恶意修改。</li>
+<li>2、保证 hash 属性值不会频繁变更，确保了唯一性，使得类似 HashMap 容器才能实现相应的 key-value 缓存功能。</li>
+<li>3、可以实现字符串常量池</li>
+</ul>
+<h3 id="string-对象的优化">String 对象的优化</h3>
+<p>字符串是我们常用的<code>Java</code>类型之一，所以对字符串的操作也是避免不了的，在对字符串的操作过程中，如果使用不当，性能会天差地别。那么在字符串的操作过程中，有哪些地方需要我们注意呢？</p>
+<h4 id="优雅的拼接字符串">优雅的拼接字符串</h4>
+<p>字符串的拼接是对字符串操作使用最频繁的操作之一，由于我们知道<code>String</code>对象的不可变性，所以我们在做拼接时尽可能少的使用<code>+</code>进行字符串拼接或者说潜意识里认为不能使用<code>+</code>进行字符串拼接，认为使用<code>+</code>进行字符串拼接会产生许多无用的对象。事实真的是这样吗？我们来做一个实验。我们使用<code>+</code>来拼接下面这段字符串。</p>
+<pre><code><code>String str8 = &quot;ping&quot; +&quot;tou&quot;+&quot;ge&quot;;</code></code></pre>
+<p>一起来分析一下这段代码会产生多少个对象？如果按照我们理解的意思来分析的话，首先会创建<code>ping</code>对象，然后创建<code>pingtou</code>对象，最后才会创建<code>pingtouge</code>对象，一共创建了三个对象。真的是这样吗？其实不是这样的，Java 公司怕我们程序员手误，所以对编译器进行了优化，上面的这段字符串拼接会被我们的编译器优化，优化成一个<code>String str8 = &quot;pingtouge&quot;;</code>对象。除了对常量字符串拼接做了优化以外，对于使用<code>+</code>号动态拼接字符串，编译器也做了相应的优化，以便提升<code>String</code>的性能，例如下面这段代码：</p>
+<pre><code><code>String str = &quot;pingtouge&quot;;
+
+for(int i=0; i&lt;1000; i++) {
+      str = str + i;
+}
+</code></code></pre>
+<p>编译器会帮我们优化成这样</p>
+<pre><code><code>
+String str = &quot;pingtouge&quot;;
+
+for(int i=0; i&lt;1000; i++) {
+              str = (new StringBuilder(String.valueOf(str))).append(i).toString();
+}
+</code></code></pre>
+<p>可以看出 Java 公司对这一块进行了不少的优化，防止由于程序员不小心导致<code>String</code>性能急速下降，尽管 Java 公司在编译器这一块做了相应的优化，但是我们还是能看出 Java 公司优化的不足之处，在动态拼接字符串时，虽然使用了 StringBuilder 进行字符串拼接，但是每次循环都会生成一个新的 StringBuilder 实例，同样也会降低系统的性能。</p>
+<p>所以我们在做字符串拼接时，我们需要从代码的层面进行优化，<strong>在动态的拼接字符串时，如果不涉及到线程安全的情况下，我们显示的使用 StringBuilder 进行拼接，提升系统性能，如果涉及到线程安全的话，我们使用 StringBuffer 来进行字符串拼接</strong></p>
+<h4 id="巧妙的使用-intern-方法">巧妙的使用 intern() 方法</h4>
+<pre><code><code>     * &lt;p&gt;
+     * When the intern method is invoked, if the pool already contains a
+     * string equal to this {@code String} object as determined by
+     * the {@link #equals(Object)} method, then the string from the pool is
+     * returned. Otherwise, this {@code String} object is added to the
+     * pool and a reference to this {@code String} object is returned.
+     * &lt;p&gt;
+     public native String intern();</code></code></pre>
+<p>这是 intern() 函数的官方注释说明，大概意思就是 intern 函数用来返回常量池中的某字符串，如果常量池中已经存在该字符串，则直接返回常量池中该对象的引用。否则，在常量池中加入该对象，然后 返回引用。</p>
+<p>有一位<code>Twitter</code>工程师在<code>QCon</code>全球软件开发大会上分享了一个他们对 <code>String</code>对象优化的案例，他们利用<code>String.intern()</code>方法将以前需要20G内存存储优化到只需要几百兆内存。这足以体现<code>String.intern()</code>的威力，我们一起来看一个例子，简单的了解一下<code>String.intern()</code>的用法。</p>
+<pre><code><code>    public static void main(String[] args) {
+        String str = new String(&quot;pingtouge&quot;);
+        String str1 = new String(&quot;pingtouge&quot;);
+        System.out.println(&quot;未使用intern()方法：&quot;+(str==str1));
+        System.out.println(&quot;未使用intern()方法,str：&quot;+str);
+        System.out.println(&quot;未使用intern()方法,str1：&quot;+str1);
+
+        String str2= new String(&quot;pingtouge&quot;).intern();
+        String str3 = new String(&quot;pingtouge&quot;).intern();
+        System.out.println(&quot;使用intern()方法：&quot;+(str2==str3));
+        System.out.println(&quot;使用intern()方法,str2：&quot;+str2);
+        System.out.println(&quot;使用intern()方法,str3：&quot;+str3);
+
+    }</code></code></pre>
+<p><img src="./images/Java String 对象，你真的了解了吗？1.png" /><br />
+从结果中可以看出，未使用<code>String.intern()</code>方法时，构造相同值的字符串对象返回不同的对象引用地址，使用<code>String.intern()</code>方法后，构造相同值的字符串对象时，返回相同的对象引用地址。这能帮我们节约不少空间</p>
+<p><strong><code>String.intern()</code>方法虽然好，但是我们要结合场景使用，不能乱用，因为常量池的实现是类似于一个<code>HashTable</code>的实现方式，<code>HashTable</code> 存储的数据越大，遍历的时间复杂度就会增加。如果数据过大，会增加整个字符串常量池的负担。</strong></p>
+<h4 id="灵活的字符串的分割">灵活的字符串的分割</h4>
+<p>字符串的分割是字符串操作的常用操作之一，对于字符串的分割，大部分人使用的都是 Split() 方法，Split() 方法大多数情况下使用的是正则表达式，这种分割方式本身没有什么问题，但是由于正则表达式的性能是非常不稳定的，使用不恰当会引起回溯问题，很可能导致 CPU 居高不下。在以下两种情况下 Split() 方法不会使用正则表达式：</p>
+<ul>
+<li>传入的参数长度为1，且不包含“.$|()[{^?*+\”regex元字符的情况下，不会使用正则表达式</li>
+<li>传入的参数长度为2，第一个字符是反斜杠，并且第二个字符不是ASCII数字或ASCII字母的情况下，不会使用正则表达式</li>
+</ul>
+<p><strong>所以我们在字符串分割时，应该慎重使用 Split() 方法，首先考虑使用 String.indexOf() 方法进行字符串分割，如果 String.indexOf() 无法满足分割要求，再使用 Split() 方法，使用 Split() 方法分割字符串时，需要注意回溯问题。</strong></p>
+<blockquote>
+<p>文章不足之处，望大家多多指点，共同学习，共同进步</p>
+</blockquote>
+<h4 id="参考资料">参考资料</h4>
+<ul>
+<li>Java性能调优实战 刘超</li>
+</ul>
+<h3 id="最后">最后</h3>
+<p>打个小广告，欢迎扫码关注微信公众号：「平头哥的技术博文」，一起进步吧。<br />
+<img src="./images/Java String 对象，你真的了解了吗？2.png" alt="平头哥的技术博文" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

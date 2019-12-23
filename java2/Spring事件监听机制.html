@@ -1,0 +1,177 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring事件监听机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring事件监听机制</center></div><div class='banquan'>原文出处:本文由博客园博主石玉军提供。<br/>
+原文连接:https://www.cnblogs.com/zhixiang-org-cn/p/11531633.html</div><br>
+    <h4 id="前言">前言</h4>
+<p>Spring中的事件机制其实就是设计模式中的观察者模式，主要由以下角色构成：</p>
+<ol>
+<li>事件</li>
+<li>事件监听器（监听并处理事件）</li>
+<li>事件发布者（发布事件）</li>
+</ol>
+<p>首先看一下监听器和发布者的接口定义</p>
+<pre><code><code>public interface ApplicationListener&lt;E extends ApplicationEvent&gt; extends EventListener {
+      void onApplicationEvent(E event);
+  }
+  
+  public interface ApplicationEventPublisher {
+    default void publishEvent(ApplicationEvent event) {
+        publishEvent((Object) event);
+    }
+    void publishEvent(Object event);
+
+}</code></code></pre>
+<h4 id="事件流转流程">事件流转流程</h4>
+<h5 id="初始化事件广播器">初始化事件广播器</h5>
+<p>看一下这个方法<code>AbstractApplicationContext.refresh</code>，在IOC源码解析那篇文章已经把这个方法分析完了，所以直接关注事件广播器和事件发布相关的逻辑即可</p>
+<pre><code><code>
+ public void refresh() throws BeansException, IllegalStateException {
+        synchronized (this.startupShutdownMonitor) {
+            // Prepare this context for refreshing.
+            prepareRefresh();
+ 
+            // Tell the subclass to refresh the internal bean factory.
+            ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
+ 
+            // Prepare the bean factory for use in this context.
+            prepareBeanFactory(beanFactory);
+ 
+            try {
+                // Allows post-processing of the bean factory in context subclasses.
+                postProcessBeanFactory(beanFactory);
+ 
+                // Invoke factory processors registered as beans in the context.
+                invokeBeanFactoryPostProcessors(beanFactory);
+ 
+                // Register bean processors that intercept bean creation.
+                registerBeanPostProcessors(beanFactory);
+ 
+                // Initialize message source for this context.
+                initMessageSource();
+ 
+                // 初始化事件广播器
+                initApplicationEventMulticaster();
+ 
+                // Initialize other special beans in specific context subclasses.
+                onRefresh();
+ 
+                // Check for listener beans and register them.
+                registerListeners();
+ 
+                // Instantiate all remaining (non-lazy-init) singletons.
+                finishBeanFactoryInitialization(beanFactory);
+ 
+                // 发布事件
+                finishRefresh();
+            }
+ 
+            catch (BeansException ex) {
+                logger.warn(&quot;Exception encountered during context initialization - cancelling refresh attempt&quot;, ex);
+ 
+                // Destroy already created singletons to avoid dangling resources.
+                destroyBeans();
+ 
+                // Reset &#39;active&#39; flag.
+                cancelRefresh(ex);
+ 
+                // Propagate exception to caller.
+                throw ex;
+            }
+        }
+}
+
+protected void initApplicationEventMulticaster() {
+        ConfigurableListableBeanFactory beanFactory = getBeanFactory();
+        if (beanFactory.containsLocalBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME)) {
+            this.applicationEventMulticaster =
+                    beanFactory.getBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, ApplicationEventMulticaster.class);
+            if (logger.isDebugEnabled()) {
+                logger.debug(&quot;Using ApplicationEventMulticaster [&quot; + this.applicationEventMulticaster + &quot;]&quot;);
+            }
+        }
+        else {
+            this.applicationEventMulticaster = new SimpleApplicationEventMulticaster(beanFactory);
+            beanFactory.registerSingleton(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, this.applicationEventMulticaster);
+            if (logger.isDebugEnabled()) {
+                logger.debug(&quot;Unable to locate ApplicationEventMulticaster with name &#39;&quot; +
+                        APPLICATION_EVENT_MULTICASTER_BEAN_NAME +
+                        &quot;&#39;: using default [&quot; + this.applicationEventMulticaster + &quot;]&quot;);
+            }
+        }
+    }
+</code></code></pre>
+<p>可以看到如果没有自定义的事件广播器，默认是使用<code>SimpleApplicationEventMulticaster</code>的</p>
+<h5 id="发布事件">发布事件</h5>
+<p>发布事件是在bean的初始化之后的</p>
+<pre><code><code>
+    protected void finishRefresh() {
+        // Initialize lifecycle processor for this context.
+        initLifecycleProcessor();
+ 
+        // Propagate refresh to lifecycle processor first.
+        getLifecycleProcessor().onRefresh();
+ 
+        // 发布事件
+        publishEvent(new ContextRefreshedEvent(this));
+ 
+        // Participate in LiveBeansView MBean, if active.
+        LiveBeansView.registerApplicationContext(this);
+    }
+
+
+public void publishEvent(ApplicationEvent event) {
+        Assert.notNull(event, &quot;Event must not be null&quot;);
+        if (logger.isTraceEnabled()) {
+            logger.trace(&quot;Publishing event in &quot; + getDisplayName() + &quot;: &quot; + event);
+        }
+        //1. 获取到事件广播器，发布事件
+        getApplicationEventMulticaster().multicastEvent(event);
+        //2. 如果存在父容器，父容器也将发布事件
+        if (this.parent != null) {
+            this.parent.publishEvent(event);
+        }
+    }</code></code></pre>
+<p>具体的发布逻辑在<code>multicastEvent</code>方法中</p>
+<pre><code><code>
+public void multicastEvent(final ApplicationEvent event) {
+        //遍历执行listener，getApplicationListeners调用AbstractApplicationEventMulticaster父类方法
+        for (final ApplicationListener listener : getApplicationListeners(event)) {
+            Executor executor = getTaskExecutor();
+            if (executor != null) {
+                executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onApplicationEvent(event);
+                    }
+                });
+            }
+            else {
+                listener.onApplicationEvent(event);
+            }
+        }
+    }
+</code></code></pre>
+<p>可以看到也没啥特殊的，无非就是起个线程池去调用这些监听器的方法</p>
+<p>而监听器的处理就看各个监听器的具体实现了</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,59 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修CloseableHttpClient方式配置代理服务器访问外网' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>CloseableHttpClient方式配置代理服务器访问外网</center></div><div class='banquan'>原文出处:本文由博客园博主_小米粥提供。<br/>
+原文连接:https://www.cnblogs.com/wushumin/p/11640205.html</div><br>
+    <p>　　小编最近在负责银行内部项目。其中有模块需要访问天眼查API接口，但由于公司全部内网，所以需要配置代理服务器才可以访问外网接口。</p>
+<p>　　又到了激动人心的上码时刻！</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">public </span><span style="color: #000000;">void Connect(HttpGet httpGet) {
+</span><span style="color: #008080;"> 2</span>         String str = "";<span style="color: #008000;">//</span><span style="color: #008000;">返回结果</span>
+<span style="color: #008080;"> 3</span>         CloseableHttpResponse response = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 5</span>             <span style="color: #008000;">//</span><span style="color: #008000;">1、创建httpClient</span>
+<span style="color: #008080;"> 6</span>             CloseableHttpClient client = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 8</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">把代理设置到请求配置        代理IP     端口</span>
+<span style="color: #008080;"> 9</span>                 HttpHost proxy = <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpHost(PROXY_URL, PROXY_PROT);
+</span><span style="color: #008080;">10</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">超时时间单位为毫秒</span>
+<span style="color: #008080;">11</span>                 RequestConfig defaultRequestConfig =<span style="color: #000000;"> RequestConfig.custom()
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">                        .setConnectTimeout(CONNECTION_TIME_OUT).setSocketTimeout(CONNECTION_TIME_OUT)
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">                        .setProxy(proxy).build();
+</span><span style="color: #008080;">14</span>                 client =<span style="color: #000000;"> HttpClients.custom().setDefaultRequestConfig(defaultRequestConfig).build();
+</span><span style="color: #008080;">15</span>     
+<span style="color: #008080;">16</span>                 response =<span style="color: #000000;"> client.execute(httpGet);
+</span><span style="color: #008080;">17</span>             } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (UnknownHostException hostEx) {
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">                hostEx.printStackTrace();
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">20</span>             <span style="color: #008000;">//</span><span style="color: #008000;">2、获取实体</span>
+<span style="color: #008080;">21</span>             HttpEntity entity =<span style="color: #000000;"> response.getEntity();
+</span><span style="color: #008080;">22</span>             <span style="color: #008000;">//</span><span style="color: #008000;">将实体装成字符串</span>
+<span style="color: #008080;">23</span>             str =<span style="color: #000000;"> EntityUtils.toString(entity);
+</span><span style="color: #008080;">24</span>             System.out.println("返回结果---" +<span style="color: #000000;"> str);
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">            response.close();
+</span><span style="color: #008080;">26</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">29</span>       <span style="color: #008080;">30</span>     }<br /><br />　　最初没有负责的都是外网项目，没有经验。查看之后原来这么简单！</code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

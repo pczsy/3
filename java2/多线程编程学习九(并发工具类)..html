@@ -1,0 +1,172 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修多线程编程学习九(并发工具类).' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>多线程编程学习九(并发工具类).</center></div><div class='banquan'>原文出处:本文由博客园博主JMCui提供。<br/>
+原文连接:https://www.cnblogs.com/jmcui/p/11511413.html</div><br>
+    <h2 id="countdownlatch">CountDownLatch</h2>
+<ol>
+<li>CountDownLatch 允许一个或多个线程等待其他线程完成操作。</li>
+<li>CountDownLatch 可以替代 join 的作用，并提供了更丰富的用法。</li>
+<li>CountDownLatch 的 countDown 方法，N 会减1；CountDownLatch 的 await 方法会阻塞当前线程，直到 N 变成零。</li>
+<li>CountDownLatch 不可能重新初始化或者修改 CountDownLatch 对象的内部计数器的值。</li>
+<li>CountDownLatch 内部由 AQS 共享锁实现。</li>
+</ol>
+<pre><code><code>public class CountDownLatchTest {
+
+    private static final CountDownLatch DOWN_LATCH = new CountDownLatch(2);
+
+    public static void main(String[] args) throws InterruptedException {
+        new Thread(() -&gt; {
+            System.out.println(1);
+            DOWN_LATCH.countDown();
+            System.out.println(2);
+            DOWN_LATCH.countDown();
+
+        }).start();
+        DOWN_LATCH.await();
+        System.out.println(&quot;3&quot;);
+    }
+}</code></code></pre>
+<h2 id="cyclicbarrier">CyclicBarrier</h2>
+<ol>
+<li>CyclicBarrier 设置一个屏障（也可以叫同步点），拦截阻塞一组线程，直到最后一个线程到达屏障时，屏障才会开门，所有被屏障拦截的线程才会继续运行。</li>
+<li>CyclicBarrier 默认的构造方法是CyclicBarrier（int parties），其参数表示屏障拦截的线程数量，每个线程调用await方法告诉 CyclicBarrier 我已经到达了屏障，然后当前线程被阻塞。</li>
+<li>CyclicBarrier 还提供一个更高级的构造函数 CyclicBarrier（int parties，Runnable barrierAction），用于在线程到达屏障时，优先执行 barrierAction，方便处理更复杂的业务场景。</li>
+<li>getNumberWaiting 方法可以获得 CyclicBarrier 阻塞的线程数量；isBroken()方法用来了解阻塞的线程是否被中断。</li>
+<li>CyclicBarrier 的计数器可以使用 reset() 方法重置（CountDownLatch 的计数器只能使用一次）。所以 CyclicBarrier 能处理更为复杂的业务场景。例如，如果计算发生错误，可以重置计数器，并让线程重新执行一次。</li>
+<li>CyclicBarrier 可以用于多线程计算数据，最后合并计算结果的场景。</li>
+<li>CyclicBarrier 内部采用重入锁 ReentrantLock 实现。</li>
+</ol>
+<pre><code><code>public class BankWaterService implements Runnable {
+ 
+    // 创建4个屏障，处理完之后执行当前类的run方法
+    private CyclicBarrier barrier = new CyclicBarrier(4, this);
+    // 假设有4个计算任务，所以只启动4个线程
+    private Executor executor = Executors.newFixedThreadPool(4);
+    // 保存每个任务的计算结果
+    private ConcurrentHashMap&lt;String, Integer&gt; sheetBankWaterCount = new ConcurrentHashMap&lt;&gt;();
+
+    private AtomicInteger atomicInteger = new AtomicInteger(1);
+
+    private void count() {
+        for (int i = 0; i &lt; 4; i++) {
+            Thread thread = new Thread(() -&gt; {
+                // 当前任务的计算结果，计算过程忽略
+                sheetBankWaterCount.put(Thread.currentThread().getName(), 1);
+                // 计算完成，插入一个屏障
+                try {
+                    barrier.await();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (BrokenBarrierException e) {
+                    e.printStackTrace();
+                }
+
+            }, &quot;线程&quot; + atomicInteger.getAndIncrement());
+            executor.execute(thread);
+        }
+    }
+
+    @Override
+    public void run() {
+        int result = 0;
+        // 汇总每个任务计算出的结果
+        for (Map.Entry&lt;String, Integer&gt; sheet : sheetBankWaterCount.entrySet()) {
+            result += sheet.getValue();
+        }
+        //将结果输出
+        sheetBankWaterCount.put(&quot;result&quot;, result);
+        System.out.println(result);
+    }
+
+    public static void main(String[] args) {
+        BankWaterService bankWaterCount = new BankWaterService();
+        bankWaterCount.count();
+    }
+}</code></code></pre>
+<h2 id="semaphore">Semaphore</h2>
+<ol>
+<li>Semaphore（信号量）是用来控制同时访问特定资源的线程数量，它通过协调各个线程，以保证合理的使用公共资源。</li>
+<li>Semaphore 可以用于做流量控制，特别是公用资源有限的应用场景，比如数据库连接。</li>
+<li>Semaphore的构造方法 Semaphore(int permits) 接受一个整型的数字，表示可用的许可证数量。</li>
+<li>首先线程使用 Semaphore 的 acquire() 方法获取一个许可证，使用完之后调用 release() 方法归还许可证。还可以用 tryAcquire() 方法尝试获取许可证。</li>
+<li>intavailablePermits()：返回此信号量中当前可用的许可证数。</li>
+<li>intgetQueueLength()：返回正在等待获取许可证的线程数。</li>
+<li>hasQueuedThreads()：是否有线程正在等待获取许可证。</li>
+<li>Semaphore 内部使用 AQS 共享锁实现。</li>
+</ol>
+<pre><code><code>public class SemaphoreTest {
+
+    private static final int THREAD_COUNT = 30;
+    private static ExecutorService EXECUTOR = Executors.newFixedThreadPool(THREAD_COUNT);
+    private static Semaphore SEMAPHORE = new Semaphore(10);
+    private static AtomicInteger ATOMICINTEGER = new AtomicInteger(1);
+
+    public static void main(String[] args) {
+        for (int i = 0; i &lt; THREAD_COUNT; i++) {
+            EXECUTOR.execute(() -&gt; {
+                try {
+                    SEMAPHORE.acquire();
+                    System.out.println(&quot;save data&quot; + ATOMICINTEGER.getAndIncrement());
+                    SEMAPHORE.release();
+                } catch (InterruptedException e) {
+                }
+
+            });
+        }
+        EXECUTOR.shutdown();
+    }
+}</code></code></pre>
+<h2 id="exchanger">Exchanger</h2>
+<ol>
+<li>Exchanger（交换者）是一个用于线程间协作的工具类 —— 用于线程间的数据交换。它提供一个同步点，在这个同步点，两个线程可以交换彼此的数据。这两个线程通过 exchange 方法交换数据，如果第一个线程先执行 exchange() 方法，它会一直等待第二个线程也执行 exchange 方法。</li>
+<li>可简单地将 Exchanger 对象理解为一个包含两个格子的容器，通过 exchanger 方法可以向两个格子中填充信息。当两个格子中的均被填充时，该对象会自动将两个格子的信息交换，然后返回给线程，从而实现两个线程的信息交换。</li>
+<li>Exchanger 可用于遗传算法。（遗传算法：需要选出两个人作为交配对象，这时候会交换两人的数据，并使用交叉规则得出交配结果）</li>
+<li>Exchanger 可用于校对工作，比如一份数据需要两个人同时进行校对，都校对无误后，才能进行后续处理。这时，就可以使用 Exchanger 比较两份校对结果。</li>
+<li>Exchanger 内部采用无锁 CAS 实现，Exchange 使用了内部对象 Node 的两个属性 — item 、match，分布存储两个线程的值。</li>
+</ol>
+<pre><code><code>public class ExchangerTest {
+
+    private static final Exchanger&lt;String&gt; exchange = new Exchanger&lt;&gt;();
+    private static ExecutorService threadPool = Executors.newFixedThreadPool(2);
+
+    public static void main(String[] args) {
+        threadPool.execute(() -&gt; {
+            try {
+                String result = exchange.exchange(&quot;数据A&quot;);
+                System.out.println(&quot;A的exchange结果：&quot; + result);
+            } catch (InterruptedException e) {
+            }
+
+        });
+        threadPool.execute(() -&gt; {
+            try {
+                String result = exchange.exchange(&quot;数据B&quot;);
+                System.out.println(&quot;B的exchange结果：&quot; + result);
+            } catch (InterruptedException e) {
+            }
+        });
+        threadPool.shutdown();
+    }
+}</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

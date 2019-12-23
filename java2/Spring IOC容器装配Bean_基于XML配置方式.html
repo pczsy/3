@@ -1,0 +1,410 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Spring IOC容器装配Bean_基于XML配置方式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Spring IOC容器装配Bean_基于XML配置方式</center></div><div class='banquan'>原文出处:本文由博客园博主Hu_qaq提供。<br/>
+原文连接:https://www.cnblogs.com/hublogs/p/11992289.html</div><br>
+    <blockquote>
+<p>开发所需jar包<br />
+<img src="./images/Spring IOC容器装配Bean_基于XML配置方式0.png" /></p>
+</blockquote>
+<h4 id="实例化bean的四种方式">实例化Bean的四种方式</h4>
+<p>1.无参数构造器 （最常用）</p>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
+       xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+       xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd&quot;&gt;
+        
+    &lt;!--1.无参构造函数
+    在实例化的时候，自动调用默认的构造器，相当于MyBean mybean01 = new MyBean();
+    --&gt;
+     &lt;!--bean:告诉Spring容器，哪些对象(bean)需要交给Spring容器进行管理
+    id/name:该bean的“唯一”标识符
+    class:该bean的完整类名（spring容器底层可以使用反射创建对象）
+    --&gt;
+    &lt;bean id=&quot;mybean01&quot; class=&quot;com.igeekhome.bean.MyBean&quot;&gt;&lt;/bean&gt;
+&lt;/beans&gt;</code></code></pre>
+<pre class="java"><code>public class MyBean {
+    public MyBean() {
+        System.out.println(&quot;MyBean...无参构造函数被调用...&quot;);
+    }
+}</code></code></pre>
+<p>2.静态工厂方法</p>
+<pre><code><code> &lt;!--2.静态工厂方法
+    MyFactory01.getBean()
+    factory-method:指定静态的工厂方法
+    --&gt;
+    &lt;bean id=&quot;mybean02&quot; class=&quot;com.igeekhome.bean.MyFactory01&quot; factory-method=&quot;getBean&quot;&gt;&lt;/bean&gt;</code></code></pre>
+<pre class="java"><code>public class MyFactory01 {
+    //静态工厂方法
+    public static MyBean getBean() {
+        return new MyBean();
+    }
+}</code></code></pre>
+<p>3.实例(非静态)工厂方法</p>
+<pre><code><code>&lt;!--3.非静态工厂方法
+    new MyFatory02().getBean
+    --&gt;
+    &lt;bean id=&quot;myfatory&quot; class=&quot;com.igeekhome.bean.MyFactory02&quot;&gt;&lt;/bean&gt;
+    &lt;!--
+    factory-bean:工厂对象的引用
+    factory-method: 工厂方法名称
+    --&gt;
+    &lt;bean id=&quot;mybean03&quot; factory-bean=&quot;myfatory&quot; factory-method=&quot;getBean&quot;&gt;&lt;/bean&gt;</code></code></pre>
+<pre class="java"><code>public class MyFactory02 {
+    //非静态工厂方法
+    public MyBean02 getBean() {
+        return new MyBean02();
+    }
+}</code></code></pre>
+<p>4.FactoryBean方式（底层源码用的多）</p>
+<pre><code><code>&lt;!--4.FactoryBean
+    MyFactoryBean：spring会先检查该类是否实现了FactoryBean接口，如果没有实现，则直接创建该对象并添加至容器中
+    如果实现了FactoryBean接口，则调用getObject方法，并将该方法返回值对象添加至容器中
+    --&gt;
+    &lt;bean id=&quot;mybean04&quot; class=&quot;com.igeekhome.bean.MyFactoryBean&quot;&gt;&lt;/bean&gt;</code></code></pre>
+<pre class="java"><code>//创建工厂对象实现FactoryBean&lt;Bean4&gt;的接口
+public class MyFactoryBean implements FactoryBean&lt;MyBean03&gt; {//泛型：你要返回什么类型的对象，泛型就是什么
+    @Override
+    public MyBean getObject() throws Exception {
+        return new MyBean();
+    }
+
+    @Override
+    public Class&lt;?&gt; getObjectType() {
+        return MyBean.class;
+    }
+}</code></code></pre>
+<h4 id="bean的作用域">Bean的作用域</h4>
+<blockquote>
+<p>由spring创建的bean对象在什么情况下有效</p>
+</blockquote>
+<p><img src="./images/Spring IOC容器装配Bean_基于XML配置方式1.png" /></p>
+<p>项目开发中通常会使用：singleton 单例、 prototype多例</p>
+<ul>
+<li>Singleton： 在一个spring容器中，对象只有一个实例（默认值）</li>
+<li>Prototype： 在一个spring容器中，存在多个实例，每次getBean 返回一个新的实例</li>
+</ul>
+<pre><code><code>&lt;!-- bean的作用范围
+       scope:配置作用范围的，默认值就是singleton单例
+     --&gt;
+&lt;!-- 单例 --&gt;
+&lt;!-- &lt;bean id=&quot;singletonBean&quot; class=&quot;com.igeek.scope.SingletonBean&quot;&gt;&lt;/bean&gt; 等价于 --&gt;
+    &lt;bean id=&quot;singletonBean&quot; class=&quot;com.igeek.scope.SingletonBean&quot; 
+    scope=&quot;singleton&quot;&gt;&lt;/bean&gt;
+    
+    &lt;!-- 多例 --&gt;
+    &lt;bean id=&quot;prototypeBean&quot; class=&quot;com.igeek.scope.PrototypeBean&quot; 
+scope=&quot;prototype&quot;&gt;&lt;/bean&gt;</code></code></pre>
+<h4 id="bean的初始化和销毁方法">Bean的初始化和销毁方法</h4>
+<blockquote>
+<p>通过 init-method属性 指定初始化后的调用方法<br />
+通过 destroy-method属性 指定销毁对象前的方法</p>
+</blockquote>
+<pre><code><code> &lt;!--
+    init-method:指定初始化方法
+    destroy-method： 指定销毁触发方法
+    --&gt;
+    &lt;bean id=&quot;lifecycle&quot; class=&quot;com.igeekhome.bean.LifeCycleBean&quot; scope=&quot;singleton&quot; init-method=&quot;initMethod&quot; destroy-method=&quot;destroyMethod&quot;&gt;&lt;/bean&gt;</code></code></pre>
+<pre class="java"><code>public class LifeCycleBean {
+
+    public LifeCycleBean() {
+        System.out.println(&quot;构造函数...&quot;);
+    }
+
+    public void initMethod() {
+        //...执行初始化操作
+        System.out.println(&quot;init...method...&quot;);
+    }
+
+    public void destroyMethod() {
+        System.out.println(&quot;destroy...method...&quot;);
+    }
+}</code></code></pre>
+<h5 id="销毁方法的执行必须满足两个条件">销毁方法的执行必须满足两个条件</h5>
+<ul>
+<li>单例（singleton）的bean才会可以手动销毁</li>
+<li>必须手动关闭容器（调用close的方法）时，才会执行手动销毁的方法</li>
+</ul>
+<p>测试初始化和销毁方法:</p>
+<pre class="java"><code>public class Test03 {
+    private ApplicationContext ac = null;
+    @Before
+    public void before() {
+        ac = new ClassPathXmlApplicationContext(&quot;applicationContext.xml&quot;);
+    }
+    @Test
+    public void method01() {
+        LifeCycleBean lifeCycleBean = ac.getBean(&quot;lifecycle&quot;, LifeCycleBean.class);
+        //关闭ioc容器
+        ((ClassPathXmlApplicationContext) ac).close();
+    }
+}</code></code></pre>
+<h4 id="后处理beanbeanpostprocessor接口">后处理Bean（BeanPostProcessor接口）</h4>
+<blockquote>
+<p>后处理Bean也称之为Bean的后处理器，作用是：在Bean初始化的前后，对Bean对象进行增强。它既可以增强一个指定的Bean，也可以增强所有的Bean，底层很多功能（如AOP等）的实现都是基于它的，Spring可以在容器中直接识别调用</p>
+</blockquote>
+<pre class="java"><code>////Bean的后处理器：对bean进行增强，可以实现，对所有，或某个bean的初始化进行增强
+public class MyBeanPostProcessor implements BeanPostProcessor{
+    /*bean实例化之前
+       bean：对象
+       beanName： bean的id/name
+     */
+    //初始化时（之前）调用的
+    public Object postProcessBeforeInitialization(Object bean, String beanName)throws BeansException {
+        //System.out.println(beanName+&quot;在初始化前开始增强了&quot;);
+       //如何只增强一个bean
+       if(beanName.equals(&quot;lifeCycleBean&quot;)){
+           System.out.println(beanName+&quot;在初始化前开始增强了&quot;);
+       }
+       return bean;//放行
+    }
+    
+    //初始化时（之后）调用
+    public Object postProcessAfterInitialization(Object bean, String beanName)throws BeansException {
+        //System.out.println(beanName+&quot;在初始化后开始增强了&quot;);
+       if(beanName.equals(&quot;lifeCycleBean&quot;)){
+           System.out.println(beanName+&quot;在初始化后开始增强了&quot;);
+       }
+       return bean;
+    }
+}</code></code></pre>
+<h4 id="bean属性的依赖注入di">Bean属性的依赖注入(DI)</h4>
+<p>1.setter方法属性注入</p>
+<pre class="java"><code>public class Person {
+    private int no;
+    private String name;
+    private boolean status;
+    private Car car;
+
+    public Person() {
+    }
+
+    public int getNo() {
+        return no;
+    }
+
+    public void setNo(int no) {
+        this.no = no;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public boolean isStatus() {
+        return status;
+    }
+
+    public void setStatus(boolean status) {
+        this.status = status;
+    }
+
+    public Car getCar() {
+        return car;
+    }
+
+    public void setCar(Car car) {
+        this.car = car;
+    }
+
+    @Override
+    public String toString() {
+        return &quot;Person{&quot; +
+                &quot;no=&quot; + no +
+                &quot;, name=&#39;&quot; + name + &#39;\&#39;&#39; +
+                &quot;, status=&quot; + status +
+                &quot;, car=&quot; + car +
+                &#39;}&#39;;
+    }
+
+    public Person(int no, String name, boolean status, Car car) {
+        this.no = no;
+        this.name = name;
+        this.status = status;
+        this.car = car;
+    }
+}
+
+public class Car {
+    private String no;
+    private String brand;
+    private double price;
+
+    public String getNo() {
+        return no;
+    }
+
+    public void setNo(String no) {
+        this.no = no;
+    }
+
+    public String getBrand() {
+        return brand;
+    }
+
+    public void setBrand(String brand) {
+        this.brand = brand;
+    }
+
+    public double getPrice() {
+        return price;
+    }
+
+    public void setPrice(double price) {
+        this.price = price;
+    }
+
+    @Override
+    public String toString() {
+        return &quot;Car{&quot; +
+                &quot;no=&#39;&quot; + no + &#39;\&#39;&#39; +
+                &quot;, brand=&#39;&quot; + brand + &#39;\&#39;&#39; +
+                &quot;, price=&quot; + price +
+                &#39;}&#39;;
+    }
+
+    public Car() {
+    }
+
+    public Car(String brand, double price) {
+        this.brand = brand;
+        this.price = price;
+    }
+
+    public Car(String no, String brand, double price) {
+        this.no = no;
+        this.brand = brand;
+        this.price = price;
+    }
+}</code></code></pre>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
+       xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+       xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd&quot;&gt;
+
+    &lt;bean id=&quot;person&quot; class=&quot;com.igeekhome.di.Person&quot;&gt;
+        &lt;!--setter注入：前提满足JavaBean规范（提供setter方法）--&gt;
+        &lt;!--property:setter注入
+            name:属性名称 (具体来说是set方法名的首字母小写)xyz -&gt; 默认会调用setXyz()
+            value：简单值
+            ref:注入的bean的id 将容器中的一个bean注入到另外一个bean中
+        --&gt;
+        &lt;property name=&quot;no&quot; value=&quot;123&quot;&gt;&lt;/property&gt;
+        &lt;property name=&quot;name&quot; value=&quot;张三&quot;&gt;&lt;/property&gt;
+        &lt;property name=&quot;status&quot; value=&quot;true&quot;&gt;&lt;/property&gt;
+        &lt;property name=&quot;car&quot; ref=&quot;car&quot;&gt;&lt;/property&gt;
+        &lt;!--等价--&gt;
+        &lt;!--&lt;property name=&quot;car&quot;&gt;
+            &lt;ref bean=&quot;car&quot;&gt;&lt;/ref&gt;
+        &lt;/property&gt;--&gt;
+    &lt;/bean&gt;
+
+    &lt;bean id=&quot;car&quot; class=&quot;com.igeekhome.di.Car&quot;&gt;
+        &lt;property name=&quot;brand&quot; value=&quot;宝马&quot;&gt;&lt;/property&gt;
+        &lt;property name=&quot;price&quot; value=&quot;66666&quot;&gt;&lt;/property&gt;
+    &lt;/bean&gt;
+
+&lt;/beans&gt;</code></code></pre>
+<p>2.构造器参数注入</p>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
+       xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+       xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd&quot;&gt;
+
+    &lt;bean id=&quot;car&quot; class=&quot;com.igeekhome.di.Car&quot;&gt;
+        &lt;!--使用constructor构造注入
+        value:
+        ref:  同上
+        type: 构造参数类型 如果是引用 需要写完整类名 (每个字段不一致)
+        index: 构造参数的索引位置 从0开始
+        name: 构造参数的名称
+        --&gt;
+        &lt;constructor-arg name=&quot;brand&quot; value=&quot;宝马&quot;&gt;&lt;/constructor-arg&gt;
+        &lt;constructor-arg name=&quot;price&quot; value=&quot;66666&quot;&gt;&lt;/constructor-arg&gt;
+        &lt;constructor-arg name=&quot;no&quot; value=&quot;001&quot;&gt;&lt;/constructor-arg&gt;
+    &lt;/bean&gt;
+
+    &lt;bean id=&quot;person&quot; class=&quot;com.igeekhome.di.Person&quot;&gt;
+        &lt;constructor-arg index=&quot;0&quot; value=&quot;111&quot;&gt;&lt;/constructor-arg&gt;
+        &lt;constructor-arg index=&quot;1&quot; value=&quot;李四&quot;&gt;&lt;/constructor-arg&gt;
+        &lt;constructor-arg index=&quot;2&quot; value=&quot;false&quot;&gt;&lt;/constructor-arg&gt;
+        &lt;constructor-arg index=&quot;3&quot; ref=&quot;car&quot;&gt;&lt;/constructor-arg&gt;
+    &lt;/bean&gt;
+
+&lt;/beans&gt;</code></code></pre>
+<p>3.p名称空间</p>
+<blockquote>
+<p>为简化XML文件的配置，Spring2.5版本开始引入了一个新的p名称空间。简单的说，它的作用是为了简化setter方法属性依赖注入配置的，它不是真正的名称空间</p>
+</blockquote>
+<blockquote>
+<p>它的使用方法：</p>
+</blockquote>
+<pre><code><code>p:&lt;属性名&gt;=&quot;xxx&quot; 引入常量值
+p:&lt;属性名&gt;-ref=&quot;xxx&quot; 引用其它Bean对象</code></code></pre>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
+       xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:p=&quot;http://www.springframework.org/schema/p&quot;
+       xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd&quot;&gt;
+
+    &lt;!--p命名空间注入：
+    前提：基于setter注入
+    p:属性 = &quot;&quot;
+    p:属性-ref = &quot;&quot;
+    --&gt;
+    &lt;bean id=&quot;person&quot; class=&quot;com.igeekhome.di.Person&quot; p:name=&quot;张三&quot; p:no=&quot;002&quot; p:status=&quot;false&quot; p:car-ref=&quot;car&quot;&gt;
+    &lt;/bean&gt;
+    &lt;bean id=&quot;car&quot; class=&quot;com.igeekhome.di.Car&quot; p:brand=&quot;qq&quot; p:price=&quot;66666&quot;&gt;
+    &lt;/bean&gt;
+&lt;/beans&gt;</code></code></pre>
+<p>4.spEL表达式</p>
+<blockquote>
+<p>spEL（Spring Expression Language）是一种表达式语言，它是spring3.x版本的新特性。 它的作用是：支持在运行时操作和查询对象，其语法类似统一的EL语言，但是SpEL提供了额外的功能，功能更强大</p>
+</blockquote>
+<blockquote>
+<p>语法: #{…} , 引用另一个Bean 、属性、 方法<br />
+SpEL表达式的使用功能比较多，Bean操作相关的通常有：</p>
+</blockquote>
+<pre><code><code>#{beanId} 引用Bean(具体对象)
+#{beanId.属性} 引用Bean的属性
+#{beanId.方法(参数)} 调用Bean的方法</code></code></pre>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;beans xmlns=&quot;http://www.springframework.org/schema/beans&quot;
+       xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xmlns:p=&quot;http://www.springframework.org/schema/p&quot;
+       xsi:schemaLocation=&quot;http://www.springframework.org/schema/beans
+        https://www.springframework.org/schema/beans/spring-beans.xsd&quot;&gt;
+    &lt;bean id=&quot;person&quot; class=&quot;com.igeekhome.di.Person&quot; p:name=&quot;张三&quot; p:no=&quot;002&quot; p:status=&quot;false&quot; p:car=&quot;#{car2}&quot;&gt;
+    &lt;/bean&gt;
+    &lt;bean id=&quot;car&quot; class=&quot;com.igeekhome.di.Car&quot; p:brand=&quot;qq&quot; p:price=&quot;66666&quot;&gt;
+    &lt;/bean&gt;
+    &lt;bean id=&quot;car2&quot; class=&quot;com.igeekhome.di.Car&quot; p:no=&quot;#{car.no}&quot; p:brand=&quot;#{car.brand.toUpperCase()}&quot; p:price=&quot;#{car.price}&quot;&gt;
+    &lt;/bean&gt;
+&lt;/beans&gt;</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

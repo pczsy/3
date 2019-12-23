@@ -1,0 +1,462 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringBoot读取配置文件源码探究' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringBoot读取配置文件源码探究</center></div><div class='banquan'>原文出处:本文由博客园博主老梁讲Java提供。<br/>
+原文连接:https://www.cnblogs.com/sky-chen/p/11436466.html</div><br>
+    <h1 id="springboot读取配置文件源码探究">1. SpringBoot读取配置文件源码探究</h1>
+<h2 id="概览">1.1. 概览</h2>
+<ul>
+<li>springboot的源码是再原来的Spring源码上又包了一层，看过spring源码都知道，当我们从入口debug进去的时候，原来的Spring源码都集中在<code>refreshContext</code>方法，SpringBoot的主要运行步骤，基本都包含在这个方法里了，而这个方法就是我们运行Springboot的主函数<code>SpringApplication.run(Application.class, args);</code>经过几步后到达的</li>
+</ul>
+<pre><code><code>    public ConfigurableApplicationContext run(String... args) {
+        StopWatch stopWatch = new StopWatch();
+        stopWatch.start();
+        ConfigurableApplicationContext context = null;
+        FailureAnalyzers analyzers = null;
+        configureHeadlessProperty();
+        SpringApplicationRunListeners listeners = getRunListeners(args);
+        listeners.starting();
+        try {
+            ApplicationArguments applicationArguments = new DefaultApplicationArguments(
+                    args);
+            ConfigurableEnvironment environment = prepareEnvironment(listeners,
+                    applicationArguments);
+            Banner printedBanner = printBanner(environment);
+            context = createApplicationContext();
+            analyzers = new FailureAnalyzers(context);
+            prepareContext(context, environment, listeners, applicationArguments,
+                    printedBanner);
+            refreshContext(context);
+            afterRefresh(context, applicationArguments);
+            listeners.finished(context, null);
+            stopWatch.stop();
+            if (this.logStartupInfo) {
+                new StartupInfoLogger(this.mainApplicationClass)
+                        .logStarted(getApplicationLog(), stopWatch);
+            }
+            return context;
+        }
+        catch (Throwable ex) {
+            handleRunFailure(context, listeners, analyzers, ex);
+            throw new IllegalStateException(ex);
+        }
+    }</code></code></pre>
+<h2 id="配置读取步骤">1.2. 配置读取步骤</h2>
+<h3 id="prepareenvironment">1.2.1. prepareEnvironment</h3>
+<ul>
+<li>配置读取的步骤主要就在<code>ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);</code>这一步，我们继续深入</li>
+</ul>
+<pre><code><code>    private ConfigurableEnvironment prepareEnvironment(
+            SpringApplicationRunListeners listeners,
+            ApplicationArguments applicationArguments) {
+        // Create and configure the environment
+        ConfigurableEnvironment environment = getOrCreateEnvironment();
+        configureEnvironment(environment, applicationArguments.getSourceArgs());
+        //主要是这步
+        listeners.environmentPrepared(environment);
+        if (!this.webEnvironment) {
+            environment = new EnvironmentConverter(getClassLoader())
+                    .convertToStandardEnvironmentIfNecessary(environment);
+        }
+        return environment;
+    }</code></code></pre>
+<ul>
+<li>创建基本的环境容器后，进入<code>listeners.environmentPrepared(environment);</code>通过监听器来进行环境变量的初始化，同时读取配置也是一部分工作</li>
+</ul>
+<h3 id="environmentprepared">1.2.2. environmentPrepared</h3>
+<ul>
+<li>下一步，看到对监听器进行循环处理，这里的<code>listeners</code>中，默认只有一个<code>EventPublishRunListener</code></li>
+</ul>
+<pre><code><code>    public void environmentPrepared(ConfigurableEnvironment environment) {
+        for (SpringApplicationRunListener listener : this.listeners) {
+            listener.environmentPrepared(environment);
+        }
+    }</code></code></pre>
+<ul>
+<li>继续如下，这一步它进行广播事件了</li>
+</ul>
+<pre><code><code>    @Override
+    public void environmentPrepared(ConfigurableEnvironment environment) {
+        this.initialMulticaster.multicastEvent(new ApplicationEnvironmentPreparedEvent(
+                this.application, this.args, environment));
+    }</code></code></pre>
+<h3 id="multicastevent">1.2.3. multicastEvent</h3>
+<pre><code><code>    @Override
+    public void multicastEvent(ApplicationEvent event) {
+        multicastEvent(event, resolveDefaultEventType(event));
+    }</code></code></pre>
+<p>继续，重点是<code>invokeListener</code>方法，去调用监听器事件，可以想象对配置文件来讲，这就是读取配置事件了。同时监听器有很多，读取配置文件的监听器是<code>ConfigFileAplicationListener</code>，看名字还是蛮明显的吧<br />
+<img src="./images/SpringBoot读取配置文件源码探究0.png" alt="image.png" /></p>
+<pre><code><code>    @Override
+    public void multicastEvent(final ApplicationEvent event, ResolvableType eventType) {
+        ResolvableType type = (eventType != null ? eventType : resolveDefaultEventType(event));
+        for (final ApplicationListener&lt;?&gt; listener : getApplicationListeners(event, type)) {
+            Executor executor = getTaskExecutor();
+            if (executor != null) {
+                executor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        invokeListener(listener, event);
+                    }
+                });
+            }
+            else {
+                //重点
+                invokeListener(listener, event);
+            }
+        }
+    }</code></code></pre>
+<p>继续，和上一步类似，do真正的事件了</p>
+<pre><code><code>    protected void invokeListener(ApplicationListener&lt;?&gt; listener, ApplicationEvent event) {
+        ErrorHandler errorHandler = getErrorHandler();
+        if (errorHandler != null) {
+            try {
+                doInvokeListener(listener, event);
+            }
+            catch (Throwable err) {
+                errorHandler.handleError(err);
+            }
+        }
+        else {
+            //重点
+            doInvokeListener(listener, event);
+        }
+    }</code></code></pre>
+<pre><code><code>    private void doInvokeListener(ApplicationListener listener, ApplicationEvent event) {
+        try {
+            // 入口
+            listener.onApplicationEvent(event);
+        }
+        catch (ClassCastException ex) {
+            String msg = ex.getMessage();
+            if (msg == null || matchesClassCastMessage(msg, event.getClass())) {
+                // Possibly a lambda-defined listener which we could not resolve the generic event type for
+                // -&gt; let&#39;s suppress the exception and just log a debug message.
+                Log logger = LogFactory.getLog(getClass());
+                if (logger.isDebugEnabled()) {
+                    logger.debug(&quot;Non-matching event type for listener: &quot; + listener, ex);
+                }
+            }
+            else {
+                throw ex;
+            }
+        }
+    }</code></code></pre>
+<h3 id="onapplicationevent">1.2.4. onApplicationEvent</h3>
+<ul>
+<li>在<code>ConfigFileApplicationListener</code>类中继续</li>
+</ul>
+<pre><code><code>    @Override
+    public void onApplicationEvent(ApplicationEvent event) {
+        if (event instanceof ApplicationEnvironmentPreparedEvent) {
+            //配置入口
+            onApplicationEnvironmentPreparedEvent(
+                    (ApplicationEnvironmentPreparedEvent) event);
+        }
+        if (event instanceof ApplicationPreparedEvent) {
+            onApplicationPreparedEvent(event);
+        }
+    }</code></code></pre>
+<p>继续，可以看到处理器有这些，我们关注<code>ConfigFileApplicationListener</code><br />
+<img src="./images/SpringBoot读取配置文件源码探究1.png" alt="image.png" /></p>
+<pre><code><code>    private void onApplicationEnvironmentPreparedEvent(
+            ApplicationEnvironmentPreparedEvent event) {
+        List&lt;EnvironmentPostProcessor&gt; postProcessors = loadPostProcessors();
+        postProcessors.add(this);
+        AnnotationAwareOrderComparator.sort(postProcessors);
+        for (EnvironmentPostProcessor postProcessor : postProcessors) {
+            //入口
+            postProcessor.postProcessEnvironment(event.getEnvironment(),
+                    event.getSpringApplication());
+        }
+    }</code></code></pre>
+<h3 id="postprocessenvironment">1.2.5. postProcessEnvironment</h3>
+<pre><code><code>    @Override
+    public void postProcessEnvironment(ConfigurableEnvironment environment,
+            SpringApplication application) {
+        //重点入口
+        addPropertySources(environment, application.getResourceLoader());
+        configureIgnoreBeanInfo(environment);
+        bindToSpringApplication(environment, application);
+    }</code></code></pre>
+<p>继续</p>
+<pre><code><code>    protected void addPropertySources(ConfigurableEnvironment environment,
+            ResourceLoader resourceLoader) {
+        RandomValuePropertySource.addToEnvironment(environment);
+        //总算看到加载入口了
+        new Loader(environment, resourceLoader).load();
+    }</code></code></pre>
+<h3 id="load">1.2.6. load</h3>
+<pre><code><code>public void load() {
+            this.propertiesLoader = new PropertySourcesLoader();
+            this.activatedProfiles = false;
+            this.profiles = Collections.asLifoQueue(new LinkedList&lt;Profile&gt;());
+            this.processedProfiles = new LinkedList&lt;Profile&gt;();
+
+            // Pre-existing active profiles set via Environment.setActiveProfiles()
+            // are additional profiles and config files are allowed to add more if
+            // they want to, so don&#39;t call addActiveProfiles() here.
+            Set&lt;Profile&gt; initialActiveProfiles = initializeActiveProfiles();
+            this.profiles.addAll(getUnprocessedActiveProfiles(initialActiveProfiles));
+            if (this.profiles.isEmpty()) {
+                for (String defaultProfileName : this.environment.getDefaultProfiles()) {
+                    Profile defaultProfile = new Profile(defaultProfileName, true);
+                    if (!this.profiles.contains(defaultProfile)) {
+                        this.profiles.add(defaultProfile);
+                    }
+                }
+            }
+
+            // The default profile for these purposes is represented as null. We add it
+            // last so that it is first out of the queue (active profiles will then
+            // override any settings in the defaults when the list is reversed later).
+            this.profiles.add(null);
+
+            while (!this.profiles.isEmpty()) {
+                Profile profile = this.profiles.poll();
+                for (String location : getSearchLocations()) {
+                    if (!location.endsWith(&quot;/&quot;)) {
+                        // location is a filename already, so don&#39;t search for more
+                        // filenames
+                        load(location, null, profile);
+                    }
+                    else {
+                        for (String name : getSearchNames()) {
+                            //加载入口
+                            load(location, name, profile);
+                        }
+                    }
+                }
+                this.processedProfiles.add(profile);
+            }
+
+            addConfigurationProperties(this.propertiesLoader.getPropertySources());
+        }</code></code></pre>
+<ul>
+<li>可以看到它的加载名从<code>getSearchNames</code>获取，那就看看这个方法</li>
+</ul>
+<pre><code><code>        private Set&lt;String&gt; getSearchNames() {
+            if (this.environment.containsProperty(CONFIG_NAME_PROPERTY)) {
+                return asResolvedSet(this.environment.getProperty(CONFIG_NAME_PROPERTY),
+                        null);
+            }
+            return asResolvedSet(ConfigFileApplicationListener.this.names, DEFAULT_NAMES);
+        }</code></code></pre>
+<ul>
+<li><code>CONFIG_NAME_PROPERTY</code>值为<code>spring.config.name</code>，<code>DEFAULT_NAMES</code>值为<code>application</code>，所以<strong>可以看出<code>application</code>这个名字就是默认的配置名了</strong>，但也可以用<code>spring.config.name</code>属性来修改</li>
+<li><p>其实到这一步，后面已经没难度了，可以想象，接下去应该是拼接出完整的路径，找到文件读取，还是走完流程把</p></li>
+<li><p>继续</p></li>
+</ul>
+<pre><code><code>        private void load(String location, String name, Profile profile) {
+            String group = &quot;profile=&quot; + ((profile != null) ? profile : &quot;&quot;);
+            if (!StringUtils.hasText(name)) {
+                // Try to load directly from the location
+                loadIntoGroup(group, location, profile);
+            }
+            else {
+                // Search for a file with the given name
+                for (String ext : this.propertiesLoader.getAllFileExtensions()) {
+                    if (profile != null) {
+                        // Try the profile-specific file
+                        loadIntoGroup(group, location + name + &quot;-&quot; + profile + &quot;.&quot; + ext,
+                                null);
+                        for (Profile processedProfile : this.processedProfiles) {
+                            if (processedProfile != null) {
+                                loadIntoGroup(group, location + name + &quot;-&quot;
+                                        + processedProfile + &quot;.&quot; + ext, profile);
+                            }
+                        }
+                        // Sometimes people put &quot;spring.profiles: dev&quot; in
+                        // application-dev.yml (gh-340). Arguably we should try and error
+                        // out on that, but we can be kind and load it anyway.
+                        loadIntoGroup(group, location + name + &quot;-&quot; + profile + &quot;.&quot; + ext,
+                                profile);
+                    }
+                    // Also try the profile-specific section (if any) of the normal file
+                    //加载重点
+                    loadIntoGroup(group, location + name + &quot;.&quot; + ext, profile);
+                }
+            }
+        }</code></code></pre>
+<ul>
+<li>继续</li>
+</ul>
+<pre><code><code>        private PropertySource&lt;?&gt; loadIntoGroup(String identifier, String location,
+                Profile profile) {
+            try {
+                //入口
+                return doLoadIntoGroup(identifier, location, profile);
+            }
+            catch (Exception ex) {
+                throw new IllegalStateException(
+                        &quot;Failed to load property source from location &#39;&quot; + location + &quot;&#39;&quot;,
+                        ex);
+            }
+        }</code></code></pre>
+<ul>
+<li>do开头都是正式要干事了</li>
+</ul>
+<pre><code><code>        private PropertySource&lt;?&gt; doLoadIntoGroup(String identifier, String location,
+                Profile profile) throws IOException {
+            Resource resource = this.resourceLoader.getResource(location);
+            PropertySource&lt;?&gt; propertySource = null;
+            StringBuilder msg = new StringBuilder();
+            if (resource != null &amp;&amp; resource.exists()) {
+                String name = &quot;applicationConfig: [&quot; + location + &quot;]&quot;;
+                String group = &quot;applicationConfig: [&quot; + identifier + &quot;]&quot;;
+                // 加载入口
+                propertySource = this.propertiesLoader.load(resource, group, name,
+                        (profile != null) ? profile.getName() : null);
+                if (propertySource != null) {
+                    msg.append(&quot;Loaded &quot;);
+                    handleProfileProperties(propertySource);
+                }
+                else {
+                    msg.append(&quot;Skipped (empty) &quot;);
+                }
+            }
+            else {
+                msg.append(&quot;Skipped &quot;);
+            }
+            msg.append(&quot;config file &quot;);
+            msg.append(getResourceDescription(location, resource));
+            if (profile != null) {
+                msg.append(&quot; for profile &quot;).append(profile);
+            }
+            if (resource == null || !resource.exists()) {
+                msg.append(&quot; resource not found&quot;);
+                this.logger.trace(msg);
+            }
+            else {
+                this.logger.debug(msg);
+            }
+            return propertySource;
+        }</code></code></pre>
+<ul>
+<li>load内容，这里有两个加载器，看名字也知道了，<code>yml</code>结尾的文件肯定用<code>YamlPropertySourceLoader</code>才能加载，<code>properties</code>结尾的用另一个<br />
+<img src="./images/SpringBoot读取配置文件源码探究2.png" alt="image.png" /></li>
+</ul>
+<pre><code><code>    public PropertySource&lt;?&gt; load(Resource resource, String group, String name,
+            String profile) throws IOException {
+        if (isFile(resource)) {
+            String sourceName = generatePropertySourceName(name, profile);
+            for (PropertySourceLoader loader : this.loaders) {
+                if (canLoadFileExtension(loader, resource)) {
+                    // 干事的入口
+                    PropertySource&lt;?&gt; specific = loader.load(sourceName, resource,
+                            profile);
+                    addPropertySource(group, specific);
+                    return specific;
+                }
+            }
+        }
+        return null;
+    }</code></code></pre>
+<ul>
+<li>我用的是<code>yml</code>，所以在<code>YamlPropertySourceLoader</code>类</li>
+</ul>
+<pre><code><code>    @Override
+    public PropertySource&lt;?&gt; load(String name, Resource resource, String profile)
+            throws IOException {
+        if (ClassUtils.isPresent(&quot;org.yaml.snakeyaml.Yaml&quot;, null)) {
+            Processor processor = new Processor(resource, profile);
+            //真正的处理类
+            Map&lt;String, Object&gt; source = processor.process();
+            if (!source.isEmpty()) {
+                return new MapPropertySource(name, source);
+            }
+        }
+        return null;
+    }</code></code></pre>
+<pre><code><code>        public Map&lt;String, Object&gt; process() {
+            final Map&lt;String, Object&gt; result = new LinkedHashMap&lt;String, Object&gt;();
+            //接近了
+            process(new MatchCallback() {
+                @Override
+                public void process(Properties properties, Map&lt;String, Object&gt; map) {
+                    result.putAll(getFlattenedMap(map));
+                }
+            });
+            return result;
+        }</code></code></pre>
+<h3 id="process">1.2.7. process</h3>
+<pre><code><code>    protected void process(MatchCallback callback) {
+        Yaml yaml = createYaml();
+        for (Resource resource : this.resources) {
+            //更近了
+            boolean found = process(callback, yaml, resource);
+            if (this.resolutionMethod == ResolutionMethod.FIRST_FOUND &amp;&amp; found) {
+                return;
+            }
+        }
+    }</code></code></pre>
+<ul>
+<li>继续深入<br />
+<img src="./images/SpringBoot读取配置文件源码探究3.png" alt="image.png" /><br />
+<img src="./images/SpringBoot读取配置文件源码探究4.png" alt="image.png" /></li>
+<li>可以看到，总算把我配合文件的内容给读到了，然后放入<code>callback</code></li>
+</ul>
+<pre><code><code>    private boolean process(MatchCallback callback, Yaml yaml, Resource resource) {
+        int count = 0;
+        try {
+            if (logger.isDebugEnabled()) {
+                logger.debug(&quot;Loading from YAML: &quot; + resource);
+            }
+            //读取文件
+            Reader reader = new UnicodeReader(resource.getInputStream());
+            try {
+                for (Object object : yaml.loadAll(reader)) {
+                    //总算拿到了
+                    if (object != null &amp;&amp; process(asMap(object), callback)) {
+                        count++;
+                        if (this.resolutionMethod == ResolutionMethod.FIRST_FOUND) {
+                            break;
+                        }
+                    }
+                }
+                if (logger.isDebugEnabled()) {
+                    logger.debug(&quot;Loaded &quot; + count + &quot; document&quot; + (count &gt; 1 ? &quot;s&quot; : &quot;&quot;) +
+                            &quot; from YAML resource: &quot; + resource);
+                }
+            }
+            finally {
+                reader.close();
+            }
+        }
+        catch (IOException ex) {
+            handleProcessError(resource, ex);
+        }
+        return (count &gt; 0);
+    }</code></code></pre>
+<ul>
+<li>结果就存入了<code>result</code></li>
+</ul>
+<p><img src="./images/SpringBoot读取配置文件源码探究5.png" alt="image.png" /></p>
+<ul>
+<li>这样之后返回去看，你就会看到它存入了<code>MapPropertySource</code>属性资源，在之后就会被用上了</li>
+</ul>
+<h2 id="总结">1.3. 总结</h2>
+<ul>
+<li>我通过一步步的代码跟踪，解析了<code>SpringBoot</code>读取<code>application.yml</code>的整个流程，代码虽然贴的比较多，但可以让初学者也可以跟着这个步骤完整的理解一遍，代码中的关键步骤我都用中文标明了，其它没标注部分不是这章的重点，想研究的自行研究</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

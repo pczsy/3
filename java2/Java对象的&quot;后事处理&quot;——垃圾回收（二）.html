@@ -1,0 +1,158 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java对象的&quot;后事处理&quot;——垃圾回收（二）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java对象的&quot;后事处理&quot;——垃圾回收（二）</center></div><div class='banquan'>原文出处:本文由博客园博主张小云的博客提供。<br/>
+原文连接:https://www.cnblogs.com/zhangweicheng/p/11809376.html</div><br>
+    <h1>1 先谈Finalize()</h1>
+<blockquote>
+<p><strong>finalize</strong>()能做的所有工作，使用<strong>try-finally</strong>或者其他方式都可以做得更好、更及时，所以笔者建议大家完全可以忘掉Java语言中有这个方法的存在。</p>
+<p style="text-align: right;">&mdash;&mdash;《深入理解JVM》</p>
+</blockquote>
+<p>　　<strong>finalize()</strong>方法确实可以实现一次对象的自救，但是其<strong>不确定性</strong>和<strong>昂贵的运行代价</strong>都表明这个方法的使用需要十分的慎重。那么finalize()在什么时期起作用又是如何实现对象的自救的呢？首先我们要理解虚拟机在扫描到死亡对象的时候并不是直接回收的，而是进行一次<strong>标记并且筛选</strong>，筛选的条件就是其对象的<strong>finalize</strong>方法是否有必要执行。如果当前对象<strong>没有重写finalize方法</strong>或者<strong>已经调用过一次finalize方法</strong>，那么则视为没有必要执行，此时便失去自救的机会，放入"即将回收"集合中。</p>
+<p>　　否则的话，则将对象放入一个叫<strong>F-Queue</strong>的队列中，稍后虚拟机将一个个的执行队列中对象的<strong>finalize</strong>方法（就是在此处对象可以在<strong>finalize</strong>方法中将自身关联到引用链，从而暂时逃脱被回收的命运），需要注意的是虚拟机保证执行但不保证执行完<strong>finalize</strong>方法，原因是如果<strong>finalize</strong>方法执行时间过长或者陷入死循环，则可能让系统奔溃。全部执行之后，虚拟机将对队列的对象重新标记一次，如果还不在引用链中则GG，否则将其移出"即将回收"集合。下面例子参考《深入理解JVM》实现自救并且验证只能自救一次的过程。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestForGc {
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;"> 定义一个根节点的静态变量 </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span><span style="color: #000000;"> TestForGc INSTANCE;
+
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * 重写finalize方法，让其被标记为有必要执行并且加入F-Q
+     *
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> Throwable
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    @Override
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> finalize() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+        </span><span style="color: #0000ff;">super</span><span style="color: #000000;">.finalize();
+        System.err.println(</span>"finalize method in TestForGc Class invoked!"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将自身关联到根节点中，实现自救</span>
+        INSTANCE = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> InterruptedException {
+        INSTANCE </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> TestForGc();
+
+        INSTANCE </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        System.gc();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 睡眠1S，保证F-Q中的方法执行完毕</span>
+        TimeUnit.SECONDS.sleep(1<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Objects.nonNull(INSTANCE)) {
+            System.out.println(</span>"i successfully save myself by finalize method!"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            System.out.println(</span>"i am dead :("<span style="color: #000000;">);
+        }
+
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+         * 下面验证finalize方法只能调用一次
+         * 几乎完全一样的代码，却是不同的结局
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        INSTANCE </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        System.gc();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 睡眠1S</span>
+        TimeUnit.SECONDS.sleep(1<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Objects.nonNull(INSTANCE)) {
+            System.out.println(</span>"i successfully save myself by finalize method again!"<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            System.out.println(</span>"couldn't invoke finalize again, i am dead :("<span style="color: #000000;">);
+        }
+    }
+}<br />执行结果：<br /><img src="./images/Java对象的&quot;后事处理&quot;——垃圾回收（二）0.png" alt="" width="758" height="208" /></span></code></pre>
+
+<h1>&nbsp;2 垃圾回收器</h1>
+<p>　　如果说回收算法是接口，那么垃圾回收器就是这些接口的实现类，共有7种回收器，接下来一一罗列。</p>
+<h2>2.1 Serial垃圾回收器</h2>
+<p>　　<strong>Serial</strong>是一种单线程垃圾回收器，在工作的时候的时候会暂停所有的用户线程，也就是"<strong>stop-the-world</strong>"，虽然单线程代表了用户线程的停顿，但是也意味着其不用进行线程的交互从而有更高的收集 效率。<strong>Serial</strong>采用<strong>复制算法</strong>，是<strong>Client</strong>端新生代的默认垃圾回收器。其工作图类似于：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Java对象的&quot;后事处理&quot;——垃圾回收（二）1.png" alt="" width="641" height="259" /></p>
+<h2>2.2 ParNew垃圾回收器。</h2>
+<p>　　<strong>ParNew</strong>是<strong>Serial</strong>回收器的多线程版本，是<strong>Server</strong>端新生代的默认回收器，除了并行多线程之外，其他包括实现都是一模一样，当然也是采用复制算法。还有一点重要的是，新生代的收集器除了<strong>Serial</strong>之外，只有<strong>ParNew</strong>能跟年老代的<strong>CMS</strong>合作，其在低CPU的情况下效率比Serial低，但是在多个CPU的情况下要好的多。其工作图：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Java对象的&quot;后事处理&quot;——垃圾回收（二）2.png" alt="" width="620" height="264" /></p>
+<h2>2.3 Parallel Scavenge垃圾回收器</h2>
+<p>　　跟<strong>ParNew</strong>类似，作用于新生代，并行多线程并且也是采用复制算法。但是其关注的点却不同，其着重的是一种叫做"<strong>吞吐量</strong>"的东西。所谓的<strong>"吞吐量"=运行用户代码的时间 / (运行用户代码的时间 + GC时间)</strong>，也就是说其更加注重<strong>用户代码运行时间</strong>而<strong>不是减少GC停顿时间</strong>。相对于其他收集器来说，可以更加<strong>高效的利用CPU</strong>，更加适合作为在后台运算而<strong>不大需要交互</strong>的任务。<strong>Parallel</strong>收集器提供了两个比较重要的参数。</p>
+<blockquote>
+<p><span style="font-family: 'courier new', courier;"><strong>-XX:MaxGCPauseMillis：</strong></span>表示收集器将尽可能的在这个参数设定的毫秒数内完成回收工作。但这并不代表其设置的越低越好，缩减回收时间是通过减少吞吐量换来的，如果设置得太低可能导致频繁的GC。</p>
+<p><span style="font-family: 'courier new', courier;"><strong>-XX:GCTimeRatio：</strong></span>表示代码运行时间和垃圾回收时间的比率，比如说设置为19，那么则垃圾回收时间占比为 1 / (1+19) = 5%，默认是99。</p>
+</blockquote>
+<h2>2.4 Serial Old垃圾回收器</h2>
+<p>　　<strong>Serial</strong>的年老代版本，同<strong>Serial</strong>基本相似，不同的是采用的是<strong>标记-整理</strong>算法实现，作为<strong>Client</strong>端默认的年老代收集器。如果在Server端的话，那么其主要作用有二：</p>
+<blockquote>
+<p><em>　1、跟新生代的Parallel Scavenge收集器配合。</em></p>
+<p><em>　2、做一个有价值的"备胎"：当CMS垃圾回收器因为预留空间问题放不下对象而发生Concurrent Mode Fail时，作为其备选方案执行垃圾回收。</em></p>
+</blockquote>
+<p>&nbsp;<img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Java对象的&quot;后事处理&quot;——垃圾回收（二）3.png" alt="" width="550" height="225" /></p>
+<h2>2.5 Parallel Old垃圾回收器</h2>
+<p>　　<strong>Parallel Scavenge</strong>的年老代版本，<strong>多线程并行</strong>，同样注重吞吐量，使用<strong>标记-整理算法</strong>。这个收集器可以跟新生代的Parallel Svavenge一起搭配使用，在注重吞吐量和CPU资源敏感的场合中是一对很好的组合。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Java对象的&quot;后事处理&quot;——垃圾回收（二）4.png" alt="" width="565" height="212" /></p>
+<h2>2.6 CMS垃圾回收器</h2>
+<p>　　来了，它来了！CMS垃圾回收器被当做是具有划时代意义的、真正实现并发的垃圾回收器，总而言之=》</p>
+<p>　　,--^----------,--------,-----,-------^--,</p>
+<p>　　| ||||||||| `--------' | O</p>
+<p>　　`+---------------------------^----------|</p>
+<p>　　`\_,-------, _______________________强__|</p>
+<p>　　/ XXXXXX /`| /</p>
+<p>　　/ XXXXXX / `\ /</p>
+<p>　　/ XXXXXX /\______(</p>
+<p>　　/ XXXXXX /</p>
+<p>　　/ XXXXXX /</p>
+<p>　　(________(</p>
+<p>　　&nbsp;`------'</p>
+<p>　　CMS是一款并发的垃圾回收器，但并<strong>不代表全程都不需要停顿</strong>，只是<strong>大部分时间是跟用户线程一起执行</strong>的。其整个GC过程中总共有4个阶段。</p>
+<blockquote>
+<p><em><strong>1、初始标记：</strong>简单的标记所有的根节点，需要暂停所有的用户线程，即"<strong>stop-the-world</strong>"，耗时较短。关于GCRooots的过程可以看下另一篇文章&mdash;&mdash;<a href="https://www.cnblogs.com/zhangweicheng/p/11795887.html">垃圾回收（一）</a>。</em></p>
+<p><em><strong>2、并发标记：</strong>跟用户线程一起工作，寻找堆中的死亡对象，整个过程耗时最长。</em></p>
+<p><em><strong>3、重新标记：</strong>再次扫描，主要对象是并发标记过程中又新增的对象，也就是验漏。多线程，需要STW，时间相对并发标记来说短。</em></p>
+<p><em><strong>4、并发清除：</strong>GC线程跟用户线程一起执行，清除标记的死亡对象，"<strong>浮动垃圾</strong>"在此阶段产生。</em></p>
+</blockquote>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Java对象的&quot;后事处理&quot;——垃圾回收（二）5.png" alt="" width="816" height="245" /></p>
+<p>　　然而，优秀如CMS也会有不足之处，总共四个阶段的标记及清除算法的实现必定为其带来一些使用的麻烦。</p>
+<blockquote>
+<p><strong>缺点：</strong></p>
+<p><strong>　　</strong><strong>1、占用一定CPU资源：</strong>其有两个阶段需要并发跟用户线程一起执行，也就是说要跟用户线程抢占CPU的时间片，会占用一定的CPU资源，如果CPU资源不太优质的情况下，可能会造成不小的影响。</p>
+<p>　　<strong>2、空间利用率不能达到最大：</strong>由于并发清除时用户线程也在运行，那么在GC结束前必定会产生一些额外的垃圾，那么就必须给这些垃圾预留一定的空间，否则会导致内存不足从而报"<strong>Concurrent Mode Failure</strong>"，此时虚拟机便启用后备方案&mdash;&mdash;<strong>使用Serial Old来进行垃圾回收</strong>，进而浪费更多的时间。</p>
+<p>　　<strong>3、内存碎片导致提前FullGC：</strong>CMS采用的是标记-清除算法，也就是说会产生<strong>内存碎片</strong>，那么可能出现大对象放不下的情况，进而不得不提前进行一次FullGC。为了解决这个问题，虚拟机提供了两个参数<em><span style="font-family: 'courier new', courier; font-size: 15px;"><strong>-XX:+UseCMSCompactAtFullCollection</strong></span></em>和<em><span style="font-size: 15px;"><strong><span style="font-family: 'courier new', courier;">-XX:CMSFullGCsBeforeCompaction</span></strong></span></em>，分别表示<strong>CMS顶不住要进行FullGC的时候进行内存的整理</strong>（整理的过程中无法并发，停顿时间不得不变长） 和<strong>进行多少次不压缩的FullGC之后来一次整理的GC</strong>（默认0次，表示每次都进行内存整理）。</p>
+</blockquote>
+<h2>2.7 G1垃圾回收器</h2>
+<p>　　G1是一个新秀垃圾回收器，被赋予了很大的使命&mdash;&mdash;取代CMS。G1作为新时代的垃圾回收器，相对于其他垃圾回收器来说有许多优势。</p>
+<blockquote>
+<p><em><strong>1、并行和并发：</strong>G1可以利用现在的硬件优势，缩短GC时stop-the-world的停顿时间，并且GC的时候同时也能让用户线程执行。</em></p>
+<p><em><strong>2、分代收集：</strong>跟其他垃圾回收器不同，G1没有物理上的年老代和新生代，其<strong>将内存分成了多个独立的Region</strong>，每个Region都可能表示属于新生代还是年老代，所以不需要一堆Region凑放在一起然后将这块区域称作新生代，它们之间并不需要连续，所以只有概念上的分代，也是这种分代方式使得G1可以独立管理这个堆空间，不需要跟其他回收器合作。</em></p>
+<p><em><strong>3、空间整合：</strong>G1的算法从Region层面看属于复制算法（从一个Region复制到另一个），但是从整体看又是标记-整理法。然而不管是哪种，都表示G1不会产生内存碎片，不会因为空间不连续放不下大对象而出现FullGC的情况。</em></p>
+</blockquote>
+<p><em>　　</em>G1回收器将内存空间分成若干个<strong>Region</strong>，并且这些<strong>Region</strong>之前相互独立。但是我们都知道这并不能真正的独立，因为一个<strong>Region</strong>中的对象不一定只会被当前<strong>Region</strong>的其他对象引用，而<strong>可能被堆中的其他对象引用</strong>，那G1是如何实现避免全堆扫描的呢？这个问题在分代的其他回收器中也有，但是在这里突显得更加明显而已。再G1中，对象本身都会有一个<strong>Remembered</strong> <strong>Set</strong>，这个<strong>Set</strong>存放着当前对象被<strong>其他区域</strong>对象引用的信息，这样子，在扫描引用的时候加上这个<strong>Set</strong>就可以避免全堆扫描了。</p>
+<p>　　具体实现大致为：虚拟机在发现程序正在进行对<strong>Reference</strong>类型的<strong>写操作</strong>时，会<strong>暂时中断写操作</strong>，然后检查<strong>Reference</strong>引用的对象是否处于<strong>不同的区域</strong>（<strong>如果是分代，则只对年老代的对象进行检查，检查是否引用的对象在新生代</strong>），如果是的话则将引用信息记录在<strong>被引用的Remembered Set</strong>中，这样在<strong>GC</strong>的时候加上<strong>Remembered</strong> <strong>Set</strong>的扫描就可以避免全堆扫描了。</p>
+<p>　　跟CMS类型，G1也有四个阶段（不算Remembered Set的扫描），虽然相似但是还是有些区别的。</p>
+<blockquote>
+<p><em><strong>1、初始标记：</strong>标记可达的根节点，STW，单线程，时间短。</em></p>
+<p><em><strong>2、并发标记：</strong>跟用户线程同时执行，并发执行时对象可能会产生引用变化，其会将这些变化记录在Remembered Set Logs中，待下个阶段整合。</em></p>
+<p><em><strong>3、最终标记：</strong>验漏，将并发标记阶段的引用变化记录Remembered Set Logs整合到Remembered Set中。</em></p>
+<p><em><strong>4、筛选回收：</strong>对各个Region中的回收价值进行排序，然后执行回收计划。暂停用户线程，并行执行。</em>&nbsp;</p>
+</blockquote>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Java对象的&quot;后事处理&quot;——垃圾回收（二）6.png" alt="" width="720" height="251" /></p>
+<h1>3 小结</h1>
+<p>　　本文首先介绍了&ldquo;对象自救&rdquo;的方法&mdash;&mdash;<strong>finalize</strong>，并且用一个小例子演示了对象如何实现自救。接着介绍了7种不同的垃圾回收器，新生代中有单线程的<strong>Serial</strong>可以作为<strong>Client</strong>端新生代的默认回收器，有多线程版本的Serial&mdash;&mdash;<strong>ParNew</strong>，还有着重点不同（吞吐量）的<strong>Parallel Scavenge</strong>；年老代方面有单线程的<strong>Serial Old</strong>、跨时代意义的并发回收器&mdash;&mdash;<strong>CMS</strong>，虽然优秀但不可避免的有三个缺点、还有吞吐量年老代版本&mdash;&mdash;<strong>Parallel Old</strong>收集器，最后还简单介绍了<strong>G1</strong>收集器的几个过程还有独立的<strong>Region</strong>间是如何实现避免堆扫描的。</p>
+<p>　　整体下来整篇行文还有些粗糙，日后会慢慢的圆润，如果有关于这方面好的文章可以在下面评论区分享学习一下，下方为各个垃圾回收器的搭配图。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Java对象的&quot;后事处理&quot;——垃圾回收（二）7.png" alt="" width="710" height="453" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<blockquote>
+<p><span style="font-family: 幼圆; font-size: 16px;"><em>It helps me a lot if you could share your opinion with us.</em></span></p>
+</blockquote>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

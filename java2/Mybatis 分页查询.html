@@ -1,0 +1,341 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Mybatis 分页查询' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Mybatis 分页查询</center></div><div class='banquan'>原文出处:本文由博客园博主95.8℃提供。<br/>
+原文连接:https://www.cnblogs.com/maggieq8324/p/11414538.html</div><br>
+    <p>该篇博客记录采用pagehelper分页插件实现Mybatis分页功能</p>
+<p><br></p>
+<h2 id="一依赖">一、依赖</h2>
+<ul>
+<li>pom.xml</li>
+</ul>
+<pre><code><code>&lt;!-- pagehelper --&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;com.github.pagehelper&lt;/groupId&gt;
+    &lt;artifactId&gt;pagehelper-spring-boot-starter&lt;/artifactId&gt;
+    &lt;version&gt;1.2.5&lt;/version&gt;
+&lt;/dependency&gt;</code></code></pre>
+<h2 id="二配置">二、配置</h2>
+<ul>
+<li>application.yml</li>
+</ul>
+<pre><code><code># pagehelper
+pagehelper:
+   helperDialect: mysql
+   reasonable: true
+   supportMethodsArguments: true
+params: count=countSql</code></code></pre>
+<ul>
+<li>CURD通用接口封装</li>
+</ul>
+<pre><code><code>public interface CurdService&lt;T&gt; {
+    /**
+     * 分页查询
+     * 这里统一封装了分页请求和结果，避免直接引入具体框架的分页对象, 如MyBatis或JPA的分页对象
+     * 从而避免因为替换ORM框架而导致服务层、控制层的分页接口也需要变动的情况，替换ORM框架也不会
+     * 影响服务层以上的分页接口，起到了解耦的作用
+     * @param pageRequest 自定义，统一分页查询请求
+     * @return PageResult 自定义，统一分页查询结果
+     */
+    PageResult findPage(PageRequest pageRequest);
+}</code></code></pre>
+<ul>
+<li>分页请求封装</li>
+</ul>
+<pre><code><code>public class PageRequest {
+    /**
+     * 当前页码
+     */
+    private int pageNum = 1;
+    /**
+     * 每页数量
+     */
+    private int pageSize = 10;
+    /**
+     * 查询参数
+     */
+    private Map&lt;String, Object&gt; params = new HashMap&lt;&gt;();
+    
+    public int getPageNum() {
+        return pageNum;
+    }
+    public void setPageNum(int pageNum) {
+        this.pageNum = pageNum;
+    }
+    public int getPageSize() {
+        return pageSize;
+    }
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+    }
+    public Map&lt;String, Object&gt; getParams() {
+        return params;
+    }
+    public void setParams(Map&lt;String, Object&gt; params) {
+        this.params = params;
+    }
+    public Object getParam(String key) {
+        return getParams().get(key);
+    }
+}</code></code></pre>
+<ul>
+<li>分页结果封装</li>
+</ul>
+<pre><code><code>public class PageResult {
+    /**
+     * 当前页码
+     */
+    private int pageNum;
+    /**
+     * 每页数量
+     */
+    private int pageSize;
+    /**
+     * 记录总数
+     */
+    private long totalSize;
+    /**
+     * 页码总数
+     */
+    private int totalPages;
+    /**
+     * 分页数据
+     */
+    private List&lt;?&gt; content;
+    public int getPageNum() {
+        return pageNum;
+    }
+    public void setPageNum(int pageNum) {
+        this.pageNum = pageNum;
+    }
+    public int getPageSize() {
+        return pageSize;
+    }
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+    }
+    public long getTotalSize() {
+        return totalSize;
+    }
+    public void setTotalSize(long totalSize) {
+        this.totalSize = totalSize;
+    }
+    public int getTotalPages() {
+        return totalPages;
+    }
+    public void setTotalPages(int totalPages) {
+        this.totalPages = totalPages;
+    }
+    public List&lt;?&gt; getContent() {
+        return content;
+    }
+    public void setContent(List&lt;?&gt; content) {
+        this.content = content;
+    }
+}</code></code></pre>
+<ul>
+<li>分页助手封装</li>
+</ul>
+<pre><code><code>public class MybatisPageHelper {
+
+    public static final String findPage = &quot;findPage&quot;;
+    
+    /**
+     * 分页查询, 约定查询方法名为 “findPage” 
+     * @param pageRequest 分页请求
+     * @param mapper Dao对象，MyBatis的 Mapper  
+     * @param args 方法参数
+     * @return
+     */
+    public static PageResult findPage(PageRequest pageRequest, Object mapper) {
+        return findPage(pageRequest, mapper, findPage);
+    }
+    
+    /**
+     * 调用分页插件进行分页查询
+     * @param pageRequest 分页请求
+     * @param mapper Dao对象，MyBatis的 Mapper  
+     * @param queryMethodName 要分页的查询方法名
+     * @param args 方法参数
+     * @return
+     */
+    @SuppressWarnings({ &quot;unchecked&quot;, &quot;rawtypes&quot; })
+    public static PageResult findPage(PageRequest pageRequest, Object mapper, String queryMethodName, Object... args) {
+        // 设置分页参数
+        int pageNum = pageRequest.getPageNum();
+        int pageSize = pageRequest.getPageSize();
+        PageHelper.startPage(pageNum, pageSize);
+        // 利用反射调用查询方法
+        Object result = ReflectionUtils.invoke(mapper, queryMethodName, args);
+        return getPageResult(pageRequest, new PageInfo((List) result));
+    }
+
+    /**
+     * 将分页信息封装到统一的接口
+     * @param pageRequest 
+     * @param page
+     * @return
+     */
+    private static PageResult getPageResult(PageRequest pageRequest, PageInfo&lt;?&gt; pageInfo) {
+        PageResult pageResult = new PageResult();
+        pageResult.setPageNum(pageInfo.getPageNum());
+        pageResult.setPageSize(pageInfo.getPageSize());
+        pageResult.setTotalSize(pageInfo.getTotal());
+        pageResult.setTotalPages(pageInfo.getPages());
+        pageResult.setContent(pageInfo.getList());
+        return pageResult;
+    }
+}</code></code></pre>
+<ul>
+<li>HTTP返回结果封装</li>
+</ul>
+<pre><code><code>public class HttpResult {
+    private int code = 200;
+    private String msg;
+    private Object data;
+    
+    public static HttpResult error() {
+        return error(HttpStatus.SC_INTERNAL_SERVER_ERROR, &quot;未知异常，请联系管理员&quot;);
+    }
+    public static HttpResult error(String msg) {
+        return error(HttpStatus.SC_INTERNAL_SERVER_ERROR, msg);
+    }
+    public static HttpResult error(int code, String msg) {
+        HttpResult r = new HttpResult();
+        r.setCode(code);
+        r.setMsg(msg);
+        return r;
+    }
+    public static HttpResult ok(String msg) {
+        HttpResult r = new HttpResult();
+        r.setMsg(msg);
+        return r;
+    }
+    public static HttpResult ok(Object data) {
+        HttpResult r = new HttpResult();
+        r.setData(data);
+        return r;
+    }
+    public static HttpResult ok() {
+        return new HttpResult();
+    }
+    public int getCode() {
+        return code;
+    }
+    public void setCode(int code) {
+        this.code = code;
+    }
+    public String getMsg() {
+        return msg;
+    }
+    public void setMsg(String msg) {
+        this.msg = msg;
+    }
+    public Object getData() {
+        return data;
+    }
+    public void setData(Object data) {
+        this.data = data;
+    }
+}</code></code></pre>
+<h2 id="三实现">三、实现</h2>
+<ul>
+<li>SysUserController.java</li>
+</ul>
+<pre><code><code>@RestController
+@RequestMapping(&quot;/user&quot;)
+public class SysUserController {
+
+    @Autowired
+    private SysUserService sysUserService;
+    
+    @PostMapping(value=&quot;/findPage&quot;)
+    public HttpResult findPage(@RequestBody PageRequest pageRequest) {
+        return HttpResult.ok(sysUserService.findPage(pageRequest));
+    }
+}</code></code></pre>
+<ul>
+<li>SysUserService.java</li>
+</ul>
+<pre><code><code>public interface SysUserService extends CurdService&lt;SysUser&gt; {
+
+}</code></code></pre>
+<ul>
+<li>SysUserMapper.java</li>
+</ul>
+<pre><code><code>public interface SysUserMapper {
+    List&lt;SysUser&gt; findPage();
+}</code></code></pre>
+<ul>
+<li>SysUserServiceImpl.java</li>
+</ul>
+<pre><code><code>//经过对分页查询业务的封装，只需调用MybatisPageHelper.findPage(pageRequest, sysUserMapper)即可实现分页查询功能
+@Service
+public class SysUserServiceImpl implements SysUserService {
+
+    @Autowired
+    private SysUserMapper sysUserMapper;
+    
+    @Override
+    public PageResult findPage(PageRequest pageRequest) {
+        return MybatisPageHelper.findPage(pageRequest, sysUserMapper);
+    }
+}</code></code></pre>
+<ul>
+<li>SysUserMapper.xml</li>
+</ul>
+<pre><code><code>&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE mapper PUBLIC &quot;-//mybatis.org//DTD Mapper 3.0//EN&quot; &quot;http://mybatis.org/dtd/mybatis-3-mapper.dtd&quot;&gt;
+&lt;mapper namespace=&quot;com.coisini.admin.mapper.SysUserMapper&quot;&gt;
+  &lt;resultMap id=&quot;BaseResultMap&quot; type=&quot;com.coisini.admin.entity.SysUser&quot;&gt;
+    &lt;id column=&quot;id&quot; jdbcType=&quot;BIGINT&quot; property=&quot;id&quot; /&gt;
+    &lt;result column=&quot;name&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;name&quot; /&gt;
+    &lt;result column=&quot;nick_name&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;nickName&quot; /&gt;
+    &lt;result column=&quot;avatar&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;avatar&quot; /&gt;
+    &lt;result column=&quot;password&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;password&quot; /&gt;
+    &lt;result column=&quot;salt&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;salt&quot; /&gt;
+    &lt;result column=&quot;email&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;email&quot; /&gt;
+    &lt;result column=&quot;mobile&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;mobile&quot; /&gt;
+    &lt;result column=&quot;status&quot; jdbcType=&quot;TINYINT&quot; property=&quot;status&quot; /&gt;
+    &lt;result column=&quot;dept_id&quot; jdbcType=&quot;BIGINT&quot; property=&quot;deptId&quot; /&gt;
+    &lt;result column=&quot;create_by&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;createBy&quot; /&gt;
+    &lt;result column=&quot;create_time&quot; jdbcType=&quot;TIMESTAMP&quot; property=&quot;createTime&quot; /&gt;
+    &lt;result column=&quot;last_update_by&quot; jdbcType=&quot;VARCHAR&quot; property=&quot;lastUpdateBy&quot; /&gt;
+    &lt;result column=&quot;last_update_time&quot; jdbcType=&quot;TIMESTAMP&quot; property=&quot;lastUpdateTime&quot; /&gt;
+    &lt;result column=&quot;del_flag&quot; jdbcType=&quot;TINYINT&quot; property=&quot;delFlag&quot; /&gt;
+  &lt;/resultMap&gt;
+  &lt;sql id=&quot;Base_Column_List&quot;&gt;
+    id, name, nick_name, avatar, password, salt, email, mobile, status, dept_id, create_by, 
+    create_time, last_update_by, last_update_time, del_flag
+  &lt;/sql&gt;
+  &lt;select id=&quot;findPage&quot; resultMap=&quot;BaseResultMap&quot;&gt;
+    select u.*, (select d.name from sys_dept d where d.id = u.dept_id) deptName from sys_user u
+  &lt;/select&gt;
+&lt;/mapper&gt;</code></code></pre>
+<h2 id="四测试">四、测试</h2>
+<p><img src="./images/Mybatis 分页查询0.png" alt="在这里插入图片描述" /></p>
+<ul>
+<li>关于如何集成Mybatis，参考：<a href="https://www.cnblogs.com/maggieq8324/p/11414718.html">mybatis 生成代码配置 mybatis-generator:generate 的使用详解</a>，前半部分有详细的POM代码<br />
+<br></li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

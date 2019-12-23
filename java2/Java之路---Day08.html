@@ -1,0 +1,184 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java之路---Day08' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java之路---Day08</center></div><div class='banquan'>原文出处:本文由博客园博主CeliaTodd提供。<br/>
+原文连接:https://www.cnblogs.com/hpcz190911/p/11723538.html</div><br>
+    <p><span style="font-size: 18px;">2019-10-22-22:28:39</span></p>
+<p><span style="font-size: 18px;"><strong>目录</strong></span></p>
+<p><span style="font-size: 18px;"><strong>　　1.<strong>Static静态类</strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong>　　2.<strong>Static内存图</strong></strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong><strong>　　3.<strong>Static静态代码块</strong></strong></strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong><strong><strong>　　4.<strong>Arrays类</strong></strong></strong></strong></strong></span></p>
+<p><span style="font-size: 18px;"><strong><strong><strong><strong><strong>　　5.<strong>Math类</strong></strong></strong></strong></strong></strong></span></p>
+<hr />
+<p><span style="font-size: 18px;"><strong>Static静态类</strong></span></p>
+<p><span style="font-size: 18px;">　　一旦使用static修饰成员方法,那么它就成为了静态方法,静态方法不属于对象,而是属于类的</span></p>
+<p><span style="font-size: 18px;">　　注意:</span></p>
+<p><span style="font-size: 18px;">　　　　1.如果没有static关键字修饰,那么必须首先创建对象,然后通过对象使用它</span></p>
+<p><span style="font-size: 18px;">　　　　2.如果有了static关键字修饰,那么不需要创建对象,直接就能通过类名称来使用它</span></p>
+<p><span style="font-size: 18px;">　　使用格式:</span></p>
+<p><span style="font-size: 18px;">　　　　静态变量:类名称.静态变量</span></p>
+<p><span style="font-size: 18px;">　　　　静态方法:类名称.静态方法</span></p>
+<p><span style="font-size: 18px;">　　注意事项:</span></p>
+<p><span style="font-size: 18px;">　　　　1.静态不能直接访问非静态(先有静态内容,后有非静态内容)</span></p>
+<p><span style="font-size: 18px;">　　　　2.静态方法当中不能用this(this代表当前对象,通过谁调用的方法,谁就是当前对象)</span></p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #0000ff;">package</span><span style="color: #000000;"> demopra;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> StaticText {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">首先创建对象</span>
+        MyClass mc = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyClass();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">然后才能使用没有静态static关键字的内容</span>
+<span style="color: #000000;">        mc.method();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">对于静态方法来说,可以通过对象名调用,也可以通过类名称调用</span>
+        mc.methodStatic();<span style="color: #008000;">//</span><span style="color: #008000;">正确,不推荐使用这种方法</span>
+        MyClass.methodStatic();<span style="color: #008000;">//</span><span style="color: #008000;">正确,推荐
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">对于本来当中的方法可以省略类名称</span>
+<span style="color: #000000;">        myMethod();
+        StaticText.myMethod();</span><span style="color: #008000;">//</span><span style="color: #008000;">等效于myMethod();</span>
+<span style="color: #000000;">    }
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> myMethod(){
+        System.out.println(</span>"自己的方法"<span style="color: #000000;">);
+    }
+}</span></span></code></pre>
+
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #0000ff;">package</span><span style="color: #000000;"> demopra;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyClass {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span> num;<span style="color: #008000;">//</span><span style="color: #008000;">成员变量</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> numStatic;<span style="color: #008000;">//</span><span style="color: #008000;">静态变量
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">成员方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> method(){
+        System.out.println(</span>"成员方法执行啦!!!"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">成员方法可以访问成员变量</span>
+<span style="color: #000000;">        System.out.println(num);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">成员方法可以访问静态变量</span>
+<span style="color: #000000;">        System.out.println(numStatic);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">静态方法</span>
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> methodStatic(){
+        System.out.println(</span>"静态方法执行啦!!!"<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">静态方法可以访问静态变量</span>
+<span style="color: #000000;">        System.out.println(numStatic);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">静态方法不可以访问非静态变量[重点]
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        System.out.println(num);</span><span style="color: #008000;">//</span><span style="color: #008000;">Non-static field 'num' cannot be referenced from a static context
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">静态方法中不能使用this关键字
+</span><span style="color: #008000;">//</span><span style="color: #008000;">        System.out.println(this);</span><span style="color: #008000;">//</span><span style="color: #008000;">'demopra.MyClass.this" cannot be referenced from a static context</span>
+<span style="color: #000000;">    }
+}</span></span></code></pre>
+
+<p><span style="font-size: 18px;"><strong>Static内存图</strong></span></p>
+<p><span style="font-size: 18px;"><img src="./images/Java之路---Day080.png" alt="" /></span></p>
+<p><span style="font-size: 18px;"><strong>Static静态代码块</strong></span></p>
+<p><span style="font-size: 18px;">　　格式:</span></p>
+<p><span style="font-size: 18px;">　　　　public class 类名称{</span></p>
+<p><span style="font-size: 18px;">　　　　　　static{</span></p>
+<p><span style="font-size: 18px;">　　　　　　　　静态代码块内容</span></p>
+<p><span style="font-size: 18px;">　　　　　　}</span></p>
+<p><span style="font-size: 18px;">　　　　}</span></p>
+<p><span style="font-size: 18px;">　　特点:</span></p>
+<p><span style="font-size: 18px;">　　　　1.当第一次用到本类时,静态代码块执行唯一的一次</span></p>
+<p><span style="font-size: 18px;">　　　　2.静态内容总是优先于非静态,所以静态代码块比构造方法先执行</span></p>
+<p><span style="font-size: 18px;">　　典型用途:</span></p>
+<p><span style="font-size: 18px;">　　　　用来一次性对静态变量进行赋值</span></p>
+<p><span style="font-size: 18px;"><strong>Arrays类</strong></span></p>
+<p><span style="font-size: 18px;">　　java.util.Arrays是一个与数组相关的工具类，里面提供了大量静态方法，用来实现数组常见的操作。</span><br /><span style="font-size: 18px;">　　public static string tostring(数组): 将参数数组变成字符串(按照默认格式，[元索1, 元素2,元索...])</span><br /><span style="font-size: 18px;">　　public stotic void sort(数组): 按照默认升序(从小到大)对数组的元素进行排序。</span><br /><span style="font-size: 18px;">　　　　备注:</span><br /><span style="font-size: 18px;">　　　　　　1.如果是数值，sort默认按照升序从小到大</span><br /><span style="font-size: 18px;">　　　　　　2.如果是字符串，sort默认按照字母升序</span><br /><span style="font-size: 18px;">　　　　　　3.如果是自定义的类型，那么这个自定义的类需要有Comparable或者Comporator接口的支持。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #0000ff;">package</span><span style="color: #000000;"> demopra;
+
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Arrays;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ArraysTest {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">定义一个int数组</span>
+        <span style="color: #0000ff;">int</span>[] arr = {10,20,30<span style="color: #000000;">};
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">将int数组按照默认格式变成字符串</span>
+        String arr1 =<span style="color: #000000;"> Arrays.toString(arr);
+        System.out.println(arr1);</span><span style="color: #008000;">//</span><span style="color: #008000;">[10, 20, 30]</span>
+
+        <span style="color: #0000ff;">int</span>[] arr2 = {50,10,40<span style="color: #000000;">};
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">按照默认大小进行升序</span>
+<span style="color: #000000;">        Arrays.sort(arr2);
+        System.out.println(Arrays.toString(arr2));</span><span style="color: #008000;">//</span><span style="color: #008000;">[10, 40, 50]</span>
+<span style="color: #000000;">
+        String[] arr3 </span>= {"c","b","a"<span style="color: #000000;">};
+        Arrays.sort(arr3);
+        System.out.println(Arrays.toString(arr3));</span><span style="color: #008000;">//</span><span style="color: #008000;">[a, b, c]</span>
+<span style="color: #000000;">    }
+}</span></span></code></pre>
+
+<p><span style="font-size: 18px;"><strong>Math类</strong></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">　　java.util.Math类是数学相关的工具类，里面提供了大量的静态方法，完成与数学运算相关的操作。</span><br /><span style="font-size: 18px;">　　public. static double abs(double num); 获取绝对值。有多种重载。</span><br /><span style="font-size: 18px;">　　public static double ceil(double num);向上取整。</span><br /><span style="font-size: 18px;">　　public static double floor(double num);向下取整。</span><br /><span style="font-size: 18px;">　　public static long round(double num): 四舍五入。</span><br /><span style="font-size: 18px;">　　Math. PI代表近似的圆周李常量(double) 。</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #000000;">ckage demopra;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MathTest {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">获取绝对值</span>
+        System.out.println(Math.abs(-23));<span style="color: #008000;">//</span><span style="color: #008000;">23
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">向上取整</span>
+        System.out.println(Math.ceil(3.1));<span style="color: #008000;">//</span><span style="color: #008000;">4.0
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">向下取整</span>
+        System.out.println(Math.floor(3.9));<span style="color: #008000;">//</span><span style="color: #008000;">3.0
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">四舍五入</span>
+        System.out.println(Math.round(3.15));<span style="color: #008000;">//</span><span style="color: #008000;">3</span>
+<span style="color: #000000;">
+    }
+}</span></span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #0000ff;">package</span><span style="color: #000000;"> demopra;
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">
+    要求:计算对-8.8~11.1数值取绝对值(int)后,大于5或者小于1.1的值的个数
+</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MathTest {
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">符合要求的数量</span>
+        <span style="color: #0000ff;">int</span> count = 0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">double</span> max = 11.1;<span style="color: #008000;">//</span><span style="color: #008000;">定义初始值max</span>
+        <span style="color: #0000ff;">double</span> min = -8.8;<span style="color: #008000;">//</span><span style="color: #008000;">定义初始值min</span>
+        <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = (<span style="color: #0000ff;">int</span>)min; i &lt; max; i++<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">int</span> abs = Math.abs(i);<span style="color: #008000;">//</span><span style="color: #008000;">取绝对值</span>
+            <span style="color: #0000ff;">if</span> (abs&gt;5 || abs &lt; 1.1){<span style="color: #008000;">//</span><span style="color: #008000;">取值要求</span>
+                System.out.print(i+" ");<span style="color: #008000;">//</span><span style="color: #008000;">-8 -7 -6 -1 0 1 6 7 8 9 10 11 </span>
+                count++<span style="color: #000000;">;
+            }
+        }
+        System.out.println(</span>"总共有:"+count);<span style="color: #008000;">//</span><span style="color: #008000;">总共有:12</span>
+<span style="color: #000000;">    }
+}</span></span></code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

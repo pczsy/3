@@ -1,0 +1,287 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信授权就是这个原理，Spring Cloud OAuth2 授权码模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信授权就是这个原理，Spring Cloud OAuth2 授权码模式</center></div><div class='banquan'>原文出处:本文由博客园博主风的姿态提供。<br/>
+原文连接:https://www.cnblogs.com/fengzheng/p/11810340.html</div><br>
+    <blockquote>
+<p>上一篇文章<a href="https://mp.weixin.qq.com/s/tXIycDTHw4nruuMP7xirQA">Spring Cloud OAuth2 实现单点登录</a>介绍了使用 password 模式进行身份认证和单点登录。本篇介绍 Spring Cloud OAuth2 的另外一种授权模式-授权码模式。</p>
+</blockquote>
+<p>授权码模式的认证过程是这样的：</p>
+<p>1、用户客户端请求认证服务器的认证接口，并附上回调地址；</p>
+<p>2、认证服务接口接收到认证请求后调整到自身的登录界面；</p>
+<p>3、用户输入用户名和密码，点击确认，跳转到授权、拒绝提示页面(也可省略)；</p>
+<p>4、用户点击授权或者默认授权后，跳转到微服务客户端的回调地址，并传入参数 code；</p>
+<p>5、回调地址一般是一个 RESTful 接口，此接口拿到 code 参数后，再次请求认证服务器的 token 获取接口，用来换取 access_token 等信息；</p>
+<p>6、获取到 access_token 后，拿着 token 去请求各个微服务客户端的接口。</p>
+<p>注意上面所说的用户客户端可以理解为浏览器、app 端，微服务客户端就是我们系统中的例如订单服务、用户服务等微服务，认证服务端就是用来做认证授权的服务，相对于认证服务端来说，各个业务微服务也可以称作是它的客户端。</p>
+<h3 id="认证服务端配置">认证服务端配置</h3>
+<p>认证服务端继续用上一篇文章的配置，代码不需要任何改变，只需要在数据库里加一条记录，来支持新加的微服务客户端的认证</p>
+<p>我们要创建的客户端的 client-id 为 code-client，client-secret 为 code-secret-8888，但是同样需要加密，可以用如下代码获取：</p>
+<pre><code><code>System.out.println(new BCryptPasswordEncoder().encode(&quot;code-secret-8888&quot;));</code></code></pre>
+<p>除了以上这两个参数，要将 authorized_grant_types 设置为 authorization_code,refresh_token，web_server_redirect_uri 设置为回调地址，稍后微服务客户端会创建这个接口。</p>
+<p>然后将这条记录组织好插入数据库中。</p>
+<pre class="mysql"><code>INSERT INTO oauth_client_details
+    (client_id, client_secret, scope, authorized_grant_types,
+    web_server_redirect_uri, authorities, access_token_validity,
+    refresh_token_validity, additional_information, autoapprove)
+VALUES
+    (&#39;code-client&#39;, &#39;$2a$10$jENDQZRtqqdr6sXGQK.L0OBADGIpyhtaRfaRDTeLKI76I/Ir1FDn6&#39;, &#39;all&#39;,
+    &#39;authorization_code,refresh_token&#39;, &#39;http://localhost:6102/client-authcode/login&#39;, null, 3600, 36000, null, true);</code></code></pre>
+<h3 id="创建授权模式的微服务">创建授权模式的微服务</h3>
+<p><strong>引入 maven 包</strong></p>
+<pre class="xml"><code>&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-cloud-starter-oauth2&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-data-redis&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;io.jsonwebtoken&lt;/groupId&gt;
+    &lt;artifactId&gt;jjwt&lt;/artifactId&gt;
+    &lt;version&gt;0.9.1&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;com.squareup.okhttp3&lt;/groupId&gt;
+    &lt;artifactId&gt;okhttp&lt;/artifactId&gt;
+    &lt;version&gt;3.14.2&lt;/version&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-thymeleaf&lt;/artifactId&gt;
+&lt;/dependency&gt;</code></code></pre>
+<p>引入 okhttp 和 thymeleaf 是因为要做一个简单的页面并模拟正常的认证过程。</p>
+<p><strong>配置文件 application.yml</strong></p>
+<pre class="yaml"><code>spring:
+  application:
+    name: client-authcode
+server:
+  port: 6102
+  servlet:
+    context-path: /client-authcode
+
+
+security:
+  oauth2:
+    client:
+      client-id: code-client
+      client-secret: code-secret-8888
+      user-authorization-uri: http://localhost:6001/oauth/authorize
+      access-token-uri: http://localhost:6001/oauth/token
+    resource:
+      jwt:
+        key-uri: http://localhost:6001/oauth/token_key
+        key-value: dev
+    authorization:
+      check-token-access: http://localhost:6001/oauth/check_token</code></code></pre>
+<p><strong>创建 resourceConfig </strong></p>
+<pre><code><code>@Configuration
+@EnableResourceServer
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+public class ResourceServerConfig extends ResourceServerConfigurerAdapter {
+
+
+    @Bean
+    public TokenStore jwtTokenStore() {
+        return new JwtTokenStore(jwtAccessTokenConverter());
+    }
+
+    @Bean
+    public JwtAccessTokenConverter jwtAccessTokenConverter() {
+        JwtAccessTokenConverter accessTokenConverter = new JwtAccessTokenConverter();
+
+        accessTokenConverter.setSigningKey(&quot;dev&quot;);
+        accessTokenConverter.setVerifierKey(&quot;dev&quot;);
+        return accessTokenConverter;
+    }
+
+    @Autowired
+    private TokenStore jwtTokenStore;
+
+    @Override
+    public void configure(ResourceServerSecurityConfigurer resources) throws Exception {
+        resources.tokenStore(jwtTokenStore);
+    }
+
+    @Override
+    public void configure(HttpSecurity http) throws Exception {
+        http.authorizeRequests().antMatchers(&quot;/login&quot;).permitAll();
+    }
+}</code></code></pre>
+<p>使用 jwt 作为 token 的存储，注意允许 <code>/login</code> 接口无授权访问，这个地址是认证的回调地址，会返回 code 参数。</p>
+<p><strong>创建 application.java启动类</strong></p>
+<pre><code><code>@SpringBootApplication
+public class Application {
+
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}</code></code></pre>
+<p>到这步可以先停一下了。我们把认证服务端和刚刚创建的认证客户端启动起来，就可以手工测试一下了。回调接口不是还没创建呢吗，没关系，我们权当那个地址现在就是为了接收 code 参数的。<br />
+<strong>1、</strong>在浏览器访问 /oauth/authorize 授权接口，接口地址为：</p>
+<pre><code><code>http://localhost:6001/oauth/authorize?client_id=code-client&amp;response_type=code&amp;redirect_uri=http://localhost:6102/client-authcode/login </code></code></pre>
+<p>注意 response_type 参数设置为 code，redirect_uri 设置为数据库中插入的回调地址。</p>
+<p><strong>2、</strong>输入上面地址后，会自动跳转到认证服务端的登录页面，输入用户名、密码，这里用户名是 admin，密码是 123456<br />
+<img src="./images/微信授权就是这个原理，Spring Cloud OAuth2 授权码模式0.png" /></p>
+<p><strong>3、</strong>点击确定后，来到授权确认页面，页面上有 Authorize 和 Deny (授权和拒绝)两个按钮。可通过将 autoapprove 字段设置为 0 来取消此页面的展示，默认直接同意授权。<br />
+<img src="./images/微信授权就是这个原理，Spring Cloud OAuth2 授权码模式1.png" /></p>
+<p><strong>4、</strong>点击同意授权后，跳转到了回调地址，虽然是 404 ，但是我们只是为了拿到 code 参数，注意地址后面的 code 参数。<br />
+<img src="./images/微信授权就是这个原理，Spring Cloud OAuth2 授权码模式2.png" /></p>
+<p><strong>5、</strong>拿到这个 code 参数是为了向认证服务器 /oauth/token 接口请求 access_token ，继续用 REST Client 发送请求，同样的，你也可以用 postman 等工具测试。</p>
+<p>注意 grant_type 参数设置为 authorization_code，code 就是上一步回调地址中加上的，redirect_uri 仍然要带上，回作为验证条件，如果不带或者与前面设置的不一致，会出现错误。</p>
+<p>请求头 Authorization ，仍然是 Basic + 空格 + base64(client_id:client_secret)，可以通过 https://www.sojson.com/base64.html 网站在线做 base64 编码。</p>
+<p>code-client:code-secret-8888 通过 base64 编码后结果为 Y29kZS1jbGllbnQ6Y29kZS1zZWNyZXQtODg4OA==</p>
+<pre class="properties"><code>POST http://localhost:6001/oauth/token?grant_type=authorization_code&amp;client=code-client&amp;code=BbCE34&amp;redirect_uri=http://localhost:6102/client-authcode/login
+Accept: */*
+Cache-Control: no-cache
+Authorization: Basic Y29kZS1jbGllbnQ6Y29kZS1zZWNyZXQtODg4OA==</code></code></pre>
+<p>发送请求后，返回的 json 内容如下：</p>
+<pre class="json"><code>{
+  &quot;access_token&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJhZG1pbiIsImp3dC1leHQiOiJKV1Qg5omp5bGV5L-h5oGvIiwic2NvcGUiOlsiYWxsIl0sImV4cCI6MTU3MjYwMTMzMiwiYXV0aG9yaXRpZXMiOlsiUk9MRV9BRE1JTiJdLCJqdGkiOiI2OWRmY2M4Yy1iZmZiLTRiNDItYTZhZi1hN2IzZWUyZjI1ZTMiLCJjbGllbnRfaWQiOiJjb2RlLWNsaWVudCJ9.WlgGnBkNdg2PwKqjbZWo6QmUmq0QluZLgIWJXaZahSU&quot;,
+  &quot;token_type&quot;: &quot;bearer&quot;,
+  &quot;refresh_token&quot;: &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJhZG1pbiIsImp3dC1leHQiOiJKV1Qg5omp5bGV5L-h5oGvIiwic2NvcGUiOlsiYWxsIl0sImF0aSI6IjY5ZGZjYzhjLWJmZmItNGI0Mi1hNmFmLWE3YjNlZTJmMjVlMyIsImV4cCI6MTU3MjYzMzczMiwiYXV0aG9yaXRpZXMiOlsiUk9MRV9BRE1JTiJdLCJqdGkiOiJkNzk2OWRhMS04NTg4LTQ2YzMtYjdlNS1jMGM5NzcxNTM5Y2YiLCJjbGllbnRfaWQiOiJjb2RlLWNsaWVudCJ9.TEz0pQOhST9-ozdoJWm6cf1SoWvPC6W-5JW9yjZJXek&quot;,
+  &quot;expires_in&quot;: 3599,
+  &quot;scope&quot;: &quot;all&quot;,
+  &quot;jwt-ext&quot;: &quot;JWT 扩展信息&quot;,
+  &quot;jti&quot;: &quot;69dfcc8c-bffb-4b42-a6af-a7b3ee2f25e3&quot;
+}</code></code></pre>
+<p>和上一篇文章 password 模式拿到的 token 内容是一致的，接下来的请求都需要带上 access_token 。</p>
+<p><strong>6、</strong>把获取到的 access_token 代入到下面的请求中 ${access_token} 的位置，就可以请求微服务中的需要授权访问的接口了。</p>
+<pre class="properties"><code>GET http://localhost:6102/client-authcode/get
+Accept: */*
+Cache-Control: no-cache
+Authorization: bearer ${access_token}</code></code></pre>
+<p>接口内容如下：</p>
+<pre><code><code>@org.springframework.web.bind.annotation.ResponseBody
+@GetMapping(value = &quot;get&quot;)
+@PreAuthorize(&quot;hasAnyRole(&#39;ROLE_ADMIN&#39;)&quot;)
+public Object get(Authentication authentication)
+{
+    //Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    authentication.getCredentials();
+    OAuth2AuthenticationDetails details = (OAuth2AuthenticationDetails) authentication.getDetails();
+    String token = details.getTokenValue();
+    return token;
+}</code></code></pre>
+<p>经过以上的手工测试，证明此过程是通的，但是还没有达到自动化。如果你集成过微信登录，那你一定知道我们在回调地址中做了什么，拿到返回的 code 参数去 token 接口换取 access_token 对不对，没错，思路都是一样的，我们的回调接口中同样要拿 code 去换取 access_token。</p>
+<p>为此，我做了一个简单的页面，并且在回调接口中请求获取 token 的接口。</p>
+<p><strong>创建简单的登录页面</strong></p>
+<p>在 resources 目录下创建 templates 目录，用来存放 thymeleaf 的模板，不做样式，只做最简单的演示，创建 index.html 模板，内容如下：</p>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot; xmlns:th=&quot;http://www.thymeleaf.org&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;古时的风筝-OAuth2 Client&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div&gt;
+    &lt;a href=&quot;http://localhost:6001/oauth/authorize?client_id=code-client&amp;response_type=code&amp;redirect_uri=http://localhost:6102/client-authcode/login&quot;&gt;登录&lt;/a&gt;
+    &lt;span th:text=&quot;&#39;当前认证用户：&#39; + ${username}&quot;&gt;&lt;/span&gt;
+    &lt;span th:text=&quot;${accessToken}&quot;&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></code></pre>
+<p><strong>回调接口及其他接口</strong></p>
+<pre><code><code>@Slf4j
+@Controller
+public class CodeClientController {
+
+    /**
+     * 用来展示index.html 模板
+     * @return
+     */     
+    @GetMapping(value = &quot;index&quot;)
+    public String index(){
+        return &quot;index&quot;;
+    }
+
+    @GetMapping(value = &quot;login&quot;)
+    public Object login(String code,Model model) {
+        String tokenUrl = &quot;http://localhost:6001/oauth/token&quot;;
+        OkHttpClient httpClient = new OkHttpClient();
+        RequestBody body = new FormBody.Builder()
+                .add(&quot;grant_type&quot;, &quot;authorization_code&quot;)
+                .add(&quot;client&quot;, &quot;code-client&quot;)
+                .add(&quot;redirect_uri&quot;,&quot;http://localhost:6102/client-authcode/login&quot;)
+                .add(&quot;code&quot;, code)
+                .build();
+
+        Request request = new Request.Builder()
+                .url(tokenUrl)
+                .post(body)
+                .addHeader(&quot;Authorization&quot;, &quot;Basic Y29kZS1jbGllbnQ6Y29kZS1zZWNyZXQtODg4OA==&quot;)
+                .build();
+        try {
+            Response response = httpClient.newCall(request).execute();
+            String result = response.body().string();
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map tokenMap = objectMapper.readValue(result,Map.class);
+            String accessToken = tokenMap.get(&quot;access_token&quot;).toString();
+            Claims claims = Jwts.parser()
+                    .setSigningKey(&quot;dev&quot;.getBytes(StandardCharsets.UTF_8))
+                    .parseClaimsJws(accessToken)
+                    .getBody();
+            String userName = claims.get(&quot;user_name&quot;).toString();
+            model.addAttribute(&quot;username&quot;, userName);
+            model.addAttribute(&quot;accessToken&quot;, result);
+            return &quot;index&quot;;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+    @org.springframework.web.bind.annotation.ResponseBody
+    @GetMapping(value = &quot;get&quot;)
+    @PreAuthorize(&quot;hasAnyRole(&#39;ROLE_ADMIN&#39;)&quot;)
+    public Object get(Authentication authentication) {
+        //Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        authentication.getCredentials();
+        OAuth2AuthenticationDetails details = (OAuth2AuthenticationDetails) authentication.getDetails();
+        String token = details.getTokenValue();
+        return token;
+    }
+}</code></code></pre>
+<p>其中 index() 方法是为了展示 thymeleaf 模板，login 方法就是回调接口，这里用了 okhttp3 用作接口请求，请求认证服务端的 /oauth/token 接口来换取 access_token，只是把我们手工测试的步骤自动化了。</p>
+<p><strong>访问 index.html 页面</strong></p>
+<p>我们假设这个页面就是一个网站的首页，未登录的用户会在网站上看到登录按钮，我们访问这个页面：<a href="http://localhost:6102/client-authcode/index" class="uri">http://localhost:6102/client-authcode/index</a>，看到的页面是这样的<br />
+<img src="./images/微信授权就是这个原理，Spring Cloud OAuth2 授权码模式3.png" /></p>
+<p>接下来，点击登录按钮，通过上面的模板代码看出，点击后其实就是跳转到了我们手工测试第一步访问的那个地址，之后的操作和上面手工测试的是一致的，输入用户名密码、点击同意授权。</p>
+<p>接下来，页面跳转回回调地址&lt;http://localhost:6102/client-authcode/login?code=xxx 的时候，login 方法拿到 code 参数，开始构造 post 请求体，并把 Authorization 加入请求头，然后请求 oauth/token 接口，最后将拿到的 token 和 通过 token 解析后的 username 返回给前端，最后呈现的效果如下：<br />
+<img src="./images/微信授权就是这个原理，Spring Cloud OAuth2 授权码模式4.png" /></p>
+<p>最后，拿到 token 后的客户端，就可以将 token 加入到请求头后，去访问需要授权的接口了。</p>
+<p>结合上一篇文章，我们就实现了 password 和 授权码两种模式的 oauth2 认证。</p>
+<p>本篇源码微服务客户端对应的源码地址为: <a href="https://github.com/huzhicheng/spring-cloud-study/tree/master/oauth2/oauth2-client-authorization-code-server">点击查看 github 源码</a></p>
+<p><strong>相关阅读</strong></p>
+<p><a href="https://mp.weixin.qq.com/s/tXIycDTHw4nruuMP7xirQA">Spring Cloud OAuth2 实现单点登录</a></p>
+<p>不要吝惜你的「<strong>推荐</strong>」呦</p>
+<p><strong>欢迎关注，不定期更新本系列和其他文章</strong><br />
+<code>古时的风筝</code> ，进入公众号可以加入交流群</p>
+<p><img src="./images/微信授权就是这个原理，Spring Cloud OAuth2 授权码模式5.png" /></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

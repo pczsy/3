@@ -1,0 +1,62 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringSecurity环境下配置CORS跨站资源共享规则' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringSecurity环境下配置CORS跨站资源共享规则</center></div><div class='banquan'>原文出处:本文由博客园博主字母哥博客提供。<br/>
+原文连接:https://www.cnblogs.com/zimug/p/11980627.html</div><br>
+    <p><img src="./images/SpringSecurity环境下配置CORS跨站资源共享规则0.png" alt="file" /></p>
+<h2 id="一cors简述">一、CORS简述</h2>
+<p>要说明CORS(Cross Origin Resourse-Sharing) 跨站资源共享，就必须先说同源策略。长话短说，同源策略就是向服务端发起请求的时候，以下三项必须与当前浏览器应用一致：域名、端口、协议。用白话说：就是你的应用发送请求不能访问别人的资源，否则浏览器就会限制你。当然也有例外，如：img、srcipt、iframe等资源引用的HTML标签不受同源策略的限制。<br />
+但是我们实际开发中又经常会跨站访问，比如前后端分离的应用是分开部署的，在浏览器看来是两个域。所以同源策略是用来禁止跨域访问的，CORS正好相反是根据自己的需求与规则，有限的开放部分资源的共享。</p>
+<h2 id="二spring-cors规则基础配置">二、Spring-CORS规则基础配置</h2>
+<p>想在Spring或Spring Boot的web环境下实现跨域资源共享，主要有三种实现方式：</p>
+<ul>
+<li>@CrossOrigin注解，这个注解是作用于Controller类或者请求方法上的，实现局部接口的跨域资源共享。</li>
+<li>实现WebMvcConfigurer接口addCorsMappings方法，实现全局配置的跨域资源共享。</li>
+<li>注入CorsFilter过滤器，实现全局配置的跨域资源共享。推荐使用。</li>
+</ul>
+<p>这三种实现方式在我的另外一篇文章<a href="http://www.zimug.com/other/springboot/springboot%e5%ba%94%e7%94%a8%e8%b7%a8%e5%9f%9f%e8%ae%bf%e9%97%ae%e8%a7%a3%e5%86%b3%e6%96%b9%e6%a1%88/.html">《SpringBoot解决跨域访问的问题》</a>中已经介绍过，这里就不多做说明了。</p>
+<h2 id="三spring-security-中的配置cors">三、Spring Security 中的配置CORS</h2>
+<p>当我们的应用使用了Spring Security之后，我们会发现上面的配置方法全部失效。此时需要在spring security的WebSecurityConfigurerAdapter中的configure(HttpSecurity http)配置方法，加上<code>http.cors()</code>配置，第二小节中的配置才会生效。</p>
+<pre><code><code>public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.cors().and()
+        ...
+    }
+}</code></code></pre>
+<p>另外Spring Security为我们提供了一种新的CORS规则的配置方法：CorsConfigurationSource 。使用这种方法实现的效果等同于注入一个CorsFilter过滤器。</p>
+<pre><code><code>@Bean
+CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(Arrays.asList(&quot;https://example.com&quot;));
+    configuration.setAllowedMethods(Arrays.asList(&quot;GET&quot;,&quot;POST&quot;));
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration(&quot;/**&quot;, configuration);
+    return source;
+}</code></code></pre>
+<h2 id="期待您的关注">期待您的关注</h2>
+<ul>
+<li>向您推荐博主的系列文档：<a href="http://springboot.zimug.com">《手摸手教您学习SpringBoot系列-16章97节》</a></li>
+<li>本文转载注明出处（必须带连接，不能只转文字）：<a href="http://www.zimug.com">字母哥博客</a>。</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,138 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用Spring安全表达式控制系统功能访问权限' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用Spring安全表达式控制系统功能访问权限</center></div><div class='banquan'>原文出处:本文由博客园博主字母哥博客提供。<br/>
+原文连接:https://www.cnblogs.com/zimug/p/11902381.html</div><br>
+    <h2 id="一spel表达式权限控制">一、SPEL表达式权限控制</h2>
+<p>从<code>spring security 3.0</code>开始已经可以使用<code>spring Expression</code>表达式来控制授权，允许在表达式中使用复杂的布尔逻辑来控制访问的权限。Spring Security可用表达式对象的基类是SecurityExpressionRoot。</p>
+<table>
+<thead>
+<tr class="header">
+<th>表达式函数</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>hasRole([role]</code>)</td>
+<td>用户拥有指定的角色时返回true （<code>Spring security</code>默认会带有<code>ROLE_</code>前缀）,去除前缀参考<a href="https://github.com/spring-projects/spring-security/issues/4134">Remove the ROLE_</a></td>
+</tr>
+<tr class="even">
+<td><code>hasAnyRole([role1,role2])</code></td>
+<td>用户拥有任意一个指定的角色时返回true</td>
+</tr>
+<tr class="odd">
+<td><code>hasAuthority([authority])</code></td>
+<td>拥有某资源的访问权限时返回true</td>
+</tr>
+<tr class="even">
+<td><code>hasAnyAuthority([auth1,auth2])</code></td>
+<td>拥有某些资源其中部分资源的访问权限时返回true</td>
+</tr>
+<tr class="odd">
+<td><code>permitAll</code></td>
+<td>永远返回true</td>
+</tr>
+<tr class="even">
+<td><code>denyAll</code></td>
+<td>永远返回false</td>
+</tr>
+<tr class="odd">
+<td><code>anonymous</code></td>
+<td>当前用户是<code>anonymous</code>时返回true</td>
+</tr>
+<tr class="even">
+<td><code>rememberMe</code></td>
+<td>当前用户是<code>rememberMe</code>用户返回true</td>
+</tr>
+<tr class="odd">
+<td><code>authentication</code></td>
+<td>当前登录用户的<code>authentication</code>对象</td>
+</tr>
+<tr class="even">
+<td><code>fullAuthenticated</code></td>
+<td>当前用户既不是<code>anonymous</code>也不是<code>rememberMe</code>用户时返回true</td>
+</tr>
+<tr class="odd">
+<td><code>hasIpAddress('192.168.1.0/24'))</code></td>
+<td>请求发送的IP匹配时返回true</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>部分朋友可能会对Authority和Role有些混淆。Authority作为资源访问权限可大可小，可以是某按钮的访问权限（如资源ID：biz1），也可以是某类用户角色的访问权限（如资源ID：ADMIN）。当Authority作为角色资源权限时，hasAuthority（'ROLE_ADMIN'）与hasRole（'ADMIN'）是一样的效果。</p>
+</blockquote>
+<h2 id="二spel在全局配置中的使用">二、SPEL在全局配置中的使用</h2>
+<p>我们可以通过继承WebSecurityConfigurerAdapter，实现相关的配置方法，进行全局的安全配置（之前的章节已经讲过） 。下面就为大家介绍一些如何在全局配置中使用SPEL表达式。</p>
+<h3 id="url安全表达式">2.1.URL安全表达式</h3>
+<pre><code><code>config.antMatchers(&quot;/system/*&quot;).access(&quot;hasAuthority(&#39;ADMIN&#39;) or hasAuthority(&#39;USER&#39;)&quot;)
+      .anyRequest().authenticated();</code></code></pre>
+<p>这里我们定义了应用<code>/person/*</code>URL的范围，只有拥有<code>ADMIN</code>或者<code>USER</code>权限的用户才能访问这些person资源。</p>
+<h3 id="安全表达式中引用bean">2.2.安全表达式中引用bean</h3>
+<p>这种方式，比较适合有复杂权限验证逻辑的情况，当Spring Security提供的默认表达式方法无法满足我们的需求的时候。首先我们定义一个权限验证的RbacService。</p>
+<pre><code><code>@Component(&quot;rbacService&quot;)
+@Slf4j
+public class RbacService {
+    //返回true表示验证通过
+    public boolean hasPermission(HttpServletRequest request, Authentication authentication) {
+        //验证逻辑代码
+        return true;
+    }
+    public boolean checkUserId(Authentication authentication, int id) {
+        //验证逻辑代码
+        return true;
+    }
+}</code></code></pre>
+<p>对于&quot;/person/{id}&quot;对应的资源的访问，调用rbacService的bean的方法checkUserId进行权限验证，传递参数为authentication对象和person的id。该id为PathVariable，以#开头表示。</p>
+<pre><code><code>config.antMatchers(&quot;/person/{id}&quot;).access(&quot;@rbacService.checkUserId(authentication,#id)&quot;)
+      .anyRequest().access(&quot;@rbacService.hasPermission(request,authentication)&quot;);</code></code></pre>
+<h2 id="三-method表达式安全控制">三、 Method表达式安全控制</h2>
+<p>如果我们想实现方法级别的安全配置，<code>Spring Security</code>提供了四种注解，分别是<code>@PreAuthorize</code> , <code>@PreFilter</code> , <code>@PostAuthorize</code> 和 <code>@PostFilter</code></p>
+<h3 id="开启方法级别注解的配置">3.1.开启方法级别注解的配置</h3>
+<p>在Spring安全配置代码中，加上EnableGlobalMethodSecurity注解，开启方法级别安全配置功能。</p>
+<pre><code><code>@Configuration
+@EnableGlobalMethodSecurity(prePostEnabled = true)
+public class MySecurityConfig extends WebSecurityConfigurerAdapter {</code></code></pre>
+<h3 id="使用preauthorize注解">3.2 使用PreAuthorize注解</h3>
+<p>@PreAuthorize 注解适合进入方法前的权限验证。只有拥有ADMIN角色才能访问findAll方法。</p>
+<pre><code><code>@PreAuthorize(&quot;hasRole(&#39;ADMIN&#39;)&quot;)
+List&lt;Person&gt; findAll();</code></code></pre>
+<h3 id="使用postauthorize注解">3.3 使用PostAuthorize注解</h3>
+<p>@PostAuthorize 在方法执行后再进行权限验证,适合根据返回值结果进行权限验证。<code>Spring EL</code> 提供返回对象能够在表达式语言中获取返回的对象<code>returnObject</code>。下文代码只有返回值的name等于authentication对象的name才能正确返回，否则抛出异常。</p>
+<pre><code><code>@PostAuthorize(&quot;returnObject.name == authentication.name&quot;)
+Person findOne(Integer id);</code></code></pre>
+<h3 id="使用prefilter注解">3.4 使用PreFilter注解</h3>
+<p>PreFilter 针对参数进行过滤,下文代码表示针对ids参数进行过滤，只有id为偶数才能访问delete方法。</p>
+<pre><code><code>//当有多个对象是使用filterTarget进行标注
+@PreFilter(filterTarget=&quot;ids&quot;, value=&quot;filterObject%2==0&quot;)
+public void delete(List&lt;Integer&gt; ids, List&lt;String&gt; usernames) {</code></code></pre>
+<h3 id="使用postfilter-注解">3.5 使用PostFilter 注解</h3>
+<p>PostFilter 针对返回结果进行过滤，特别适用于集合类返回值，过滤集合中不符合表达式的对象。</p>
+<pre><code><code>@PostFilter(&quot;filterObject.name == authentication.name&quot;)
+List&lt;Person&gt; findAll();</code></code></pre>
+<h2 id="期待您的关注">期待您的关注</h2>
+<ul>
+<li>博主最近新写了一本书：<a href="http://springboot.zimug.com">《手摸手教您学习SpringBoot系列-16章97节》</a></li>
+<li>本文转载注明出处（必须带连接，不能只转文字）：<a href="http://www.zimug.com">字母哥博客</a>。</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

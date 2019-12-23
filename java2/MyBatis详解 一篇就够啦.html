@@ -1,0 +1,1035 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修MyBatis详解 一篇就够啦' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>MyBatis详解 一篇就够啦</center></div><div class='banquan'>原文出处:本文由博客园博主陈彦斌提供。<br/>
+原文连接:https://www.cnblogs.com/chenyanbin/p/11656461.html</div><br>
+    <h1>第1章MyBatis框架配置文件详解</h1>
+<h2>1.1 typeHandlers类型转换器</h2>
+<p>　　每当MyBatis 设置参数到PreparedStatement 或者从ResultSet 结果集中取得值时，就会使用TypeHandler 来处理数据库类型与java 类型之间转换。下表描述了默认</p>
+<p>TypeHandlers</p>
+<p><img src="./images/MyBatis详解 一篇就够啦0.png" alt="" /></p>
+<h3>&nbsp;1.1.1 自定义类型转换器</h3>
+<p>假设表中字段是int类型,而实体类与之对应的属性是boolean类型,此时可以采用自定义类型转换器进行对应</p>
+<p>(1)实体类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">package com.chenyanbin.beans;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Dept {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer deptNo;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String dname;
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String loc;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #ff0000;"><strong>private boolean flag;
+</strong></span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getDeptNo() {
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> deptNo;
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> boolean isFlag() {
+</span><span style="color: #008080;">12</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> flag;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setFlag(boolean flag) {
+</span><span style="color: #008080;">15</span>         <span style="color: #0000ff;">this</span>.flag =<span style="color: #000000;"> flag;
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">17</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setDeptNo(Integer deptNo) {
+</span><span style="color: #008080;">18</span>         <span style="color: #0000ff;">this</span>.deptNo =<span style="color: #000000;"> deptNo;
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">20</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getDname() {
+</span><span style="color: #008080;">21</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> dname;
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">23</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setDname(String dname) {
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">this</span>.dname =<span style="color: #000000;"> dname;
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">26</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getLoc() {
+</span><span style="color: #008080;">27</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> loc;
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setLoc(String loc) {
+</span><span style="color: #008080;">30</span>         <span style="color: #0000ff;">this</span>.loc =<span style="color: #000000;"> loc;
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">32</span> }</code></pre>
+
+<p>(2) 表中字段</p>
+<p><img src="./images/MyBatis详解 一篇就够啦1.png" alt="" /></p>
+<p>&nbsp;(3) 开发自定义类型转换器：MyTypeHandler.java</p>
+<p>继承并实现接口:TypeHandler.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">package com.chenyanbin.util;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">import java.sql.CallableStatement;
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">import java.sql.PreparedStatement;
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">import java.sql.ResultSet;
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">import java.sql.SQLException;
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">import org.apache.ibatis.jdbc.Null;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">import org.apache.ibatis.type.JdbcType;
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">import org.apache.ibatis.type.TypeHandler;
+</span><span style="color: #008080;">11</span> <span style="color: #008000;">/*</span>
+<span style="color: #008080;">12</span> <span style="color: #008000;"> * setParameter:这个方法在生成SQL语句时才被调用
+</span><span style="color: #008080;">13</span> <span style="color: #008000;"> * 
+</span><span style="color: #008080;">14</span> <span style="color: #008000;"> * getResult:查询结束之后，在将ResultSet数据行转换为实体类对象时，通知TypeHandler将当前数据行某个字段转换为何种类型
+</span><span style="color: #008080;">15</span> <span style="color: #008000;"> * 
+</span><span style="color: #008080;">16</span> <span style="color: #008000;"> * 
+</span><span style="color: #008080;">17</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;">18</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> MyTypeHandler implements TypeHandler {
+</span><span style="color: #008080;">19</span> 
+<span style="color: #ff0000;"><strong>20     public void setParameter(PreparedStatement ps, int i, Object parameter, JdbcType jdbcType) throws SQLException {
+21         if (parameter==null) { //dept.flag=null insertsql flag设置0
+22             ps.setInt(i, 0);
+23             return;
+24         }
+25         Boolean flag=(Boolean)parameter;
+26         if (flag==true) {
+27             ps.setInt(i, 1);
+28         }
+29         else {
+30             ps.setInt(i, 0);
+31         }
+32     }
+</strong></span><span style="color: #008080;">33</span> 
+<span style="color: #ff0000;"><strong>34     public Object getResult(ResultSet rs, String columnName) throws SQLException {
+35         int flag = rs.getInt(columnName); //1 or 0
+36         Boolean myFlag=Boolean.FALSE;
+37         if (flag==1) {
+38             myFlag=Boolean.TRUE;
+39         }
+40         return myFlag;
+41     }
+</strong></span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span>     <span style="color: #0000ff;">public</span> Object getResult(ResultSet rs, <span style="color: #0000ff;">int</span><span style="color: #000000;"> columnIndex) throws SQLException {
+</span><span style="color: #008080;">44</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated method stub</span>
+<span style="color: #008080;">45</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">47</span> 
+<span style="color: #008080;">48</span>     <span style="color: #0000ff;">public</span> Object getResult(CallableStatement cs, <span style="color: #0000ff;">int</span><span style="color: #000000;"> columnIndex) throws SQLException {
+</span><span style="color: #008080;">49</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated method stub</span>
+<span style="color: #008080;">50</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">52</span> 
+<span style="color: #008080;">53</span> }</code></pre>
+
+<p>(4) 在MyBatis核心配置文件注册自定义类型转换器：</p>
+<p>myBatis-config.xml</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?xml version=<span style="color: #800000;">"</span><span style="color: #800000;">1.0</span><span style="color: #800000;">"</span> encoding=<span style="color: #800000;">"</span><span style="color: #800000;">UTF-8</span><span style="color: #800000;">"</span>?&gt;
+<span style="color: #008080;"> 2</span> &lt;!<span style="color: #000000;">DOCTYPE configuration
+</span><span style="color: #008080;"> 3</span>   PUBLIC <span style="color: #800000;">"</span><span style="color: #800000;">-//mybatis.org//DTD Config 3.0//EN</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 4</span>   <span style="color: #800000;">"</span><span style="color: #800000;">http://mybatis.org/dtd/mybatis-3-config.dtd</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;"> 5</span> &lt;configuration&gt;
+<span style="color: #008080;"> 6</span>     &lt;!-- 属性配置 --&gt;
+<span style="color: #008080;"> 7</span>     &lt;properties resource=<span style="color: #800000;">"</span><span style="color: #800000;">config.properties</span><span style="color: #800000;">"</span>&gt;&lt;/properties&gt;
+<span style="color: #008080;"> 8</span>     &lt;!-- 别名配置 --&gt;
+<span style="color: #008080;"> 9</span>     &lt;typeAliases&gt;
+<span style="color: #008080;">10</span>         &lt;package name=<span style="color: #800000;">"</span><span style="color: #800000;">com.chenyanbin.beans</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">11</span>         &lt;package name=<span style="color: #800000;">"</span><span style="color: #800000;">com.chenyanbin.dao</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">12</span>     &lt;/typeAliases&gt;
+<span style="color: #008080;">13</span>     &lt;!-- 类型处理器 --&gt;
+<span style="color: #008080;">14</span>     &lt;typeHandlers&gt;
+<span style="color: #008080;">15</span>         &lt;!-- 从java中的Boolean转jdbc中的NUMERIC --&gt;
+<span style="color: #008080;">16</span>         &lt;typeHandler handler=<span style="color: #800000;">"</span><span style="color: #800000;">com.chenyanbin.util.MyTypeHandler</span><span style="color: #800000;">"</span>
+<span style="color: #008080;">17</span>             javaType=<span style="color: #800000;">"</span><span style="color: #800000;">Boolean</span><span style="color: #800000;">"</span> jdbcType=<span style="color: #800000;">"</span><span style="color: #800000;">NUMERIC</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">18</span>     &lt;/typeHandlers&gt;
+<span style="color: #008080;">19</span>     &lt;!-- 环境配置 --&gt;
+<span style="color: #008080;">20</span>     &lt;environments <span style="color: #0000ff;">default</span>=<span style="color: #800000;">"</span><span style="color: #800000;">development</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;">21</span>         &lt;!-- 环境配置 --&gt;
+<span style="color: #008080;">22</span>         &lt;environment id=<span style="color: #800000;">"</span><span style="color: #800000;">development</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;">23</span>             &lt;!-- 事务管理器 --&gt;
+<span style="color: #008080;">24</span>             &lt;transactionManager type=<span style="color: #800000;">"</span><span style="color: #800000;">JDBC</span><span style="color: #800000;">"</span>&gt;&lt;/transactionManager&gt;
+<span style="color: #008080;">25</span>             &lt;!-- 数据源 --&gt;
+<span style="color: #008080;">26</span>             &lt;dataSource type=<span style="color: #800000;">"</span><span style="color: #800000;">pooled</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;">27</span>                 &lt;property name=<span style="color: #800000;">"</span><span style="color: #800000;">driver</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">${jdbc.driver}</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">28</span>                 &lt;property name=<span style="color: #800000;">"</span><span style="color: #800000;">url</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">${jdbc.url}</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">29</span>                 &lt;property name=<span style="color: #800000;">"</span><span style="color: #800000;">username</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">${jdbc.username}</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">30</span>                 &lt;property name=<span style="color: #800000;">"</span><span style="color: #800000;">password</span><span style="color: #800000;">"</span> value=<span style="color: #800000;">"</span><span style="color: #800000;">${jdbc.password}</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">31</span>             &lt;/dataSource&gt;
+<span style="color: #008080;">32</span>         &lt;/environment&gt;
+<span style="color: #008080;">33</span>     &lt;/environments&gt;
+<span style="color: #008080;">34</span>     &lt;!-- 映射器 --&gt;
+<span style="color: #008080;">35</span>     &lt;mappers&gt;
+<span style="color: #008080;">36</span>         &lt;package name=<span style="color: #800000;">"</span><span style="color: #800000;">com.chenyanbin.dao</span><span style="color: #800000;">"</span> /&gt;
+<span style="color: #008080;">37</span>     &lt;/mappers&gt;
+<span style="color: #008080;">38</span> &lt;/configuration&gt;</code></pre>
+
+<p>config.properties</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> jdbc.driver=<span style="color: #000000;">com.mysql.jdbc.Driver
+</span><span style="color: #008080;">2</span> jdbc.url=jdbc:mysql:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:3306/sam</span>
+<span style="color: #008080;">3</span> jdbc.username=<span style="color: #000000;">root
+</span><span style="color: #008080;">4</span> jdbc.password=root</code></pre>
+
+<p>(5) 创建接口:DeptMapper.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">package com.chenyanbin.dao;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">import java.util.List;
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">import com.chenyanbin.beans.Dept;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> DeptMapper {
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> deptSave(Dept dept);
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">public</span> List&lt;Dept&gt;<span style="color: #000000;"> deptFind();
+</span><span style="color: #008080;">10</span> }</code></pre>
+
+<p>(6)&nbsp;&nbsp;DeptMapper.xml</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?xml version=<span style="color: #800000;">"</span><span style="color: #800000;">1.0</span><span style="color: #800000;">"</span> encoding=<span style="color: #800000;">"</span><span style="color: #800000;">UTF-8</span><span style="color: #800000;">"</span>?&gt;
+<span style="color: #008080;"> 2</span> &lt;!<span style="color: #000000;">DOCTYPE mapper
+</span><span style="color: #008080;"> 3</span>   PUBLIC <span style="color: #800000;">"</span><span style="color: #800000;">-//mybatis.org//DTD Mapper 3.0//EN</span><span style="color: #800000;">"</span>
+<span style="color: #008080;"> 4</span>   <span style="color: #800000;">"</span><span style="color: #800000;">http://mybatis.org/dtd/mybatis-3-mapper.dtd</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;"> 5</span> &lt;mapper <span style="color: #0000ff;">namespace</span>=<span style="color: #800000;">"</span><span style="color: #800000;">com.chenyanbin.dao.DeptMapper</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;"> 6</span>     &lt;insert id=<span style="color: #800000;">"</span><span style="color: #800000;">deptSave</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">        insert into dept (DEPTNO,DNAME,LOC,flag)
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        values(#{deptNo},#{dname},#{loc},#{flag})
+</span><span style="color: #008080;"> 9</span>     &lt;/insert&gt;
+<span style="color: #008080;">10</span>     &lt;<span style="color: #0000ff;">select</span> id=<span style="color: #800000;">"</span><span style="color: #800000;">deptFind</span><span style="color: #800000;">"</span> resultType=<span style="color: #800000;">"</span><span style="color: #800000;">Dept</span><span style="color: #800000;">"</span>&gt;
+<span style="color: #008080;">11</span>         <span style="color: #0000ff;">select</span> deptNo,dname,loc,flag <span style="color: #0000ff;">from</span><span style="color: #000000;"> dept
+</span><span style="color: #008080;">12</span>     &lt;/<span style="color: #0000ff;">select</span>&gt;
+<span style="color: #008080;">13</span> &lt;/mapper&gt;</code></pre>
+
+<src class="cnblogs_code" onclick="cnblogs_code_show('f42eff3b-6e89-4609-92ee-3ba1a70c1958')"><img id="code_img_closed_f42eff3b-6e89-4609-92ee-3ba1a70c1958" class="code_img_closed" src="./images/MyBatis详解 一篇就够啦2.png" alt="" /><img id="code_img_opened_f42eff3b-6e89-4609-92ee-3ba1a70c1958" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('f42eff3b-6e89-4609-92ee-3ba1a70c1958',event)" src="./images/MyBatis详解 一篇就够啦3.png" alt="" />
+<src id="cnblogs_code_open_f42eff3b-6e89-4609-92ee-3ba1a70c1958" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+<span style="color: #008080;"> 2</span> &lt;!<span style="color: #000000;">DOCTYPE configuration
+</span><span style="color: #008080;"> 3</span>   PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+<span style="color: #008080;"> 4</span>   "http://mybatis.org/dtd/mybatis-3-config.dtd"&gt;
+<span style="color: #008080;"> 5</span> &lt;configuration&gt;
+<span style="color: #008080;"> 6</span>     &lt;!-- 属性配置 --&gt;
+<span style="color: #008080;"> 7</span>     &lt;properties resource="config.properties"&gt;&lt;/properties&gt;
+<span style="color: #008080;"> 8</span>     &lt;!-- 别名配置 --&gt;
+<span style="color: #008080;"> 9</span>     &lt;typeAliases&gt;
+<span style="color: #008080;">10</span>         &lt;<span style="color: #0000ff;">package</span> name="com.chenyanbin.beans" /&gt;
+<span style="color: #008080;">11</span>         &lt;<span style="color: #0000ff;">package</span> name="com.chenyanbin.dao" /&gt;
+<span style="color: #008080;">12</span>     &lt;/typeAliases&gt;
+<span style="color: #008080;">13</span>     &lt;!-- 环境配置 --&gt;
+<span style="color: #008080;">14</span>     &lt;environments <span style="color: #0000ff;">default</span>="development"&gt;
+<span style="color: #008080;">15</span>         &lt;!-- 环境配置 --&gt;
+<span style="color: #008080;">16</span>         &lt;environment id="development"&gt;
+<span style="color: #008080;">17</span>             &lt;!-- 事务管理器 --&gt;
+<span style="color: #008080;">18</span>             &lt;transactionManager type="JDBC"&gt;&lt;/transactionManager&gt;
+<span style="color: #008080;">19</span>             &lt;!-- 数据源 --&gt;
+<span style="color: #008080;">20</span>             &lt;dataSource type="pooled"&gt;
+<span style="color: #008080;">21</span>                 &lt;property name="driver" value="${jdbc.driver}" /&gt;
+<span style="color: #008080;">22</span>                 &lt;property name="url" value="${jdbc.url}" /&gt;
+<span style="color: #008080;">23</span>                 &lt;property name="username" value="${jdbc.username}" /&gt;
+<span style="color: #008080;">24</span>                 &lt;property name="password" value="${jdbc.password}" /&gt;
+<span style="color: #008080;">25</span>             &lt;/dataSource&gt;
+<span style="color: #008080;">26</span>         &lt;/environment&gt;
+<span style="color: #008080;">27</span>     &lt;/environments&gt;
+<span style="color: #008080;">28</span>     &lt;!-- 映射器 --&gt;
+<span style="color: #008080;">29</span>     &lt;mappers&gt;
+<span style="color: #008080;">30</span>         &lt;<span style="color: #0000ff;">package</span> name="com.chenyanbin.dao" /&gt;
+<span style="color: #008080;">31</span>     &lt;/mappers&gt;
+<span style="color: #008080;">32</span> &lt;/configuration&gt;</code></pre>
+
+<span class="cnblogs_code_collapse">方式二：myBatis-config.xml</span>
+<src class="cnblogs_code" onclick="cnblogs_code_show('e04cb30b-f352-413c-a3b0-5b85d2804d9e')"><img id="code_img_closed_e04cb30b-f352-413c-a3b0-5b85d2804d9e" class="code_img_closed" src="./images/MyBatis详解 一篇就够啦2.png" alt="" /><img id="code_img_opened_e04cb30b-f352-413c-a3b0-5b85d2804d9e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e04cb30b-f352-413c-a3b0-5b85d2804d9e',event)" src="./images/MyBatis详解 一篇就够啦3.png" alt="" />
+<src id="cnblogs_code_open_e04cb30b-f352-413c-a3b0-5b85d2804d9e" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+<span style="color: #008080;"> 2</span> &lt;!<span style="color: #000000;">DOCTYPE mapper
+</span><span style="color: #008080;"> 3</span>   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+<span style="color: #008080;"> 4</span>   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"&gt;
+<span style="color: #008080;"> 5</span> &lt;mapper namespace="com.chenyanbin.dao.DeptMapper"&gt;
+<span style="color: #008080;"> 6</span>     &lt;insert id="deptSave"&gt;
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">        insert into dept (DEPTNO,DNAME,LOC,flag)
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        values(#{deptNo},#{dname},#{loc},#{flag})
+</span><span style="color: #008080;"> 9</span>     &lt;/insert&gt;
+<span style="color: #008080;">10</span>     &lt;resultMap type="dept" id="deptMap"&gt;
+<span style="color: #008080;">11</span>     &lt;result column="flag" property="flag" typeHandler="com.chenyanbin.util.MyTypeHandler"/&gt;
+<span style="color: #008080;">12</span>     &lt;/resultMap&gt;
+<span style="color: #008080;">13</span>     &lt;select id="deptFind" resultType="Dept"&gt;
+<span style="color: #008080;">14</span> <span style="color: #000000;">        select deptNo,dname,loc,flag from dept
+</span><span style="color: #008080;">15</span>     &lt;/select&gt;
+<span style="color: #008080;">16</span> &lt;/mapper&gt;</code></pre>
+
+<span class="cnblogs_code_collapse">方式二：DeptMapper.xml</span>
+<p>(7) 执行单元测试:TestMain_01.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">package com.chenyanbin.test;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">import java.io.IOException;
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">import java.io.InputStream;
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">import java.util.List;
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">import org.apache.ibatis.io.Resources;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">import org.apache.ibatis.session.SqlSession;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">import org.apache.ibatis.session.SqlSessionFactory;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">import org.apache.ibatis.session.SqlSessionFactoryBuilder;
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">import org.junit.After;
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">import org.junit.Before;
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">import org.junit.Test;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">import com.chenyanbin.beans.Dept;
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">import com.chenyanbin.dao.DeptMapper;
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestMain_01 {
+</span><span style="color: #008080;">17</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> SqlSession session;
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span> <span style="color: #000000;">    @Before
+</span><span style="color: #008080;">20</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Start() {
+</span><span style="color: #008080;">21</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">22</span>             InputStream inputStream = Resources.getResourceAsStream(<span style="color: #800000;">"</span><span style="color: #800000;">myBatis-config.xml</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">23</span>             SqlSessionFactory factory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlSessionFactoryBuilder().build(inputStream);
+</span><span style="color: #008080;">24</span>             session =<span style="color: #000000;"> factory.openSession();
+</span><span style="color: #008080;">25</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span> <span style="color: #000000;">    @After
+</span><span style="color: #008080;">31</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> end() {
+</span><span style="color: #008080;">32</span>         <span style="color: #0000ff;">if</span> (session == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">            session.close();
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">36</span> 
+<span style="color: #008080;">37</span> <span style="color: #000000;">    @Test
+</span><span style="color: #008080;">38</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test01() throws IOException {
+</span><span style="color: #008080;">39</span>         Dept d2 = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Dept();
+</span><span style="color: #008080;">40</span>         d2.setDname(<span style="color: #800000;">"</span><span style="color: #800000;">上海事业部</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">41</span>         d2.setLoc(<span style="color: #800000;">"</span><span style="color: #800000;">上海</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #008080;">42</span>         d2.setFlag(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">43</span>         session.insert(<span style="color: #800000;">"</span><span style="color: #800000;">deptSave</span><span style="color: #800000;">"</span><span style="color: #000000;">, d2);
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">        session.commit();
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">        session.close();
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">47</span> 
+<span style="color: #008080;">48</span> <span style="color: #000000;">    @Test
+</span><span style="color: #008080;">49</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test02() {        
+</span><span style="color: #008080;">50</span>           DeptMapper dao=session.getMapper(DeptMapper.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+</span><span style="color: #008080;">51</span>           List&lt;Dept&gt; deptList=<span style="color: #000000;">dao.deptFind();
+</span><span style="color: #008080;">52</span>           System.<span style="color: #0000ff;">out</span>.println(<span style="color: #800000;">"</span><span style="color: #800000;">ok</span><span style="color: #800000;">"</span><span style="color: #000000;">);         
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">54</span> 
+<span style="color: #008080;">55</span> }</code></pre>
+
+<p>(8) 项目目录结构</p>
+<p><img src="./images/MyBatis详解 一篇就够啦6.png" alt="" /></p>
+<h2>&nbsp;1.2 objectFactory 对象工厂</h2>
+<p>　　MyBatis 每次创建结果对象的新实例时，它都会使用一个对象工厂（ObjectFactory）实例来完成。&nbsp;默认的对象工厂需要做的仅仅是实例化目标类，要么通过默认构造方法，要么在参数映射存在的时候通过参数构造方法来实例化。&nbsp;如果想覆盖对象工厂的默认行为，则可以通过创建自己的对象工厂来实现。</p>
+<h3>1.2.1 自定义对象工厂</h3>
+<p>表结构:dept</p>
+<p><img src="./images/MyBatis详解 一篇就够啦7.png" alt="" /></p>
+<p>&nbsp;实体类:Dept.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.chenyanbin.beans;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Dept {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer deptNo;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String dname;
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String loc;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Boolean flag;
+</span><span style="color: #ff0000;"><strong> 8     private String country;
+</strong></span><span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getCountry() {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> country;
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setCountry(String country) {
+</span><span style="color: #008080;">13</span>         <span style="color: #0000ff;">this</span>.country =<span style="color: #000000;"> country;
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getDeptNo() {
+</span><span style="color: #008080;">16</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> deptNo;
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Boolean getFlag() {
+</span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> flag;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">21</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setFlag(Boolean flag) {
+</span><span style="color: #008080;">22</span>         <span style="color: #0000ff;">this</span>.flag =<span style="color: #000000;"> flag;
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">24</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setDeptNo(Integer deptNo) {
+</span><span style="color: #008080;">25</span>         <span style="color: #0000ff;">this</span>.deptNo =<span style="color: #000000;"> deptNo;
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">27</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getDname() {
+</span><span style="color: #008080;">28</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> dname;
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">30</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setDname(String dname) {
+</span><span style="color: #008080;">31</span>         <span style="color: #0000ff;">this</span>.dname =<span style="color: #000000;"> dname;
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">33</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getLoc() {
+</span><span style="color: #008080;">34</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> loc;
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">36</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setLoc(String loc) {
+</span><span style="color: #008080;">37</span>         <span style="color: #0000ff;">this</span>.loc =<span style="color: #000000;"> loc;
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">39</span> }</code></pre>
+
+<p>(1) 继承与DefaultObjectFactory：MyObjectFactory.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.chenyanbin.util;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.reflection.factory.DefaultObjectFactory;
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.chenyanbin.beans.Dept;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> MyObjectFactory <span style="color: #0000ff;">extends</span><span style="color: #000000;"> DefaultObjectFactory {
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">    @Override
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">public</span> Object create(Class type) {<span style="color: #008000;">//</span><span style="color: #008000;"> 重新定义Dept类实例对象创建规则，其他类实例对象创建规则不想改变</span>
+<span style="color: #008080;">11</span>         <span style="color: #0000ff;">if</span> (Dept.<span style="color: #0000ff;">class</span> ==<span style="color: #000000;"> type) {
+</span><span style="color: #008080;">12</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 依靠父类提供create方法创建Dept对象</span>
+<span style="color: #008080;">13</span>             Dept dept = (Dept) <span style="color: #0000ff;">super</span><span style="color: #000000;">.create(type);
+</span><span style="color: #008080;">14</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 设置自定义规则</span>
+<span style="color: #008080;">15</span>             dept.setCountry("China"<span style="color: #000000;">);
+</span><span style="color: #008080;">16</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> dept;
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">18</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">super</span><span style="color: #000000;">.create(type);
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span> }</code></pre>
+
+<p>(2) 在MyBatis核心文件中注册自定义工厂</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+<span style="color: #008080;"> 2</span> &lt;!<span style="color: #000000;">DOCTYPE configuration
+</span><span style="color: #008080;"> 3</span>   PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+<span style="color: #008080;"> 4</span>   "http://mybatis.org/dtd/mybatis-3-config.dtd"&gt;
+<span style="color: #008080;"> 5</span> &lt;configuration&gt;
+<span style="color: #008080;"> 6</span>     &lt;!-- 属性配置 --&gt;
+<span style="color: #008080;"> 7</span>     &lt;properties resource="config.properties"&gt;&lt;/properties&gt;
+<span style="color: #008080;"> 8</span>     &lt;!-- 别名配置 --&gt;
+<span style="color: #008080;"> 9</span>     &lt;typeAliases&gt;
+<span style="color: #008080;">10</span>         &lt;<span style="color: #0000ff;">package</span> name="com.chenyanbin.beans" /&gt;
+<span style="color: #008080;">11</span>         &lt;<span style="color: #0000ff;">package</span> name="com.chenyanbin.dao" /&gt;
+<span style="color: #008080;">12</span>     &lt;/typeAliases&gt;
+<span style="color: #ff0000;"><strong>13     &lt;!-- ObjectFactory对象工厂 --&gt;
+14     &lt;objectFactory type="com.chenyanbin.util.MyObjectFactory"&gt;&lt;/objectFactory&gt;</strong></span>
+<span style="color: #008080;">15</span>     &lt;!-- 类型处理器 --&gt;
+<span style="color: #008080;">16</span> &lt;!--     &lt;typeHandlers&gt;
+<span style="color: #008080;">17</span> <span style="color: #000000;">        从java中的Boolean转jdbc中的NUMERIC
+</span><span style="color: #008080;">18</span>         &lt;typeHandler handler="com.chenyanbin.util.MyTypeHandler"
+<span style="color: #008080;">19</span>             javaType="Boolean" jdbcType="NUMERIC" /&gt;
+<span style="color: #008080;">20</span>     &lt;/typeHandlers&gt; --&gt;
+<span style="color: #008080;">21</span>     &lt;!-- 环境配置 --&gt;
+<span style="color: #008080;">22</span>     &lt;environments <span style="color: #0000ff;">default</span>="development"&gt;
+<span style="color: #008080;">23</span>         &lt;!-- 环境配置 --&gt;
+<span style="color: #008080;">24</span>         &lt;environment id="development"&gt;
+<span style="color: #008080;">25</span>             &lt;!-- 事务管理器 --&gt;
+<span style="color: #008080;">26</span>             &lt;transactionManager type="JDBC"&gt;&lt;/transactionManager&gt;
+<span style="color: #008080;">27</span>             &lt;!-- 数据源 --&gt;
+<span style="color: #008080;">28</span>             &lt;dataSource type="pooled"&gt;
+<span style="color: #008080;">29</span>                 &lt;property name="driver" value="${jdbc.driver}" /&gt;
+<span style="color: #008080;">30</span>                 &lt;property name="url" value="${jdbc.url}" /&gt;
+<span style="color: #008080;">31</span>                 &lt;property name="username" value="${jdbc.username}" /&gt;
+<span style="color: #008080;">32</span>                 &lt;property name="password" value="${jdbc.password}" /&gt;
+<span style="color: #008080;">33</span>             &lt;/dataSource&gt;
+<span style="color: #008080;">34</span>         &lt;/environment&gt;
+<span style="color: #008080;">35</span>     &lt;/environments&gt;
+<span style="color: #008080;">36</span>     &lt;!-- 映射器 --&gt;
+<span style="color: #008080;">37</span>     &lt;mappers&gt;
+<span style="color: #008080;">38</span>         &lt;<span style="color: #0000ff;">package</span> name="com.chenyanbin.dao" /&gt;
+<span style="color: #008080;">39</span>     &lt;/mappers&gt;
+<span style="color: #008080;">40</span> &lt;/configuration&gt;</code></pre>
+
+<h2>&nbsp;1.3 Plugins 拦截器</h2>
+<p>　　拦截器的一个作用就是我们可以拦截某些方法的调用，我们可以选择在这些被拦截的方法执行前后加上某些逻辑，也可以在执行这些被拦截的方法时执行自己的逻辑而不再执行被拦截的方法。Mybatis拦截器设计的一个初衷就是为了供用户在某些时候可以实现自己的逻辑而不必去动Mybatis固有的逻辑。打个比方，对于Executor，Mybatis中有几种实现：BatchExecutor、ReuseExecutor、SimpleExecutor和CachingExecutor。这个时候如果你觉得这几种实现对于Executor接口的query方法都不能满足你的要求，那怎么办呢？是要去改源码吗？当然不。我们可以建立一个Mybatis拦截器用于拦截Executor接口的query方法，在拦截之后实现自己的query方法逻辑，之后可以选择是否继续执行原来的query方法。</p>
+<p>　　对于拦截器Mybatis为我们提供了一个Interceptor接口，通过实现该接口就可以定义我们自己的拦截器。我们先来看一下这个接口的定义：</p>
+<p><img src="./images/MyBatis详解 一篇就够啦8.png" alt="" /></p>
+<p>　　我们可以看到在该接口中一共定义有三个方法，intercept、plugin和setProperties。plugin方法是拦截器用于封装目标对象的，通过该方法我们可以返回目标对象本身，也可以返回一个它的代理。当返回的是代理的时候我们可以对其中的方法进行拦截来调用intercept方法，当然也可以调用其他方法，这点将在后文讲解。setProperties方法是用于在Mybatis配置文件中指定一些属性的。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 定义自己的Interceptor最重要的是要实现plugin方法和intercept方法，在plugin方法中我们可以决定是否要进行拦截进而决定要返回一个什么样的目标对象。而intercept方法就是要进行拦截的时候要执行的方法。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 对于plugin方法而言，其实Mybatis已经为我们提供了一个实现。Mybatis中有一个叫做Plugin的类，里面有一个静态方法wrap(Object target,Interceptor interceptor)，通过该方法可以决定要返回的对象是目标对象还是对应的代理。</p>
+<p>对于实现自己的Interceptor而言有两个很重要的注解，一个是@Intercepts，其值是一个@Signature数组。@Intercepts用于表明当前的对象是一个Interceptor，而@Signature则表明要拦截的接口、方法以及对应的参数类型。</p>
+<p>&nbsp;</p>
+<p>&nbsp;创建自己的拦截器：MySimpleInterceptor.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.chenyanbin.util;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Properties;
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.executor.Executor;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.mapping.MappedStatement;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.plugin.Interceptor;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.plugin.Intercepts;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.plugin.Invocation;
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.plugin.Plugin;
+</span><span style="color: #008080;">11</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.plugin.Signature;
+</span><span style="color: #008080;">12</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.ResultHandler;
+</span><span style="color: #008080;">13</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.RowBounds;
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span> @Intercepts({ @Signature(method = "query", type = Executor.<span style="color: #0000ff;">class</span>, args = { MappedStatement.<span style="color: #0000ff;">class</span>, Object.<span style="color: #0000ff;">class</span><span style="color: #000000;">,
+</span><span style="color: #008080;">16</span>         RowBounds.<span style="color: #0000ff;">class</span>, ResultHandler.<span style="color: #0000ff;">class</span><span style="color: #000000;"> }) })
+</span><span style="color: #008080;">17</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> MySimpleInterceptor <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Interceptor {
+</span><span style="color: #008080;">18</span>     <span style="color: #008000;">/*</span>
+<span style="color: #008080;">19</span> <span style="color: #008000;">     * 参数：Invocation {代理对象，被监控的方法对象，当前被监控方法运行时需要实参}
+</span><span style="color: #008080;">20</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">21</span>     <span style="color: #0000ff;">public</span> Object intercept(Invocation invocation) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+</span><span style="color: #008080;">22</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated method stub</span>
+<span style="color: #008080;">23</span>         System.out.println("被拦截方法执行之前，做的辅助服务。。。。。"<span style="color: #000000;">);
+</span><span style="color: #008080;">24</span>         Object object = invocation.proceed(); <span style="color: #008000;">//</span><span style="color: #008000;"> 执行被拦截方法</span>
+<span style="color: #008080;">25</span>         System.out.println("被拦截方法执行之后，做的辅助服务。。。。。"<span style="color: #000000;">);
+</span><span style="color: #008080;">26</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> object;
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">28</span> 
+<span style="color: #008080;">29</span>     <span style="color: #008000;">/*</span>
+<span style="color: #008080;">30</span> <span style="color: #008000;">     * 参数：target 表示被拦截的对象，应该是Executor接口实例对象 作用： 如果 被拦截的对象所在的类是有实现接口就为当前拦截对象生成一个代理对象
+</span><span style="color: #008080;">31</span> <span style="color: #008000;">     * 如果被拦截的对象所在的类没有指定接口，这个对象之后的行为不会被代理操作
+</span><span style="color: #008080;">32</span>      <span style="color: #008000;">*/</span>
+<span style="color: #008080;">33</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Object plugin(Object target) {
+</span><span style="color: #008080;">34</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated method stub</span>
+<span style="color: #008080;">35</span>         <span style="color: #0000ff;">return</span> Plugin.wrap(target, <span style="color: #0000ff;">this</span><span style="color: #000000;">);
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setProperties(Properties properties) {
+</span><span style="color: #008080;">39</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated method stub</span>
+<span style="color: #008080;">40</span> 
+<span style="color: #008080;">41</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span> }</code></pre>
+
+<p>MyBatis核心配置文件：myBatis-config.xml</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+<span style="color: #008080;"> 2</span> &lt;!<span style="color: #000000;">DOCTYPE configuration
+</span><span style="color: #008080;"> 3</span>   PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+<span style="color: #008080;"> 4</span>   "http://mybatis.org/dtd/mybatis-3-config.dtd"&gt;
+<span style="color: #008080;"> 5</span> &lt;configuration&gt;
+<span style="color: #008080;"> 6</span>     &lt;!-- 属性配置 --&gt;
+<span style="color: #008080;"> 7</span>     &lt;properties resource="config.properties"&gt;&lt;/properties&gt;
+<span style="color: #008080;"> 8</span>     &lt;!-- 别名配置 --&gt;
+<span style="color: #008080;"> 9</span>     &lt;typeAliases&gt;
+<span style="color: #008080;">10</span>         &lt;<span style="color: #0000ff;">package</span> name="com.chenyanbin.beans" /&gt;
+<span style="color: #008080;">11</span>         &lt;<span style="color: #0000ff;">package</span> name="com.chenyanbin.dao" /&gt;
+<span style="color: #008080;">12</span>     &lt;/typeAliases&gt;
+<span style="color: #008080;">13</span>     &lt;!-- ObjectFactory对象工厂 --&gt;
+<span style="color: #008080;">14</span>     &lt;objectFactory type="com.chenyanbin.util.MyObjectFactory"&gt;&lt;/objectFactory&gt;
+<span style="color: #ff0000;"><strong>15     &lt;!-- Plugins拦截器 --&gt;
+16     &lt;plugins&gt;
+17         &lt;plugin interceptor="com.chenyanbin.util.MySimpleInterceptor"&gt;&lt;/plugin&gt;
+18     &lt;/plugins&gt;</strong></span>
+<span style="color: #008080;">19</span>     &lt;!-- 类型处理器 --&gt;
+<span style="color: #008080;">20</span>     &lt;!-- &lt;typeHandlers&gt; 从java中的Boolean转jdbc中的NUMERIC &lt;typeHandler handler="com.chenyanbin.util.MyTypeHandler" 
+<span style="color: #008080;">21</span>         javaType="Boolean" jdbcType="NUMERIC" /&gt; &lt;/typeHandlers&gt; --&gt;
+<span style="color: #008080;">22</span>     &lt;!-- 环境配置 --&gt;
+<span style="color: #008080;">23</span>     &lt;environments <span style="color: #0000ff;">default</span>="development"&gt;
+<span style="color: #008080;">24</span>         &lt;!-- 环境配置 --&gt;
+<span style="color: #008080;">25</span>         &lt;environment id="development"&gt;
+<span style="color: #008080;">26</span>             &lt;!-- 事务管理器 --&gt;
+<span style="color: #008080;">27</span>             &lt;transactionManager type="JDBC"&gt;&lt;/transactionManager&gt;
+<span style="color: #008080;">28</span>             &lt;!-- 数据源 --&gt;
+<span style="color: #008080;">29</span>             &lt;dataSource type="pooled"&gt;
+<span style="color: #008080;">30</span>                 &lt;property name="driver" value="${jdbc.driver}" /&gt;
+<span style="color: #008080;">31</span>                 &lt;property name="url" value="${jdbc.url}" /&gt;
+<span style="color: #008080;">32</span>                 &lt;property name="username" value="${jdbc.username}" /&gt;
+<span style="color: #008080;">33</span>                 &lt;property name="password" value="${jdbc.password}" /&gt;
+<span style="color: #008080;">34</span>             &lt;/dataSource&gt;
+<span style="color: #008080;">35</span>         &lt;/environment&gt;
+<span style="color: #008080;">36</span>     &lt;/environments&gt;
+<span style="color: #008080;">37</span>     &lt;!-- 映射器 --&gt;
+<span style="color: #008080;">38</span>     &lt;mappers&gt;
+<span style="color: #008080;">39</span>         &lt;<span style="color: #0000ff;">package</span> name="com.chenyanbin.dao" /&gt;
+<span style="color: #008080;">40</span>     &lt;/mappers&gt;
+<span style="color: #008080;">41</span> &lt;/configuration&gt;</code></pre>
+
+<p>单元测试</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.chenyanbin.test;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.IOException;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.InputStream;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.io.Resources;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.plugin.Interceptor;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSession;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSessionFactory;
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSessionFactoryBuilder;
+</span><span style="color: #008080;">11</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.After;
+</span><span style="color: #008080;">12</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Before;
+</span><span style="color: #008080;">13</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #008080;">14</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.chenyanbin.beans.Dept;
+</span><span style="color: #008080;">15</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.chenyanbin.dao.DeptMapper;
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestMain_01 {
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> SqlSession session;
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span> <span style="color: #000000;">    @Before
+</span><span style="color: #008080;">21</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Start() {
+</span><span style="color: #008080;">22</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">23</span>             InputStream inputStream = Resources.getResourceAsStream("myBatis-config.xml"<span style="color: #000000;">);
+</span><span style="color: #008080;">24</span>             SqlSessionFactory factory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlSessionFactoryBuilder().build(inputStream);
+</span><span style="color: #008080;">25</span>             session =<span style="color: #000000;"> factory.openSession();
+</span><span style="color: #008080;">26</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">30</span> 
+<span style="color: #008080;">31</span> <span style="color: #000000;">    @After
+</span><span style="color: #008080;">32</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> end() {
+</span><span style="color: #008080;">33</span>         <span style="color: #0000ff;">if</span> (session == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">            session.close();
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span> <span style="color: #000000;">    @Test
+</span><span style="color: #008080;">39</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> test01() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+</span><span style="color: #008080;">40</span>         Dept d2 = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Dept();
+</span><span style="color: #008080;">41</span>         d2.setDname("上海事业部"<span style="color: #000000;">);
+</span><span style="color: #008080;">42</span>         d2.setLoc("上海"<span style="color: #000000;">);
+</span><span style="color: #008080;">43</span>         d2.setFlag(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">44</span>         session.insert("deptSave"<span style="color: #000000;">, d2);
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">        session.commit();
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">        session.close();
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">48</span> 
+<span style="color: #008080;">49</span> <span style="color: #000000;">    @Test
+</span><span style="color: #008080;">50</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test02() {    
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">        Interceptor ccInterceptor;
+</span><span style="color: #008080;">52</span>           DeptMapper dao=session.getMapper(DeptMapper.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+</span><span style="color: #008080;">53</span>           List&lt;Dept&gt; deptList=<span style="color: #000000;">dao.deptFind();
+</span><span style="color: #008080;">54</span>           System.out.println("ok"<span style="color: #000000;">);         
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">56</span> 
+<span style="color: #008080;">57</span> }</code></pre>
+
+<p><img src="./images/MyBatis详解 一篇就够啦9.png" alt="" /></p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('a1b97ebb-ccb2-44a9-b902-58b9e74569e5')"><img id="code_img_closed_a1b97ebb-ccb2-44a9-b902-58b9e74569e5" class="code_img_closed" src="./images/MyBatis详解 一篇就够啦2.png" alt="" /><img id="code_img_opened_a1b97ebb-ccb2-44a9-b902-58b9e74569e5" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a1b97ebb-ccb2-44a9-b902-58b9e74569e5',event)" src="./images/MyBatis详解 一篇就够啦3.png" alt="" />
+<src id="cnblogs_code_open_a1b97ebb-ccb2-44a9-b902-58b9e74569e5" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">##define an appender named console
+</span><span style="color: #008080;"> 2</span> log4j.appender.console=<span style="color: #000000;">org.apache.log4j.ConsoleAppender
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">#The Target value is System.out or System.err
+</span><span style="color: #008080;"> 4</span> log4j.appender.console.Target=<span style="color: #000000;">System.out
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">#set the layout type of the apperder
+</span><span style="color: #008080;"> 6</span> log4j.appender.console.layout=<span style="color: #000000;">org.apache.log4j.PatternLayout
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">#set the layout format pattern
+</span><span style="color: #008080;"> 8</span> log4j.appender.console.layout.ConversionPattern=[%-5p] %m%<span style="color: #000000;">n
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span> <span style="color: #000000;">##define a logger
+</span><span style="color: #008080;">11</span> log4j.rootLogger=debug,console</code></pre>
+
+<span class="cnblogs_code_collapse">log4j.properties</span>
+<p>MyBatis自定义拦截器，可以拦截接口只有四种.</p>
+<ul>
+<li>Executor.class</li>
+<li>StatementHandler.class</li>
+<li>ParameterHandler.class</li>
+<li>ResultSetHandler.class</li>
+</ul>
+<h1>&nbsp;第二章 MyBatis框架Mapper配置文件详解</h1>
+<h2>2.1 参数(#{参数名})</h2>
+<p>&nbsp;#{}实现的是向prepareStatement中的预处理语句中设置参数值，sql语句中#{}表示一个占位符即?</p>
+<p><img src="./images/MyBatis详解 一篇就够啦12.png" alt="" /></p>
+<p>使用#{参数名},将参数的内容添加到sql语句中指定位置.</p>
+<p>如果当前sql语句中只有一个参数,此时参数名称可以随意定义</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;但是,如果当前sql语句有多个参数,此时参数名称应该是与当前表关联[实体类的属性名]或则[Map集合关键字]</p>
+<p><img src="./images/MyBatis详解 一篇就够啦13.png" alt="" /></p>
+<p>上述SQL语句在调用时,我们可以分别采用如下两种方式输入参数</p>
+<p><img src="./images/MyBatis详解 一篇就够啦14.png" alt="" /></p>
+<p>使用#{}读取实体类对象属性内容</p>
+<p><img src="./images/MyBatis详解 一篇就够啦15.png" alt="" /></p>
+<p>使用#{}读取map集合中关键字的值</p>
+<h2>2.2 #{}和${}区别</h2>
+<p>在MyBatis中提供了两种方式读取参数的内容到SQL语句中,分别是</p>
+<p>#{参数名} :实体类对象或则Map集合读取内容</p>
+<p>&nbsp;${参数名} :实体类对象或则Map集合读取内容</p>
+<p>&nbsp;</p>
+<p>为了能够看到两种方式的区别,需要看到MyBatis执行时输送的SQL情况.因此</p>
+<p>需要借助Log4J日志进行观察</p>
+<p>&nbsp;</p>
+<p>第一步: 加载Log4j日志工具包到项目</p>
+<p><img src="./images/MyBatis详解 一篇就够啦16.png" alt="" /></p>
+<p>第二步:将Log4j配置文件添加到src/main/resources下</p>
+<p><img src="./images/MyBatis详解 一篇就够啦17.png" alt="" /></p>
+<p>接下来,我们可以查看</p>
+<p><img src="./images/MyBatis详解 一篇就够啦18.png" alt="" /></p>
+<p>输出结果</p>
+<p><img src="./images/MyBatis详解 一篇就够啦19.png" alt="" /></p>
+<p>&nbsp;从这里我们可以看出两者的区别:</p>
+<p>&nbsp;#{} : 采用预编译方式,可以防止SQL注入</p>
+<p>&nbsp;${}: &nbsp;采用直接赋值方式,无法阻止SQL注入攻击</p>
+<p>在大多数情况下,我们都是采用#{}读取参数内容.但是在一些特殊的情况下,我们还是需要使用${}读取参数的.</p>
+<p>比如&nbsp;有两张表,分别是emp_2017 和&nbsp;emp_2018 .如果需要在查询语句中动态指定表名,就只能使用${}</p>
+<p>&lt;select&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;select * &nbsp;from emp_${year}</p>
+<p>&lt;select&gt;</p>
+<src class="cnblogs_code" onclick="cnblogs_code_show('46a563da-b604-496f-81e8-a75c34ce6f53')"><img id="code_img_closed_46a563da-b604-496f-81e8-a75c34ce6f53" class="code_img_closed" src="./images/MyBatis详解 一篇就够啦2.png" alt="" /><img id="code_img_opened_46a563da-b604-496f-81e8-a75c34ce6f53" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('46a563da-b604-496f-81e8-a75c34ce6f53',event)" src="./images/MyBatis详解 一篇就够啦3.png" alt="" />
+<src id="cnblogs_code_open_46a563da-b604-496f-81e8-a75c34ce6f53" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">1</span>     &lt;select id="deptFind2" resultType="Dept"&gt;
+<span style="color: #008080;">2</span>         select *<span style="color: #000000;"> from ${value}
+</span><span style="color: #008080;">3</span>     &lt;/select&gt;</code></pre>
+
+<span class="cnblogs_code_collapse">动态表名，此处只能:value</span>
+<p>再比如.需要动态的指定查询中的排序字段,此时也只能使用${}</p>
+<p>&lt;select&gt;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;select &nbsp;* &nbsp;from dept order by ${name}</p>
+<p>&lt;/select&gt;</p>
+<p>简单来说,在JDBC不支持使用占位符的地方,都可以使用${}</p>
+<h2>2.3 resultMap</h2>
+<p>　　MyBatis框架中是根据表中字段名到实体类定位同名属性的.如果出现了实体类属性名与表中字段名不一致的情况,则无法自动进行对应.此时可以使用resultMap来重新建立实体类与字段名之间对应关系.</p>
+<pre><code> &lt;!-- property对应实体类的属性名称，column为数据库结果集的列的名称 --&gt;</code></pre>
+<p><img src="./images/MyBatis详解 一篇就够啦22.png" alt="" /></p>
+<p>映射表没有的字段</p>
+<p>表结构</p>
+<p><img src="./images/MyBatis详解 一篇就够啦23.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;EmpMapper.xml</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+<span style="color: #008080;"> 2</span> &lt;!<span style="color: #000000;">DOCTYPE mapper
+</span><span style="color: #008080;"> 3</span>   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+<span style="color: #008080;"> 4</span>   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"&gt;
+<span style="color: #008080;"> 5</span> &lt;mapper namespace="com.chenyanbin.dao.EmpMapper"&gt;
+<span style="color: #008080;"> 6</span>     &lt;resultMap type="Employee" id="empMap"&gt;
+<span style="color: #008080;"> 7</span>         &lt;constructor&gt;
+<span style="color: #008080;"> 8</span>             &lt;arg column="hireDate" javaType="java.util.Date" /&gt;
+<span style="color: #008080;"> 9</span>         &lt;/constructor&gt;
+<span style="color: #008080;">10</span>     &lt;/resultMap&gt;
+<span style="color: #008080;">11</span>     &lt;select id="empFind" resultMap="empMap"&gt;
+<span style="color: #008080;">12</span>         select *<span style="color: #000000;"> from emp2
+</span><span style="color: #008080;">13</span>     &lt;/select&gt;
+<span style="color: #008080;">14</span> &lt;/mapper&gt;</code></pre>
+
+<p>EmpMapper.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.chenyanbin.dao;
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> EmpMapper {
+</span><span style="color: #008080;">6</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> List empFind();
+</span><span style="color: #008080;">7</span> }</code></pre>
+
+<p>Employee.java</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.chenyanbin.beans;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.text.SimpleDateFormat;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Date;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Employee {
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer empNo;
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String ename;
+</span><span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String job;
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Double sal;
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Date hireDate;
+</span><span style="color: #008080;">12</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 职员工作年限</span>
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> workAge;
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 构造函数</span>
+<span style="color: #008080;">16</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Employee(Date tempDate) {
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">this</span>.hireDate =<span style="color: #000000;"> tempDate;
+</span><span style="color: #008080;">18</span>         SimpleDateFormat sdf = <span style="color: #0000ff;">new</span> SimpleDateFormat("yyyy"<span style="color: #000000;">);
+</span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">this</span>.workAge = Integer.valueOf(sdf.format(<span style="color: #0000ff;">new</span> Date())) -<span style="color: #000000;"> Integer.valueOf(sdf.format(tempDate));
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getWorkAge() {
+</span><span style="color: #008080;">24</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> workAge;
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setWorkAge(<span style="color: #0000ff;">int</span><span style="color: #000000;"> workAge) {
+</span><span style="color: #008080;">28</span>         <span style="color: #0000ff;">this</span>.workAge =<span style="color: #000000;"> workAge;
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">30</span> 
+<span style="color: #008080;">31</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getEmpNo() {
+</span><span style="color: #008080;">32</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> empNo;
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setEmpNo(Integer empNo) {
+</span><span style="color: #008080;">36</span>         <span style="color: #0000ff;">this</span>.empNo =<span style="color: #000000;"> empNo;
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">38</span> 
+<span style="color: #008080;">39</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getEname() {
+</span><span style="color: #008080;">40</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> ename;
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setEname(String ename) {
+</span><span style="color: #008080;">44</span>         <span style="color: #0000ff;">this</span>.ename =<span style="color: #000000;"> ename;
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">46</span> 
+<span style="color: #008080;">47</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getJob() {
+</span><span style="color: #008080;">48</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> job;
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">50</span> 
+<span style="color: #008080;">51</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setJob(String job) {
+</span><span style="color: #008080;">52</span>         <span style="color: #0000ff;">this</span>.job =<span style="color: #000000;"> job;
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">54</span> 
+<span style="color: #008080;">55</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Double getSal() {
+</span><span style="color: #008080;">56</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> sal;
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">58</span> 
+<span style="color: #008080;">59</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setSal(Double sal) {
+</span><span style="color: #008080;">60</span>         <span style="color: #0000ff;">this</span>.sal =<span style="color: #000000;"> sal;
+</span><span style="color: #008080;">61</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">62</span> 
+<span style="color: #008080;">63</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Date getHireDate() {
+</span><span style="color: #008080;">64</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> hireDate;
+</span><span style="color: #008080;">65</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">66</span> 
+<span style="color: #008080;">67</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setHireDate(Date hireDate) {
+</span><span style="color: #008080;">68</span>         <span style="color: #0000ff;">this</span>.hireDate =<span style="color: #000000;"> hireDate;
+</span><span style="color: #008080;">69</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">70</span> }</code></pre>
+
+<p>单元测试</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.chenyanbin.test;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.io.InputStream;
+</span><span style="color: #008080;"> 4</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.io.Resources;
+</span><span style="color: #008080;"> 6</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSession;
+</span><span style="color: #008080;"> 7</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSessionFactory;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.apache.ibatis.session.SqlSessionFactoryBuilder;
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.After;
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Before;
+</span><span style="color: #008080;">11</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> org.junit.Test;
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.chenyanbin.beans.Employee;
+</span><span style="color: #008080;">14</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.chenyanbin.dao.DeptMapper;
+</span><span style="color: #008080;">15</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> com.chenyanbin.dao.EmpMapper;
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> TestMain_01 {
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> SqlSession session;
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span> <span style="color: #000000;">    @Before
+</span><span style="color: #008080;">21</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> Start() {
+</span><span style="color: #008080;">22</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">23</span>             InputStream inputStream = Resources.getResourceAsStream("myBatis-config.xml"<span style="color: #000000;">);
+</span><span style="color: #008080;">24</span>             SqlSessionFactory factory = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlSessionFactoryBuilder().build(inputStream);
+</span><span style="color: #008080;">25</span>             session =<span style="color: #000000;"> factory.openSession();
+</span><span style="color: #008080;">26</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">30</span> 
+<span style="color: #008080;">31</span> <span style="color: #000000;">    @After
+</span><span style="color: #008080;">32</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> end() {
+</span><span style="color: #008080;">33</span>         <span style="color: #0000ff;">if</span> (session == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">            session.close();
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">    @Test
+</span><span style="color: #008080;">38</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> test01() {        
+</span><span style="color: #008080;">39</span>         <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">40</span>             EmpMapper dao=session.getMapper(EmpMapper.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+</span><span style="color: #008080;">41</span>               List&lt;Employee&gt; deptList=<span style="color: #000000;">dao.empFind();
+</span><span style="color: #008080;">42</span>               System.out.println("sssss"<span style="color: #000000;">);
+</span><span style="color: #008080;">43</span>         } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">            e.printStackTrace();
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">47</span> }</code></pre>
+
+<p>项目结构</p>
+<p><img src="./images/MyBatis详解 一篇就够啦24.png" alt="" /></p>
+<h2>&nbsp;2.4 Sql标签</h2>
+<p>首先,我们如下两条SQL映射</p>
+<p><img src="./images/MyBatis详解 一篇就够啦25.png" alt="" /></p>
+<p>这两条查询映射中要查询的表以及查询的字段是完全一致的.因此可以&lt;sql&gt;标签</p>
+<p>&nbsp;将[select &nbsp;* &nbsp;from dept]进行抽取.</p>
+<p><img src="./images/MyBatis详解 一篇就够啦26.png" alt="" /></p>
+<p>在需要使用到这个查询的地方,通过&lt;include&gt;标签进行引用</p>
+<p><img src="./images/MyBatis详解 一篇就够啦27.png" alt="" /></p>
+<h1>&nbsp;第三章 MyBatis动态SQL</h1>
+<h2>3.1 什么是MyBatis动态SQL</h2>
+<p>&nbsp;根据用户提供的参数,动态决定查询语句依赖的查询条件或则SQL语句的内容</p>
+<h2>3.2 动态SQL依赖标签</h2>
+<ul>
+<li>if</li>
+<li>choose、when、otherwise</li>
+<li>trim、where、set</li>
+<li>foreach</li>
+</ul>
+<h3>if使用</h3>
+<p><img src="./images/MyBatis详解 一篇就够啦28.png" alt="" /></p>
+<p>&nbsp;</p>
+<h3>&nbsp;choose、when、otherwise</h3>
+<p>　　类似于Java中的switch case default. 只有一个条件生效,也就是只执行满足的条件when,没有满足的条件就执行otherwise,表示默认条件</p>
+<p><img src="./images/MyBatis详解 一篇就够啦29.png" alt="" /></p>
+<p>&nbsp;</p>
+<h3>&nbsp;when的使用</h3>
+<p><img src="./images/MyBatis详解 一篇就够啦30.png" alt="" /></p>
+<p>&nbsp;</p>
+<h3>&nbsp;set使用</h3>
+<p>会在成功拼接的条件前加上SET<span style="font-family: 宋体;">单词且最后一个</span>&rdquo;,&rdquo;号会被无视掉</p>
+<p><img src="./images/MyBatis详解 一篇就够啦31.png" alt="" /></p>
+<p>&nbsp;</p>
+<h3>&nbsp;trim使用</h3>
+<p><img src="./images/MyBatis详解 一篇就够啦32.png" alt="" /></p>
+<p>&nbsp;</p>
+<h3>&nbsp;foreach的使用</h3>
+<p>foreach标签用于对集合内容进行遍历,将得到内容作为SQL语句的一部分.</p>
+<p>在实际开发过程中主要用于in语句的构建和批量添加操作</p>
+<p>foreach元素的属性主要有&nbsp;item，index，collection，open，separator，close。</p>
+<p><img src="./images/MyBatis详解 一篇就够啦33.png" alt="" /></p>
+<p>案例1.使用foreach实现批处理添加</p>
+<p><img src="./images/MyBatis详解 一篇就够啦34.png" alt="" /></p>
+<p>&nbsp;案例2.使用foreach遍历list集合作为查询条件</p>
+<p><img src="./images/MyBatis详解 一篇就够啦35.png" alt="" /></p>
+<p>&nbsp;案例3.使用foreach遍历数组作为查询条件</p>
+<p><img src="./images/MyBatis详解 一篇就够啦36.png" alt="" /></p>
+<p>案例4.使用foreach遍历Map作为查询条件</p>
+<p><img src="./images/MyBatis详解 一篇就够啦37.png" alt="" /></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">public</span> List findForeachByMap(@Param(<span style="color: #800000;">"</span><span style="color: #800000;">myMap</span><span style="color: #800000;">"</span>)Map amp);</code></pre>
+
+<src class="cnblogs_code" onclick="cnblogs_code_show('8ec42437-d11b-4527-87ea-305cb5e42744')"><img id="code_img_closed_8ec42437-d11b-4527-87ea-305cb5e42744" class="code_img_closed" src="./images/MyBatis详解 一篇就够啦2.png" alt="" /><img id="code_img_opened_8ec42437-d11b-4527-87ea-305cb5e42744" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('8ec42437-d11b-4527-87ea-305cb5e42744',event)" src="./images/MyBatis详解 一篇就够啦3.png" alt="" />
+<src id="cnblogs_code_open_8ec42437-d11b-4527-87ea-305cb5e42744" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;">  1</span> &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+<span style="color: #008080;">  2</span> &lt;!<span style="color: #000000;">DOCTYPE mapper
+</span><span style="color: #008080;">  3</span>   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+<span style="color: #008080;">  4</span>   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"&gt;
+<span style="color: #008080;">  5</span> &lt;mapper namespace="com.chenyanbin.dao.DeptMapper"&gt;
+<span style="color: #008080;">  6</span>     &lt;resultMap type="dept" id="deptMap"&gt;
+<span style="color: #008080;">  7</span>         &lt;id column="dept_deptno" property="deptNo" /&gt;
+<span style="color: #008080;">  8</span>         &lt;result column="dname" property="dname" /&gt;
+<span style="color: #008080;">  9</span>         &lt;result column="loc" property="loc" /&gt;
+<span style="color: #008080;"> 10</span>         &lt;!-- collection标签中，column属性应该填写查询临时表中来自一方表主键字段名 --&gt;
+<span style="color: #008080;"> 11</span>         &lt;collection property="empList" ofType="Employee"
+<span style="color: #008080;"> 12</span>             column="dept_deptno"&gt;
+<span style="color: #008080;"> 13</span>             &lt;id column="empno" property="empNo" /&gt;
+<span style="color: #008080;"> 14</span>             &lt;result column="ename" property="ename" /&gt;
+<span style="color: #008080;"> 15</span>         &lt;/collection&gt;
+<span style="color: #008080;"> 16</span>     &lt;/resultMap&gt;
+<span style="color: #008080;"> 17</span>     &lt;!-- 查询当前部门下所有的职员名称以及当前部门基本信息 --&gt;
+<span style="color: #008080;"> 18</span>     &lt;select id="deptFindById" resultMap="deptMap"&gt;
+<span style="color: #008080;"> 19</span> <span style="color: #000000;">        select dept.deptno
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">        dept_deptno,dept.dname,dept.loc,emp.empno,emp.ename,emp.sal from dept
+</span><span style="color: #008080;"> 21</span>         join emp on dept.deptno=emp.deptno where dept.deptno=<span style="color: #000000;">#{deptno}
+</span><span style="color: #008080;"> 22</span>     &lt;/select&gt;
+<span style="color: #008080;"> 23</span> &lt;/mapper&gt;
+<span style="color: #008080;"> 24</span> 
+<span style="color: #008080;"> 25</span> =============================
+<span style="color: #008080;"> 26</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.chenyanbin.beans;
+</span><span style="color: #008080;"> 27</span> 
+<span style="color: #008080;"> 28</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.List;
+</span><span style="color: #008080;"> 29</span> 
+<span style="color: #008080;"> 30</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Dept {
+</span><span style="color: #008080;"> 31</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer deptNo;
+</span><span style="color: #008080;"> 32</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String dname;
+</span><span style="color: #008080;"> 33</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String loc;
+</span><span style="color: #008080;"> 34</span>     <span style="color: #008000;">//</span><span style="color: #008000;">隶属于当前部门下的所有职员集合</span>
+<span style="color: #008080;"> 35</span>     <span style="color: #0000ff;">private</span> List&lt;Employee&gt;<span style="color: #000000;"> empList;
+</span><span style="color: #008080;"> 36</span>     <span style="color: #0000ff;">public</span> List&lt;Employee&gt;<span style="color: #000000;"> getEmpList() {
+</span><span style="color: #008080;"> 37</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> empList;
+</span><span style="color: #008080;"> 38</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 39</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setEmpList(List&lt;Employee&gt;<span style="color: #000000;"> empList) {
+</span><span style="color: #008080;"> 40</span>         <span style="color: #0000ff;">this</span>.empList =<span style="color: #000000;"> empList;
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 42</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getDeptNo() {
+</span><span style="color: #008080;"> 43</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> deptNo;
+</span><span style="color: #008080;"> 44</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 45</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setDeptNo(Integer deptNo) {
+</span><span style="color: #008080;"> 46</span>         <span style="color: #0000ff;">this</span>.deptNo =<span style="color: #000000;"> deptNo;
+</span><span style="color: #008080;"> 47</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 48</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getDname() {
+</span><span style="color: #008080;"> 49</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> dname;
+</span><span style="color: #008080;"> 50</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 51</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setDname(String dname) {
+</span><span style="color: #008080;"> 52</span>         <span style="color: #0000ff;">this</span>.dname =<span style="color: #000000;"> dname;
+</span><span style="color: #008080;"> 53</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 54</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getLoc() {
+</span><span style="color: #008080;"> 55</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> loc;
+</span><span style="color: #008080;"> 56</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 57</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setLoc(String loc) {
+</span><span style="color: #008080;"> 58</span>         <span style="color: #0000ff;">this</span>.loc =<span style="color: #000000;"> loc;
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 60</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 61</span> 
+<span style="color: #008080;"> 62</span> 
+<span style="color: #008080;"> 63</span> ====================================
+<span style="color: #008080;"> 64</span> <span style="color: #0000ff;">package</span><span style="color: #000000;"> com.chenyanbin.beans;
+</span><span style="color: #008080;"> 65</span> 
+<span style="color: #008080;"> 66</span> <span style="color: #0000ff;">import</span><span style="color: #000000;"> java.util.Date;
+</span><span style="color: #008080;"> 67</span> 
+<span style="color: #008080;"> 68</span> <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Employee {
+</span><span style="color: #008080;"> 69</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer empNo;
+</span><span style="color: #008080;"> 70</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String ename;
+</span><span style="color: #008080;"> 71</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> String job;
+</span><span style="color: #008080;"> 72</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Double sal;
+</span><span style="color: #008080;"> 73</span>     <span style="color: #0000ff;">private</span><span style="color: #000000;"> Date hireDate;
+</span><span style="color: #008080;"> 74</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 职员工作年限</span>
+<span style="color: #008080;"> 75</span>     <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> workAge;
+</span><span style="color: #008080;"> 76</span> 
+<span style="color: #008080;"> 77</span> 
+<span style="color: #008080;"> 78</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> getWorkAge() {
+</span><span style="color: #008080;"> 79</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> workAge;
+</span><span style="color: #008080;"> 80</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 81</span> 
+<span style="color: #008080;"> 82</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setWorkAge(<span style="color: #0000ff;">int</span><span style="color: #000000;"> workAge) {
+</span><span style="color: #008080;"> 83</span>         <span style="color: #0000ff;">this</span>.workAge =<span style="color: #000000;"> workAge;
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 85</span> 
+<span style="color: #008080;"> 86</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Integer getEmpNo() {
+</span><span style="color: #008080;"> 87</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> empNo;
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 89</span> 
+<span style="color: #008080;"> 90</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setEmpNo(Integer empNo) {
+</span><span style="color: #008080;"> 91</span>         <span style="color: #0000ff;">this</span>.empNo =<span style="color: #000000;"> empNo;
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 93</span> 
+<span style="color: #008080;"> 94</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getEname() {
+</span><span style="color: #008080;"> 95</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> ename;
+</span><span style="color: #008080;"> 96</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 97</span> 
+<span style="color: #008080;"> 98</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setEname(String ename) {
+</span><span style="color: #008080;"> 99</span>         <span style="color: #0000ff;">this</span>.ename =<span style="color: #000000;"> ename;
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">101</span> 
+<span style="color: #008080;">102</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> String getJob() {
+</span><span style="color: #008080;">103</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> job;
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">105</span> 
+<span style="color: #008080;">106</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setJob(String job) {
+</span><span style="color: #008080;">107</span>         <span style="color: #0000ff;">this</span>.job =<span style="color: #000000;"> job;
+</span><span style="color: #008080;">108</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">109</span> 
+<span style="color: #008080;">110</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Double getSal() {
+</span><span style="color: #008080;">111</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> sal;
+</span><span style="color: #008080;">112</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">113</span> 
+<span style="color: #008080;">114</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setSal(Double sal) {
+</span><span style="color: #008080;">115</span>         <span style="color: #0000ff;">this</span>.sal =<span style="color: #000000;"> sal;
+</span><span style="color: #008080;">116</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">117</span> 
+<span style="color: #008080;">118</span>     <span style="color: #0000ff;">public</span><span style="color: #000000;"> Date getHireDate() {
+</span><span style="color: #008080;">119</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> hireDate;
+</span><span style="color: #008080;">120</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">121</span> 
+<span style="color: #008080;">122</span>     <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setHireDate(Date hireDate) {
+</span><span style="color: #008080;">123</span>         <span style="color: #0000ff;">this</span>.hireDate =<span style="color: #000000;"> hireDate;
+</span><span style="color: #008080;">124</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">125</span> }</code></pre>
+
+<span class="cnblogs_code_collapse">级联查询</span>
+<src class="cnblogs_code" onclick="cnblogs_code_show('b0a43673-77e8-487f-a7f0-b7e14512f986')"><img id="code_img_closed_b0a43673-77e8-487f-a7f0-b7e14512f986" class="code_img_closed" src="./images/MyBatis详解 一篇就够啦2.png" alt="" /><img id="code_img_opened_b0a43673-77e8-487f-a7f0-b7e14512f986" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('b0a43673-77e8-487f-a7f0-b7e14512f986',event)" src="./images/MyBatis详解 一篇就够啦3.png" alt="" />
+<src id="cnblogs_code_open_b0a43673-77e8-487f-a7f0-b7e14512f986" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+<span style="color: #008080;"> 2</span> &lt;!<span style="color: #000000;">DOCTYPE mapper
+</span><span style="color: #008080;"> 3</span>   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+<span style="color: #008080;"> 4</span>   "http://mybatis.org/dtd/mybatis-3-mapper.dtd"&gt;
+<span style="color: #008080;"> 5</span> &lt;mapper namespace="com.chenyanbin.dao.DeptMapper"&gt;
+<span style="color: #008080;"> 6</span>     &lt;resultMap type="dept" id="deptMap"&gt;
+<span style="color: #008080;"> 7</span>         &lt;id column="dept_deptno" property="deptNo" /&gt;
+<span style="color: #008080;"> 8</span>         &lt;result column="dname" property="dname" /&gt;
+<span style="color: #008080;"> 9</span>         &lt;result column="loc" property="loc" /&gt;
+<span style="color: #008080;">10</span>         &lt;!-- collection标签中，column属性应该填写查询临时表中来自一方表主键字段名 --&gt;
+<span style="color: #008080;">11</span>         &lt;collection property="empList" ofType="Employee"
+<span style="color: #008080;">12</span>             select="empFindByDeptNo" column="dept_deptno"&gt;
+<span style="color: #008080;">13</span>         &lt;/collection&gt;
+<span style="color: #008080;">14</span>     &lt;/resultMap&gt;
+<span style="color: #008080;">15</span>     &lt;!-- 根据部门编号查询部门中的职员信息 --&gt;
+<span style="color: #008080;">16</span>     &lt;select id="empFindByDeptNo" resultType="Employee"&gt;
+<span style="color: #008080;">17</span> <span style="color: #000000;">        select empno,ename,job
+</span><span style="color: #008080;">18</span>         from emp where deptno=<span style="color: #000000;">#{deptno}
+</span><span style="color: #008080;">19</span>     &lt;/select&gt;
+<span style="color: #008080;">20</span>     &lt;!-- 根据部门编号查询部门信息 --&gt;
+<span style="color: #008080;">21</span>     &lt;select id="deptFindByDeptNo" resultMap="deptMap"&gt;
+<span style="color: #008080;">22</span> <span style="color: #000000;">        select deptNo
+</span><span style="color: #008080;">23</span>         dept_deptno,dname,loc from dept where deptno=<span style="color: #000000;">#{deptno}
+</span><span style="color: #008080;">24</span>     &lt;/select&gt;
+<span style="color: #008080;">25</span> &lt;/mapper&gt;</code></pre>
+
+<span class="cnblogs_code_collapse">方式二</span>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

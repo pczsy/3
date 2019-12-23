@@ -1,0 +1,104 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java通过JDBC连接SQL Server' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java通过JDBC连接SQL Server</center></div><div class='banquan'>原文出处:本文由博客园博主mandy3651423提供。<br/>
+原文连接:https://www.cnblogs.com/mandy3651/p/11846099.html</div><br>
+    <p>下载Microsoft JDBC Driver 4.0 for SQL Server</p>
+<p>在这里下载：http://www.microsoft.com/zh-cn/download/details.aspx?id=11774</p>
+<p>1.</p>
+<p>在E盘新建一个文件夹，命名为sqljdbc42，将sqljdbc42.jar复制一个进去。</p>
+<p>右击&nbsp;我的电脑&nbsp;&rarr;&nbsp;属性&nbsp;&rarr;&nbsp;高级系统设置（高级）&nbsp;&rarr;&nbsp;环境变量，双击CLASSPATH变量（或选中CLASSPATH后&nbsp;&rarr;&nbsp;编辑），</p>
+<p>在最后面追加&nbsp;&ldquo;;E:\sqljdbc42 \sqljdbc42.jar&rdquo;&nbsp;（注意最前面有个&nbsp;;&nbsp;）</p>
+<p>若不存在CLASSPATH，就新建CLASSPATH变量，并且将其值设为&ldquo;E:\sqljdbc42 \sqljdbc42.jar&rdquo;</p>
+<p><strong>如果是使用Tomcat做服务器，那么我们需要将sqljdbc42.jar类库文件拷贝到E:\apache-tomcat-***（版本号）\lib目录下</strong></p>
+<p>除此之外还需要将sqljdbc42.jar类库文件拷贝到C:\Program Files\Java\jre8\lib\ext目录下</p>
+<p>然后在ecilipse里新建java项目，在src目录右键&ldquo;BuildPath&rdquo;,-&gt;"Configure Build Path" -&gt; "Libraries" -&gt; "Add External JARs"</p>
+<p>添加在E盘的sqljdbc42的sqljdbc42.jar文件</p>
+<p>然后新建class运行即可</p>
+<p><strong>2、测试连接运行</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">package</span><span style="color: #000000;"> Test;
+
+</span><span style="color: #0000ff;">import</span> java.sql.*<span style="color: #000000;">;
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Test {
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> main(String[] args) {
+    update();
+     
+}
+
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> update() {
+    Connection connection</span>=<span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    String driverName</span>="com.microsoft.sqlserver.jdbc.SQLServerDriver";<span style="color: #008000;">//</span><span style="color: #008000;">SQL数据库引擎</span>
+    String dbURL="jdbc:sqlserver://localhost:1433;DatabaseName=tjl";<span style="color: #008000;">//</span><span style="color: #008000;">数据源  ！！！注意若出现加载或者连接数据库失败一般是这里出现问题</span>
+    String Name="sa"<span style="color: #000000;">;
+    String Pwd</span>="19990713"<span style="color: #000000;">;
+  </span><span style="color: #0000ff;">try</span><span style="color: #000000;">{
+  Class.forName(driverName);
+  connection</span>=<span style="color: #000000;">DriverManager.getConnection(dbURL,Name,Pwd);
+  System.out.println(</span>"连接数据库成功"<span style="color: #000000;">);
+  }</span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(Exception e){
+   e.printStackTrace();
+     System.out.println(</span>"连接失败"<span style="color: #000000;">);
+     }
+    Statement stmt </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        stmt </span>=<span style="color: #000000;"> connection.createStatement();
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">        e.printStackTrace();
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">增删改操作</span>
+    String sql_1="insert into student values('990403','佩奇','男','12','1','2101')"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">int</span> count_1 = 0<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        count_1 </span>=<span style="color: #000000;"> stmt.executeUpdate(sql_1);
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">        e.printStackTrace();
+    }</span><span style="color: #008000;">//</span><span style="color: #008000;">返回值表示增删改几条数据
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">处理结果</span>
+    <span style="color: #0000ff;">if</span>(count_1&gt;0<span style="color: #000000;">){
+        System.out.println(</span>"更新成功!"<span style="color: #000000;">);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">查询操作</span>
+    String sql_2="select * from student"<span style="color: #000000;">;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">关闭</span>
+    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        stmt.close();
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">        e.printStackTrace();
+    }
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        connection.close();
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO Auto-generated catch block</span>
+<span style="color: #000000;">        e.printStackTrace();
+    }
+}
+}</span></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

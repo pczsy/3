@@ -1,0 +1,30 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Eureka错误解决方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Eureka错误解决方法</center></div><div class='banquan'>原文出处:本文由博客园博主pmlh提供。<br/>
+原文连接:https://www.cnblogs.com/pm0101/p/pm0101.html</div><br>
+    <p># Eureka错误解决方法</p>
+<p>## security.basic.enabled 配置过时或不可用<br />默认情况下：<br />用户名：user<br />密码：启动应用在控制台会输出，如下图：<br /><img src="./images/Eureka错误解决方法0.png" alt="" /></p>
+<p>也可以通过如下属性配置：<br />spring.security.user.name<br />spring.security.user.password<br />如果想要关闭验证功能：</p>
+<p>简单粗暴方法：<br />把 Security包从pom.xml中移出去<br />科学一点的：<br />在Application启动类上（或者任意@Configure配置类上）增加如下注解：<br />~~~ java<br />@EnableAutoConfiguration(exclude = { org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class})<br />~~~<br />## defaultZone 配置<br /><img src="./images/Eureka错误解决方法1.png" alt="" /><br />&gt; eureka 中心与服务需要配置一样的地址</p>
+<p>## 禁用Eureka作为客户端注册<br />~~~ java<br />eureka.client.register-with-eureka=false&nbsp;<br />eureka.client.fetch-registry=false<br />~~~<br />## 超时问题<br />com.netflix.hystrix.exception.HystrixRuntimeException: api timed-out and no fallback available. 超时问题<br />或者 Read timed-out 错误<br />在 yml中加入<br />~~~ java<br />hystrix:<br />command:<br />default:<br />execution:<br />isolation:<br />thread:<br />timeoutInMilliseconds: 16000<br />~~~<br />或者<br />~~~ java<br />hystrix:<br />metrics:<br />enabled: true<br />command:<br />default:<br />execution:<br />isolation:<br />thread:<br />timeoutInMilliseconds: 16000<br />~~~<br />## 包引用<br />~~~ java<br />&lt;!--这个依赖千万不能省略--&gt;<br />&lt;dependency&gt;<br />&lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;<br />&lt;artifactId&gt;spring-cloud-starter-eureka&lt;/artifactId&gt;<br />&lt;/dependency&gt;<br />~~~<br />![扫码加入QQ群](//img.mukewang.com/5db07846000130e402380250.png)<br />![微信扫码加好友](//img.mukewang.com/5db0798400019c4e02890332.png)</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

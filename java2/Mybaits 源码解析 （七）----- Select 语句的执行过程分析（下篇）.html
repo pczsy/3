@@ -1,0 +1,1148 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Mybaits 源码解析 （七）----- Select 语句的执行过程分析（下篇）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Mybaits 源码解析 （七）----- Select 语句的执行过程分析（下篇）</center></div><div class='banquan'>原文出处:本文由博客园博主chen_hao提供。<br/>
+原文连接:https://www.cnblogs.com/java-chen-hao/p/11758412.html</div><br>
+    <p>我们上篇文章讲到了查询方法里面的doQuery方法，这里面就是调用JDBC的API了，其中的逻辑比较复杂，我们这边文章来讲，先看看我们上篇文章分析的地方</p>
+<p><strong>SimpleExecutor</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt; doQuery(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+</span><span style="color: #008080;"> 2</span>     Statement stmt = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 4</span>         Configuration configuration =<span style="color: #000000;"> ms.getConfiguration();
+</span><span style="color: #008080;"> 5</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 创建 StatementHandler</span>
+<span style="color: #008080;"> 6</span>         StatementHandler handler =<span style="color: #000000;"> configuration.newStatementHandler(wrapper, ms, parameter, rowBounds, resultHandler, boundSql);
+</span><span style="color: #008080;"> 7</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 创建 Statement</span>
+<span style="color: #008080;"> 8</span>         <strong>stmt =<span style="color: #000000;"> prepareStatement(handler, ms.getStatementLog());
+</span></strong><span style="color: #008080;"> 9</span>        <strong> <span style="color: #008000;">//</span><span style="color: #008000;"> 执行查询操作</span></strong>
+<span style="color: #008080;">10</span>         <strong><span style="color: #0000ff;">return</span> handler.&lt;E&gt;<span style="color: #000000;">query(stmt, resultHandler);
+</span></strong><span style="color: #008080;">11</span>     } <span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">12</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 关闭 Statement</span>
+<span style="color: #008080;">13</span> <span style="color: #000000;">        closeStatement(stmt);
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span> }</code></pre>
+
+<p>上篇文章我们分析完了第6行代码，在第6行处我们创建了一个<strong>PreparedStatementHandler，</strong>我们要接着第8行代码开始分析，也就是创建&nbsp;Statement，先不忙着分析，我们先来回顾一下 ，我们以前是怎么使用jdbc的</p>
+<p><strong>jdbc</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Login {
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     *    第一步，加载驱动，创建数据库的连接
+     *    第二步，编写sql
+     *    第三步，需要对sql进行预编译
+     *    第四步，向sql里面设置参数
+     *    第五步，执行sql
+     *    第六步，释放资源 
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> Exception 
+     </span><span style="color: #008000;">*/</span>
+     
+    <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String URL = "jdbc:mysql://localhost:3306/chenhao"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String USER = "liulx"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String PASSWORD = "123456"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception {
+        login(</span>"lucy","123"<span style="color: #000000;">);
+    }
+    
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> login(String username , String password) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Exception{
+        Connection conn </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">; 
+        PreparedStatement psmt </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        ResultSet rs </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">加载驱动程序</span>
+            Class.forName("com.mysql.jdbc.Driver"<span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">获得数据库连接</span>
+            conn =<span style="color: #000000;"> DriverManager.getConnection(URL, USER, PASSWORD);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">编写sql</span>
+            String sql = "select * from user where name =? and password = ?";<span style="color: #008000;">//</span><span style="color: #008000;">问号相当于一个占位符
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">对sql进行预编译</span>
+            psmt =<span style="color: #000000;"> conn.prepareStatement(sql);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">设置参数</span>
+            psmt.setString(1<span style="color: #000000;">, username);
+            psmt.setString(</span>2<span style="color: #000000;">, password);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">执行sql ,返回一个结果集</span>
+            rs =<span style="color: #000000;"> psmt.executeQuery();
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">输出结果</span>
+            <span style="color: #0000ff;">while</span><span style="color: #000000;">(rs.next()){
+                System.out.println(rs.getString(</span>"user_name")+" 年龄："+rs.getInt("age"<span style="color: #000000;">));
+            }
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+            e.printStackTrace();
+        }</span><span style="color: #0000ff;">finally</span><span style="color: #000000;">{
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">释放资源</span>
+<span style="color: #000000;">            conn.close();
+            psmt.close();
+            rs.close();
+        }
+    }
+}</span></code></pre>
+
+<p>上面代码中注释已经很清楚了，我们来看看mybatis中是怎么和数据库打交道的。</p>
+<p><strong>SimpleExecutor</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> Statement prepareStatement(StatementHandler handler, Log statementLog) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    Statement stmt;
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 获取数据库连接</span>
+    Connection connection =<span style="color: #000000;"> getConnection(statementLog);
+   </span></strong><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 创建 Statement，</span>
+    stmt =<span style="color: #000000;"> handler.prepare(connection, transaction.getTimeout());
+   </span></strong><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 为 Statement 设置参数</span>
+<span style="color: #000000;">    handler.parameterize(stmt);
+    </span><span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> stmt;</strong>
+}</span></code></pre>
+
+<p>在上面的代码中我们终于看到了和jdbc相关的内容了，大概分为下面三个步骤：</p>
+<ol>
+<li>获取数据库连接</li>
+<li>创建PreparedStatement</li>
+<li>为PreparedStatement设置运行时参数</li>
+</ol>
+<p>我们先来看看获取数据库连接，跟进代码看看</p>
+<p><strong>BaseExecutor</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> Connection getConnection(Log statementLog) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">通过transaction来获取Connection</span>
+    Connection connection = <span style="color: #0000ff;">this</span><span style="color: #000000;">.transaction.getConnection();
+    </span><span style="color: #0000ff;">return</span> statementLog.isDebugEnabled() ? ConnectionLogger.newInstance(connection, statementLog, <span style="color: #0000ff;">this</span><span style="color: #000000;">.queryStack) : connection;
+}</span></code></pre>
+
+<p>我们看到是通过<strong>Executor中的</strong>transaction属性来获取Connection，那我们就先来看看transaction，根据前面的文章中的配置<strong><code class="html spaces">&nbsp;</code><code class="html plain">&lt;</code><code class="html keyword">transactionManager</code>&nbsp;<code class="html plain">type="jdbc"/&gt;，</code></strong>则MyBatis会创建一个<strong>JdbcTransactionFactory.class</strong>&nbsp;实例，Executor中的transaction是一个<strong>JdbcTransaction.class</strong>&nbsp;实例，其实现Transaction接口，那我们先来看看Transaction</p>
+<h2><strong>JdbcTransaction</strong></h2>
+<p>我们先来看看其接口Transaction</p>
+<h3><strong>Transaction</strong></h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span><span style="color: #000000;"> Transaction {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取数据库连接</span>
+    Connection getConnection() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">提交事务</span>
+    <span style="color: #0000ff;">void</span> commit() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">回滚事务</span>
+    <span style="color: #0000ff;">void</span> rollback() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">关闭事务</span>
+    <span style="color: #0000ff;">void</span> close() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取超时时间</span>
+    Integer getTimeout() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException;
+}</span></code></pre>
+
+<p>接着我们看看其实现类<strong>JdbcTransaction</strong></p>
+<h3><strong>JdbcTransaction</strong></h3>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> JdbcTransaction <span style="color: #0000ff;">implements</span><span style="color: #000000;"> Transaction {
+  
+  </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> Log log = LogFactory.getLog(JdbcTransaction.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+  
+  </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">数据库连接</span>
+  <span style="color: #0000ff;">protected</span><span style="color: #000000;"> Connection connection;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">数据源信息</span>
+  <span style="color: #0000ff;">protected</span><span style="color: #000000;"> DataSource dataSource;
+  </span></strong><span style="color: #008000;">//</span><span style="color: #008000;">隔离级别</span>
+  <span style="color: #0000ff;">protected</span><span style="color: #000000;"> TransactionIsolationLevel level;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">是否为自动提交</span>
+  <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> autoCommmit;
+  
+  </span><span style="color: #0000ff;">public</span> JdbcTransaction(DataSource ds, TransactionIsolationLevel desiredLevel, <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> desiredAutoCommit) {
+    dataSource </span>=<span style="color: #000000;"> ds;
+    level </span>=<span style="color: #000000;"> desiredLevel;
+    autoCommmit </span>=<span style="color: #000000;"> desiredAutoCommit;
+  }
+  
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> JdbcTransaction(Connection connection) {
+    </span><span style="color: #0000ff;">this</span>.connection =<span style="color: #000000;"> connection;
+  }
+  
+  </span><span style="color: #0000ff;">public</span> Connection getConnection() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">如果事务中不存在connection，则获取一个connection并放入connection属性中
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">第一次肯定为空</span>
+    <span style="color: #0000ff;">if</span> (connection == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+      openConnection();
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果事务中已经存在connection，则直接返回这个connection</span>
+    <span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> connection;</strong>
+  }
+  
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * commit()功能 
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> SQLException
+     </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> commit() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">if</span> (connection != <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">connection.getAutoCommit()) {
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (log.isDebugEnabled()) {
+        log.debug(</span>"Committing JDBC Connection [" + connection + "]"<span style="color: #000000;">);
+      }
+      </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">使用connection的commit()</span>
+</strong><span style="color: #000000;"><strong>      connection.commit();</strong>
+    }
+  }
+  
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * rollback()功能 
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> SQLException
+     </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> rollback() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">if</span> (connection != <span style="color: #0000ff;">null</span> &amp;&amp; !<span style="color: #000000;">connection.getAutoCommit()) {
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (log.isDebugEnabled()) {
+        log.debug(</span>"Rolling back JDBC Connection [" + connection + "]"<span style="color: #000000;">);
+      }
+      </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">使用connection的rollback()</span>
+</strong><span style="color: #000000;"><strong>      connection.rollback();</strong>
+    }
+  }
+  
+    </span><span style="color: #008000;">/**</span><span style="color: #008000;">
+     * close()功能 
+     * </span><span style="color: #808080;">@throws</span><span style="color: #008000;"> SQLException
+     </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> close() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">if</span> (connection != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+      resetAutoCommit();
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (log.isDebugEnabled()) {
+        log.debug(</span>"Closing JDBC Connection [" + connection + "]"<span style="color: #000000;">);
+      }
+      </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">使用connection的close()</span>
+</strong><span style="color: #000000;"><strong>      connection.close();</strong>
+    }
+  }
+  
+  </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> openConnection() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (log.isDebugEnabled()) {
+      log.debug(</span>"Opening JDBC Connection"<span style="color: #000000;">);
+    }
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">通过dataSource来获取connection，并设置到transaction的connection属性中</span>
+    connection =<span style="color: #000000;"> dataSource.getConnection();
+   </span></strong><strong><span style="color: #0000ff;">if</span> (level != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">通过connection设置事务的隔离级别</span>
+<span style="color: #000000;">      connection.setTransactionIsolation(level.getLevel());
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">设置事务是否自动提交</span>
+</strong><span style="color: #000000;"><strong>    setDesiredAutoCommit(autoCommmit);</strong>
+  }
+  
+  </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> setDesiredAutoCommit(<span style="color: #0000ff;">boolean</span><span style="color: #000000;"> desiredAutoCommit) {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.connection.getAutoCommit() !=<span style="color: #000000;"> desiredAutoCommit) {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (log.isDebugEnabled()) {
+                log.debug(</span>"Setting autocommit to " + desiredAutoCommit + " on JDBC Connection [" + <span style="color: #0000ff;">this</span>.connection + "]"<span style="color: #000000;">);
+            }
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">通过connection设置事务是否自动提交</span>
+            <span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>.connection.setAutoCommit(desiredAutoCommit);</strong>
+        }
+
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException var3) {
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> TransactionException("Error configuring AutoCommit.  Your driver may not support getAutoCommit() or setAutoCommit(). Requested setting: " + desiredAutoCommit + ".  Cause: " +<span style="color: #000000;"> var3, var3);
+    }
+  }
+  
+}</span></code></pre>
+
+<p>我们看到JdbcTransaction中有一个<strong>Connection属性和dataSource属性，使用</strong><strong>connection来进行提交、回滚、关闭等操作，也就是说JdbcTransaction其实只是在jdbc的connection上面封装了一下，实际使用的其实还是jdbc的事务。</strong>我们看看getConnection()方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">数据库连接</span>
+<span style="color: #0000ff;">protected</span><span style="color: #000000;"> Connection connection;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">数据源信息</span>
+<span style="color: #0000ff;">protected</span><span style="color: #000000;"> DataSource dataSource;
+
+</span><span style="color: #0000ff;">public</span> Connection getConnection() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">如果事务中不存在connection，则获取一个connection并放入connection属性中
+</span><span style="color: #008000;">//</span><span style="color: #008000;">第一次肯定为空</span>
+<span style="color: #0000ff;">if</span> (connection == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+  openConnection();
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">如果事务中已经存在connection，则直接返回这个connection</span>
+<span style="color: #0000ff;">return</span><span style="color: #000000;"> connection;
+}
+
+</span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> openConnection() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+</span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (log.isDebugEnabled()) {
+  log.debug(</span>"Opening JDBC Connection"<span style="color: #000000;">);
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">通过dataSource来获取connection，并设置到transaction的connection属性中</span>
+connection =<span style="color: #000000;"> dataSource.getConnection();
+</span><span style="color: #0000ff;">if</span> (level != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">通过connection设置事务的隔离级别</span>
+<span style="color: #000000;">  connection.setTransactionIsolation(level.getLevel());
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">设置事务是否自动提交</span>
+<span style="color: #000000;">setDesiredAutoCommit(autoCommmit);
+}</span></code></pre>
+
+<p>先是判断当前事务中是否存在connection，如果存在，则直接返回connection，如果不存在则通过dataSource来获取connection，这里我们明白了一点，如果当前事务没有关闭，也就是没有释放connection，那么在同一个Transaction中使用的是同一个connection,我们再来想想，<strong>transaction是SimpleExecutor中的属性，<strong>SimpleExecutor又是SqlSession中的属性，那我们可以这样说，同一个<strong><strong>SqlSession中只有一个<strong><strong>SimpleExecutor，<strong><strong><strong><strong><strong><strong>SimpleExecutor中有一个<strong>Transaction，<strong><strong><strong><strong><strong><strong><strong><strong><strong><strong><strong><strong><strong>Transaction有一个connection。我们来看看如下例子<strong><strong><strong><strong><br /></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> main(String[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> IOException {
+    String resource </span>= "mybatis-config.xml"<span style="color: #000000;">;
+    InputStream inputStream </span>=<span style="color: #000000;"> Resources.getResourceAsStream(resource);
+    SqlSessionFactory sqlSessionFactory </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> SqlSessionFactoryBuilder().build(inputStream);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">创建一个SqlSession</span>
+  <strong>  SqlSession sqlSession =<span style="color: #000000;"> sqlSessionFactory.openSession();
+    </span></strong><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+         EmployeeMapper employeeMapper </span>= <strong>sqlSession</strong>.getMapper(Employee.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+         UserMapper userMapper </span>= <strong>sqlSession</strong>.getMapper(User.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+         List</span>&lt;Employee&gt; allEmployee =<span style="color: #000000;"> employeeMapper.getAll();
+         List</span>&lt;User&gt; allUser =<span style="color: #000000;"> userMapper.getAll();
+         Employee employee </span>=<span style="color: #000000;"> employeeMapper.getOne();
+    } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+        sqlSession.close();
+    }
+}</span></code></pre>
+
+<p><strong>我们看到同一个sqlSession可以获取多个Mapper代理对象，则多个Mapper代理对象中的sqlSession引用应该是同一个，那么多个Mapper代理对象调用方法应该是同一个Connection，直到调用close(),所以说我们的<strong>sqlSession是线程不安全的，如果所有的业务都使用一个<strong><strong>sqlSession，那<strong>Connection也是同一个，一个业务执行完了就将其关闭，那其他的业务还没执行完呢。大家明白了吗？</strong></strong></strong></strong></strong>我们回归到源码，connection = dataSource.getConnection();，最终还是调用dataSource来获取连接，那我们是不是要来看看dataSource呢？</p>
+<p>我们还是从前面的配置文件来看<strong>&lt;<span class="hljs-name">dataSource <span class="hljs-attr">type=<span class="hljs-string">"UNPOOLED|POOLED"&gt;，这里有<strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string">UNPOOLED和POOLED两种</span></span></span></strong></span></span></span>DataSource，一种是使用连接池，一种是普通的<strong>DataSource，<strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string">UNPOOLED将会创将<span class="hljs-keyword">new UnpooledDataSource()实例，<strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string">POOLED将会<strong><strong><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword">new pooledDataSource()实例，都实现<strong><strong><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword"><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><strong><strong><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword">DataSource接口，</span></span></span></span></strong></span></span></span></strong></strong></strong></span></span></span></strong></span></span></span></strong></span></span></span></span></strong></span></span></span></strong></strong></strong></span></span></span></span></strong></span></span></span></strong></strong></strong></span></span></span></strong></span></span></span></strong></span></span></span></span></strong></span></span></span></strong></strong></strong><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword">那我们先来看看</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-name"><span class="hljs-attr"><span class="hljs-string"><span class="hljs-keyword">DataSource接口</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></p>
+<p><strong>DataSource</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">interface</span> DataSource  <span style="color: #0000ff;">extends</span><span style="color: #000000;"> CommonDataSource,Wrapper {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">获取数据库连接</span>
+  Connection getConnection() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException;
+
+  Connection getConnection(String username, String password)
+    </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException;
+
+}</span></code></pre>
+
+<p>很简单，只有一个获取数据库连接的接口，那我们来看看其实现类</p>
+<h2 id="autoid-2-0-0">UnpooledDataSource</h2>
+<p>UnpooledDataSource，从名称上即可知道，该种数据源不具有池化特性。该种数据源每次会返回一个新的数据库连接，而非复用旧的连接。其核心的方法有三个，分别如下：</p>
+<ol>
+<li>initializeDriver - 初始化数据库驱动</li>
+<li>doGetConnection - 获取数据连接</li>
+<li>configureConnection - 配置数据库连接</li>
+</ol>
+<h3 id="autoid-3-0-0">初始化数据库驱动</h3>
+<p>看下我们上面使用JDBC的例子，在执行 SQL 之前，通常都是先获取数据库连接。一般步骤都是加载数据库驱动，然后通过 DriverManager 获取数据库连接。UnpooledDataSource 也是使用 JDBC 访问数据库的，因此它获取数据库连接的过程一样</p>
+<p><strong>UnpooledDataSource</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> UnpooledDataSource <span style="color: #0000ff;">implements</span><span style="color: #000000;"> DataSource {
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> ClassLoader driverClassLoader;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Properties driverProperties;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> Map&lt;String, Driver&gt; registeredDrivers = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ConcurrentHashMap();
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String driver;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String url;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String username;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> String password;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Boolean autoCommit;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;"> Integer defaultTransactionIsolationLevel;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> UnpooledDataSource() {
+    }
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> UnpooledDataSource(String driver, String url, String username, String password) {
+        </span><span style="color: #0000ff;">this</span>.driver =<span style="color: #000000;"> driver;
+        </span><span style="color: #0000ff;">this</span>.url =<span style="color: #000000;"> url;
+        </span><span style="color: #0000ff;">this</span>.username =<span style="color: #000000;"> username;
+        </span><span style="color: #0000ff;">this</span>.password =<span style="color: #000000;"> password;
+    }
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span> initializeDriver() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检测当前 driver 对应的驱动实例是否已经注册</span>
+        <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">registeredDrivers.containsKey(driver)) {
+            Class</span>&lt;?&gt;<span style="color: #000000;"> driverType;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 加载驱动类型</span>
+                <span style="color: #0000ff;">if</span> (driverClassLoader != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 使用 driverClassLoader 加载驱动</span>
+                    driverType = Class.forName(driver, <span style="color: #0000ff;">true</span><span style="color: #000000;">, driverClassLoader);
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通过其他 ClassLoader 加载驱动</span>
+                    driverType =<span style="color: #000000;"> Resources.classForName(driver);
+                }
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通过反射创建驱动实例</span>
+                Driver driverInstance =<span style="color: #000000;"> (Driver) driverType.newInstance();
+                </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+                 * 注册驱动，注意这里是将 Driver 代理类 DriverProxy 对象注册到 DriverManager 中的，而非 Driver 对象本身。
+                 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+                DriverManager.registerDriver(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> DriverProxy(driverInstance));
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 缓存驱动类名和实例，防止多次注册</span>
+<span style="color: #000000;">                registeredDrivers.put(driver, driverInstance);
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> SQLException("Error setting driver on UnpooledDataSource. Cause: " +<span style="color: #000000;"> e);
+            }
+        }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">略...</span>
+<span style="color: #000000;">}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">DriverManager</span>
+<span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">static</span> CopyOnWriteArrayList&lt;DriverInfo&gt; registeredDrivers = <span style="color: #0000ff;">new</span> CopyOnWriteArrayList&lt;DriverInfo&gt;<span style="color: #000000;">();
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">synchronized</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> registerDriver(java.sql.Driver driver)
+    </span><span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+
+    </span><span style="color: #0000ff;">if</span>(driver != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        registeredDrivers.addIfAbsent(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> DriverInfo(driver));
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> This is for compatibility with the original DriverManager</span>
+        <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> NullPointerException();
+    }
+}</span></code></pre>
+
+<pre><code>通过反射机制加载驱动Driver，并将其注册到DriverManager中的一个常量集合中，供后面获取连接时使用，为什么这里是一个List呢？我们实际开发中有可能使用到了多种数据库类型，如Mysql、Oracle等，其驱动都是不同的，不同的数据源获取连接时使用的是不同的驱动。<br />在我们使用JDBC的时候，也没有通过DriverManager.registerDriver(new DriverProxy(driverInstance));去注册Driver啊，如果我们使用的是Mysql数据源，那我们来看Class.forName("com.mysql.jdbc.Driver");这句代码发生了什么<br /><strong>Class.forName主要是做了什么呢？它主要是要求JVM查找并装载指定的类。这样我们的类com.mysql.jdbc.Driver就被装载进来了。而且在类被装载进JVM的时候，它的静态方法就会被执行。我们来看com.mysql.jdbc.Driver的实现代码。</strong>在它的实现里有这么一段代码：</code></pre>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span><span style="color: #000000;"> {  
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {  
+        java.sql.DriverManager.registerDriver(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Driver());  
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException E) {  
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> RuntimeException("Can't register driver!"<span style="color: #000000;">);  
+    }  
+}</span></code></pre>
+
+<p>&nbsp;很明显，这里使用了DriverManager并将该类给注册上去了。所以，对于任何实现前面Driver接口的类，只要在他们被装载进JVM的时候注册DriverManager就可以实现被后续程序使用。</p>
+<p>作为那些被加载的Driver实现，他们本身在被装载时会在执行的static代码段里通过调用DriverManager.registerDriver()来把自身注册到DriverManager的registeredDrivers列表中。这样后面就可以通过得到的Driver来取得连接了。</p>
+<h3 id="autoid-3-1-0">获取数据库连接</h3>
+<p>在上面例子中使用 JDBC 时，我们都是通过 DriverManager 的接口方法获取数据库连接。我们来看看UnpooledDataSource是如何获取的。</p>
+<p><strong>UnpooledDataSource</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> Connection getConnection() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> doGetConnection(username, password);
+}
+    
+</span><span style="color: #0000ff;">private</span> Connection doGetConnection(String username, String password) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    Properties props </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Properties();
+    </span><span style="color: #0000ff;">if</span> (driverProperties != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        props.putAll(driverProperties);
+    }
+    </span><span style="color: #0000ff;">if</span> (username != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存储 user 配置</span>
+        props.setProperty("user"<span style="color: #000000;">, username);
+    }
+    </span><span style="color: #0000ff;">if</span> (password != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存储 password 配置</span>
+        props.setProperty("password"<span style="color: #000000;">, password);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用重载方法</span>
+    <span style="color: #0000ff;">return</span><span style="color: #000000;"> doGetConnection(props);
+}
+
+</span><span style="color: #0000ff;">private</span> Connection doGetConnection(Properties properties) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化驱动,我们上一节已经讲过了，只用初始化一次</span>
+<span style="color: #000000;">    initializeDriver();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取连接</span>
+    Connection connection =<span style="color: #000000;"> DriverManager.getConnection(url, properties);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 配置连接，包括自动提交以及事务等级</span>
+<span style="color: #000000;">    configureConnection(connection);
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> connection;
+}
+
+</span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> configureConnection(Connection conn) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">if</span> (autoCommit != <span style="color: #0000ff;">null</span> &amp;&amp; autoCommit !=<span style="color: #000000;"> conn.getAutoCommit()) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置自动提交</span>
+<span style="color: #000000;">        conn.setAutoCommit(autoCommit);
+    }
+    </span><span style="color: #0000ff;">if</span> (defaultTransactionIsolationLevel != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置事务隔离级别</span>
+<span style="color: #000000;">        conn.setTransactionIsolation(defaultTransactionIsolationLevel);
+    }
+}</span></code></pre>
+
+<p>上面方法将一些配置信息放入到 Properties 对象中，然后将数据库连接和 Properties 对象传给 DriverManager 的 getConnection 方法即可获取到数据库连接。我们来看看是怎么获取数据库连接的</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> Connection getConnection(String url, java.util.Properties info, Class&lt;?&gt; caller) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取类加载器</span>
+    ClassLoader callerCL = caller != <span style="color: #0000ff;">null</span> ? caller.getClassLoader() : <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">synchronized</span>(DriverManager.<span style="color: #0000ff;">class</span><span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">if</span> (callerCL == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        callerCL </span>=<span style="color: #000000;"> Thread.currentThread().getContextClassLoader();
+      }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 此处省略部分代码 
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里遍历的是在registerDriver(Driver driver)方法中注册的驱动对象
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 每个DriverInfo包含了驱动对象和其信息</span>
+    <span style="color: #0000ff;">for</span><span style="color: #000000;">(DriverInfo aDriver : registeredDrivers) {
+
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 判断是否为当前线程类加载器加载的驱动类</span>
+      <span style="color: #0000ff;">if</span><span style="color: #000000;">(isDriverAllowed(aDriver.driver, callerCL)) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+          println(</span>"trying " +<span style="color: #000000;"> aDriver.driver.getClass().getName());
+
+          </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 获取连接对象，这里调用了Driver的父类的方法
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果这里有多个DriverInfo，比喻Mysql和Oracle的Driver都注册registeredDrivers了
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里所有的Driver都会尝试使用url和info去连接，哪个连接上了就返回
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 会不会所有的都会连接上呢？不会，因为url的写法不同，不同的Driver会判断url是否适合当前驱动</span>
+          Connection con =<span style="color: #000000;"> aDriver.driver.connect(url, info);
+          </span></strong><span style="color: #0000ff;">if</span> (con != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 打印连接成功信息</span>
+            println("getConnection returning " +<span style="color: #000000;"> aDriver.driver.getClass().getName());
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回连接对像</span>
+            <span style="color: #0000ff;">return</span><span style="color: #000000;"> (con);
+          }
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException ex) {
+          </span><span style="color: #0000ff;">if</span> (reason == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            reason </span>=<span style="color: #000000;"> ex;
+          }
+        }
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        println(</span>"    skipping: " +<span style="color: #000000;"> aDriver.getClass().getName());
+      }
+    }  
+}</span></code></pre>
+
+<p>代码中循环所有注册的驱动，然后通过驱动进行连接，所有的驱动都会尝试连接，但是不同的驱动，连接的URL是不同的，如Mysql的url是<strong>jdbc:mysql://localhost:3306/chenhao，以<strong>jdbc:mysql://开头，则其Mysql的驱动肯定会判断获取连接的url符合，Oracle的也类似，我们来看看Mysql的驱动获取连接</strong></strong></p>
+<p><strong><strong><img src="./images/Mybaits 源码解析 （七）----- Select 语句的执行过程分析（下篇）0.png" alt="" /></strong></strong></p>
+<p>由于篇幅原因，我这里就不分析了，大家有兴趣的可以看看，最后由URL对应的驱动获取到Connection返回，好了我们再来看看下一种DataSource</p>
+<h2 id="autoid-3-2-0">PooledDataSource</h2>
+<p>PooledDataSource 内部实现了连接池功能，用于复用数据库连接。因此，从效率上来说，PooledDataSource 要高于 UnpooledDataSource。但是最终获取Connection还是通过UnpooledDataSource，只不过PooledDataSource 提供一个存储Connection的功能。</p>
+<h3>辅助类介绍</h3>
+<p>PooledDataSource 需要借助两个辅助类帮其完成功能，这两个辅助类分别是 PoolState 和 PooledConnection。PoolState 用于记录连接池运行时的状态，比如连接获取次数，无效连接数量等。同时 PoolState 内部定义了两个 PooledConnection 集合，用于存储空闲连接和活跃连接。PooledConnection 内部定义了一个 Connection 类型的变量，用于指向真实的数据库连接。以及一个 Connection 的代理类，用于对部分方法调用进行拦截。至于为什么要拦截，随后将进行分析。除此之外，PooledConnection 内部也定义了一些字段，用于记录数据库连接的一些运行时状态。接下来，我们来看一下 PooledConnection 的定义。</p>
+<p><strong>PooledConnection</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span> PooledConnection <span style="color: #0000ff;">implements</span><span style="color: #000000;"> InvocationHandler {
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> String CLOSE = "close"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> Class&lt;?&gt;[] IFACES = <span style="color: #0000ff;">new</span> Class&lt;?&gt;[]{Connection.<span style="color: #0000ff;">class</span><span style="color: #000000;">};
+
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> hashCode;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> PooledDataSource dataSource;
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 真实的数据库连接</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> Connection realConnection;
+    </span></strong><span style="color: #008000;">//</span><span style="color: #008000;"> 数据库连接代理</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> Connection proxyConnection;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从连接池中取出连接时的时间戳</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">long</span><span style="color: #000000;"> checkoutTimestamp;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数据库连接创建时间</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">long</span><span style="color: #000000;"> createdTimestamp;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数据库连接最后使用时间</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">long</span><span style="color: #000000;"> lastUsedTimestamp;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> connectionTypeCode = (url + username + password).hashCode()</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> connectionTypeCode;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 表示连接是否有效</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> valid;
+
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> PooledConnection(Connection connection, PooledDataSource dataSource) {
+        </span><span style="color: #0000ff;">this</span>.hashCode =<span style="color: #000000;"> connection.hashCode();
+        </span><span style="color: #0000ff;">this</span>.realConnection =<span style="color: #000000;"> connection;
+        </span><span style="color: #0000ff;">this</span>.dataSource =<span style="color: #000000;"> dataSource;
+        </span><span style="color: #0000ff;">this</span>.createdTimestamp =<span style="color: #000000;"> System.currentTimeMillis();
+        </span><span style="color: #0000ff;">this</span>.lastUsedTimestamp =<span style="color: #000000;"> System.currentTimeMillis();
+        </span><span style="color: #0000ff;">this</span>.valid = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建 Connection 的代理类对象</span>
+        <span style="color: #0000ff;">this</span>.proxyConnection = (Connection) Proxy.newProxyInstance(Connection.<span style="color: #0000ff;">class</span>.getClassLoader(), IFACES, <span style="color: #0000ff;">this</span><span style="color: #000000;">);
+    }
+    
+    @Override
+    </span><span style="color: #0000ff;">public</span> Object invoke(Object proxy, Method method, Object[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {...}
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 省略部分代码</span>
+}</code></pre>
+
+<p>下面再来看看 PoolState 的定义。</p>
+<p><strong>PoolState&nbsp;</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> PoolState {
+
+    </span><strong><span style="color: #0000ff;">protected</span><span style="color: #000000;"> PooledDataSource dataSource;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 空闲连接列表</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">final</span> List&lt;PooledConnection&gt; idleConnections = <span style="color: #0000ff;">new</span> ArrayList&lt;PooledConnection&gt;<span style="color: #000000;">();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 活跃连接列表</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">final</span> List&lt;PooledConnection&gt; activeConnections = <span style="color: #0000ff;">new</span> ArrayList&lt;PooledConnection&gt;<span style="color: #000000;">();
+    </span></strong><span style="color: #008000;">//</span><span style="color: #008000;"> 从连接池中获取连接的次数</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">long</span> requestCount = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 请求连接总耗时（单位：毫秒）</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">long</span> accumulatedRequestTime = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 连接执行时间总耗时</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">long</span> accumulatedCheckoutTime = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 执行时间超时的连接数</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">long</span> claimedOverdueConnectionCount = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 超时时间累加值</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">long</span> accumulatedCheckoutTimeOfOverdueConnections = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 等待时间累加值</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">long</span> accumulatedWaitTime = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 等待次数</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">long</span> hadToWaitCount = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 无效连接数</span>
+    <span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">long</span> badConnectionCount = 0<span style="color: #000000;">;
+}</span></code></pre>
+
+<p>大家记住上面的空闲连接列表和活跃连接列表</p>
+<h3 id="autoid-4-1-0">获取连接</h3>
+<p>前面已经说过，PooledDataSource 会将用过的连接进行回收，以便可以复用连接。因此从 PooledDataSource 获取连接时，如果空闲链接列表里有连接时，可直接取用。那如果没有空闲连接怎么办呢？此时有两种解决办法，要么创建新连接，要么等待其他连接完成任务。</p>
+<p><strong>PooledDataSource</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> PooledDataSource <span style="color: #0000ff;">implements</span><span style="color: #000000;"> DataSource {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">final</span> Log log = LogFactory.getLog(PooledDataSource.<span style="color: #0000ff;">class</span><span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">这里有辅助类PoolState</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span> PoolState state = <span style="color: #0000ff;">new</span> PoolState(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">还有一个UnpooledDataSource属性，其实真正获取Connection是由UnpooledDataSource来完成的</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> UnpooledDataSource dataSource;
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">int</span> poolMaximumActiveConnections = 10<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">int</span> poolMaximumIdleConnections = 5<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">int</span> poolMaximumCheckoutTime = 20000<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">int</span> poolTimeToWait = 20000<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">protected</span> String poolPingQuery = "NO PING QUERY SET"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">boolean</span> poolPingEnabled = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">int</span> poolPingConnectionsNotUsedFor = 0<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> expectedConnectionTypeCode;
+    
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> PooledDataSource() {
+        </span><span style="color: #0000ff;">this</span>.dataSource = <span style="color: #0000ff;">new</span><span style="color: #000000;"> UnpooledDataSource();
+    }
+    
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> PooledDataSource(String driver, String url, String username, String password) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">构造器中创建UnpooledDataSource对象</span>
+        <span style="color: #0000ff;">this</span>.dataSource = <span style="color: #0000ff;">new</span><span style="color: #000000;"> UnpooledDataSource(driver, url, username, password);
+    }
+    
+    </span><span style="color: #0000ff;">public</span> Connection getConnection() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.popConnection(<span style="color: #0000ff;">this</span>.dataSource.getUsername(), <span style="color: #0000ff;">this</span><span style="color: #000000;">.dataSource.getPassword()).getProxyConnection();
+    }
+    
+    </span><span style="color: #0000ff;">private</span> PooledConnection popConnection(String username, String password) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+        </span><span style="color: #0000ff;">boolean</span> countedWait = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        PooledConnection conn </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">long</span> t =<span style="color: #000000;"> System.currentTimeMillis();
+        </span><span style="color: #0000ff;">int</span> localBadConnectionCount = 0<span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">while</span> (conn == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">synchronized</span><span style="color: #000000;"> (state) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检测空闲连接集合（idleConnections）是否为空</span>
+                <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">state.idleConnections.isEmpty()) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> idleConnections 不为空，表示有空闲连接可以使用，直接从空闲连接集合中取出一个连接</span>
+                    conn = state.idleConnections.remove(0<span style="color: #000000;">);
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+                     * 暂无空闲连接可用，但如果活跃连接数还未超出限制
+                     *（poolMaximumActiveConnections），则可创建新的连接
+                     </span><span style="color: #008000;">*/</span>
+                    <span style="color: #0000ff;">if</span> (state.activeConnections.size() &lt;<span style="color: #000000;"> poolMaximumActiveConnections) {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建新连接，看到没，还是通过dataSource获取连接，也就是UnpooledDataSource获取连接</span>
+                        conn = <span style="color: #0000ff;">new</span> PooledConnection(dataSource.getConnection(), <span style="color: #0000ff;">this</span><span style="color: #000000;">);
+                    } </span><span style="color: #0000ff;">else</span> {    <span style="color: #008000;">//</span><span style="color: #008000;"> 连接池已满，不能创建新连接
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 取出运行时间最长的连接</span>
+                        PooledConnection oldestActiveConnection = state.activeConnections.get(0<span style="color: #000000;">);
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取运行时长</span>
+                        <span style="color: #0000ff;">long</span> longestCheckoutTime =<span style="color: #000000;"> oldestActiveConnection.getCheckoutTime();
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检测运行时长是否超出限制，即超时</span>
+                        <span style="color: #0000ff;">if</span> (longestCheckoutTime &gt;<span style="color: #000000;"> poolMaximumCheckoutTime) {
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 累加超时相关的统计字段</span>
+                            state.claimedOverdueConnectionCount++<span style="color: #000000;">;
+                            state.accumulatedCheckoutTimeOfOverdueConnections </span>+=<span style="color: #000000;"> longestCheckoutTime;
+                            state.accumulatedCheckoutTime </span>+=<span style="color: #000000;"> longestCheckoutTime;
+
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从活跃连接集合中移除超时连接</span>
+<span style="color: #000000;">                            state.activeConnections.remove(oldestActiveConnection);
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 若连接未设置自动提交，此处进行回滚操作</span>
+                            <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">oldestActiveConnection.getRealConnection().getAutoCommit()) {
+                                </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                                    oldestActiveConnection.getRealConnection().rollback();
+                                } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {...}
+                            }
+                            </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+                             * 创建一个新的 PooledConnection，注意，
+                             * 此处复用 oldestActiveConnection 的 realConnection 变量
+                             </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+                            conn </span>= <span style="color: #0000ff;">new</span> PooledConnection(oldestActiveConnection.getRealConnection(), <span style="color: #0000ff;">this</span><span style="color: #000000;">);
+                            </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+                             * 复用 oldestActiveConnection 的一些信息，注意 PooledConnection 中的 
+                             * createdTimestamp 用于记录 Connection 的创建时间，而非 PooledConnection 
+                             * 的创建时间。所以这里要复用原连接的时间信息。
+                             </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+                            conn.setCreatedTimestamp(oldestActiveConnection.getCreatedTimestamp());
+                            conn.setLastUsedTimestamp(oldestActiveConnection.getLastUsedTimestamp());
+
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置连接为无效状态</span>
+<span style="color: #000000;">                            oldestActiveConnection.invalidate();
+                            
+                        } </span><span style="color: #0000ff;">else</span> {<span style="color: #008000;">//</span><span style="color: #008000;"> 运行时间最长的连接并未超时</span>
+                            <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                                </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">countedWait) {
+                                    state.hadToWaitCount</span>++<span style="color: #000000;">;
+                                    countedWait </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                                }
+                                </span><span style="color: #0000ff;">long</span> wt =<span style="color: #000000;"> System.currentTimeMillis();
+                                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当前线程进入等待状态</span>
+<span style="color: #000000;">                                state.wait(poolTimeToWait);
+                                state.accumulatedWaitTime </span>+= System.currentTimeMillis() -<span style="color: #000000;"> wt;
+                            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (InterruptedException e) {
+                                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                            }
+                        }
+                    }
+                }
+                </span><span style="color: #0000ff;">if</span> (conn != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (conn.isValid()) {
+                        </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">conn.getRealConnection().getAutoCommit()) {
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 进行回滚操作</span>
+<span style="color: #000000;">                            conn.getRealConnection().rollback();
+                        }
+                        conn.setConnectionTypeCode(assembleConnectionTypeCode(dataSource.getUrl(), username, password));
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置统计字段</span>
+<span style="color: #000000;">                        conn.setCheckoutTimestamp(System.currentTimeMillis());
+                        conn.setLastUsedTimestamp(System.currentTimeMillis());
+                        state.activeConnections.add(conn);
+                        state.requestCount</span>++<span style="color: #000000;">;
+                        state.accumulatedRequestTime </span>+= System.currentTimeMillis() -<span style="color: #000000;"> t;
+                    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 连接无效，此时累加无效连接相关的统计字段</span>
+                        state.badConnectionCount++<span style="color: #000000;">;
+                        localBadConnectionCount</span>++<span style="color: #000000;">;
+                        conn </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                        </span><span style="color: #0000ff;">if</span> (localBadConnectionCount &gt;<span style="color: #000000;"> (poolMaximumIdleConnections
+                            </span>+<span style="color: #000000;"> poolMaximumLocalBadConnectionTolerance)) {
+                            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> SQLException(...);
+                        }
+                    }
+                }
+            }
+
+        }
+        </span><span style="color: #0000ff;">if</span> (conn == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> SQLException(...);
+        }
+
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> conn;
+    }
+}</span></code></pre>
+
+<p>从连接池中获取连接首先会遇到两种情况：</p>
+<ol>
+<li>连接池中有空闲连接</li>
+<li>连接池中无空闲连接</li>
+</ol>
+<p>对于第一种情况，把连接取出返回即可。对于第二种情况，则要进行细分，会有如下的情况。</p>
+<ol>
+<li>活跃连接数没有超出最大活跃连接数</li>
+<li>活跃连接数超出最大活跃连接数</li>
+</ol>
+<p>对于上面两种情况，第一种情况比较好处理，直接创建新的连接即可。至于第二种情况，需要再次进行细分。</p>
+<ol>
+<li>活跃连接的运行时间超出限制，即超时了</li>
+<li>活跃连接未超时</li>
+</ol>
+<p>对于第一种情况，我们直接将超时连接强行中断，并进行回滚，然后复用部分字段重新创建 PooledConnection 即可。对于第二种情况，目前没有更好的处理方式了，只能等待了。</p>
+<h3 id="autoid-4-2-0">回收连接</h3>
+<p>相比于获取连接，回收连接的逻辑要简单的多。回收连接成功与否只取决于空闲连接集合的状态，所需处理情况很少，因此比较简单。</p>
+<p>我们还是来看看</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> Connection getConnection() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.popConnection(<span style="color: #0000ff;">this</span>.dataSource.getUsername(), <span style="color: #0000ff;">this</span><span style="color: #000000;">.dataSource.getPassword()).getProxyConnection();
+}</span></code></pre>
+
+<p>返回的是PooledConnection的一个代理类，为什么不直接使用PooledConnection的realConnection呢？我们可以看下PooledConnection这个类</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span> PooledConnection <span style="color: #0000ff;">implements</span> <strong>InvocationHandler</strong> {</code></pre>
+
+<p>&nbsp;很熟悉是吧，标准的代理类用法，看下其invoke方法</p>
+<p><strong>PooledConnection</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000;">@Override
+</span><span style="color: #0000ff;">public</span> Object invoke(Object proxy, Method method, Object[] args) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> Throwable {
+    String methodName </span>=<span style="color: #000000;"> method.getName();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 重点在这里，如果调用了其close方法，则实际执行的是将连接放回连接池的操作</span>
+    <span style="color: #0000ff;">if</span> (<strong>CLOSE</strong>.hashCode() == methodName.hashCode() &amp;&amp;<span style="color: #000000;"><strong> CLOSE</strong>.equals(methodName)) {
+       <strong> dataSource.pushConnection(</strong></span><strong><span style="color: #0000ff;">this</span><span style="color: #000000;">);
+        </span></strong><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">if</span> (!Object.<span style="color: #0000ff;">class</span><span style="color: #000000;">.equals(method.getDeclaringClass())) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> issue #579 toString() should never fail
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> throw an SQLException instead of a Runtime</span>
+<span style="color: #000000;">                checkConnection();
+            }
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 其他的操作都交给realConnection执行</span>
+            <span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> method.invoke(realConnection, args);</strong>
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Throwable t) {
+            </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> ExceptionUtil.unwrapThrowable(t);
+        }
+    }
+}</span></code></pre>
+
+<p>那我们来看看<strong>pushConnection</strong>做了什么</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> <span style="color: #0000ff;">void</span> pushConnection(PooledConnection conn) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">synchronized</span><span style="color: #000000;"> (state) {
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 从活跃连接池中移除连接</span>
+<span style="color: #000000;">        state.activeConnections.remove(conn);
+        </span></strong><span style="color: #0000ff;">if</span><span style="color: #000000;"> (conn.isValid()) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 空闲连接集合未满</span>
+            <span style="color: #0000ff;">if</span> (state.idleConnections.size() &lt;<span style="color: #000000;"> poolMaximumIdleConnections
+                </span>&amp;&amp; conn.getConnectionTypeCode() ==<span style="color: #000000;"> expectedConnectionTypeCode) {
+                state.accumulatedCheckoutTime </span>+=<span style="color: #000000;"> conn.getCheckoutTime();
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 回滚未提交的事务</span>
+                <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">conn.getRealConnection().getAutoCommit()) {
+                    conn.getRealConnection().rollback();
+                }
+
+                </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 创建新的 PooledConnection</span>
+                PooledConnection newConn = <span style="color: #0000ff;">new</span> PooledConnection(conn.getRealConnection(), <span style="color: #0000ff;">this</span><span style="color: #000000;">);
+                state.idleConnections.add(newConn);
+                </span></strong><span style="color: #008000;">//</span><span style="color: #008000;"> 复用时间信息</span>
+<span style="color: #000000;">                newConn.setCreatedTimestamp(conn.getCreatedTimestamp());
+                newConn.setLastUsedTimestamp(conn.getLastUsedTimestamp());
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将原连接置为无效状态</span>
+<span style="color: #000000;">                conn.invalidate();
+
+                </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 通知等待的线程</span>
+</strong><span style="color: #000000;"><strong>                state.notifyAll();</strong>
+                
+            } </span><span style="color: #0000ff;">else</span> {<span style="color: #008000;">//</span><span style="color: #008000;"> 空闲连接集合已满</span>
+                state.accumulatedCheckoutTime +=<span style="color: #000000;"> conn.getCheckoutTime();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 回滚未提交的事务</span>
+                <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">conn.getRealConnection().getAutoCommit()) {
+                    conn.getRealConnection().rollback();
+                }
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 关闭数据库连接</span>
+<span style="color: #000000;">                conn.getRealConnection().close();
+                conn.invalidate();
+            }
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            state.badConnectionCount</span>++<span style="color: #000000;">;
+        }
+    }
+}</span></code></pre>
+
+<p>先将连接从活跃连接集合中移除，如果空闲集合未满，此时复用原连接的字段信息创建新的连接，并将其放入空闲集合中即可；若空闲集合已满，此时无需回收连接，直接关闭即可。</p>
+<p>连接池总觉得很神秘，但仔细分析完其代码之后，也就没那么神秘了，就是将连接使用完之后放到一个集合中，下面再获取连接的时候首先从这个集合中获取。&nbsp; 还有PooledConnection的代理模式的使用，值得我们学习</p>
+<p>好了，我们已经获取到了数据库连接，接下来要创建<strong>PrepareStatement</strong>了，我们上面JDBC的例子是怎么获取的？&nbsp;<strong>psmt = conn.prepareStatement(sql);，直接通过Connection来获取，并且把sql传进去了</strong>，我们看看Mybaits中是怎么创建PrepareStatement的</p>
+<h2><strong><strong>创建PreparedStatement&nbsp;</strong></strong></h2>
+<p><strong>PreparedStatementHandler</strong></p>
+<src class="cnblogs_code">
+<pre><code>stmt =<span style="color: #000000;"> handler.prepare(connection, transaction.getTimeout());
+
+</span><span style="color: #0000ff;">public</span> Statement prepare(Connection connection, Integer transactionTimeout) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    Statement statement </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建 Statement</span>
+        statement =<span style="color: #000000;"> instantiateStatement(connection);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置超时和 FetchSize</span>
+<span style="color: #000000;">        setStatementTimeout(statement, transactionTimeout);
+        setFetchSize(statement);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> statement;
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+        closeStatement(statement);
+        </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> e;
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception e) {
+        closeStatement(statement);
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ExecutorException("Error preparing statement.  Cause: " +<span style="color: #000000;"> e, e);
+    }
+}
+
+</span><span style="color: #0000ff;">protected</span> Statement instantiateStatement(Connection connection) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">获取sql字符串，比如"select * from user where id= ?"</span>
+    String sql =<span style="color: #000000;"> boundSql.getSql();
+    </span></strong><span style="color: #008000;">//</span><span style="color: #008000;"> 根据条件调用不同的 prepareStatement 方法创建 PreparedStatement</span>
+    <span style="color: #0000ff;">if</span> (mappedStatement.getKeyGenerator() <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Jdbc3KeyGenerator) {
+        String[] keyColumnNames </span>=<span style="color: #000000;"> mappedStatement.getKeyColumns();
+        </span><span style="color: #0000ff;">if</span> (keyColumnNames == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">通过connection获取Statement，将sql语句传进去</span>
+            <span style="color: #0000ff;">return</span></strong><span style="color: #000000;"><strong> connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);</strong>
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> connection.prepareStatement(sql, keyColumnNames);
+        }
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (mappedStatement.getResultSetType() != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> connection.prepareStatement(sql, mappedStatement.getResultSetType().getValue(), ResultSet.CONCUR_READ_ONLY);
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> connection.prepareStatement(sql);
+    }
+}</span></code></pre>
+
+<p>看到没和jdbc的形式一模一样，我们具体来看看<strong>connection.prepareStatement</strong>做了什么</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">public</span> PreparedStatement prepareStatement(String sql, <span style="color: #0000ff;">int</span> resultSetType, <span style="color: #0000ff;">int</span> resultSetConcurrency) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+</span><span style="color: #008080;"> 2</span>        
+<span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">boolean</span> canServerPrepare = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span>     String nativeSql = getProcessEscapeCodesForPrepStmts() ?<span style="color: #000000;"> nativeSQL(sql) : sql;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.useServerPreparedStmts &amp;&amp;<span style="color: #000000;"> getEmulateUnsupportedPstmts()) {
+</span><span style="color: #008080;"> 8</span>         canServerPrepare =<span style="color: #000000;"> canHandleAsServerPreparedStatement(nativeSql);
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.useServerPreparedStmts &amp;&amp;<span style="color: #000000;"> getEmulateUnsupportedPstmts()) {
+</span><span style="color: #008080;">12</span>         canServerPrepare =<span style="color: #000000;"> canHandleAsServerPreparedStatement(nativeSql);
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.useServerPreparedStmts &amp;&amp;<span style="color: #000000;"> canServerPrepare) {
+</span><span style="color: #008080;">16</span>         <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.getCachePreparedStatements()) {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">            ......
+</span><span style="color: #008080;">18</span>         } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">20</span>                <strong> <span style="color: #008000;">//</span><span style="color: #008000;">这里使用的是ServerPreparedStatement创建PreparedStatement</span>
+<span style="color: #008080;">21</span>                 pStmt = ServerPreparedStatement.getInstance(getMultiHostSafeProxy(), nativeSql, <span style="color: #0000ff;">this</span><span style="color: #000000;">.database, resultSetType, resultSetConcurrency);
+</span></strong><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span> <span style="color: #000000;">                pStmt.setResultSetType(resultSetType);
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">                pStmt.setResultSetConcurrency(resultSetConcurrency);
+</span><span style="color: #008080;">25</span>             } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException sqlEx) {
+</span><span style="color: #008080;">26</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> Punt, if necessary</span>
+<span style="color: #008080;">27</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;"> (getEmulateUnsupportedPstmts()) {
+</span><span style="color: #008080;">28</span>                     pStmt = (PreparedStatement) clientPrepareStatement(nativeSql, resultSetType, resultSetConcurrency, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">29</span>                 } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">30</span>                     <span style="color: #0000ff;">throw</span><span style="color: #000000;"> sqlEx;
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">34</span>     } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">35</span>         pStmt = (PreparedStatement) clientPrepareStatement(nativeSql, resultSetType, resultSetConcurrency, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">37</span> }</code></pre>
+
+<p>我们只用看最关键的第21行代码，使用<strong>ServerPreparedStatement的getInstance返回一个</strong>PreparedStatement，其实本质上<strong>ServerPreparedStatement继承了PreparedStatement对象</strong>，我们看看其构造方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> ServerPreparedStatement(ConnectionImpl conn, String sql, String catalog, <span style="color: #0000ff;">int</span> resultSetType, <span style="color: #0000ff;">int</span> resultSetConcurrency) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">略...</span>
+
+    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><strong><span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>.serverPrepare(sql);</strong>
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException var10) {
+        </span><span style="color: #0000ff;">this</span>.realClose(<span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> var10;
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (Exception var11) {
+        </span><span style="color: #0000ff;">this</span>.realClose(<span style="color: #0000ff;">false</span>, <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+        SQLException sqlEx </span>= SQLError.createSQLException(var11.toString(), "S1000", <span style="color: #0000ff;">this</span><span style="color: #000000;">.getExceptionInterceptor());
+        sqlEx.initCause(var11);
+        </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> sqlEx;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">略...</span>
+<span style="color: #000000;">
+}</span></code></pre>
+
+<p>继续调用<strong>this</strong><strong>.serverPrepare(sql);</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> <strong>ServerPreparedStatement <span style="color: #0000ff;">extends</span></strong><span style="color: #000000;"><strong> PreparedStatement</strong> {
+    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">存放运行时参数的数组</span>
+    <span style="color: #0000ff;">private</span><span style="color: #000000;"> ServerPreparedStatement.BindValue[] parameterBindings;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">服务器预编译好的sql语句返回的serverStatementId</span>
+    <span style="color: #0000ff;">private</span> <span style="color: #0000ff;">long</span><span style="color: #000000;"> serverStatementId;
+    </span></strong><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">void</span> serverPrepare(String sql) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+        </span><span style="color: #0000ff;">synchronized</span>(<span style="color: #0000ff;">this</span><span style="color: #000000;">.connection.getMutex()) {
+            MysqlIO mysql </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.connection.getIO();
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">向sql服务器发送了一条PREPARE指令</span>
+                Buffer prepareResultPacket = mysql.sendCommand(MysqlDefs.COM_PREPARE, sql, (Buffer)<span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">false</span>, characterEncoding, 0<span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">记录下了预编译好的sql语句所对应的serverStatementId</span>
+                <span style="color: #0000ff;">this</span>.serverStatementId =<span style="color: #000000;"> prepareResultPacket.readLong();
+                </span></strong><span style="color: #0000ff;">this</span>.fieldCount =<span style="color: #000000;"> prepareResultPacket.readInt();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获取参数个数，比喻 select * from user where id= ？and name = ？，其中有两个？，则这里返回的参数个数应该为2</span>
+                <span style="color: #0000ff;">this</span>.parameterCount =<span style="color: #000000;"> prepareResultPacket.readInt();
+                </span><span style="color: #0000ff;">this</span>.parameterBindings = <span style="color: #0000ff;">new</span> ServerPreparedStatement.BindValue[<span style="color: #0000ff;">this</span><span style="color: #000000;">.parameterCount];
+
+                </span><strong><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.parameterCount; ++<span style="color: #000000;">i) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">根据参数个数，初始化数组</span>
+                    <span style="color: #0000ff;">this</span>.parameterBindings[i] = <span style="color: #0000ff;">new</span></strong><span style="color: #000000;"><strong> ServerPreparedStatement.BindValue();
+                }
+</strong>
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException var16) {
+                </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> sqlEx;
+            } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.connection.getIO().clearInputStream();
+            }
+
+        }
+    }
+}</span></code></pre>
+
+<pre><code><strong>ServerPreparedStatement继承</strong><strong>PreparedStatement，</strong><strong>ServerPreparedStatement初始化的时候就向</strong><strong>sql服务器发送了一条PREPARE指令，把SQL语句传到mysql服务器，如</strong>select * from user where id= ？and name = ？，mysql服务器会对sql进行编译，并保存在服务器，返回预编译语句对应的id，并保存在</code></pre>
+<pre><code><strong>ServerPreparedStatement中，同时创建BindValue[] parameterBindings数组，后面设置参数就直接添加到此数组中。好了，此时我们创建了一个</strong><strong>ServerPreparedStatement并返回，下面就是设置运行时参数了<br /></strong></code></pre>
+<h2 id="autoid-3-2-3">设置运行时参数到 SQL 中</h2>
+<h3>我们已经获取到了PreparedStatement，接下来就是将运行时参数设置到PreparedStatement中，如下代码</h3>
+<src class="cnblogs_code">
+<pre><code>handler.parameterize(stmt);</code></pre>
+
+<p>JDBC是怎么设置的呢？我们看看上面的例子，很简单吧</p>
+<src class="cnblogs_code">
+<pre><code>psmt =<span style="color: #000000;"> conn.prepareStatement(sql);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">设置参数</span>
+<strong>psmt.setString(1<span style="color: #000000;">, username);
+psmt.setString(</span>2, password);</strong></code></pre>
+
+<p>我们来看看parameterize方法</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> parameterize(Statement statement) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通过参数处理器 ParameterHandler 设置运行时参数到 PreparedStatement 中</span>
+<span style="color: #000000;">    parameterHandler.setParameters((PreparedStatement) statement);
+}
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">class</span> DefaultParameterHandler <span style="color: #0000ff;">implements</span><span style="color: #000000;"> ParameterHandler {
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> TypeHandlerRegistry typeHandlerRegistry;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> MappedStatement mappedStatement;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> Object parameterObject;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> BoundSql boundSql;
+    </span><span style="color: #0000ff;">private</span> <span style="color: #0000ff;">final</span><span style="color: #000000;"> Configuration configuration;
+
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> setParameters(PreparedStatement ps) {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">
+         * 从 BoundSql 中获取 ParameterMapping 列表，每个 ParameterMapping 与原始 SQL 中的 #{xxx} 占位符一一对应
+         </span><span style="color: #008000;">*/</span><strong><span style="color: #000000;">
+        List</span>&lt;ParameterMapping&gt; parameterMappings =<span style="color: #000000;"> boundSql.getParameterMappings();
+        </span></strong><span style="color: #0000ff;">if</span> (parameterMappings != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">int</span> i = 0; i &lt; parameterMappings.size(); i++<span style="color: #000000;">) {
+                ParameterMapping parameterMapping </span>=<span style="color: #000000;"> parameterMappings.get(i);
+                </span><span style="color: #0000ff;">if</span> (parameterMapping.getMode() !=<span style="color: #000000;"> ParameterMode.OUT) {
+                    Object value;
+                    </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 获取属性名</span>
+                    String propertyName =<span style="color: #000000;"> parameterMapping.getProperty();
+                    </span></strong><span style="color: #0000ff;">if</span><span style="color: #000000;"> (boundSql.hasAdditionalParameter(propertyName)) {
+                        value </span>=<span style="color: #000000;"> boundSql.getAdditionalParameter(propertyName);
+                    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (parameterObject == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                        value </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
+                        value </span>=<span style="color: #000000;"> parameterObject;
+                    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 为用户传入的参数 parameterObject 创建元信息对象</span>
+                        MetaObject metaObject =<span style="color: #000000;"> configuration.newMetaObject(parameterObject);
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从用户传入的参数中获取 propertyName 对应的值</span>
+                        value =</strong><span style="color: #000000;"><strong> metaObject.getValue(propertyName);</strong>
+                    }
+
+                    TypeHandler typeHandler </span>=<span style="color: #000000;"> parameterMapping.getTypeHandler();
+                    JdbcType jdbcType </span>=<span style="color: #000000;"> parameterMapping.getJdbcType();
+                    </span><span style="color: #0000ff;">if</span> (value == <span style="color: #0000ff;">null</span> &amp;&amp; jdbcType == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                        jdbcType </span>=<span style="color: #000000;"> configuration.getJdbcTypeForNull();
+                    }
+                    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;"> 由类型处理器 typeHandler 向 ParameterHandler 设置参数</span>
+                        typeHandler.setParameter(ps, i + 1</strong><span style="color: #000000;"><strong>, value, jdbcType);</strong>
+                    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (TypeException e) {
+                        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> TypeException(...);
+                    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException e) {
+                        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> TypeException(...);
+                    }
+                }
+            }
+        }
+    }
+}</span></code></pre>
+
+<p>首先从<strong>boundSql中获取</strong><strong>parameterMappings 集合，这块大家可以看看我前面的文章，然后遍历获取</strong>&nbsp;<strong>parameterMapping中的</strong><strong>propertyName ，如</strong>#{name} 中的name,然后从运行时参数<strong>parameterObject中获取name对应的参数值，最后设置到</strong>PreparedStatement 中，我们主要来看是如何设置参数的。也就是</p>
+<p>typeHandler.setParameter(ps, i + 1, value, jdbcType);，这句代码最终会向我们例子中一样执行，如下</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setNonNullParameter(PreparedStatement ps, <span style="color: #0000ff;">int</span> i, String parameter, JdbcType jdbcType) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+  <strong>  ps.setString(i, parameter);</strong>
+}</span></code></pre>
+
+<p>还记得我们的PreparedStatement是什么吗？是<strong>ServerPreparedStatement，那我们就来看看<strong>ServerPreparedStatement的</strong></strong><strong>setString方法</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span> setString(<span style="color: #0000ff;">int</span> parameterIndex, String x) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.checkClosed();
+    </span><span style="color: #0000ff;">if</span> (x == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">this</span>.setNull(parameterIndex, 1<span style="color: #000000;">);
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">根据参数下标从parameterBindings数组总获取BindValue</span>
+        ServerPreparedStatement.BindValue binding = <span style="color: #0000ff;">this</span>.getBinding(parameterIndex, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">this</span>.setType(binding, <span style="color: #0000ff;">this</span><span style="color: #000000;">.stringTypeCode);
+        </span></strong><span style="color: #008000;">//</span><span style="color: #008000;">设置参数值</span>
+       <strong> binding.value =</strong><span style="color: #000000;"><strong> x;</strong>
+        binding.isNull </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        binding.isLongData </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+
+}
+
+</span><span style="color: #0000ff;">protected</span> ServerPreparedStatement.BindValue getBinding(<span style="color: #0000ff;">int</span> parameterIndex, <span style="color: #0000ff;">boolean</span> forLongData) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.checkClosed();
+    </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.parameterBindings.length == 0<span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">throw</span> SQLError.createSQLException(Messages.getString("ServerPreparedStatement.8"), "S1009", <span style="color: #0000ff;">this</span><span style="color: #000000;">.getExceptionInterceptor());
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span>--<span style="color: #000000;">parameterIndex;
+        </span><span style="color: #0000ff;">if</span> (parameterIndex &gt;= 0 &amp;&amp; parameterIndex &lt; <span style="color: #0000ff;">this</span><span style="color: #000000;">.parameterBindings.length) {
+            </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.parameterBindings[parameterIndex] == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">this</span>.parameterBindings[parameterIndex] = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ServerPreparedStatement.BindValue();
+            } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.parameterBindings[parameterIndex].isLongData &amp;&amp; !<span style="color: #000000;">forLongData) {
+                </span><span style="color: #0000ff;">this</span>.detectedLongParameterSwitch = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+
+            </span><span style="color: #0000ff;">this</span>.parameterBindings[parameterIndex].isSet = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">this</span>.parameterBindings[parameterIndex].boundBeforeExecutionNum = (<span style="color: #0000ff;">long</span>)<span style="color: #0000ff;">this</span><span style="color: #000000;">.numberOfExecutions;
+            </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">根据参数下标从parameterBindings数组总获取BindValue</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>.parameterBindings[parameterIndex];</strong>
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">throw</span> SQLError.createSQLException(Messages.getString("ServerPreparedStatement.9") + (parameterIndex + 1) + Messages.getString("ServerPreparedStatement.10") + <span style="color: #0000ff;">this</span>.parameterBindings.length, "S1009", <span style="color: #0000ff;">this</span><span style="color: #000000;">.getExceptionInterceptor());
+        }
+    }
+}</span></code></pre>
+
+<pre><code>就是根据参数下标从<strong>ServerPreparedStatement的参数数组</strong><strong>parameterBindings中获取</strong><strong>BindValue对象，然后设置值，好了现在</strong><strong>ServerPreparedStatement包含了预编译SQL语句的Id和参数数组，最后一步便是执行SQL了。</strong></code></pre>
+<h2>执行查询</h2>
+<p>执行查询操作就是我们文章开头的最后一行代码，如下</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">return</span> handler.&lt;E&gt;query(stmt, resultHandler);</code></pre>
+
+<p>我们来看看query是怎么做的</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">public</span> &lt;E&gt; List&lt;E&gt; query(Statement statement, ResultHandler resultHandler) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    PreparedStatement ps </span>=<span style="color: #000000;"> (PreparedStatement)statement;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">直接执行ServerPreparedStatement的execute方法</span>
+<span style="color: #000000;">    ps.execute();
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.resultSetHandler.handleResultSets(ps);
+}
+
+</span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">boolean</span> execute() <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.checkClosed();
+    ConnectionImpl locallyScopedConn </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.connection;
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.checkReadOnlySafeStatement()) {
+        </span><span style="color: #0000ff;">throw</span> SQLError.createSQLException(Messages.getString("PreparedStatement.20") + Messages.getString("PreparedStatement.21"), "S1009", <span style="color: #0000ff;">this</span><span style="color: #000000;">.getExceptionInterceptor());
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        ResultSetInternalMethods rs </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        CachedResultSetMetaData cachedMetadata </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">synchronized</span><span style="color: #000000;">(locallyScopedConn.getMutex()) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">略....</span>
+          <strong>  rs = <span style="color: #0000ff;">this</span>.executeInternal(rowLimit, sendPacket, doStreaming, <span style="color: #0000ff;">this</span>.firstCharOfStmt == 'S', metadataFromCache, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+            </span></strong><span style="color: #008000;">//</span><span style="color: #008000;">略....</span>
+<span style="color: #000000;">        }
+
+        </span><strong><span style="color: #0000ff;">return</span> rs != <span style="color: #0000ff;">null</span> &amp;&amp;</strong><span style="color: #000000;"><strong> rs.reallyResult();</strong>
+    }
+}</span></code></pre>
+
+<p>省略了很多代码，只看最关键的<strong>executeInternal</strong></p>
+<p><strong>ServerPreparedStatement</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">protected</span> ResultSetInternalMethods executeInternal(<span style="color: #0000ff;">int</span> maxRowsToRetrieve, Buffer sendPacket, <span style="color: #0000ff;">boolean</span> createStreamingResultSet, <span style="color: #0000ff;">boolean</span> queryIsSelectOnly, Field[] metadataFromCache, <span style="color: #0000ff;">boolean</span> isBatch) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.serverExecute(maxRowsToRetrieve, createStreamingResultSet, metadataFromCache);
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (SQLException var11) {
+        </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> sqlEx;
+    } 
+}
+
+</span><span style="color: #0000ff;">private</span> ResultSetInternalMethods serverExecute(<span style="color: #0000ff;">int</span> maxRowsToRetrieve, <span style="color: #0000ff;">boolean</span> createStreamingResultSet, Field[] metadataFromCache) <span style="color: #0000ff;">throws</span><span style="color: #000000;"> SQLException {
+    </span><span style="color: #0000ff;">synchronized</span>(<span style="color: #0000ff;">this</span><span style="color: #000000;">.connection.getMutex()) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">略....</span>
+        MysqlIO mysql = <span style="color: #0000ff;">this</span><span style="color: #000000;">.connection.getIO();
+        Buffer packet </span>=<span style="color: #000000;"> mysql.getSharedSendPacket();
+        packet.clear();
+        packet.writeByte((</span><span style="color: #0000ff;">byte</span><span style="color: #000000;">)MysqlDefs.COM_EXECUTE);
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">将该语句对应的id写入数据包</span>
+        packet.writeLong(<span style="color: #0000ff;">this</span><span style="color: #000000;">.serverStatementId);
+
+        </span></strong><span style="color: #0000ff;">int</span><span style="color: #000000;"> i;
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">将对应的参数写入数据包</span></strong>
+        <span style="color: #0000ff;">for</span>(i = 0; i &lt; <span style="color: #0000ff;">this</span>.parameterCount; ++<span style="color: #000000;">i) {
+            </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.parameterBindings[i].isLongData) {
+                </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.parameterBindings[i].isNull) {
+                    </span><span style="color: #0000ff;">this</span>.storeBinding(packet, <span style="color: #0000ff;">this</span><span style="color: #000000;">.parameterBindings[i], mysql);
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    nullBitsBuffer[i </span>/ 8] = (<span style="color: #0000ff;">byte</span>)(nullBitsBuffer[i / 8] | 1 &lt;&lt; (i &amp; 7<span style="color: #000000;">));
+                }
+            }
+        }
+        </span><strong><span style="color: #008000;">//</span><span style="color: #008000;">发送数据包,表示执行id对应的预编译sql</span>
+        Buffer resultPacket = mysql.sendCommand(MysqlDefs.COM_EXECUTE, (String)<span style="color: #0000ff;">null</span>, packet, <span style="color: #0000ff;">false</span>, (String)<span style="color: #0000ff;">null</span>, 0<span style="color: #000000;">);
+        </span></strong><span style="color: #008000;">//</span><span style="color: #008000;">略....</span>
+        ResultSetImpl rs = mysql.readAllResults(<span style="color: #0000ff;">this</span>,  <span style="color: #0000ff;">this</span>.resultSetType,  resultPacket, <span style="color: #0000ff;">true</span>, (<span style="color: #0000ff;">long</span>)<span style="color: #0000ff;">this</span><span style="color: #000000;">.fieldCount, metadataFromCache);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">返回结果</span>
+        <span style="color: #0000ff;">return</span><span style="color: #000000;"> rs;
+    }
+}</span></code></pre>
+
+<p>ServerPreparedStatement在记录下serverStatementId后，对于相同SQL模板的操作，每次只是发送serverStatementId和对应的参数，省去了编译sql的过程。 至此我们的已经从数据库拿到了查询结果，但是结果是ResultSetImpl类型，我们还需要将返回结果转化成我们的java对象呢，留在下一篇来讲吧</p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

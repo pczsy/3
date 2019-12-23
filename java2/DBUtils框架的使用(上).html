@@ -1,0 +1,132 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修DBUtils框架的使用(上)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>DBUtils框架的使用(上)</center></div><div class='banquan'>原文出处:本文由博客园博主#Temptation提供。<br/>
+原文连接:https://www.cnblogs.com/blizzawang/p/11411790.html</div><br>
+    <p><strong>昨天做了这么多的铺垫，当然就是为了引出今天的DBUtils框架了，它的实现原理跟我们编写的简易框架是类似的。</strong><br />
+话不多说，进入正题。<br />
+commons-dbutils 是 Apache 组织提供的一个开源 JDBC工具类库，它是对JDBC的简单封装，学习成本极低，并且使用dbutils能极大简化jdbc编码的工作量，同时也不会影响程序的性能。因此dbutils成为很多不喜欢hibernate的公司的首选。</p>
+<p>jar包下载地址：链接：https://pan.baidu.com/s/1BKtq_VoBw52qyIJr6c_CZg<br />
+提取码：skrf<br />
+复制这段内容后打开百度网盘手机App，操作更方便哦</p>
+<p>API介绍：</p>
+<ul>
+<li>org.apache.commons.dbutils.QueryRunner --- 核心操作类</li>
+<li>org.apache.commons.dbutils.ResultSetHandler</li>
+<li>org.apache.commons.dbutils.DbUtils --- 工具类</li>
+</ul>
+<p>QueryRunner 类简单化了SQL查询，它与ResultSetHandler组合在一起使用可以完成大部分的数据库操作，能够大大减少编码量。<br />
+QueryRunner类提供了两个构造方法：<br />
+默认的构造方法<br />
+需要一个 javax.sql.DataSource 来作参数的构造方法。</p>
+<p>QueryRunner类有四个重载的构造方法，如果使用QueryRunner(DataSource ds)构造QueryRunner对象，数据库事务将交给DBUtils框架进行管理，默认情况下每一个sql单独一个事务。此时应该使用不带Connection参数的方法。<br />
+如果使用QueryRunner()构造QueryRunner对象，就需要自己来管理事务，因为框架没有连接池，无法获得数据库的连接，此时应该使用带Connection参数的方法。</p>
+<p>Dbutils工具类能够加载驱动、关闭资源、控制事务，所以之前的一些繁琐工作都可以借助该工具类实现。</p>
+<p>编写案例演示一下。<br />
+新建一个web项目，不要忘了导入jar包。<br />
+新建测试类QueryRunnerTest<br />
+先在类中定义一个成员变量，方便后续测试</p>
+<pre><code><code>    private static ComboPooledDataSource dataSource = new ComboPooledDataSource();</code></code></pre>
+<p>编写插入的测试代码</p>
+<pre><code><code>@Test
+public void testInsert() throws SQLException{
+    //1、创建QueryRunner对象
+    QueryRunner queryRunner = new QueryRunner(dataSource);
+    //2、准备方法参数
+    String sql =&quot;insert into account values(null,?,?)&quot;;
+    Object[] param = {&quot;fff&quot;,1000};
+    //3、调用方法
+    queryRunner.update(sql, param);
+}</code></code></pre>
+<p>使用该构造方法构造的QueryRunner对象是不需要手动释放资源的，因为连接交由DBUtils工具包管理了，它会帮助我们释放资源。<br />
+然后运行测试代码<br />
+<img src="./images/DBUtils框架的使用(上)0.png" alt="在这里插入图片描述" /><br />
+插入成功。</p>
+<p>接下来测试一下更新sql，编写测试代码</p>
+<pre><code><code>    @Test
+    public void testUpdate() throws SQLException{
+        QueryRunner queryRunner = new QueryRunner(dataSource);
+        String sql = &quot;update account set money = ? where name = ?&quot;;
+        Object[] param = {2000,&quot;fff&quot;};
+        queryRunner.update(sql,param);
+    }</code></code></pre>
+<p>运行测试代码<br />
+<img src="./images/DBUtils框架的使用(上)1.png" alt="在这里插入图片描述" /><br />
+修改成功。</p>
+<p>接下来测试一下删除sql，编写测试代码</p>
+<pre><code><code>@Test
+public void testDelete() throws SQLException{
+    QueryRunner queryRunner = new QueryRunner(dataSource);
+    String sql = &quot;delete from account where id = ?&quot;;
+    queryRunner.update(sql,2);
+}</code></code></pre>
+<p>运行测试代码<br />
+<img src="./images/DBUtils框架的使用(上)2.png" alt="在这里插入图片描述" /><br />
+删除成功。</p>
+<p>现在我们来模拟一个转账的情景。</p>
+<pre><code><code>@Test
+public void testTransfer() throws SQLException{
+    double  money = 100;
+    String outAccount = &quot;aaa&quot;;
+    String inAccount = &quot;bbb&quot;;
+    String sql1 = &quot;update account set money = money - ? where name = ?&quot;;
+    String sql2 = &quot;update account set money = money + ? where name = ?&quot;;
+    
+    QueryRunner queryRunner = new QueryRunner(dataSource);
+    queryRunner.update(sql1,money,outAccount);
+    //产生一个错误
+    int d = 1 / 0;
+    queryRunner.update(sql2,money,inAccount);
+}</code></code></pre>
+<p>运行测试代码<br />
+<img src="./images/DBUtils框架的使用(上)3.png" alt="在这里插入图片描述" /><br />
+程序报错，aaa账户少了100，而bbb账户金额并没有多，这是因为你把连接交给了DBUtils管理，默认一条sql就是一个事务，所以，我们应该自己来管理事务，才能避免这种情况发生。</p>
+<p>修改转账代码</p>
+<pre><code><code>    @Test
+    public void testTransfer() throws SQLException{
+        double  money = 100;
+        String outAccount = &quot;aaa&quot;;
+        String inAccount = &quot;bbb&quot;;
+        String sql1 = &quot;update account set money = money - ? where name = ?&quot;;
+        String sql2 = &quot;update account set money = money + ? where name = ?&quot;;
+        
+        //手动事务管理
+        QueryRunner queryRunner = new QueryRunner();
+        Connection conn = JDBCUtils.getConnection();
+        conn.setAutoCommit(false);
+        try {
+            queryRunner.update(conn,sql1,money,outAccount);
+            //产生一个错误
+            int d = 1 / 0;
+            queryRunner.update(conn,sql2,money,inAccount);
+            
+            DbUtils.commitAndCloseQuietly(conn);
+        } catch (Exception e) {
+            DbUtils.rollbackAndCloseQuietly(conn);
+            e.printStackTrace();
+        }
+    }</code></code></pre>
+<p>此时运行代码<br />
+<img src="./images/DBUtils框架的使用(上)4.png" alt="在这里插入图片描述" /><br />
+表数据并没有改变，说明更新操作被回滚了。</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

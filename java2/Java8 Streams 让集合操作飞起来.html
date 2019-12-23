@@ -1,0 +1,179 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java8 Streams 让集合操作飞起来' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java8 Streams 让集合操作飞起来</center></div><div class='banquan'>原文出处:本文由博客园博主sanri1993提供。<br/>
+原文连接:https://www.cnblogs.com/sanri1993/p/11580929.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>接上篇文章 <a href="https://blog.csdn.net/sanri1993/article/details/101176712">java8 新特性</a> 由于上篇过于庞大，使得重点不够清晰，本篇单独拿出 java8 的 Stream 重点说明 ，并做了点补充。</p>
+<h2 id="基本说明">基本说明</h2>
+<ul>
+<li>Stream 是基于 java8 的 lambda 表达式的，如果不清楚 lambda 表达式，可以查看我的上篇文章<a href="https://blog.csdn.net/sanri1993/article/details/101289153">Lambda 表达式和函数式接口快速理解</a></li>
+<li>Stream 把要处理的元素看做一种流，流在管道中传输，可以在管道的节点上处理数据，包含过滤，去重，排序，映射，聚合，分组等。</li>
+<li>Stream 分为中间操作和后期操作，中期操作会形成一个新的 Stream ，但不会马上对数据进行处理，到后期操作时，再遍历整个集合；可以没有中期操作直接后期操作。</li>
+</ul>
+<h2 id="创建流的方式">创建流的方式</h2>
+<ul>
+<li>使用 <code>java.util.Collection</code> 接口的默认方法 <code>stream</code> 或者 <code>parallelStream</code></li>
+<li>使用 <code>java.util.Arrays</code> 的方法 <code>stream</code> 将数组变成流</li>
+</ul>
+<h2 id="中期操作和后期操作">中期操作和后期操作</h2>
+<p>Stream 分为中间操作和后期操作，中期操作会形成一个新的 Stream ，但不会马上对数据进行处理，到后期操作时，再遍历整个集合；可以没有中期操作直接后期操作。</p>
+<h3 id="中期操作">中期操作</h3>
+<ul>
+<li>map 和 map 之类的，用于映射一种类型到另一种类型</li>
+<li>filter 用于过滤掉一些不符合要求的元素</li>
+<li>distinct 用于排重</li>
+<li>sorted 用于排序</li>
+<li>flatMap 用于将流扁平化</li>
+</ul>
+<h3 id="后期操作">后期操作</h3>
+<p>forEach，collect，reduce，anyMatch，allMatch，noneMatch，findFirst 等；</p>
+<p>其中属 collect 最为常用，还有一个专门用于 collect 的 Collectors 类，可以用于将集合转成 List，Set，Map 等</p>
+<h2 id="代码示例">代码示例</h2>
+<h3 id="数据准备">数据准备</h3>
+<ol>
+<li>准备一个用于下面例子测试的对象</li>
+</ol>
+<pre><code><code>import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class Vehicle {
+    //车架号
+    private String vin;
+    // 车主手机号
+    private String phone;
+    // 车主姓名
+    private String name;
+    // 所属车租车公司
+    private Integer companyId;
+    // 个人评分
+    private Double score;
+    //安装的设备列表imei,使用逗号分隔
+    private String deviceNos;
+}</code></code></pre>
+<ol>
+<li>准备一些车辆数据</li>
+</ol>
+<pre><code><code>static List&lt;Vehicle&gt; vehicles = new ArrayList&lt;&gt;();
+
+@Before
+public void init(){
+    List&lt;String&gt; imeis = new ArrayList&lt;&gt;();
+    for (int i = 0; i &lt;5 ; i++) {
+        List&lt;String&gt; singleVehicleDevices = new ArrayList&lt;&gt;();
+        for (int j = 0; j &lt; 3; j++) {
+            String imei = RandomStringUtils.randomAlphanumeric(15);
+            singleVehicleDevices.add(imei);
+        }
+        imeis.add(StringUtils.join(singleVehicleDevices,&#39;,&#39;));
+    }
+    vehicles.add(new Vehicle(&quot;KPTSOA1K67P081452&quot;,&quot;17620411498&quot;,&quot;9420&quot;,1,4.5,imeis.get(0)));
+    vehicles.add(new Vehicle(&quot;KPTCOB1K18P057071&quot;,&quot;15073030945&quot;,&quot;张玲&quot;,2,1.4,imeis.get(1)));
+    vehicles.add(new Vehicle(&quot;KPTS0A1K87P080237&quot;,&quot;19645871598&quot;,&quot;sanri1993&quot;,1,3.0,imeis.get(2)));
+    vehicles.add(new Vehicle(&quot;KNAJC526975740490&quot;,&quot;15879146974&quot;,&quot;李种&quot;,1,3.9,imeis.get(3)));
+    vehicles.add(new Vehicle(&quot;KNAJC521395884849&quot;,&quot;13520184976&quot;,&quot;袁绍&quot;,2,4.9,imeis.get(4)));
+}</code></code></pre>
+<h4 id="foreach-遍历collection-数据">forEach 遍历Collection 数据</h4>
+<pre><code><code>vehicles.forEach(vehicle -&gt; System.out.println(vehicle));
+
+//这样就可以遍历打印
+vehicles.forEach(System.out::println);</code></code></pre>
+<h4 id="foreach-遍历-map-数据">forEach 遍历 Map 数据</h4>
+<pre><code><code>Map&lt;String,Integer&gt; map = new HashMap&lt;&gt;();
+map.put(&quot;a&quot;,1);map.put(&quot;b&quot;,2);map.put(&quot;c&quot;,3);
+
+map.forEach((k,v) -&gt; System.out.println(&quot;key:&quot;+k+&quot;,value:&quot;+v));</code></code></pre>
+<h4 id="filter-数据过滤">filter 数据过滤</h4>
+<pre><code><code>// 去掉评分为 3 分以下的车
+List&lt;Vehicle&gt; collect = vehicles.stream().filter(vehicle -&gt; vehicle.getScore() &gt;= 3).collect(Collectors.toList());</code></code></pre>
+<h4 id="map-对象映射">map 对象映射</h4>
+<p>对一个 <code>List&lt;Object&gt;</code> 大部分情况下，我们只需要列表中的某一列，或者需要把里面的每一个对象转换成其它的对象，这时候可以使用 map 映射,示例：</p>
+<pre><code><code>// 取出所有的车架号列表
+ List&lt;String&gt; vins = vehicles.stream().map(Vehicle::getVin).collect(Collectors.toList());</code></code></pre>
+<h4 id="groupby-按照某个属性进行分组">groupBy 按照某个属性进行分组</h4>
+<pre><code><code>// 按照公司 Id 进行分组
+Map&lt;Integer, List&lt;Vehicle&gt;&gt; companyVehicles = vehicles.stream().collect(Collectors.groupingBy(Vehicle::getCompanyId));
+
+// 按照公司分组求司机打分和
+Map&lt;Integer, Double&gt; collect = vehicles.stream().collect(Collectors.groupingBy(Vehicle::getCompanyId, Collectors.summingDouble(Vehicle::getScore)));</code></code></pre>
+<h4 id="sort-按照某个属性排序-及多列排序">sort 按照某个属性排序 ，及多列排序</h4>
+<pre><code><code>// 单列排序 
+vehicles.sort((v1,v2) -&gt; v2.getScore().compareTo(v1.getScore()));
+
+// 或使用 Comparator 类来构建比较器，流处理不会改变原列表，需要接收返回值才能得到预期结果
+ List&lt;Vehicle&gt; collect = vehicles.stream().sorted(Comparator.comparing(Vehicle::getScore).reversed()).collect(Collectors.toList());
+
+// 多列排序，score 降序，companyId 升序排列
+List&lt;Vehicle&gt; collect = vehicles.stream().sorted(Comparator.comparing(Vehicle::getScore).reversed()
+                .thenComparing(Comparator.comparing(Vehicle::getCompanyId)))
+                .collect(Collectors.toList());</code></code></pre>
+<h4 id="flatmap-扁平化数据处理">flatMap 扁平化数据处理</h4>
+<pre><code><code>// 查出所有车绑定的所有设备
+List&lt;String&gt; collect = vehicles.stream().map(vehicle -&gt; {
+    String deviceNos = vehicle.getDeviceNos();
+    return StringUtils.split(deviceNos,&#39;,&#39;);
+}).flatMap(Arrays::stream).collect(Collectors.toList());</code></code></pre>
+<p>flatMap 很适合 <code>List&lt;List&gt;</code> 或 <code>List&lt;object []&gt;</code> 这种结构，可以当成一个列表来处理；像上面的设备列表，在数据库中存储的结构就是以逗号分隔的数据，而车辆列表又是一个列表数据。</p>
+<h4 id="将-list-数据转成-map">将 List 数据转成 Map</h4>
+<pre><code><code>// 将 List 转成 Map ; key(vin) == &gt; Vehicle
+Map&lt;String, Vehicle&gt; vinVehicles = vehicles.stream().collect(Collectors.toMap(Vehicle::getVin, vehicle -&gt; vehicle));</code></code></pre>
+<h4 id="mapreduce-数据处理">mapReduce 数据处理</h4>
+<pre><code><code>// 对所有司机的总分求和
+Double reduce = vehicles.stream().parallel().map(Vehicle::getScore).reduce(0d, Double::sum);</code></code></pre>
+<h4 id="求百分比">求百分比</h4>
+<pre><code><code>// 总的分值
+Double totalScore = vehicles.stream().parallel().map(Vehicle::getScore).reduce(0d, Double::sum);
+
+// 查看每一个司机占的分值比重
+List&lt;String&gt; collect = vehicles.stream()
+    .mapToDouble(vehicle -&gt; vehicle.getScore() / totalScore)
+    .mapToLong(weight -&gt; (long) (weight * 100))
+    .mapToObj(percentage -&gt; percentage + &quot;%&quot;)
+    .collect(Collectors.toList());</code></code></pre>
+<h4 id="anymatchallmatchnonematch-匹配操作">anyMatch/allMatch/noneMatch 匹配操作</h4>
+<ul>
+<li>anyMatch 只要有元素匹配，即返回真</li>
+<li>allMatch 要求所有的元素都匹配</li>
+<li>noneMatch 要求没有一个元素匹配</li>
+</ul>
+<pre><code><code>// 检查是否有姓李的司机 true
+boolean anyMatch = vehicles.stream().anyMatch(vehicle -&gt; vehicle.getName().startsWith(&quot;李&quot;));
+
+// 检查是否所有司机的评分都大于 3 分 false
+boolean allMatch = vehicles.stream().allMatch(vehicle -&gt; vehicle.getScore() &gt; 3);
+
+// 检查是否有 3 公司的特务 true
+boolean noneMatch = vehicles.stream().noneMatch(vehicle -&gt; vehicle.getCompanyId() == 3);</code></code></pre>
+<h2 id="一点小推广">一点小推广</h2>
+<p>创作不易，希望可以支持下我的开源软件，及我的小工具，欢迎来 gitee 点星，fork ，提 bug 。</p>
+<p>Excel 通用导入导出，支持 Excel 公式<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/100601578" class="uri">https://blog.csdn.net/sanri1993/article/details/100601578</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-excel-poi" class="uri">https://gitee.com/sanri/sanri-excel-poi</a></p>
+<p>使用模板代码 ，从数据库生成代码 ，及一些项目中经常可以用到的小工具<br />
+博客地址：<a href="https://blog.csdn.net/sanri1993/article/details/98664034" class="uri">https://blog.csdn.net/sanri1993/article/details/98664034</a><br />
+gitee：<a href="https://gitee.com/sanri/sanri-tools-maven" class="uri">https://gitee.com/sanri/sanri-tools-maven</a></p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

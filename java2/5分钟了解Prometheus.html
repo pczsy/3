@@ -1,0 +1,373 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修5分钟了解Prometheus' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>5分钟了解Prometheus</center></div><div class='banquan'>原文出处:本文由博客园博主废物大师兄提供。<br/>
+原文连接:https://www.cnblogs.com/cjsblog/p/11585145.html</div><br>
+    <p><span style="font-size: 16px;">Prometheus（译：普罗米修斯）用领先的开源监控解决方案为你的指标和警报提供动力（赋能）。</span></p>
+<p><img src="./images/5分钟了解Prometheus0.png" alt="" /></p>
+<p>&nbsp;</p>
+<h1>1.&nbsp; 概述</h1>
+<p><span style="font-size: 18pt; color: #c3453b;">1.1.&nbsp; Prometheus是什么？</span></p>
+<p><span style="font-size: 16px;">Prometheus是一个开源的系统监控和警报工具包。自2012年启动以来，许多公司和组织都采用了Prometheus，该项目拥有非常活跃的开发人员和用户社区。它现在是一个独立的开源项目，独立于任何公司进行维护。Prometheus于2016年加入云原生计算基金会，成为继Kubernetes之后的第二个托管项目。</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">1.1.1.&nbsp; Prometheus的主要特性：</span></p>
+<ul>
+<li><span style="font-size: 16px;">一个多维数据模型，包含由指标名称和键/值对（Tag）标识的时间序列数据</span></li>
+<li><span style="font-size: 16px;">PromQL是一种灵活的查询语音，用于查询并利用这些维度数据</span></li>
+<li><span style="font-size: 16px;">不依赖分布式存储，单个服务器节点是自治的</span></li>
+<li><span style="font-size: 16px;">时间序列收集是通过HTTP上的pull模型进行的（支持Pull）</span></li>
+<li><span style="font-size: 16px;">推送时间序列是通过一个中间网关来支持的（也支持Push）</span></li>
+<li><span style="font-size: 16px;">目标是通过服务发现或静态配置发现的</span></li>
+<li><span style="font-size: 16px;">多种模式的图形和仪表盘支持</span></li>
+</ul>
+<p><span style="font-size: 16px;">总结一下，就是多维数据模型、PromQL查询语言、节点自治、HTTP主动拉取或者网关主动推送的方式获取时间序列数据、自动发现目标、多种仪表盘支持</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">1.1.2.&nbsp; 组件：</span></p>
+<ul>
+<li><span style="font-size: 16px;">Prometheus server，它负责抓取和存储时间序列数据，是最主要的组件</span></li>
+<li><span style="font-size: 16px;">client libraries，用于检测应用程序代码的客户端库</span></li>
+<li><span style="font-size: 16px;">push gateway，用于支持短期的jobs</span></li>
+<li><span style="font-size: 16px;">exporters，用于支持HAProxy等第三方</span></li>
+<li><span style="font-size: 16px;">alertmanager，用于处理告警</span></li>
+<li><span style="font-size: 16px;">各种支持工具</span></li>
+</ul>
+<p><span style="font-size: 16px;">大多数Prometheus组件都是用Go编写的，这使得它们易于作为静态二进制文件构建和部署</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">1.1.3.&nbsp; 架构：</span></p>
+<p><span style="font-size: 16px;">这张图展示了架构及其生态系统的一些组成部分：</span></p>
+<p><img src="./images/5分钟了解Prometheus1.png" alt="" /></p>
+<p><span style="font-size: 16px;">Prometheus从工具化的作业中获取指标，要么直接获取，要么通过中介推送网关获取短期作业。它在本地存储所有抓取的样本，并对这些数据应用规则将这些数据进行聚合，并记录新的时间序列，或者生成警报。可以用Grafana或其他API来可视化收集的数据。</span></p>
+<p><span style="font-size: 18pt; color: #c3453b;">1.2.&nbsp; 什么时候用它合适</span></p>
+<p><span style="font-size: 16px;">Prometheus可以很好地记录任何纯数字时间序列。它既适合以机器为中心的监视，也适合高度动态的面向服务的体系结构的监视。在微服务的世界中，它对多维数据收集和查询的支持是一个特别的优势。</span></p>
+<p><span style="font-size: 16px;">Prometheus是为可靠性而设计的，在你的服务宕机的时候，你可以快速诊断问题。每台Prometheus服务器都是独立的，不依赖于网络存储或其他远程服务。</span></p>
+<p><span style="font-size: 18pt; color: #c3453b;">1.3.&nbsp; 什么时候用它不合适</span></p>
+<p><span style="font-size: 16px;">Prometheus的值的可靠性。你总是可以查看有关系统的统计信息，即使在出现故障的情况下也是如此。如果你需要100%的准确性，例如按请求计费，Prometheus不是一个好的选择，因为收集的数据可能不够详细和完整。在这种情况下，最好使用其他系统来收集和分析用于计费的数据，并使用Prometheus来完成剩下的监视工作。</span></p>
+<p><span style="font-size: 18pt; color: #c3453b;">1.4.&nbsp; Prometheus VS InfluxDB</span></p>
+<p><span style="font-size: 16px; font-family: 'Microsoft YaHei';">InfluxDB是一个开源的时间序列数据库，具有扩展和集群的商业选项。InfluxDB项目是在Prometheus开发开始将近一年后发布的，所以当时无法考虑将其作为替代方案。尽管如此，Prometheus和fluxdb之间仍然存在显著的差异。二者有许多相似之处。两者都有标签(在InfluxDB中称为tags)来有效地支持多维度度量。它们基本上使用相同的数据压缩算法。两者都具有广泛的集成，包括彼此之间的集成。两者都有挂钩，允许进一步扩展它们，例如在统计工具中分析数据或执行自动化操作。</span></p>
+<p><span style="font-size: 14pt; font-family: 'Microsoft YaHei'; color: #53a451;">下列情况，用InfluxDB更好：</span></p>
+<ul>
+<li><span style="font-size: 16px; font-family: 'Microsoft YaHei';">如果你正在进行事件日志记录</span></li>
+<li><span style="font-size: 16px; font-family: 'Microsoft YaHei';">商业选项为InfluxDB提供集群，这对于长期数据存储也更好</span></li>
+<li><span style="font-size: 16px; font-family: 'Microsoft YaHei';">最终实现副本之间数据的一致性</span></li>
+</ul>
+<p><span style="font-size: 14pt; font-family: 'Microsoft YaHei'; color: #53a451;">下列情况，用Prometheus更好：</span></p>
+<ul>
+<li><span style="font-size: 16px; font-family: 'Microsoft YaHei';">如果你主要做的是度量</span></li>
+<li><span style="font-size: 16px; font-family: 'Microsoft YaHei';">如果你需要更强大的查询语言、警报和通知功能</span></li>
+<li><span style="font-size: 16px; font-family: 'Microsoft YaHei';">更高的可用性和正常运行时间，用于绘图和报警</span></li>
+</ul>
+<p><span style="font-size: 16px; font-family: 'Microsoft YaHei';">InfluxDB由一家遵循开放核心模型的商业公司维护，提供高级特性，如闭源集群、托管和支持。</span></p>
+<p><span style="font-size: 16px; font-family: 'Microsoft YaHei';">Prometheus是一个完全开源和独立的项目，由许多公司和个人维护，其中一些还提供商业服务和支持。</span></p>
+<h1>2.&nbsp; 基本概念</h1>
+<p><span style="font-size: 18pt; color: #c3453b;">2.1.&nbsp; 数据模型</span></p>
+<p><span style="font-size: 16px; font-family: 'Microsoft YaHei';">Prometheus基本上将所有数据存储为时间序列：属于同一指标和同一组标记维度的时间戳值流。除了存储时间序列外，Prometheus还可以根据查询结果生成临时派生的时间序列。</span></p>
+<p><span style="font-size: 16px;">（PS：这里对时间序列的解释是这样的， </span></p>
+<p><span style="font-size: 16px; font-family: tahoma, arial, helvetica, sans-serif; color: #ad33d8;">time series: streams of timestamped values belonging to the same metric and the same set of labeled dimensions</span></p>
+<p><span style="font-size: 16px;">）</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">2.1.1.&nbsp; Metric names and labels</span></p>
+<p><span style="font-size: 16px; font-family: tahoma, arial, helvetica, sans-serif; color: #ad33d8;">Every time series is uniquely identified by its <span style="color: #ff0000;">metric name</span> and optional <span style="color: #ff0000;">key-value pairs</span> called <span style="color: #ff0000;">labels</span>.</span></p>
+<p><span style="font-size: 16px; color: #ad33d8;">（每个时间序列都由其指标名称和称为标签的可选键值对唯一标识）</span></p>
+<p><span style="font-size: 16px;">指标名称指定要度量的系统的一般特性（例如，http_requests_total表示接收的HTTP请求的总数）。它可能包含ASCII字母和数字，以及下划线和冒号。它必须匹配正则表达式[a-zA-Z_:][a-zA-Z0-9_:]*</span></p>
+<p><span style="font-size: 16px;">标签名称可以包含ASCII字母、数字和下划线。它们必须匹配正则表达式[a-zA-Z_][a-zA-Z0-9_]*。以__开头的标签名称保留内部使用。</span></p>
+<p><span style="font-size: 16px;">标签值可以包含任何Unicode字符。</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">2.1.2.&nbsp; Sample（样本）</span></p>
+<p><span style="font-size: 16px;">样本构成实际的时间序列数据。每个样本包括：</span></p>
+<ul>
+<li><span style="font-size: 16px;">a float64 value</span></li>
+<li><span style="font-size: 16px;">a millisecond-precision timestamp</span></li>
+</ul>
+<p><span style="font-size: 14pt; color: #53a451;">2.1.3.&nbsp; notation（记法）&nbsp;</span></p>
+<p><span style="font-size: 16px;">给定一个度量名称和一组标签，时间序列通常使用以下符号标识：</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"><span style="color: #008000; font-weight: bold;">&lt;metric name&gt;{&lt;label name&gt;=&lt;label value&gt;</span>,...}</span></code></pre>
+
+<p><span style="font-size: 16px;">例如，有这样一个时间序列，指标名称是api_http_requests_total，有两个标签method="POST"和handler="/messages"，那么这个时间序列可以这样写：</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="color: #008000; font-weight: bold; font-size: 16px;">api_http_requests_total{method="POST", handler="/messages"}</span></code></pre>
+
+<p><span style="font-size: 18pt; color: #c3453b;">2.2.&nbsp;&nbsp;metric types（指标类型）</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">2.2.1.&nbsp; Counter（计数器）</span></p>
+<p><span style="font-size: 16px;">计数器是一个累积指标，它表示一个单调递增的计数器，其值只能在重启时递增或重置为零。例如，可以使用计数器来表示已服务的请求数、已完成的任务数或错误数。不要使用计数器来反映一个可能会减小的值。例如，不要使用计数器表示当前正在运行的进程的数量，这种情况下，你应该用gauge。&nbsp;</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">2.2.2.&nbsp; Gauge（计量器）</span></p>
+<p><span style="font-size: 16px;">计量器表示一个可以任意上下移动的数值。&nbsp;</span></p>
+<p><span style="font-size: 16px;">计量器通常用于测量温度或当前内存使用量等，也用于&ldquo;计数&rdquo;，比如并发请求的数量。</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">2.2.3.&nbsp;&nbsp;Histogram（直方图、柱状图）</span></p>
+<p><span style="font-size: 16px;">直方图对观察结果（通常是请求持续时间或响应大小之类的东西）进行采样，并在可配置的桶中计数。它还提供了所有观测值的和。</span></p>
+<p><span style="font-size: 16px;">直方图用一个基本的指标名&lt;basename&gt;暴露在一个抓取期间的多个时间序列：</span></p>
+<ul>
+<li><span style="font-size: 16px;">观察桶的累积计数器，格式为&lt;basename&gt;_bucket{le="&lt;upper inclusive bound&gt;"}</span></li>
+<li><span style="font-size: 16px;">所有观测值的总和，格式为&lt;basename&gt;_sum</span></li>
+<li><span style="font-size: 16px;">已观察到的事件的计数，格式为&lt;basename&gt;_count</span></li>
+</ul>
+<p><span style="font-size: 14pt; color: #53a451;">2.2.4.&nbsp; Summary（摘要）</span></p>
+<p><span style="font-size: 16px;">与柱状图类似，摘要样例观察结果（通常是请求持续时间和响应大小之类的内容）。虽然它还提供了观测值的总数和所有观测值的总和，但它计算了一个滑动时间窗口上的可配置分位数。</span></p>
+<p><span style="font-size: 18pt; color: #c3453b;">2.3.&nbsp; Jobs AND Instances（作业与实例）</span></p>
+<p><span style="font-size: 16px;">在Prometheus的术语中，可以抓取的端点称为实例，通常对应于单个进程。具有相同目的的实例集合称为作业。</span></p>
+<p><span style="font-size: 16px;">例如，一个API Server job 有4个副本instances：</span></p>
+<p><span style="font-size: 16px;"><strong>job</strong>: api-server</span></p>
+<ul>
+<li><span style="font-size: 16px;"><strong>instance</strong> 1: 1.2.3.4:5670</span></li>
+<li><span style="font-size: 16px;"><strong>instance</strong> 2: 1.2.3.4:5671</span></li>
+<li><span style="font-size: 16px;"><strong>instance</strong> 3: 5.6.7.8:5670</span></li>
+<li><span style="font-size: 16px;"><strong>instance</strong> 4: 5.6.7.8:5671</span></li>
+</ul>
+<p><span style="font-size: 14pt; color: #53a451;">2.3.1.&nbsp; 自动生成标签和时间序列</span></p>
+<p><span style="font-size: 16px;">当Prometheus抓取目标时，它会自动在抓取的时间序列上附加一些标签，用来识别被抓取的目标：</span></p>
+<ul>
+<li><span style="font-size: 16px;">job：目标所属的已配置作业名称</span></li>
+<li><span style="font-size: 16px;">instance：&lt;host&gt;:&lt;port&gt;是被抓取的目标URL的一部分</span></li>
+</ul>
+<h1>3.&nbsp; 快速开始</h1>
+<p><span style="font-size: 16px;">Prometheus是一个开源的系统监控和警报工具包，具有活跃的生态系统。</span></p>
+<p><span style="font-size: 18pt; color: #c3453b;">3.1.&nbsp;&nbsp;下载与安装</span></p>
+<p><span style="font-size: 16px;">Prometheus是一个监控平台，它通过抓取这些目标上的HTTP端点来收集被监控目标的指标。</span></p>
+<p><span style="font-size: 16px;">需要下载、安装并运行Prometheus。还需要下载并安装一个exporter，它是将主机和服务上的时间序列数据导出的工具。</span></p>
+<p><span style="font-size: 16px;"><a href="https://prometheus.io/download/">https://prometheus.io/download/</a></span></p>
+<p><img src="./images/5分钟了解Prometheus2.png" alt="" /></p>
+<p><span style="font-size: 16px;">在运行Prometheus之前，我们先配置一下</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">3.1.1.&nbsp; 配置Prometheus监视它自己</span></p>
+<p><span style="font-size: 16px;">Prometheus通过抓取目标上的HTTP端点数据来从被监控的目标收集数据。由于Prometheus也以同样的方式公开自己的数据，因此它还可以抓取和监测自己的健康状况。</span></p>
+<p><span style="font-size: 16px;">虽然Prometheus服务器在实践中只收集关于自己的数据不是很有用，但是它是一个很好的开始示例。将以下基本的Prometheus配置保存为一个名为Prometheus.yml的文件：</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 1</span> global:
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 2</span>   scrape_interval:     15s <span style="color: #008800; font-style: italic;"># By default, scrape targets every 15 seconds.</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 3</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 4</span>   <span style="color: #008800; font-style: italic;"># Attach these labels to any time series or alerts when communicating with</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 5</span>   <span style="color: #008800; font-style: italic;"># external systems (federation, remote storage, Alertmanager).</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 6</span>   external_labels:
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 7</span>     monitor: <span style="color: #bb4444;">'codelab-monitor'</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 8</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 9</span> <span style="color: #008800; font-style: italic;"># A scrape configuration containing exactly one endpoint to scrape:</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">10</span> <span style="color: #008800; font-style: italic;"># Here it's Prometheus itself.</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">11</span> scrape_configs:
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">12</span>   <span style="color: #008800; font-style: italic;"># The job name is added as a label `job=&lt;job_name&gt;` to any timeseries scraped from this config.</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">13</span>   - job_name: <span style="color: #bb4444;">'prometheus'</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">14</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">15</span>     <span style="color: #008800; font-style: italic;"># Override the global default and scrape targets from this job every 5 seconds.</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">16</span>     scrape_interval: 5s
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">17</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">18</span>     static_configs:
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">19</span>       - targets: <span style="color: #666666;">[</span><span style="color: #bb4444;">'localhost:9090'</span><span style="color: #666666;">]</span>
+</span></code></pre>
+
+<p><span style="font-size: 14pt; color: #53a451;">3.1.2.&nbsp; 启动Prometheus&nbsp;</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> <span style="color: #008800; font-style: italic;"># Start Prometheus.</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span> <span style="color: #008800; font-style: italic;"># By default, Prometheus stores its database in ./data (flag --storage.tsdb.path).</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span> ./prometheus --config.file<span style="color: #666666;">=</span>prometheus.yml
+</span></code></pre>
+
+<p><img src="./images/5分钟了解Prometheus3.png" alt="" /></p>
+<p><img src="./images/5分钟了解Prometheus4.png" alt="" /></p>
+<p><img src="./images/5分钟了解Prometheus5.png" alt="" /></p>
+<p><span style="font-size: 18pt; color: #c3453b;">3.2.&nbsp;&nbsp;配置</span></p>
+<p><span style="font-size: 16px;">Prometheus可以通过命令行和配置文件进行配置。配置文件定义了与抓取作业及其实例相关的所有内容，以及要加载哪些规则文件。</span></p>
+<p><span style="font-size: 16px;">运行./prometheus -h可以查看所有支持的命令</span></p>
+<p><img src="./images/5分钟了解Prometheus6.png" alt="" /></p>
+<p><span style="font-size: 16px;">为了指定要加载哪个配置文件，请使用--config选项</span></p>
+<p><span style="font-size: 16px;">配置文件是YAML格式的</span></p>
+<p><span style="font-size: 16px;">配置项太多，不一一列举，自行查看</span></p>
+<p><span style="font-size: 16px;"><a href="https://prometheus.io/docs/prometheus/latest/configuration/configuration/">https://prometheus.io/docs/prometheus/latest/configuration/configuration/</a></span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"> global:
+   <span style="color: #008800; font-style: italic;"># How frequently to scrape targets by default.</span>
+   <span style="color: #666666;">[</span> scrape_interval: &lt;duration&gt; | <span style="color: #b8860b;">default</span> <span style="color: #666666;">=</span> 1m <span style="color: #666666;">]</span>
+ 
+   <span style="color: #008800; font-style: italic;"># How long until a scrape request times out.</span>
+   <span style="color: #666666;">[</span> scrape_timeout: &lt;duration&gt; | <span style="color: #b8860b;">default</span> <span style="color: #666666;">=</span> 10s <span style="color: #666666;">]</span>
+ 
+   <span style="color: #008800; font-style: italic;"># How frequently to evaluate rules.</span>
+   <span style="color: #666666;">[</span> evaluation_interval: &lt;duration&gt; | <span style="color: #b8860b;">default</span> <span style="color: #666666;">=</span> 1m <span style="color: #666666;">]</span>
+ 
+   <span style="color: #008800; font-style: italic;"># The labels to add to any time series or alerts when communicating with</span>
+   <span style="color: #008800; font-style: italic;"># external systems (federation, remote storage, Alertmanager).</span>
+   external_labels:
+     <span style="color: #666666;">[</span> &lt;labelname&gt;: &lt;labelvalue&gt; ... <span style="color: #666666;">]</span>
+ 
+ <span style="color: #008800; font-style: italic;"># Rule files specifies a list of globs. Rules and alerts are read from</span>
+ <span style="color: #008800; font-style: italic;"># all matching files.</span>
+ rule_files:
+   <span style="color: #666666;">[</span> - &lt;filepath_glob&gt; ... <span style="color: #666666;">]</span>
+ 
+ <span style="color: #008800; font-style: italic;"># A list of scrape configurations.</span>
+ scrape_configs:
+   <span style="color: #666666;">[</span> - &lt;scrape_config&gt; ... <span style="color: #666666;">]</span>
+ 
+ <span style="color: #008800; font-style: italic;"># Alerting specifies settings related to the Alertmanager.</span>
+ alerting:
+   alert_relabel_configs:
+     <span style="color: #666666;">[</span> - &lt;relabel_config&gt; ... <span style="color: #666666;">]</span>
+   alertmanagers:
+     <span style="color: #666666;">[</span> - &lt;alertmanager_config&gt; ... <span style="color: #666666;">]</span>
+ 
+ <span style="color: #008800; font-style: italic;"># Settings related to the remote write feature.</span>
+ remote_write:
+   <span style="color: #666666;">[</span> - &lt;remote_write&gt; ... <span style="color: #666666;">]</span>
+ 
+ <span style="color: #008800; font-style: italic;"># Settings related to the remote read feature.</span>
+ remote_read:
+   <span style="color: #666666;">[</span> - &lt;remote_read&gt; ... <span style="color: #666666;">]</span>&nbsp;</span></code></pre>
+
+<p><span style="font-size: 16px;">这里有一个有效的<a href="https://github.com/prometheus/prometheus/blob/release-2.12/config/testdata/conf.good.yml" target="_blank">示例配置文件</a>&nbsp;</span></p>
+<p><span style="font-size: 18pt;"><span style="color: #c3453b;">3.3.&nbsp; 查询</span>&nbsp;</span></p>
+<p><span style="font-size: 16px;">Prometheus提供了一种名为<span style="color: #ff0000;">PromQL</span>（Prometheus查询语言）的函数式查询语言，允许用户实时选择和聚合时间序列数据。表达式的结果既可以显示为图形，也可以在Prometheus的表达式浏览器中作为表格数据查看，或者通过HTTP API由外部系统使用。</span></p>
+<p><span style="color: #53a451; font-size: 14pt;">3.3.1.&nbsp; 表达式数据类型</span></p>
+<p><span style="font-size: 16px;">在Prometheus的表达式语言中，表达式或子表达式可以计算为以下四种类型之一：</span></p>
+<ul>
+<li><span style="font-size: 16px;"><span style="color: #ad33d8;">Instant vector（瞬时向量）</span>：一组时间序列，每个时间序列包含一个样本，所有样本共享相同的时间戳</span></li>
+<li><span style="font-size: 16px;"><span style="color: #ad33d8;">Range vector（范围向量）</span>：一组时间序列，其中包含每个时间序列随时间变化的数据点范围</span></li>
+<li><span style="font-size: 16px;"><span style="color: #ad33d8;">Scalar（标量）</span>：一个简单的数值浮点值</span></li>
+<li><span style="font-size: 16px;"><span style="color: #ad33d8;">String（字符串）</span>：一个简单的字符串值，目前未使用</span>&nbsp;</li>
+</ul>
+<p><span style="font-size: 14pt; color: #53a451;">3.3.2.&nbsp; 字面值</span></p>
+<p><strong><span style="font-size: 16px;">字符串字面值</span></strong></p>
+<p><span style="font-size: 16px;">字符串可以指定为单引号、双引号或反引号中的文字。例如：</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> "this is a string"
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span> 'these are unescaped: \n \\ \t'
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">3</span> `these are not unescaped: \n ' " \t`&nbsp;</span></code></pre>
+
+<p><span style="font-size: 16px;"><strong>浮点数字面值</strong></span></p>
+<p><span style="font-size: 16px;">例如：-2.34</span></p>
+<p><span style="font-size: 14pt; color: #53a451;">3.3.3.&nbsp; 时间序列选择器</span></p>
+<p><strong><span style="font-size: 16px;">瞬时向量选择器</span></strong></p>
+<p><span style="font-size: 16px;">瞬时向量选择器允许在给定的时间戳（瞬时）上为每个时间序列选择一组时间序列和一个样本值：在最简单的形式中，只指定一个度量名称。这样一个向量就会包含这个度量名称的所有时间序列元素。&nbsp;</span></p>
+<p><span style="font-size: 16px;">下面的例子，选择指标名称是http_requests_total的所有时间序列：</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"> http_requests_total
+</span></code></pre>
+
+<p><span style="font-size: 16px;">通过在花括号(<span style="color: #ff0000;"><strong>{ }</strong></span>)中添加一组匹配的标签，可以进一步过滤这些时间序列。&nbsp;</span></p>
+<p><span style="font-size: 16px;">下面的例子，选择指标名称是http_requests_total，并且有job标签值是prometheus，并且group标签值是canary的时间序列：</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"> http_requests_total<span style="color: #666666;">{</span><span style="color: #b8860b;">job</span><span style="color: #666666;">=</span><span style="color: #bb4444;">"prometheus"</span>,<span style="color: #b8860b;">group</span><span style="color: #666666;">=</span><span style="color: #bb4444;">"canary"</span><span style="color: #666666;">}</span>&nbsp;</span></code></pre>
+
+<p><span style="font-size: 16px;">标签匹配操作符：</span></p>
+<ul>
+<li><span style="font-size: 16px;"><span style="color: #ff0000;"><strong>=</strong></span> ： 选择与提供的字符串完全相同的标签（等于）</span></li>
+<li><span style="font-size: 16px;"><span style="color: #ff0000;"><strong>!=</strong></span> ：选择不等于提供的字符串的标签（不等于）</span></li>
+<li><span style="font-size: 16px;"><span style="color: #ff0000;"><strong>=~</strong></span> ：正则匹配</span></li>
+<li><span style="font-size: 16px;"><span style="color: #ff0000;"><strong>!~</strong></span> ： 非正则匹配&nbsp;</span></li>
+</ul>
+<p><span style="font-size: 16px;">下面的例子，选择所有staging, testing, development环境，并且HTTP请求方式不是GET的http_requests_total时间序列&nbsp;</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"> http_requests_total<span style="color: #666666;">{</span><span style="color: #b8860b;">environment</span><span style="color: #666666;">=</span>~<span style="color: #bb4444;">"staging|testing|development"</span>,<span style="color: #b8860b;">method</span>!<span style="color: #666666;">=</span><span style="color: #bb4444;">"GET"</span><span style="color: #666666;">}</span></span>&nbsp;</code></pre>
+
+<p><span style="font-size: 16px;">不要匹配空标签</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"> <span style="color: #666666;">{</span><span style="color: #b8860b;">job</span><span style="color: #666666;">=</span>~<span style="color: #bb4444;">".+"</span><span style="color: #666666;">}</span>              <span style="color: #008800; font-style: italic;"># Good!</span>
+ <span style="color: #666666;">{</span><span style="color: #b8860b;">job</span><span style="color: #666666;">=</span>~<span style="color: #bb4444;">".*"</span>,method<span style="color: #666666;">=</span><span style="color: #bb4444;">"get"</span><span style="color: #666666;">}</span> <span style="color: #008800; font-style: italic;"># Good!</span>
+</span></code></pre>
+
+<p><span style="font-size: 14pt; color: #53a451;">3.3.4.&nbsp; 范围向量选择器</span></p>
+<p><span style="font-size: 16px;">范围向量字面量的工作原理与瞬时向量字面量类似，只是它们从当前瞬时量中选择一个样本范围。从语法上讲，范围持续时间被添加到向量选择器末尾的方括号(<span style="color: #ff0000;">[ ]</span>)中，以指定应该为每个结果范围向量元素获取多少时间值。&nbsp;</span></p>
+<p><span style="font-size: 16px;">时间期限指定为一个数字，紧接其后的是下列单位之一：s（秒）、m（分钟）、h（小时）、d（天）&nbsp;、w（周）、y（年）</span></p>
+<p><span style="font-size: 16px;">下面的例子，选择指标名是http_requests_total，且job标签值是prometheus的已经记录的最近5分钟内的时间序列：</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"> http_requests_total<span style="color: #666666;">{</span><span style="color: #b8860b;">job</span><span style="color: #666666;">=</span><span style="color: #bb4444;">"prometheus"</span><span style="color: #666666;">}</span><span style="color: #008800;">[5m]</span></span></code></pre>
+
+<p><strong><span style="font-size: 16px;">Offset修饰符</span></strong></p>
+<p><span style="font-size: 16px;">下面的表达式返回http_requests_total在过去5分钟相对于当前查询计算时间的值：</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"> http_requests_total offset 5m&nbsp;</span></code></pre>
+
+<p><span style="font-size: 16px;">注意，offset总是紧跟在选择器后面的</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"> sum<span style="color: #666666;">(</span>http_requests_total<span style="color: #666666;">{</span><span style="color: #b8860b;">method</span><span style="color: #666666;">=</span><span style="color: #bb4444;">"GET"</span><span style="color: #666666;">}</span> offset 5m<span style="color: #666666;">)</span>&nbsp;</span></code></pre>
+
+<p><span style="font-size: 16px;">下面的例子，返回一周前的最近5分钟http_requests_total的时间序列</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"> rate<span style="color: #666666;">(</span>http_requests_total<span style="color: #666666;">[</span>5m<span style="color: #666666;">]</span> offset 1w<span style="color: #666666;">)</span>
+</span></code></pre>
+
+<p><span style="color: #53a451; font-size: 14pt;">3.3.5.&nbsp; 子查询</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 16px;"> Syntax: &lt;instant_query&gt; <span style="color: #bb4444;">'['</span> &lt;range&gt; <span style="color: #bb4444;">':'</span> <span style="color: #666666;">[</span>&lt;resolution&gt;<span style="color: #666666;">]</span> <span style="color: #bb4444;">']'</span> <span style="color: #666666;">[</span> offset &lt;duration&gt; <span style="color: #666666;">]</span>
+</span></code></pre>
+
+<p><span style="font-size: 14pt; color: #53a451;">3.3.5.&nbsp; 运算符&nbsp;</span></p>
+<p><span style="font-size: 16px;">Prometheus的查询语言支持基本的逻辑运算符和算术运算符。</span></p>
+<p><strong><span style="font-size: 16px;">算术二元运算符</span></strong></p>
+<p><span style="font-size: 16px;">+（加）、-（减）、*（乘）、/（除）、%（余数）、^（指数）</span></p>
+<p><span style="font-size: 16px;">二进制算术运算符定义在标量/标量、向量/标量和向量/向量值对之间</span></p>
+<p><strong><span style="font-size: 16px;">比较二元运算符</span></strong></p>
+<p><span style="font-size: 16px;">== 、!= 、&gt; 、&lt; 、&gt;= 、&lt;=</span></p>
+<p><strong><span style="font-size: 16px;">逻辑运算符</span></strong></p>
+<p><span style="font-size: 16px;">and 、or 、unless</span></p>
+<p><strong><span style="font-size: 16px;">聚合运算符</span></strong></p>
+<p><span style="font-size: 16px;">sum（求和）、min（最小值）、max（最大值）、avg（求平均）、stddev（标准偏差）、stdvar（方差）、count（个数）、count_values（相同值的元素个数）、bottomk（样本值的最小元素）、topk（样本值的最大元素）、quantile（0 &le; &phi; &le; 1）</span></p>
+<p><span style="font-size: 16px;">这些操作符既可以用于聚合所有标签维度，也可以通过包含without子句或by子句来保存不同的维度。</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> &lt;aggr-op&gt;<span style="color: #666666;">([</span>parameter,<span style="color: #666666;">]</span> &lt;vector expression&gt;<span style="color: #666666;">)</span> <span style="color: #666666;">[</span>without|by <span style="color: #666666;">(</span>&lt;label list&gt;<span style="color: #666666;">)]</span>
+</span></code></pre>
+
+<p><span style="font-size: 16px;">例如，假设http_requests_total有application 、 instance 、 group三个标签，那么下面两个是等价的：</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">1</span> sum<span style="color: #666666;">(</span>http_requests_total<span style="color: #666666;">)</span> without <span style="color: #666666;">(</span>instance<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">2</span> sum<span style="color: #666666;">(</span>http_requests_total<span style="color: #666666;">)</span> by <span style="color: #666666;">(</span>application, group<span style="color: #666666;">)</span>
+</span></code></pre>
+
+<p><span style="font-size: 14pt; color: #53a451;">3.3.6.&nbsp; 函数</span></p>
+<p><span style="font-size: 16px;"><a href="https://prometheus.io/docs/prometheus/latest/querying/functions/">https://prometheus.io/docs/prometheus/latest/querying/functions/</a></span></p>
+<p><span style="font-size: 14pt; color: #53a451;">3.3.7.&nbsp; 示例</span></p>
+<src class="highlight" style="background: #f8f8f8;">
+<pre><code><span style="font-size: 15px;"><span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 1</span> <span style="color: #008800; font-style: italic;"># 返回http_requests_total的所有时间序列</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 2</span> http_requests_total
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 3</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 4</span> <span style="color: #008800; font-style: italic;"># 返回http_requests_total的且限定了job和handler标签的时间序列</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 5</span> http_requests_total<span style="color: #666666;">{</span><span style="color: #b8860b;">job</span><span style="color: #666666;">=</span><span style="color: #bb4444;">"apiserver"</span>, <span style="color: #b8860b;">handler</span><span style="color: #666666;">=</span><span style="color: #bb4444;">"/api/comments"</span><span style="color: #666666;">}</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 6</span> http_requests_total<span style="color: #666666;">{</span><span style="color: #b8860b;">job</span><span style="color: #666666;">=</span><span style="color: #bb4444;">"apiserver"</span>, <span style="color: #b8860b;">handler</span><span style="color: #666666;">=</span><span style="color: #bb4444;">"/api/comments"</span><span style="color: #666666;">}[</span>5m<span style="color: #666666;">]</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 7</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 8</span> <span style="color: #008800; font-style: italic;"># 正则表达式</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;"> 9</span> http_requests_total<span style="color: #666666;">{</span><span style="color: #b8860b;">job</span><span style="color: #666666;">=</span>~<span style="color: #bb4444;">".*server"</span><span style="color: #666666;">}</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">10</span> http_requests_total<span style="color: #666666;">{</span>status!~<span style="color: #bb4444;">"4.."</span><span style="color: #666666;">}</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">11</span> 
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">12</span> <span style="color: #008800; font-style: italic;"># 过去的5分钟内每秒HTTP请求速率</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">13</span> rate<span style="color: #666666;">(</span>http_requests_total<span style="color: #666666;">{</span><span style="color: #b8860b;">job</span><span style="color: #666666;">=</span><span style="color: #bb4444;">"api-server"</span><span style="color: #666666;">}[</span>5m<span style="color: #666666;">])</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">14</span> <span style="color: #008800; font-style: italic;"># 过去的30分钟内每5分钟</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">15</span> rate<span style="color: #666666;">(</span>http_requests_total<span style="color: #666666;">[</span>5m<span style="color: #666666;">])[</span>30m:1m<span style="color: #666666;">]</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">16</span> <span style="color: #008800; font-style: italic;"># 过去5分钟的所有请求速率求和，保留job维度</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">17</span> sum<span style="color: #666666;">(</span>rate<span style="color: #666666;">(</span>http_requests_total<span style="color: #666666;">[</span>5m<span style="color: #666666;">]))</span> by <span style="color: #666666;">(</span>job<span style="color: #666666;">)</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">18</span> <span style="color: #008800; font-style: italic;"># cpu使用率最高的前3个</span>
+<span style="background-color: #f8f8f8; padding: 0 5px 0 5px;">19</span> topk<span style="color: #666666;">(</span>3, sum<span style="color: #666666;">(</span>rate<span style="color: #666666;">(</span>instance_cpu_time_ns<span style="color: #666666;">[</span>5m<span style="color: #666666;">]))</span> by <span style="color: #666666;">(</span>app, proc<span style="color: #666666;">))</span>
+</span></code></pre>
+
+<h1>4.&nbsp; Grafana支持&nbsp;</h1>
+<p><span style="font-size: 16px;">Grafana支持查询Prometheus</span></p>
+<p><span style="font-size: 16px;">下面是Grafana dashboard查询Prometheus数据的例子:</span></p>
+<p><img src="./images/5分钟了解Prometheus7.png" alt="" />&nbsp;</p>
+<p><span style="font-size: 16px;">使用&nbsp;</span></p>
+<p><span style="font-size: 16px;">默认情况下，Grafana监听http://localhost:3000，默认用admin/admin登录</span></p>
+<p><span style="font-size: 16px;">创建一个Prometheus数据源，接着创建面板并定义查询的指标</span></p>
+<p><img src="./images/5分钟了解Prometheus8.png" alt="" /></p>
+<p><img src="./images/5分钟了解Prometheus9.png" alt="" /></p>
+<p><img src="./images/5分钟了解Prometheus10.png" alt="" /></p>
+<p><img src="./images/5分钟了解Prometheus11.png" alt="" /></p>
+<p><img src="./images/5分钟了解Prometheus12.png" alt="" /></p>
+<p><img src="./images/5分钟了解Prometheus13.png" alt="" /></p>
+<p><span style="font-size: 16px;">刚开始，如果不知道PromeQL怎么写，可以去Prometheus上去找&nbsp;&nbsp;http://localhost:9090/graph</span></p>
+<p>&nbsp;</p>
+<p><img src="./images/5分钟了解Prometheus14.png" alt="" /></p>
+<p><img src="./images/5分钟了解Prometheus15.png" alt="" /></p>
+<p><img src="./images/5分钟了解Prometheus16.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><a href="https://prometheus.io/docs/introduction/overview/">https://prometheus.io/docs/introduction/overview/</a></span></p>
+<p><span style="font-size: 16px;"><a href="https://prometheus.io/docs/alerting/overview/">https://prometheus.io/docs/alerting/overview/</a>&nbsp;</span></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

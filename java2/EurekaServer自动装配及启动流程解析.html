@@ -1,0 +1,187 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修EurekaServer自动装配及启动流程解析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>EurekaServer自动装配及启动流程解析</center></div><div class='banquan'>原文出处:本文由博客园博主石玉军提供。<br/>
+原文连接:https://www.cnblogs.com/zhixiang-org-cn/p/11657756.html</div><br>
+    <blockquote>
+<p>在开始本篇文章之前，我想你对SpringCloud和SpringBoot的基本使用已经比较熟悉了，如果不熟悉的话可以参考我之前写过的文章<br />
+本篇文章的源码基于SpringBoot2.0,SpringCloud的Finchley.RELEASE</p>
+</blockquote>
+<h4 id="enableeurekaserver注解"><code>@EnableEurekaServer</code>注解</h4>
+<p>我们知道，在使用Eureka作为注册中心的时候，我们会在启动类中增加一个<code>@EnableEurekaServer</code>注解，这个注解我们是一个自定义的EnableXXX系列的注解，主要作用我们之前也多次提到了，就是引入配置类而已。看一下源码吧</p>
+<pre><code><code>@Target({ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+@Documented
+@Import({EurekaServerMarkerConfiguration.class})
+public @interface EnableEurekaServer {
+}
+</code></code></pre>
+<p>引入了一个配置类<code>EurekaServerMarkerConfiguration</code>，看一下这个类的具体内容</p>
+<pre><code><code>@Configuration
+public class EurekaServerMarkerConfiguration {
+
+    @Bean
+    public Marker eurekaServerMarkerBean() {
+        return new Marker();
+    }
+
+    class Marker {
+    }
+}</code></code></pre>
+<p>现在看这里好像难以理解，这是啥意思，搞个空的类干啥的，不要着急，接着往下看</p>
+<h4 id="自动装配">自动装配</h4>
+<p>既然注解上没有找到我们想要的东西，那么就看一下<code>spring.factories</code>文件吧，这里自动配置的实现类是<code>EurekaServerAutoConfiguration</code></p>
+<p>由于这个类涉及的代码实在是太多了，这里就不贴了，咱们直接来解析这个类：</p>
+<h5 id="引入eurekaserverinitializerconfiguration类">1. 引入EurekaServerInitializerConfiguration类</h5>
+<p>看名字就知道了这个类是负责Eureka的初始化工作的，这个类实现了<code>SmartLifecycle</code>接口，所以在spring初始化和销毁的时候，就会分别调用它的start和stop方法</p>
+<p>首先看一下start方法</p>
+<pre><code><code>public void start() {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    //启动EurekaServer
+eurekaServerBootstrap.contextInitialized(EurekaServerInitializerConfiguration.this.servletContext);
+                    log.info(&quot;Started Eureka Server&quot;);
+
+                    publish(new EurekaRegistryAvailableEvent(getEurekaServerConfig()));
+                    EurekaServerInitializerConfiguration.this.running = true;
+                    publish(new EurekaServerStartedEvent(getEurekaServerConfig()));
+                }
+                catch (Exception ex) {
+                    // Help!
+                    log.error(&quot;Could not initialize Eureka servlet context&quot;, ex);
+                }
+            }
+        }).start();
+    }</code></code></pre>
+<p>这个代码好像比较直接了当啊，直接就起个线程启动了EurekaServer，然后发布了一些启动事件，来看启动的过程吧</p>
+<pre><code><code>
+public void contextInitialized(ServletContext context) {
+                try {
+            //初始化执行环境
+                        initEurekaEnvironment();
+            //初始化上下文
+                        initEurekaServerContext();
+
+                        context.setAttribute(EurekaServerContext.class.getName(), this.serverContext);
+                }
+                catch (Throwable e) {
+                        log.error(&quot;Cannot bootstrap eureka server :&quot;, e);
+                        throw new RuntimeException(&quot;Cannot bootstrap eureka server :&quot;, e);
+                }
+        }</code></code></pre>
+<p>这里一共包含初始化环境和初始化上下文两个分支</p>
+<h6 id="初始化执行环境">初始化执行环境</h6>
+<p>这个不是很重要，可以过滤掉</p>
+<pre><code><code>
+protected void initEurekaEnvironment() throws Exception {
+                log.info(&quot;Setting the eureka configuration..&quot;);
+               //AWS相关的东西，可以忽略
+                String dataCenter = ConfigurationManager.getConfigInstance()
+                                .getString(EUREKA_DATACENTER);
+                if (dataCenter == null) {
+                        log.info(
+                                        &quot;Eureka data center value eureka.datacenter is not set, defaulting to default&quot;);
+                        ConfigurationManager.getConfigInstance()
+                                        .setProperty(ARCHAIUS_DEPLOYMENT_DATACENTER, DEFAULT);
+                }
+                else {
+                        ConfigurationManager.getConfigInstance()
+                                        .setProperty(ARCHAIUS_DEPLOYMENT_DATACENTER, dataCenter);
+                }
+        //设置 Eureka 环境，默认为test
+                String environment = ConfigurationManager.getConfigInstance()
+                                .getString(EUREKA_ENVIRONMENT);
+                if (environment == null) {
+                        ConfigurationManager.getConfigInstance()
+                                        .setProperty(ARCHAIUS_DEPLOYMENT_ENVIRONMENT, TEST);
+                        log.info(
+                                        &quot;Eureka environment value eureka.environment is not set, defaulting to test&quot;);
+                }
+                else {
+                        ConfigurationManager.getConfigInstance()
+                                        .setProperty(ARCHAIUS_DEPLOYMENT_ENVIRONMENT, environment);
+                }
+        }</code></code></pre>
+<h6 id="初始化上下文">初始化上下文</h6>
+<pre><code><code>
+protected void initEurekaServerContext() throws Exception {
+                // 设置json与xml序列化工具
+                JsonXStream.getInstance().registerConverter(new V1AwareInstanceInfoConverter(),
+                                XStream.PRIORITY_VERY_HIGH);
+                XmlXStream.getInstance().registerConverter(new V1AwareInstanceInfoConverter(),
+                                XStream.PRIORITY_VERY_HIGH);
+
+                if (isAws(this.applicationInfoManager.getInfo())) {
+                        this.awsBinder = new AwsBinderDelegate(this.eurekaServerConfig,
+                                        this.eurekaClientConfig, this.registry, this.applicationInfoManager);
+                        this.awsBinder.start();
+                }
+
+                EurekaServerContextHolder.initialize(this.serverContext);
+
+                log.info(&quot;Initialized server context&quot;);
+
+                // 同步Eureka集群数据
+                int registryCount = this.registry.syncUp();
+                this.registry.openForTraffic(this.applicationInfoManager, registryCount);
+
+                // 注册监控统计信息
+                EurekaMonitors.registerAllStats();
+        }</code></code></pre>
+<p>这个方法中同步集群数据和注册监控信息都涉及的内容比较多，所以本篇文章就不再展开了，请关注我留意后续文章</p>
+<h5 id="conditionalonbeanmarker.class">@ConditionalOnBean({Marker.class})</h5>
+<p>看到这里就揭开了开篇<code>@EnableEurekaServer</code>注解注入的那个bean的含义了。也就是说如果咱们的启动类没有使用<code>@EnableEurekaServer</code>注解的话，这个自动配置类就不会执行，那也就没有Eureka的事了</p>
+<h5 id="enableconfigurationpropertieseurekadashboardproperties.class-instanceregistryproperties.class">@EnableConfigurationProperties({EurekaDashboardProperties.class, InstanceRegistryProperties.class})</h5>
+<p>深入这个注解发现这个还是使用的<code>@Import</code>注解的机制引入了两个类，这个注解在之前的源码解析文章中也多次提到了，这里就不展开了</p>
+<p><code>EurekaDashboardProperties</code>这个类比较简单，主要是Eureka的控制台的相关配置</p>
+<pre><code><code>//控制台默认路径
+private String path = &quot;/&quot;;
+//是否开启控制台
+private boolean enabled = true;</code></code></pre>
+<p><code>InstanceRegistryProperties</code>，这个类是控制Eureka的注册时的配置信息</p>
+<pre><code><code>    //每分钟续约次数
+    @Value(&quot;${eureka.server.expectedNumberOfRenewsPerMin:1}&quot;) 
+    private int expectedNumberOfRenewsPerMin = 1;
+    //默认打开的通信数量
+    @Value(&quot;${eureka.server.defaultOpenForTrafficCount:1}&quot;)
+    private int defaultOpenForTrafficCount = 1;</code></code></pre>
+<h5 id="propertysourceclasspatheurekaserver.properties">@PropertySource(&quot;classpath:/eureka/server.properties&quot;)</h5>
+<p>相信大家比较熟悉这个注解，加载Eureka的配置文件而已</p>
+<p>配置文件中也仅仅只包含这个信息</p>
+<pre><code><code>spring.http.encoding.force=false</code></code></pre>
+<h5 id="自动注入的bean">自动注入的bean</h5>
+<p><code>EurekaServerAutoConfiguration</code>类上几个注解就解析完了，接着看一下这个类中注入的几个比较重要的类吧</p>
+<h5 id="配置类eurekaserverconfigbeanconfiguration">配置类EurekaServerConfigBeanConfiguration</h5>
+<p><strong>EurekaServerConfig</strong><br />
+如果当前应用允许注册到其他Eureka服务中时，也就是属性<code>eureka.client.fetch-registry</code>为true时。就设置属性<code>registrySyncRetries</code>的值为5，这个属性的意思是当Eureka服务器启动时尝试去获取集群里其他服务器上的注册信息的次数</p>
+<h5 id="eurekacontroller">EurekaController</h5>
+<p>这个就是Eureka自己的controller了，控制台的相关信息就是从这里获取的</p>
+<h5 id="servercodecs">ServerCodecs</h5>
+<p>设置Eureka的序列化工具</p>
+<h5 id="peerawareinstanceregistry">PeerAwareInstanceRegistry</h5>
+<p>集群注册信息同步相关的类，请期待后续深入解析文章</p>
+<h5 id="filterregistrationbean">FilterRegistrationBean</h5>
+<p>EurekaServer接受请求的一个拦截器，感兴趣的同学可以研究一下</p>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

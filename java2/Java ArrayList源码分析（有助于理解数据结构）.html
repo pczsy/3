@@ -1,0 +1,261 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java ArrayList源码分析（有助于理解数据结构）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java ArrayList源码分析（有助于理解数据结构）</center></div><div class='banquan'>原文出处:本文由博客园博主小中配奇提供。<br/>
+原文连接:https://www.cnblogs.com/xiaozhongfeixiang/p/11514674.html</div><br>
+    <h1>arraylist源码分析</h1>
+<h2>1.数组介绍</h2>
+<p>数组是数据结构中很基本的结构，很多编程语言都内置数组，类似于数据结构中的线性表</p>
+<p>在java中当创建数组时会在内存中划分出一块连续的内存，然后当有数据进入的时候会将数据按顺序的存储在这块连续的内存中。当需要读取数组中的数据时，需要提供数组中的索引，然后数组根据索引将内</p>
+<p>存中的数据取出来，返回给读取程序。<strong>在Java中并不是所有的数据都能存储到数组中，只有相同类型的数据才可以一起存储到数组中。</strong></p>
+<p><strong>&nbsp;&nbsp;<img src="./images/Java ArrayList源码分析（有助于理解数据结构）0.png" alt="" /></strong></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;因为数组在存储数据时是按顺序存储的，存储数据的内存也是连续的，所以他的特点就是：<strong>寻址读取数据比较容易，插入和删除比较困难。</strong></p>
+<p>&nbsp;</p>
+<h3><strong>带参构造方法</strong></h3>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000ff;">public</span> ArrayList(<span style="color: #000ff;">int</span><span style="color: #00000;"> initialCapacity) {
+        </span><span style="color: #000ff;">if</span> (initialCapacity &gt; 0<span style="color: #00000;">) {<br />　　　　　<span style="color: &amp;39966;">　　<span style="color: #339966;">//创建指定长度的数组
+            </span></span></span><span style="color: #000ff;">this</span>.elementData = <span style="color: #000ff;">new</span><span style="color: #00000;"> Object[initialCapacity];
+        } </span><span style="color: #000ff;">else</span> <span style="color: #000ff;">if</span> (initialCapacity == 0<span style="color: #00000;">) {<br />　　　　　　　<span style="color: #339966;">//空数组
+            </span></span><span style="color: #000ff;">this</span>.elementData =<span style="color: #00000;"> EMPTY_ELEMENTDATA;
+        } </span><span style="color: #000ff;">else</span><span style="color: #00000;"> {
+            </span><span style="color: #000ff;">throw</span> <span style="color: #000ff;">new</span> IllegalArgumentException("Illegal Capacity: "+<span style="color: #00000;">
+                                               initialCapacity);} <span style="color: #339966;">//如果既不大于零，也不小于零，就会报错抛出异常</span>
+    }</span></span></code></pre>
+
+<p>&nbsp;</p>
+<h3><strong>空参构造方法</strong></h3>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 13px;"><span style="font-size: 14px;">    <span style="color: #000ff;">public</span><span style="color: #00000;"> ArrayList() {
+        </span><span style="color: #000ff;">this</span>.elementData =</span><span style="color: #00000;"><span style="font-size: 14px;"> DEFAULTCAPACITY_EMPTY_ELEMENTDATA; <span style="color: #339966;">//给一个成员变量赋值</span>
+    }</span><br /><span style="font-size: 14px;">　　private static final Object[] DEFAULTCAPACITY EMPTY ELEMENTDATA={}; <span style="color: #339966;">//空参构造方法创建的数组就是一个空的</span></span><br /></span></span></code></pre>
+
+<p>&nbsp;</p>
+<h3><strong>下面这个用的不多，能看懂即可</strong></h3>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px; font-family: 宋体;"><span style="color: #000ff;">public</span> ArrayList(Collection&lt;? <span style="color: #000ff;">extends</span> E&gt;<span style="color: #00000;"> c) {
+        elementData </span>=<span style="color: #00000;"><strong> c.toArray()</strong>; <span style="color: &amp;39966;"><span style="color: #339966;">//把Collection这个集合也变成了一个数组，传给了当前数组elementData</span><br />　　　　　<strong>//大于0，就拷贝数组
+        </strong></span></span><span style="color: #000ff;">if</span> ((size = elementData.length) != 0<span style="color: #00000;">) { <span style="color: #339966;">//判断当前elementData数组的长度，如果不等于0</span></span>
+            <span style="color: #000ff;">if</span> (elementData.getClass() != Object[].<span style="color: #000ff;">class</span><span style="color: #00000;">) <span style="color: #339966;">//判断类型是不是Object数组类型，如果不是这个类型</span>
+                elementData </span>= Arrays.copyOf(elementData, size, Object[].<span style="color: #000ff;">class</span><span style="color: #00000;">);  <span style="color: #339966;">//拷贝一个数组，然后长度，然后把Object[].class数组传进去，然后生成一个elementData数组</span><br />　　　　　<strong><span style="color: &amp;39966;">//不是大于0，就拷贝一个空的</span></strong>
+        } </span><span style="color: #000ff;">else</span><span style="color: #00000;"> {
+            </span><span style="color: #08000;">//</span><span style="color: #08000;"> replace with empty array.</span>
+            <span style="color: #000ff;">this</span>.elementData =<span style="color: #00000;"> EMPTY_ELEMENTDATA; <span style="color: &amp;39966;">//设置为空数组</span>
+        }
+    }</span></span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h2><strong>&nbsp;添加元素</strong></h2>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000ff;">public</span> <span style="color: #000ff;">boolean</span><span style="color: #00000;"> add(E e) {<br />　　　　//检测是否需要扩容
+       <span style="background-color: #ff99cc;">下&sup1;</span><span style="color: #ff6600;"><strong>ensureCapacityInternal</strong></span>(<span style="color: e99999;">minCapacity：</span>size </span>+ 1);  <strong><span style="color: #08000;">//</span></strong><span style="color: #08000;"><strong> size是当前存的数据个数</strong><br />　　　　//数组赋值<br /></span>
+        elementData[size++] =<span style="color: #00000;"> e;
+        </span><span style="color: #000ff;">return</span> <span style="color: #000ff;">true</span><span style="color: #00000;">;
+    }</span></span></code></pre>
+
+<p>&nbsp;</p>
+<p><strong>&nbsp;扩容的入口方法，计算容量</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000ff;">private</span> <span style="color: #000ff;">void</span> <span style="background-color: #ff99cc;">上&sup1;</span><span style="color: #ff6600;"><strong>ensureCapacityInternal</strong></span>(<span style="color: #000ff;">int</span><span style="color: #00000;"> minCapacity){    <span style="color: #339966;">//minCapacity最小值，传的时候就是+1后的</span>
+<span style="background-color: #ff99cc;">下下&sup3;</span><span style="color: #339966;"><strong>ensureExplicitCapacity</strong></span>(<span style="background-color: #ff99cc;">下&sup2;</span><span style="color: #3366ff;"><strong>calculateCapacity</strong></span>(elementData,minCapacity)); <span style="color: #339966;">//计算容量，传入一个数组elementData，再传一个最小容量minCapacity</span></span></span></code></pre>
+
+<p>&nbsp;</p>
+<p><strong>计算最小容量</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000ff;">private</span> <span style="color: #000ff;">static</span> <span style="color: #000ff;">int</span> <span style="background-color: #ff99cc;">上&sup2;</span><strong><span style="color: #3366ff;">calculateCapacity</span></strong>(Object[] elementData, <span style="color: #000ff;">int</span><span style="color: #00000;"> minCapacity){
+</span><span style="color: #08000;">//</span><span style="color: #08000;">如果elementData是空的</span>
+<span style="color: #000ff;">if</span>(elementData==DEFAUL TCAPACITY EMPTY EL EMENTDAT)|
+<span style="color: #08000;">//</span><span style="color: #08000;">返回一个默认或者minCapacity，最后是返回其中最大的</span>
+<span style="color: #000ff;">return</span><span style="color: #00000;"> Math. max(DEFAULT_CAPACIT minCapacity); 
+</span><span style="color: #08000;">//</span><span style="color: #08000;">不是空，就返回size+1的值 </span>
+<span style="color: #000ff;">return</span><span style="color: #00000;"> minCapacity;
+}</span></span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000ff;">private</span> <span style="color: #000ff;">void</span> <span style="background-color: #ff99cc;">上上&sup3;</span><span style="color: #339966;"><strong>ensureExplicitCapacity</strong></span>(<span style="color: #000ff;">int</span><span style="color: #00000;"> minCapacityp{<br /><span style="color: &amp;39966;">//只要发生修改就+1</span>
+modCount</span>++<span style="color: #00000;">; <br /></span><span style="color: #08000;">//是否满足扩容的条件   最小容量（当前数组存值得容量？） - object数组的长度<br /><span style="color: #00000;"><strong>if(minCapacity-elementData. length〉0）</strong><span style="color: #339966;"><strong>//elementData.lenth=10 （默认容量为10）</strong></span></span></span>
+<span style="background-color: #ff99cc;">下&sup1;</span><span style="color: #00ccff;"><strong><span style="color: &amp;39966;">grow</span></strong></span>(minCapacity);</span></code></pre>
+
+<p>&nbsp;</p>
+<p><strong>&nbsp;数组扩容</strong><strong>方法</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000ff;">private</span> <span style="color: #000ff;">void</span> <span style="background-color: #ff99cc;">上&sup1;</span><span style="color: #00ccff;"><strong>grow</strong></span>(<span style="color: #000ff;">int</span><span style="color: #00000;"> minCapacity){
+　　　</span><span style="color: #08000;">//计算当前数组容量，也就是老的容量</span><span style="color: #08000;"><br /><span style="color: #00000;">　 　int oldCapacity=elementData. length;<br />　　　<span style="color: &amp;39966;">//新的数组容量 = 老容量 + 老容量/2  （老容量的1.5倍）</span></span><br /><span style="color: #00000;"> 　　<span style="color: #ff6600;"><strong>int newCapacity=oldCapacity+(oldCapacity &gt;&gt;1);  &gt;&gt;1 除二<br /></strong></span></span></span></span></code></pre>
+<p>　　　　&nbsp;<span style="font-size: 13px;">// oldcapacity=10</span><br /><span style="font-size: 13px;">　　　　// oldcapacity &gt;&gt;1</span><br /><span style="font-size: 13px;">　　　　// 0000 1010 &gt;&gt; 1</span><br /><span style="font-size: 13px;">　　　　// 0000 0101 = 5</span></p>
+<p><span style="font-size: 13px;">　　　　<span style="color: &amp;39966;">//<span style="font-size: 14px;">判断新的数组容量-之前最小容量</span></span></span></p>
+<pre><code><span style="font-size: 14px;"><span style="color: #08000;"><span style="color: #00000;"> 　　if(newCapacity-minCapacity&lt;0)</span></span>
+　　　　　　newCapacity=minCapacity;<br />　　 <span style="color: #000ff;">if</span> (newCapacity - MAX_ARRAY_SIZE&gt;0<span style="color: #00000;">)  <span style="color: #339966;">//MAX_ARRAY_SIZE：值特别大，如果新的数组比它还大，就越界了，或者直接返回最大长度</span>
+　　　　　　newCapacity </span>= <span style="color: #00000;">hugeCapacity(minCapacity);</span><span style="color: #08000;"><br /><span style="color: #00000;">　　　elementData=Arrays. copyof(elementData, newCapacity);</span></span></span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">    <span style="color: #000ff;">public</span> <span style="color: #000ff;">void</span> add(<span style="color: #000ff;">int</span><span style="color: #00000;"> index, E element) {<br />　　　　　//判断下标是否越界
+        <span style="background-color: #ff99cc;">下<sub>1</sub></span><span style="color: #ff6600;"><strong>rangeCheckForAdd</strong></span>(index);
+　　　　　//检测是否需要扩容
+        ensureCapacityInternal(size </span>+ 1); <br />　　　　　//把index之后的所有元素向后移动一位<br />
+        </span><span style="font-size: 14px; color: #3366ff;"><strong><span style="color: &amp;366ff;">System.arraycopy(elementData, index, elementData, index + 1,
+                         size -</span></strong></span><span style="font-size: 14px;"><span style="color: #00000;"><strong><span style="color: &amp;366ff;"><span style="color: #3366ff;"> index);</span><br />　　　　　</span></strong><span style="color: &amp;366ff;">//</span></span><span style="color: #00000;">将index位置覆盖上新值</span><span style="color: #00000;"><strong><span style="color: &amp;366ff;"><br /></span></strong></span></span><span style="font-size: 14px;"><span style="color: #00000;">
+        elementData[index] </span>=<span style="color: #00000;"> element;
+        size</span>++<span style="color: #00000;">;
+    }</span></span></code></pre>
+
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000ff;">private</span> <span style="color: #000ff;">void</span> <span style="background-color: #ff99cc;">上<sup>1</sup></span><strong><span style="color: #ff6600;">rangeCheckForAdd</span></strong>(<span style="color: #000ff;">int</span><span style="color: #00000;"> index){
+</span><span style="color: #000ff;">if</span>(index&gt;size || index&lt;0<span style="color: #00000;">)
+</span><span style="color: #000ff;">throw</span> <span style="color: #000ff;">new</span> IndexOutofBoundsException(outofBoundsMsg(index));</span></code></pre>
+
+<p>&nbsp;</p>
+<p><span style="color: &amp;366ff;"><span style="color: #3366ff;"><strong>System.arraycopy(elementData, index, elementData, index + 1,size -</strong></span><strong><span style="color: #3366ff;"> index);</span> <span style="color: #3366ff;">举例</span></strong></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">int[] elementData = <span style="color: #000ff;">new</span> <span style="color: #000ff;">int</span>[10<span style="color: #00000;">];
+ </span><span style="color: #000ff;">for</span>(int i=0;i&lt;5;i++<span style="color: #00000;">){ <span style="color: #339966;">//数组的下标 0,1,2,3,4</span>
+elementData[i]</span>=i+1<span style="color: #00000;">;  <span style="color: #339966;">//数组的值 1,2,3,4,5</span>
+System. out. println(</span>"=="+<span style="color: #00000;">Arrays. toString(elementData)); 
+</span><span style="color: #000ff;">int</span> size=5<span style="color: #00000;">; 
+</span><span style="color: #000ff;">int</span> index=1<span style="color: #00000;">; <span style="color: #339966;">//插入数组下标位置</span>
+ System. arraycopy(elementData, index, elementData, <span style="color: e99999;">destPos:</span> index</span>+1, length: size-<span style="color: #00000;">index);   原数组，插入指定的位置，又指定的数组，指定的位置为当前位置+1，到5-1=4的位置 &gt;&gt;从插入位置往后算
+System. out. println(</span>"--"+Arrays. toString(elementData));<br /><br />打印结果<br /></span></code></pre>
+<p><span style="font-size: 14px;">&nbsp;==&nbsp; [1，2，3，4，5，0，0，0，0，0]</span><br /><span style="font-size: 14px;">&nbsp;一&nbsp; [1，<span style="background-color: #ffff00;">2</span>，2，3，4，5，0，0，0，0]&nbsp; <span style="background-color: #ffff00;">2：是要插入的数值</span></span></p>
+<pre><code><span style="font-size: 14px;">&nbsp;</span></code></pre>
+
+<p>&nbsp;</p>
+<blockquote>
+<p>&nbsp;<strong><code class="java plain">向ArrayList添加对象时，原对象数目加</code><code class="java value">1</code><code class="java plain">如果大于原底层数组长度，则以适当长度新</code><code class="java plain">建一个原数组的拷贝，并修改原数组，指向这个新建数组。</code></strong></p>
+<p><strong><code class="java plain">原数组自动抛弃（java垃圾回收机制会自动回收）。size则在向数组添加对象，自增</code><code class="java value">1</code><code class="java plain">。</code></strong></p>
+<p class="line number80 index79 alt1">&nbsp;</p>
+</blockquote>
+<h2>&nbsp;</h2>
+<h2>删除方法</h2>
+<h3>指定位置删除</h3>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000ff;">public</span> E remove(<span style="color: #000ff;">int</span><span style="color: #00000;"> index) {<br />　　　　 检测当前下标是否越界
+        <span style="background-color: #ff99cc;">下<span style="color: #000000;"><sub>1</sub></span></span><strong><span style="color: #3366ff;">rangeCheck</span></strong>(index);
+
+        modCount</span>++<span style="color: #00000;">;
+        E oldValue </span>=<span style="color: #00000;"> elementData(index);
+　　　　 将index+1及之后的元素向前移动一位，覆盖被删除的值
+        </span><span style="color: #000ff;">int</span> numMoved = size - index - 1<span style="color: #00000;">;
+        </span><span style="color: #000ff;">if</span> (numMoved &gt; 0<span style="color: #00000;">)
+            <span style="background-color: #ff99cc;">下下<sub>2</sub></span><strong><span style="color: #3366ff;">System.arraycopy(elementData, index</span></strong></span><strong><span style="color: #3366ff;">+1</span></strong><span style="color: #00000;"><strong><span style="color: #3366ff;">, elementData, index,
+                             numMoved);<br />　　　　 </span></strong><span style="color: #000000;">将最后一个位置的元素清空<strong><br /></strong></span>
+        elementData[</span>--size] = <span style="color: #000ff;">null</span>; 
+
+        <span style="color: #000ff;">return</span><span style="color: #00000;"> oldValue;
+    }</span></span></code></pre>
+
+<p>&nbsp;</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #000000; font-size: 14px;">private void <span style="background-color: #ff99cc;">上<sup>1</sup></span><span style="color: #3366ff;"><strong>rangeCheck</strong></span>(int index){
+if(index &gt;=size)
+throw new IndexOutOfBoundsException(outOfBoundsMsg(index));</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="background-color: #ff99cc;">上上<sup>2</sup></span> <span style="color: #3366ff;"><strong>System.arraycopy(elementData, index</strong><strong>+1</strong><strong>, elementData, index, numMoved); 举例</strong></span><span style="font-size: 14px;"><span style="color: #0000ff;">int</span>[] elementData = <span style="color: #0000ff;">new</span> <span style="color: #0000ff;">int</span>[10<span>];</span></span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">int</span> i=0;i&lt;10;i++){ <span style="color: #008000;">//</span><span style="color: #008000;">数组的下标 0,1,2,3,4,5,6,7,8,9</span>
+elementData[i]=i+1;  <span style="color: #008000;">//</span><span style="color: #008000;">数组的值 1,2,3,4,5,6,7,8,9,10<br /></span>}<br />int size = elementData.lengh;  <span style="color: #339966;">//数组里有几个数，长度就是几    elementData.lengh = 10</span><br />int index = 2;<br />int numMoved = size - index - 1;
+System. out. println("==" + <span style="color: #000000;">Arrays. toString(elementData)); </span>
+System. arraycopy(elementData, <span style="color: #999999;">srcPos: </span>index+1, elementData, index, numMoved);   原数组，指定的位置为要删除的下标往后一个位置，又指定的数组，删除位置的下标，10-2-1=7  &gt;&gt;从指定删除下标位置往后数，全部向前移动一位<br /><span style="color: #000000;">
+System. out. println(</span>"--" + <span style="color: #000000;">Arrays. toString(elementData));
+
+打印结果
+ </span>==  [1，2，<span style="background-color: #ffff00;">3</span>，4，5，6，7,8,9,10<span style="color: #000000;">]   <span style="background-color: #ffff00;">3：要删除的数字</span>
+ 一  [</span>1，2，4,5,6,7,8,9,10,10]  </span><span style="color: #000000;"><br /></span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>&nbsp;指定元素删除</h3>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px; color: #000000;">public boolean remove(Object o) {
+        if (o == null) {
+            <span style="background-color: #ffff00;"><strong>for</strong></span> (int index = 0; index &lt; size; index++)
+                <span style="background-color: #ffff00;">if</span> (elementData[index] == null) {
+                    <span style="background-color: #ff99cc;">下<sub>1</sub></span><span style="color: #ff6600;"><strong>fastRemove</strong></span>(index);
+                    return true;} <span style="color: #339966;">//从0开始遍历，大小为数组长度，找到后直接删除</span>
+        } else {
+            for (int index = 0; index &lt; size; index++)
+                <span style="background-color: #ffff00;">if</span> (o.equals(elementData[index])) {
+                    fastRemove(index);
+                    return true;
+                }
+        }<br />　　　　　如果没有匹配元素，返回false
+        return false;
+    }</span></code></pre>
+
+<blockquote>
+<p><strong>快速删除，</strong>&nbsp;<strong>没有检测index下标的原因：</strong>因为之前需要指定下标删除，现在是直接指定删除某个元素，如果元素不存在，<strong><span style="background-color: #ffff00;">for语句</span></strong>遍历也不会找到这个元素，所有，只要能满足两个<span style="background-color: #ffff00;">if语句</span>其中一个，那这个元素一定在我的合理范围内的，所以就不需要检测有没有下标</p>
+</blockquote>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>快速删除，没有检测index下标</strong></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px; color: #000000;">private void <span style="background-color: #ff99cc;">上<strong><sup>1</sup></strong></span><strong><span style="color: #ff6600;">fastRemove</span></strong>(int index) {
+        modCount++;
+        int numMoved = size - index - 1;
+        if (numMoved &gt; 0)
+            System.arraycopy(elementData, index+1, elementData, index,
+                             numMoved);
+        elementData[--size] = null; // clear to let GC do its work
+    }</span></code></pre>
+
+<p>&nbsp;<span style="font-size: 14px; color: #000000;">ArrayList&lt;Integer&gt; list=new Arraylist（）；</span></p>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px; color: #000000;">1ist.add（10）；</span><br /><span style="font-size: 14px; color: #000000;">1ist.add（11）；</span><br /><span style="font-size: 14px; color: #000000;">1ist.add（12）；</span><br /><span style="font-size: 14px; color: #000000;">1ist.add（13）；</span><br /><span style="font-size: 14px; color: #000000;">1ist.add（15）；</span><br /><span style="font-size: 14px; color: #000000;">for（Integer num：1ist）{
+　　if（num==12）{
+　　　　1ist.remove（num）；<br />　　}
+}I
+<span style="color: #339966;">//报错</span>
+<span style="color: #339966;">//Exception in thread"main"java.util.concurrentModificationException</span> <br /><br />final void checkForComodification）{<br />
+　　if（modcount != expectedModcount）  <strong><span style="color: #339966;">//modcount：6   expectedModcount：5 </span></strong>  <strong>&gt;&gt; </strong></span><span style="font-size: 14px;">使用迭代器时，同步了一下 expectedModCount = modCount,</span><span style="font-size: 14px;">迭代的时候一直在判断，如果此时调用了 ArrayList.remove，modCount变化了，expectedModCount还是初始同步的值，也就</span><span style="font-size: 14px;">throw new ConcurrentModificationException();</span></code></pre>
+<pre><code><span style="font-size: 14px;"><span style="color: #000000;">　　　　throw new ConcurrentModificationException（）；<br />}</span></span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<blockquote>
+<p><span style="background-color: #ffff00;">&nbsp;&nbsp;modCount++ :&nbsp;&nbsp;</span>该字段表示list结构上被修改的次数。在对集合进行新增或移除操作时会使modCount+1,这是一个记录集合变化次数的变量。</p>
+<p>&nbsp;作用是在使用迭代器Iterator对集合进行遍历时，用modCount来判断集合内数据没有发生变化，否则会抛出异常。</p>
+</blockquote>
+<h3>&nbsp;</h3>
+<h3>解决办法：用迭代器删除</h3>
+<src class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #339966;">//解决删除异常问题</span>
+Iterator&lt;Integer&gt; it = list.iterator（）；</span><br /><span style="font-size: 14px;"><span style="color: #000000;">while(it.hasNext()){  　　　　<span style="color: #339966;">//hasNext（）方法 ： 检验后面还有没有元素。 从前往后查找。</span>
+　　Integer num = it.next（）； <span style="color: #339966;">//next（）方法：获取下一个元素</span><br />　　if（</span>num == 12）{ <br /><span style="color: #008000;">　　<span style="color: #339966;">//</span></span><span style="color: #008000;"><span style="color: #339966;">使用迭代器的删除方法</span><br />　　<strong><span style="color: #000000;">it.remove（）；</span></strong><br />　　}</span>
+<span style="color: #000000;">}<br />
+</span><span style="color: #000000;">public void <strong>remove</strong>（）{
+　　if（lastRet&lt;0）
+　　　　throw new I1legalstateException（）；<br />　　checkForComodification（）；<br /><br />　　try{
+　　ArrayList.this.remove（lastRet）；<br />　　cursor=lastRet；
+　　1astRet=-1；<br />　　<strong><span style="color: #339966;">//修改expectedModcound 和 modcount一样</span></strong><br />　　expectedModcount = modcount；
+}catch（IndexoutofBoundsException ex）{
+　　throw new ConcurrentModificationException（）；
+}</span></span></code></pre>
+
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

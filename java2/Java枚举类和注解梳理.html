@@ -1,0 +1,353 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Java枚举类和注解梳理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Java枚举类和注解梳理</center></div><div class='banquan'>原文出处:本文由博客园博主itzhouq提供。<br/>
+原文连接:https://www.cnblogs.com/itzhouq/p/11662674.html</div><br>
+    <h2 id="枚举类">1. 枚举类</h2>
+<h3 id="枚举类的使用">1. 枚举类的使用</h3>
+<ol>
+<li>枚举类的理解：类的对象只有有限个，确定的。我们称此类为枚举类。</li>
+<li>当需要定义一组常量时，强烈建议使用枚举类。</li>
+<li>如果枚举类中只有一个对象，则可以作为单例模式的实现方式。</li>
+</ol>
+<h3 id="如何定义枚举类">1.2 如何定义枚举类</h3>
+<ul>
+<li>方式一：JDK1.5之前，自定义枚举类；</li>
+<li>方式二：JDK1.5之后，可以使用enum关键词定义枚举类。</li>
+</ul>
+<p>自定义枚举类的三个原则：</p>
+<ol>
+<li>私有化类的构造器，保证不能再类的外部创建其对象；</li>
+<li>在类的内部创建类枚举类的实例。声明为：public static final</li>
+<li>对象如果有实例变量，应该声明为private final，并在构造器中初始化。</li>
+</ol>
+<p>自定义枚举类举例：SeasonTest类</p>
+<pre><code><code>package com.atguigi.java;
+
+public class SeasonTest {
+    public static void main(String[] args) {
+        Season spring = Season.SPRING;
+        System.out.println(spring); // Season{seasonName=&#39;春天&#39;, seasonDesc=&#39;春暖花开&#39;}
+    }
+}
+
+// 自定义枚举类
+class Season{
+    // 1. 声明Season对象的属性：private final修饰
+    private final String seasonName;
+    private final String seasonDesc;
+
+    // 2. 私有化类的构造器，并给对象属性赋值
+    private Season(String seasonName, String seasonDesc){
+        this.seasonName = seasonName;
+        this.seasonDesc = seasonDesc;
+    }
+
+    // 3. 提供当前枚举类的多个对象：public static final修饰的
+    public static final Season SPRING = new Season(&quot;春天&quot;, &quot;春暖花开&quot;);
+    public static final Season SUMMER = new Season(&quot;夏天&quot;, &quot;夏日炎炎&quot;);
+    public static final Season AUTUMN = new Season(&quot;秋天&quot;, &quot;秋高气爽&quot;);
+    public static final Season WINTER = new Season(&quot;冬天&quot;, &quot;冰天雪地&quot;);
+
+    // 4. 其他诉求：获取枚举类对象的属性
+    public String getSeasonName() {
+        return seasonName;
+    }
+
+    public String getSeasonDesc() {
+        return seasonDesc;
+    }
+    // 5. 其他诉求：提供toString
+    @Override
+    public String toString() {
+        return &quot;Season{&quot; +
+                &quot;seasonName=&#39;&quot; + seasonName + &#39;\&#39;&#39; +
+                &quot;, seasonDesc=&#39;&quot; + seasonDesc + &#39;\&#39;&#39; +
+                &#39;}&#39;;
+    }
+}</code></code></pre>
+<h3 id="使用enum关键字定义枚举类">1.3 使用enum关键字定义枚举类</h3>
+<pre><code><code>package com.atguigi.java;
+
+/**
+ * 使用enum关键字定义枚举类
+ * 说明：定义的枚举类默认继承于java.lang.Enum类
+ */
+public class SeasonTest1 {
+    public static void main(String[] args) {
+        Season1 summer = Season1.SUMMER;
+        System.out.println(summer); // Season1{seasonName=&#39;夏天&#39;, seasonDesc=&#39;夏日炎炎&#39;}
+
+        System.out.println(Season1.class.getSuperclass()); // class java.lang.Enum
+    }
+}
+
+//使用enum关键字枚举类
+enum Season1{
+    // 1.提供当前枚举类的对象，多个对象之间用&quot;,&quot;隔开，末尾对象&quot;;&quot;结束
+    SPRING (&quot;春天&quot;, &quot;春暖花开&quot;),
+    SUMMER(&quot;夏天&quot;, &quot;夏日炎炎&quot;),
+    AUTUMN(&quot;秋天&quot;, &quot;秋高气爽&quot;),
+    WINTER(&quot;冬天&quot;, &quot;冰天雪地&quot;);
+
+    // 2. 声明Season对象的属性：private final修饰
+    private final String seasonName;
+    private final String seasonDesc;
+
+
+    // 3. 私有化类的构造器，并给对象属性赋值
+    private Season1(String seasonName, String seasonDesc){
+        this.seasonName = seasonName;
+        this.seasonDesc = seasonDesc;
+    }
+
+    // 4. 其他诉求：获取枚举类对象的属性
+    public String getSeasonName() {
+        return seasonName;
+    }
+
+    public String getSeasonDesc() {
+        return seasonDesc;
+    }
+    // 5. 其他诉求：提供toString
+
+    @Override
+    public String toString() {
+        return &quot;Season1{&quot; +
+                &quot;seasonName=&#39;&quot; + seasonName + &#39;\&#39;&#39; +
+                &quot;, seasonDesc=&#39;&quot; + seasonDesc + &#39;\&#39;&#39; +
+                &#39;}&#39;;
+    }
+}</code></code></pre>
+<ul>
+<li><p>使用enum关键字定义枚举类时，如果没有重写toString()，那么下面的代码执行的是结果是SUMMER。</p>
+<pre><code><code>Season1 summer = Season1.SUMMER;
+System.out.println(summer);</code></code></pre></li>
+</ul>
+<h3 id="enum类的常用方法">1.4 Enum类的常用方法</h3>
+<pre><code><code> Season1 summer = Season1.SUMMER;
+
+//toString():返回枚举类对象的名称
+System.out.println(summer.toString());
+
+System.out.println(&quot;****************&quot;);
+
+//values():返回所有的枚举类对象构成的数组
+Season1[] values = Season1.values();
+for(int i = 0;i &lt; values.length;i++){
+    System.out.println(values[i]);
+    //values[i].show();
+}
+System.out.println(&quot;****************&quot;);
+
+//valueOf(String objName):返回枚举类中对象名是objName的对象。
+Season1 winter = Season1.valueOf(&quot;WINTER&quot;); // Season1{seasonName=&#39;冬天&#39;, seasonDesc=&#39;冰天雪地&#39;}
+//如果没有objName的枚举类对象，则抛异常：IllegalArgumentException
+//        Season1 winter = Season1.valueOf(&quot;WINTER1&quot;);
+System.out.println(winter);</code></code></pre>
+<h3 id="枚举类实现接口">1.5 枚举类实现接口</h3>
+<ul>
+<li>情况一：实现接口，在enum类中实现抽象方法，跟普通的实现接口方式一样。</li>
+<li>情况二：实现接口后，每个对象重写方法，从而实现每个对象调用同一方法产生不同结果。</li>
+</ul>
+<p>定义接口Info，接口中定义方法show()。枚举类中的每个对象实现重写show()方法。实现的结果是不同的枚举类对象电泳同一个方法得到不同结果。</p>
+<pre><code><code>package com.atguigi.java;
+
+/**
+ * 使用enum关键字定义枚举类
+ * 说明：定义的枚举类默认继承于java.lang.Enum类
+ */
+public class SeasonTest1 {
+    public static void main(String[] args) {
+        Season1 summer = Season1.SUMMER;
+        summer.show(); // 宁夏
+        Season1 winter = Season1.valueOf(&quot;WINTER&quot;);
+        winter.show(); // 大约在冬季
+    }
+}
+
+interface Info{
+    void show();
+}
+
+//使用enum关键字枚举类
+enum Season1 implements Info{
+    // 1.提供当前枚举类的对象，多个对象之间用&quot;,&quot;隔开，末尾对象&quot;;&quot;结束
+    SPRING (&quot;春天&quot;, &quot;春暖花开&quot;){
+        @Override
+        public void show() {
+            System.out.println(&quot;春天在哪里？&quot;);
+        }
+    },
+    SUMMER(&quot;夏天&quot;, &quot;夏日炎炎&quot;){
+        @Override
+        public void show() {
+            System.out.println(&quot;宁夏&quot;);
+        }
+    },
+    AUTUMN(&quot;秋天&quot;, &quot;秋高气爽&quot;){
+        @Override
+        public void show() {
+            System.out.println(&quot;秋天不回来&quot;);
+        }
+    },
+    WINTER(&quot;冬天&quot;, &quot;冰天雪地&quot;){
+        @Override
+        public void show() {
+            System.out.println(&quot;大约在冬季&quot;);
+        }
+    };
+
+    // 2. 声明Season对象的属性：private final修饰
+    private final String seasonName;
+    private final String seasonDesc;
+
+
+    // 3. 私有化类的构造器，并给对象属性赋值
+    private Season1(String seasonName, String seasonDesc){
+        this.seasonName = seasonName;
+        this.seasonDesc = seasonDesc;
+    }
+
+    // 4. 其他诉求：获取枚举类对象的属性
+    public String getSeasonName() {
+        return seasonName;
+    }
+
+    public String getSeasonDesc() {
+        return seasonDesc;
+    }
+    // 5. 其他诉求：提供toString
+
+    @Override
+    public String toString() {
+        return &quot;Season1{&quot; +
+                &quot;seasonName=&#39;&quot; + seasonName + &#39;\&#39;&#39; +
+                &quot;, seasonDesc=&#39;&quot; + seasonDesc + &#39;\&#39;&#39; +
+                &#39;}&#39;;
+    }
+}</code></code></pre>
+<hr />
+<h2 id="注解">2. 注解</h2>
+<h3 id="注解的理解">2.1 注解的理解</h3>
+<ul>
+<li><p>从JDK5.0开始，Java增加了对元数据（MetaData）的支持，也就是Annotation（注解）。</p></li>
+<li><p>Annotation其实就是代码里的特殊标记，这些标记可以在编译，类加载，运行时被读取，并执行相应的处理。通过使用Annotation，程序员可以在不改变原有逻辑的情况下，，在源文件中嵌入一些补充信息。代码分析工具、开发工具和部署工具可以通过这些补充信息进行验证或者进行部署。</p></li>
+<li>Annotation可以想修饰符一样被使用，可用于修饰包，类，构造器，方法，成员变量，参数，局部变量的声明，这些信息被保存在Annotation的<code>name = value</code>对中。</li>
+<li>在JavaSE中，注解的使用目的比较简单，例如标记过时的功能，忽略警告等。在JavaEE/Android中注解占据了更重要的角色，例如用来配置应用程序的任何切面，代替JavaEE中旧版中所遗留的繁冗代码和XML配置等。</li>
+<li><p>框架 = 注解 + 反射 + 设计模式</p></li>
+</ul>
+<h3 id="常用annotation使用">2.2 常用Annotation使用</h3>
+<ol>
+<li>生成文档相关注解；</li>
+<li>在编译时进行格式检查（JDK内置的三个基本注解）
+<ul>
+<li><code>@Overrive</code>：限定重写父类的方法，该注解只能用于方法；</li>
+<li><code>@Deprecated</code>：用于表示所修饰的元素（类、方法）已过时，通常是因为所修饰的结构危险或存在更好的选择；</li>
+<li><code>@SuppressWarning</code>：抑制编译器警告。</li>
+</ul></li>
+<li>跟踪代码依赖性，实现替代配置文件的功能</li>
+</ol>
+<ul>
+<li>Servlet3.0提供了注解，使得不在需要在web.xml文件中进行Servlet得部署。</li>
+</ul>
+<p><img src="./images/Java枚举类和注解梳理0.png" /></p>
+<ul>
+<li>Spring框架中关于“事务”的管理</li>
+</ul>
+<p><img src="./images/Java枚举类和注解梳理1.png" /></p>
+<h3 id="如何自定义注解">2.3 如何自定义注解</h3>
+<ul>
+<li>定义新的Annotation类型使用<code>@interface</code>关键字</li>
+<li>自定义注解自动实现了<code>java.lang.annotation.Annotation</code>接口；</li>
+<li>Annotation的成员变量在Annotation定义中以无参数方法的形式来声明。其方法名和返回值定义了该成员的名称和类型；</li>
+<li>可以在定义Annotation的成员变量时为其指定初始值，指定成员变量的初始值可以是使用default关键字；</li>
+<li>如果只有一个参数成员，建议使用参数名为value；</li>
+<li>没有成员定义的Annotation称为标记；包含成员变量的Annotation称为元数据Annotation。</li>
+<li>注意：自定义注解必须配上注解的信息处理流程(使用反射)才有意义。</li>
+</ul>
+<pre><code><code>package java.atguigu.java1;
+
+public @interface MyAnnotation {
+    String value() default &quot;hello&quot;;
+}</code></code></pre>
+<h3 id="jdk中的元注解">2.4 JDK中的元注解</h3>
+<p>JDK中的元Annotation用于修饰其他Annotation定义，JDK5.0中提供了4个标准的meta-annotation类型，分别是：</p>
+<p>Retention、Target、Documented、Inherited。</p>
+<ul>
+<li><p><code>@Retention</code>：只能用于修饰一个Annotation定义，用于指定该Annotation的生命周期，<code>@Retention</code>包含一个RetentionPolicy类型的成员变量，使用这个注解时必须为该value成员变量指定值：</p>
+<ul>
+<li><code>RetentionPolicy.SOURCE</code>：在源文件中有效（即源文件保留），编译器直接丢弃这种策略的注解；</li>
+<li><code>RetentionPolicy.CLASS</code>：在class文件中有效（即class保留），当运行程序时，JVM不会保留注解。这是默认值</li>
+<li><code>RetentionPolicy.RUNTIME</code>：在运行时有效（即运行时保留），当运行 Java程序时，JVM会保留注解。程序通过反射获取该注解。</li>
+</ul>
+<pre><code><code>public enum RetentionPolicy{
+  SOURCE,
+  CLASS,
+  RUNTIME
+}</code></code></pre></li>
+<li><p><code>@Target</code>：用于修饰Annotation定义，用于指定被修饰的Annotation能用于修饰哪些程序元素。<code>@Target</code>也包含一个名为value的成员变量。</p></li>
+</ul>
+<p><img src="./images/Java枚举类和注解梳理2.png" /></p>
+<h3 id="jdk8中注解的新特性">2.5 JDK8中注解的新特性</h3>
+<p>Java8对注解处理提供了两点改进：可重复的注解和可用于类型的注解。此外，反射也得到了加强，在Java8中能够得到方法参数的名称。这会简化标注在方法参数上的注解。</p>
+<ul>
+<li>可重复注解示例：</li>
+</ul>
+<p><img src="./images/Java枚举类和注解梳理3.png" /></p>
+<ul>
+<li>类型注解
+<ul>
+<li>JDK8之后，关于元注解@Target的参数类型ElementType枚举值多了两个：TYPE_PARAMETER，TYPE_USE。</li>
+<li>在Java8之前，注解只能在声明的地方使用，Java8开始，注解可以应用在任何地方。</li>
+<li>ElementType.TYPE_PARAMETER表示该注解能写在类型变量的声明语句中（如：泛型声明）。</li>
+<li>ElementType.TYPE_USE表示该注解能写在使用类型的任何语句中。</li>
+</ul></li>
+</ul>
+<pre><code><code>public class TestTypeDefine&lt;@TypeDefine() U&gt; {
+private U u;
+public &lt;@TypeDefine() T&gt; void test(T t){
+}
+}
+@Target({ElementType.TYPE_PARAMETER})
+@interface TypeDefine{
+}</code></code></pre>
+<pre><code><code>@MyAnnotation
+public class AnnotationTest&lt;U&gt; {
+    @MyAnnotation
+    private String name;
+    public static void main(String[] args) {
+        AnnotationTest&lt;@MyAnnotation String&gt; t = null;
+        int a = (@MyAnnotation int) 2L;
+        @MyAnnotation
+        int b = 10;
+    }
+    public static &lt;@MyAnnotation T&gt; void method(T t) {
+    }
+    public static void test(@MyAnnotation String arg) throws @MyAnnotation Exception {
+    }
+}
+@Target(ElementType.TYPE_USE)
+@interface MyAnnotation {
+}</code></code></pre>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

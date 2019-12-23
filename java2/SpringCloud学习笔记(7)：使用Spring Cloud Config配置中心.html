@@ -1,0 +1,263 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修SpringCloud学习笔记(7)：使用Spring Cloud Config配置中心' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>SpringCloud学习笔记(7)：使用Spring Cloud Config配置中心</center></div><div class='banquan'>原文出处:本文由博客园博主布禾卡斐先生提供。<br/>
+原文连接:https://www.cnblogs.com/seve/p/11571193.html</div><br>
+    <h3 id="简介">简介</h3>
+<p>Spring Cloud Config为分布式系统中的外部化配置提供了服务器端和客户端支持，服务器端统一管理所有配置文件，客户端在启动时从服务端获取配置信息。服务器端有多种配置方式，如将配置文件存储在本地或者存储在远程Git仓库等等，并且在配置文件被更改时，可以通过多种途径如actuator的/refresh端点或者Spring Cloud Bus来动态刷新客户端的配置，而无需重新启动客户端。</p>
+<h3 id="项目介绍">项目介绍</h3>
+<ol>
+<li>sc-parent，父模块(请参照<a href="https://www.cnblogs.com/seve/p/11502579.html">SpringCloud学习笔记(1)：Eureka注册中心</a>)</li>
+<li>sc-eureka，注册中心(请参照<a href="https://www.cnblogs.com/seve/p/11502579.html">SpringCloud学习笔记(1)：Eureka注册中心</a>)</li>
+<li>sc-config-client，访问配置中心的客户端</li>
+<li>sc-config-server，本地配置中心</li>
+<li>sc-config-server-git，远程配置中心</li>
+</ol>
+<h3 id="创建访问配置中心的客户端">创建访问配置中心的客户端</h3>
+<h4 id="在父模块下创建子模块项目sc-config-clientpom.xml">1.在父模块下创建子模块项目sc-config-client，pom.xml：</h4>
+<pre><code><code>&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+  &lt;parent&gt;
+    &lt;groupId&gt;com.cf&lt;/groupId&gt;
+    &lt;artifactId&gt;sc-parent&lt;/artifactId&gt;
+    &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+  &lt;/parent&gt;
+  &lt;artifactId&gt;sc-config-client&lt;/artifactId&gt;
+  
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-config&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/project&gt;</code></code></pre>
+<h4 id="创建启动类configclient.configclientapplication">2.创建启动类configclient.ConfigClientApplication：</h4>
+<pre><code><code>package configclient;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class ConfigClientApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigClientApplication.class, args);
+    }
+}
+</code></code></pre>
+<h4 id="创建configclient.controller.configclientcontroller">3.创建configclient.controller.ConfigClientController：</h4>
+<pre><code><code>package configclient.controller;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping(&quot;/client&quot;)
+public class ConfigClientController {
+    @Value(&quot;${nickName}&quot;)
+    private String nickName;
+    
+    @GetMapping(&quot;/hello&quot;)
+    public String hello(){
+        return &quot;hello,&quot; + nickName;
+    }
+}</code></code></pre>
+<h4 id="创建bootstrap.yml">4.创建bootstrap.yml：</h4>
+<pre><code><code>spring:
+  application:
+    name: sc-config-client
+  profiles:
+    active: dev
+  cloud:
+    config:
+      uri:  http://localhost:9003
+      fail-fast: true
+
+server:
+  port: 9002</code></code></pre>
+<p><strong>spring.cloud.config.uri</strong>：指定配置中心地址<br />
+<strong>spring.cloud.config.fail-fase</strong>：当连接不上配置中心服务器时，是否使当前客户端异常停止，而不是以默认配置启动。</p>
+<h3 id="使用本地配置中心">使用本地配置中心</h3>
+<h4 id="在父模块下创建子模块项目sc-config-serverpom.xml">1.在父模块下创建子模块项目sc-config-server，pom.xml：</h4>
+<pre><code><code>&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+  &lt;parent&gt;
+    &lt;groupId&gt;com.cf&lt;/groupId&gt;
+    &lt;artifactId&gt;sc-parent&lt;/artifactId&gt;
+    &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+  &lt;/parent&gt;
+  &lt;artifactId&gt;sc-config-server&lt;/artifactId&gt;
+  
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-config-server&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/project&gt;</code></code></pre>
+<h4 id="创建启动类configserver.configserverapplication">2.创建启动类configserver.ConfigServerApplication：</h4>
+<pre><code><code>package configserver;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.config.server.EnableConfigServer;
+
+@SpringBootApplication
+@EnableConfigServer
+public class ConfigServerApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ConfigServerApplication.class, args);
+    }
+}</code></code></pre>
+<h4 id="创建application.yml">3.创建application.yml：</h4>
+<pre><code><code>server:
+  port: 9003
+      
+spring:
+  application:
+    name: sc-config-server
+  profiles:
+    active: native
+  cloud:
+    config:
+      server:
+        native:
+          searchLocations: classpath:/conf    </code></code></pre>
+<p><strong>spring.profiles.active</strong>：配置文件的获取方式<br />
+<strong>spring.cloud.config.server.native.search-locations</strong>：本地配置文件的存放路径</p>
+<h4 id="创建srcmainresourcesconfsc-config-client-dev.yml文件">4.创建/src/main/resources/conf/sc-config-client-dev.yml文件：</h4>
+<pre><code><code>nickName: Luke </code></code></pre>
+<p>该文件内容为客户端需要从服务端获取的配置信息，文件名称和客户端配置是相对应的，如sc-config-client-dev.yml=【spring.application.name】-【 spring.profiles.active】.yml</p>
+<h4 id="测试">5.测试</h4>
+<p>启动本地配置中心sc-config-server成功后再启动客户端sc-config-client，访问http://localhost:9002/client/hello，客户端成功从配置中心获取nickName的配置：</p>
+<p><img src="./images/SpringCloud学习笔记(7)：使用Spring Cloud Config配置中心0.png" /></p>
+<h3 id="使用远程配置中心">使用远程配置中心</h3>
+<h4 id="在父模块下创建子模块项目sc-config-server-gitpom.xml">1.在父模块下创建子模块项目sc-config-server-git，pom.xml：</h4>
+<pre><code><code>&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot; xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+  &lt;parent&gt;
+    &lt;groupId&gt;com.cf&lt;/groupId&gt;
+    &lt;artifactId&gt;sc-parent&lt;/artifactId&gt;
+    &lt;version&gt;0.0.1-SNAPSHOT&lt;/version&gt;
+  &lt;/parent&gt;
+  &lt;artifactId&gt;sc-config-server-git&lt;/artifactId&gt;
+  
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-config-server&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-client&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+&lt;/project&gt;</code></code></pre>
+<h4 id="创建启动类configserver.gitconfigserverapplication">2.创建启动类configserver.GitConfigServerApplication：</h4>
+<pre><code><code>package configserver;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.config.server.EnableConfigServer;
+
+@SpringBootApplication
+@EnableConfigServer
+public class GitConfigServerApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(GitConfigServerApplication.class, args);
+    }
+}</code></code></pre>
+<h4 id="创建application.yml-1">3.创建application.yml：</h4>
+<pre><code><code>server:
+  port: 9005
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8080/eureka/ 
+
+spring:
+  application:
+    name: sc-config-server-git
+  cloud:
+    config:
+      server:
+        git:
+          uri: https://github.com/yinchao3577/test777.git
+          username: xxxxx
+          password: xxxxx
+      label: master    
+      fail-fast: true       </code></code></pre>
+<p><strong>spring.cloud.config.server.git.uri</strong>：git存储库地址<br />
+<strong>spring.cloud.config.server.git.username</strong>：用户名<br />
+<strong>spring.cloud.config.server.git.password</strong>：密码<br />
+<strong>spring.cloud.config.server.git.searchPaths</strong>：配置文件所在目录，若在根目录则无需配置<br />
+<strong>spring.cloud.config.label</strong>：Git Repository的分支，默认为master</p>
+<h4 id="更改客户端配置">4.更改客户端配置</h4>
+<p>pom.xml添加Eureka依赖：</p>
+<pre><code><code>    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-cloud-starter-netflix-eureka-client&lt;/artifactId&gt;
+    &lt;/dependency&gt;</code></code></pre>
+<p>bootstrap.yml改为：</p>
+<pre><code><code>spring:
+  application:
+    name: sc-config-client
+  cloud:
+    config:
+      name: myconfig2
+      label: master
+      discovery:
+        enabled: true
+        service-id: sc-config-server-git #使用Eureka注册中心来发现Config配置中心服务
+
+server:
+  port: 9002
+    
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8080/eureka/</code></code></pre>
+<p><strong>spring.cloud.config.name</strong>：远程仓库中配置文件的名称<br />
+<strong>spring.cloud.config.discovery.enabled</strong>：是否开启配置中心服务发现<br />
+<strong>spring.cloud.config.discovery.service-id</strong>：配置中心服务名称</p>
+<h4 id="测试-1">5.测试</h4>
+<p>远程仓库myconfig2.yml值为：</p>
+<pre><code><code>nickName: Grace</code></code></pre>
+<p>依次启动注册中心sc-eureka、远程配置中心sc-config-server-git，sc-config-server-git启动成功后再启动客户端sc-config-client，访问http://localhost:9002/client/hello，客户端成功从配置中心获取nickName的配置：</p>
+<p><img src="./images/SpringCloud学习笔记(7)：使用Spring Cloud Config配置中心1.png" /></p>
+<h3 id="手动刷新配置">手动刷新配置</h3>
+<p>actuator中包含一个/refresh的端点，用于配置的刷新。对该端点的调用实质是对RefreshScope类的调用，RefreshScope是上下文中的一个bean，它包含一个公共refreshAll()方法和refresh(String)方法，分别用来刷新范围内的所有bean或者指定的单个bean。</p>
+<h4 id="更改客户端配置-1">1.更改客户端配置</h4>
+<p>pom.xml添加actuator依赖：</p>
+<pre><code><code>    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-actuator&lt;/artifactId&gt;
+    &lt;/dependency&gt;</code></code></pre>
+<p>bootstrap.yml添加开启refresh节点的配置：</p>
+<pre><code><code>management:
+  endpoints:
+    web:
+      exposure:
+        include: &#39;refresh&#39;</code></code></pre>
+<h4 id="在configclientcontroller类上添加refreshscope注解表示该类可以在运行时刷新配置当调用完actuatorrefresh端点后在下一次访问该controller时该controller会重新初始化以及注入到容器中初始化时会重新加载配置所以在访问时将会访问到最新配置的值">2.在ConfigClientController类上添加@RefreshScope注解，表示该类可以在运行时刷新配置，当调用完/actuator/refresh端点后，在下一次访问该Controller时，该Controller会重新初始化以及注入到容器中，初始化时会重新加载配置，所以在访问时将会访问到最新配置的值。</h4>
+<h4 id="按之前测试的步骤进行启动和访问修改github中配置的值后重新访问客户端后值并没有更改通过postman工具发送post请求到httplocalhost9002actuatorrefresh后再重新访问客户端值已经被更新成最新配置的值">3.按之前测试的步骤进行启动和访问，修改github中配置的值后，重新访问客户端后值并没有更改，通过Postman工具发送POST请求到http://localhost:9002/actuator/refresh后，再重新访问客户端，值已经被更新成最新配置的值。</h4>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

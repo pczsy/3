@@ -1,0 +1,144 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修springboot日志配置' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>springboot日志配置</center></div><div class='banquan'>原文出处:本文由博客园博主buguge提供。<br/>
+原文连接:https://www.cnblogs.com/buguge/p/11469122.html</div><br>
+    <p>springboot默认是用logback来记日志的。每次启动服务时见下面最先打印出来的日志：</p>
+<src class="cnblogs_code">
+<pre><code>"C:\Program Files\Java\jdk1.8.0_40\bin\java.exe" ...
+SLF4J: Class path contains multiple SLF4J bindings.
+SLF4J: Found binding in [jar:file:/D:/workspace/m3/ch/qos/logback/logback-classic/1.2.3/logback-classic-1.2.3.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: Found binding in [jar:file:/D:/workspace/m3/org/slf4j/slf4j-log4j12/1.7.26/slf4j-log4j12-1.7.26.jar!/org/slf4j/impl/StaticLoggerBinder.class]
+SLF4J: See http://www.slf4j.org/codes.html#multiple_bindings for an explanation.
+SLF4J: <strong>Actual binding is of type [ch.qos.logback</strong>.classic.util.ContextSelectorStaticBinder]
+
+、、、各种初始化、、、
+、、、接下来是那个熟悉的图标、、、
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::        (v2.1.7.RELEASE)</code></pre>
+
+<p>&nbsp;</p>
+<p>如果不做日志配置，默认是在服务下生成spring.log。</p>
+<p>&nbsp;</p>
+<p>要自定义日志配置，简单的说，可在application.properties里借助logging.file或logging.path做如下设置：</p>
+<src class="cnblogs_code">
+<pre><code><strong>logging.file</strong>=logs/draft_spider.log
+logging.level.com.draft.mapper= debug</code></pre>
+
+<p>&nbsp;</p>
+<p>因为系统不同业务日志量较大，为了方便定位日志快速排查问题，我要把某个业务的日志打印在特定的文件里。于是，在项目的resources下创建logback.xml，细化日志的记录。</p>
+<src class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;?</span><span style="color: #ff00ff;">xml version="1.0" encoding="UTF-8"</span><span style="color: #0000ff;">?&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">configuration </span><span style="color: #ff0000;">scan</span><span style="color: #0000ff;">="false"</span><span style="color: #ff0000;"> scanPeriod</span><span style="color: #0000ff;">="300 seconds"</span><span style="color: #ff0000;"> debug</span><span style="color: #0000ff;">="true"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">本地日志目录</span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="USER_HOME"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="logs/"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="LOG_MSG"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="%X{sid}%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5p [%c:%L] - %m%n"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">property </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="LOG_DIR"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="${USER_HOME}/%d{yyyyMMdd}"</span><span style="color: #0000ff;">/&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="STDOUT"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="ch.qos.logback.core.ConsoleAppender"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">encoder</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">pattern</span><span style="color: #0000ff;">&gt;</span>${LOG_MSG}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">pattern</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">encoder</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">appender</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="INFO_LOG"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="ch.qos.logback.core.rolling.RollingFileAppender"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">file</span><span style="color: #0000ff;">&gt;</span>${USER_HOME}/spider_info.log<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">file</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">filter </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="ch.qos.logback.classic.filter.ThresholdFilter"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">level</span><span style="color: #0000ff;">&gt;</span>INFO<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">level</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">filter</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">rollingPolicy </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="ch.qos.logback.core.rolling.TimeBasedRollingPolicy"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">fileNamePattern</span><span style="color: #0000ff;">&gt;</span>${LOG_DIR}/spider_info%i.log<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">fileNamePattern</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">TimeBasedFileNamingAndTriggeringPolicy </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">maxFileSize</span><span style="color: #0000ff;">&gt;</span>20MB<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">maxFileSize</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">TimeBasedFileNamingAndTriggeringPolicy</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">rollingPolicy</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">encoder</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">pattern</span><span style="color: #0000ff;">&gt;</span>${LOG_MSG}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">pattern</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">encoder</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">appender</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="ORDERLIST_SPIDER_LOG"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="ch.qos.logback.core.rolling.RollingFileAppender"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">file</span><span style="color: #0000ff;">&gt;</span>${USER_HOME}/orderlist_spider.log<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">file</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">filter </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="ch.qos.logback.classic.filter.ThresholdFilter"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">level</span><span style="color: #0000ff;">&gt;</span>INFO<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">level</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">filter</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">rollingPolicy </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="ch.qos.logback.core.rolling.TimeBasedRollingPolicy"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">fileNamePattern</span><span style="color: #0000ff;">&gt;</span>${LOG_DIR}/orderlist_spider%i.log<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">fileNamePattern</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">TimeBasedFileNamingAndTriggeringPolicy </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">maxFileSize</span><span style="color: #0000ff;">&gt;</span>20MB<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">maxFileSize</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">TimeBasedFileNamingAndTriggeringPolicy</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">rollingPolicy</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">encoder</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">pattern</span><span style="color: #0000ff;">&gt;</span>${LOG_MSG}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">pattern</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">encoder</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">appender</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="ERROR_LOG"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="ch.qos.logback.core.rolling.RollingFileAppender"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">file</span><span style="color: #0000ff;">&gt;</span>${USER_HOME}/spider_error.log<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">file</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">filter </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="ch.qos.logback.classic.filter.ThresholdFilter"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">level</span><span style="color: #0000ff;">&gt;</span>ERROR<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">level</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">filter</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">rollingPolicy </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="ch.qos.logback.core.rolling.TimeBasedRollingPolicy"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">fileNamePattern</span><span style="color: #0000ff;">&gt;</span>${LOG_DIR}/spider_error%i.log<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">fileNamePattern</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">TimeBasedFileNamingAndTriggeringPolicy </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">maxFileSize</span><span style="color: #0000ff;">&gt;</span>20MB<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">maxFileSize</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">TimeBasedFileNamingAndTriggeringPolicy</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">rollingPolicy</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">encoder</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">pattern</span><span style="color: #0000ff;">&gt;</span>${LOG_MSG}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">pattern</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">encoder</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">appender</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">&lt;logger name="druid.sql.Statement" level="DEBUG" additivity="false"&gt;</span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">&lt;appender-ref ref="SQL_LOG"/&gt;</span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">&lt;/logger&gt;</span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">logger </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="spiderLog"</span><span style="color: #ff0000;"> level</span><span style="color: #0000ff;">="DEBUG"</span><span style="color: #ff0000;"> additivity</span><span style="color: #0000ff;">="false"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender-ref </span><span style="color: #ff0000;">ref</span><span style="color: #0000ff;">="ORDERLIST_SPIDER_LOG"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">logger</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">logger </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="com.draft.processor.TcpjwPageProcessor"</span><span style="color: #ff0000;"> level</span><span style="color: #0000ff;">="DEBUG"</span><span style="color: #ff0000;"> additivity</span><span style="color: #0000ff;">="false"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender-ref </span><span style="color: #ff0000;">ref</span><span style="color: #0000ff;">="ORDERLIST_SPIDER_LOG"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">logger</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">logger </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="com.draft.task.SpiderTaskPage"</span><span style="color: #ff0000;"> level</span><span style="color: #0000ff;">="DEBUG"</span><span style="color: #ff0000;"> additivity</span><span style="color: #0000ff;">="false"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender-ref </span><span style="color: #ff0000;">ref</span><span style="color: #0000ff;">="ORDERLIST_SPIDER_LOG"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">logger</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">logger </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="com.draft.task.SpiderTask"</span><span style="color: #ff0000;"> level</span><span style="color: #0000ff;">="DEBUG"</span><span style="color: #ff0000;"> additivity</span><span style="color: #0000ff;">="false"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender-ref </span><span style="color: #ff0000;">ref</span><span style="color: #0000ff;">="ORDERLIST_SPIDER_LOG"</span><span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">logger</span><span style="color: #0000ff;">&gt;</span>
+
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">root </span><span style="color: #ff0000;">level</span><span style="color: #0000ff;">="INFO"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender-ref </span><span style="color: #ff0000;">ref</span><span style="color: #0000ff;">="STDOUT"</span><span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender-ref </span><span style="color: #ff0000;">ref</span><span style="color: #0000ff;">="ERROR_LOG"</span><span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">appender-ref </span><span style="color: #ff0000;">ref</span><span style="color: #0000ff;">="INFO_LOG"</span><span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">&lt;appender-ref ref="ORDERLIST_SPIDER_LOG"/&gt;</span><span style="color: #008000;">--&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">root</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">configuration</span><span style="color: #0000ff;">&gt;</span></code></pre>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>ref:<a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/bigdataZJ/p/springboot-log.html">Spring Boot系列&mdash;&mdash;日志配置</a></p>
+<p>&nbsp;</p>
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

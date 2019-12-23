@@ -1,0 +1,261 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修线程池详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>线程池详解</center></div><div class='banquan'>原文出处:本文由博客园博主NiceCui提供。<br/>
+原文连接:https://www.cnblogs.com/NiceCui/p/11929396.html</div><br>
+    <h3 id="线程池概述">线程池概述</h3>
+<ol>
+<li><p>线程池就是一个管理线程的池子，可以降低创建和销毁线程带来的资源消耗</p>
+<blockquote>
+<p>因为线程其实也是一个对象，创建一个对象，需要经过类加载过程，销毁一个对象，需要走GC垃圾回收流程，都是需要资源开销的。</p>
+</blockquote></li>
+<li>提高响应速度，任务到达了相对于从线程池取线程，自己创建线程肯定慢很多</li>
+<li><p>重复利用，线程用完了再放回池子，达到了重复利用的效果</p></li>
+</ol>
+<h3 id="线程池执行">线程池执行</h3>
+<h4 id="打个比喻">打个比喻</h4>
+<ul>
+<li>核心线程比作公司正式员工</li>
+<li>非核心线程比作外包员工</li>
+<li>阻塞队列比作需求池</li>
+<li>提交任务比作提需求<br />
+<img src="./images/线程池详解0.png" /></li>
+</ul>
+<h4 id="正式执行">正式执行</h4>
+<pre><code><code>public ThreadPoolExecutor(int corePoolSize, int maximumPoolSize,long keepAliveTime,TimeUnit unit,
+   BlockingQueue&lt;Runnable&gt; workQueue,
+   ThreadFactory threadFactory,
+   RejectedExecutionHandler handler) </code></code></pre>
+<pre><code><code>corePoolSize     核心线程数
+maximumPoolSize  线程池最大线程数
+keepAliveTime    空闲线程存活时间
+TimeUnit         线程空闲存活时间单位
+workQueue        存放任务的阻塞队列
+threadFactory    线程工厂
+handler          饱和策略</code></code></pre>
+<ul>
+<li>提交一个任务，线程池里存活的核心线程数小于线程数corePoolSize时，线程池会创建一个核心线程去处理提交的任务。</li>
+<li>如果线程池核心线程数已满，即线程数已经等于corePoolSize，一个新提交的任务，会被放进任务队列workQueue排队等待执行。</li>
+<li>当线程池里面存活的线程数已经等于corePoolSize了,并且任务队列workQueue也满，判断线程数是否达到maximumPoolSize，即最大线程数是否已满，如果没到达，创建一个非核心线程执行提交的任务。</li>
+<li>如果当前的线程数达到了maximumPoolSize，还有新的任务过来的话，直接采用拒绝策略处理。</li>
+</ul>
+<h4 id="几种饱和策略">几种饱和策略</h4>
+<pre><code><code>AbortPolicy         抛出一个异常，默认的
+DiscardPolicy       直接丢弃任务
+DiscardOldestPolicy 丢弃队列里最老的任务，将当前这个任务继续提交给线程池
+CallerRunsPolicy    交给线程池调用所在的线程进行处理</code></code></pre>
+<h3 id="线程池异常处理">线程池异常处理</h3>
+<p>由于在线程池调用线程处理任务过程中出现的异常可能会被线程池捕获，所以对于任务的执行可能是无感知的，因此我们需要考虑线程池异常情况。</p>
+<p>方法一：</p>
+<pre><code><code>@Test
+public void test1() throws Exception {
+    ExecutorService executorService = Executors.newFixedThreadPool(5);
+    for (int i = 0; i &lt; 5; i++) {
+        executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    System.out.println(&quot;name: &quot; + Thread.currentThread().getName());
+                    Object a = null;
+                    System.out.println(a.hashCode());
+                } catch (Exception e) {
+                    System.out.println(e);
+                }
+            }
+        });
+    }
+}</code></code></pre>
+<p>方法二：</p>
+<pre><code><code>@Test
+public void test2() throws Exception {
+    ExecutorService executorService = Executors.newFixedThreadPool(5);
+    for (int i = 0; i &lt; 20; i++) {
+        Future&lt;?&gt; future = executorService.submit(new Runnable() {
+            @Override
+            public void run() {
+                System.out.println(&quot;name: &quot; + Thread.currentThread().getName());
+                Object a = null;
+                System.out.println(a.hashCode());
+            }
+        });
+        try {
+            future.get();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+    }
+}</code></code></pre>
+<h3 id="线程池的工作队列">线程池的工作队列</h3>
+<ul>
+<li>ArrayBlockingQueue</li>
+<li>LinkedBlockingQueue</li>
+<li>SynchronousQueue</li>
+<li>DelayQueue</li>
+<li>PriorityBlockingQueue</li>
+</ul>
+<p>==ArrayBlockingQueue==</p>
+<ul>
+<li>初始化一定容量的数组</li>
+<li>使用一个重入锁，默认使用非公平锁，入队和出队共用一个锁，互斥</li>
+<li>是有界设计，如果容量满无法继续添加元素直至有元素被移除</li>
+<li>使用时开辟一段连续的内存，如果初始化容量过大容易造成资源浪费，过小易添加失败</li>
+</ul>
+<p>==LinkedBlockingQueue==</p>
+<ul>
+<li>使用链表数据结构</li>
+<li>非连续性内存空间</li>
+<li>使用两个重入锁分别控制元素的入队和出队，用Condition进行线程间的唤醒和等待</li>
+<li>有边界的，在默认构造方法中容量是Integer.MAX_VALUE</li>
+</ul>
+<p>==SynchronousQueue==</p>
+<ul>
+<li>内部容量是0</li>
+<li>每次删除操作都要等待插入操作</li>
+<li>每次插入操作都要等待删除操作</li>
+<li>一个元素，一旦有了插入线程和移除线程，那么很快由插入线程移交给移除线程，这个容器相当于通道，本身不存储元素</li>
+<li>在多任务队列，是最快的处理任务方式。</li>
+</ul>
+<p>==PriorityBlockingQueue==</p>
+<ul>
+<li>无边界设计，但容量实际是依靠系统资源影响</li>
+<li>添加元素，如果超过1，则进入优先级排序</li>
+</ul>
+<p>==DelayQueue==</p>
+<ul>
+<li>无边界设计</li>
+<li>添加（put）不阻塞，移除阻塞</li>
+<li>元素都有一个过期时间</li>
+<li>取元素只有过期的才会被取出</li>
+</ul>
+<h3 id="常用的线程池">常用的线程池</h3>
+<ul>
+<li>newFixedThreadPool (固定数目线程的线程池)</li>
+<li>newCachedThreadPool (可缓存线程的线程池)</li>
+<li>newSingleThreadExecutor (单线程的线程池)</li>
+<li>newScheduledThreadPool (定时及周期执行的线程池)</li>
+</ul>
+<p>==newFixedThreadPool==</p>
+<pre><code><code>public static ExecutorService newFixedThreadPool(int nThreads) {
+    return new ThreadPoolExecutor(nThreads, nThreads,
+                                  0L, TimeUnit.MILLISECONDS,
+                                  new LinkedBlockingQueue&lt;Runnable&gt;());
+}</code></code></pre>
+<h4 id="特点">特点</h4>
+<ol>
+<li>核心线程数和最大线程数大小一样</li>
+<li>没有所谓的非空闲时间，即keepAliveTime为0</li>
+<li>阻塞队列为无界队列LinkedBlockingQueue</li>
+</ol>
+<h4 id="工作机制">工作机制：</h4>
+<p><img src="./images/线程池详解1.png" /></p>
+<ul>
+<li>提交任务</li>
+<li>如果线程数少于核心线程，创建核心线程执行任务</li>
+<li>如果线程数等于核心线程，把任务添加到LinkedBlockingQueue阻塞队列</li>
+<li>如果线程执行完任务，去阻塞队列取任务，继续执行。</li>
+</ul>
+<p>==newCachedThreadPool==</p>
+<pre><code><code>public static ExecutorService newCachedThreadPool() {
+    return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                  60L, TimeUnit.SECONDS,
+                                  new SynchronousQueue&lt;Runnable&gt;());
+}</code></code></pre>
+<h4 id="线程池特点">线程池特点</h4>
+<ul>
+<li>核心线程数为0</li>
+<li>最大线程数为Integer.MAX_VALUE</li>
+<li>阻塞队列是SynchronousQueue</li>
+<li>非核心线程空闲存活时间为60秒</li>
+</ul>
+<p><img src="./images/线程池详解2.png" /></p>
+<h4 id="工作机制-1">工作机制：</h4>
+<ul>
+<li>提交任务</li>
+<li>因为没有核心线程，所以任务直接加到SynchronousQueue队列。</li>
+<li>判断是否有空闲线程，如果有，就去取出任务执行。</li>
+<li>如果没有空闲线程，就新建一个线程执行。</li>
+<li>执行完任务的线程，还可以存活60秒，如果在这期间，接到任务，可以继续活下去；否则，被销毁。</li>
+</ul>
+<h4 id="使用场景">使用场景</h4>
+<p>用于并发执行大量短期的小任务。</p>
+<blockquote>
+<p>使用SynchronousQueue作为工作队列，工作队列本身并不限制待执行的任务的数量。但此时需要限定线程池的最大大小为一个合理的有限值，而不是Integer.MAX_VALUE，否则可能导致线程池中的工作者线程的数量一直增加到系统资源所无法承受为止。</p>
+</blockquote>
+<blockquote>
+<p>如果应用程序确实需要比较大的工作队列容量，而又想避免无界工作队列可能导致的问题，不妨考虑SynchronousQueue。SynchronousQueue实现上并不使用缓存空间</p>
+</blockquote>
+<p>==newSingleThreadExecutor==</p>
+<h4 id="线程池特点-1">线程池特点</h4>
+<ul>
+<li>核心线程数为1</li>
+<li>最大线程数也为1</li>
+<li>阻塞队列是LinkedBlockingQueue</li>
+<li>keepAliveTime为0</li>
+</ul>
+<pre><code><code>public static ExecutorService newSingleThreadExecutor(ThreadFactory threadFactory) {
+    return new FinalizableDelegatedExecutorService
+        (new ThreadPoolExecutor(1, 1,
+                                0L, TimeUnit.MILLISECONDS,
+                                new LinkedBlockingQueue&lt;Runnable&gt;(),
+                                threadFactory));
+}</code></code></pre>
+<h4 id="工作机制-2">工作机制</h4>
+<p><img src="./images/线程池详解3.png" /></p>
+<ul>
+<li>提交任务</li>
+<li>线程池是否有一条线程在，如果没有，新建线程执行任务</li>
+<li>如果有，讲任务加到阻塞队列</li>
+<li>当前的唯一线程，从队列取任务，执行完一个，再继续取，一个人（一条线程）夜以继日地干活。</li>
+</ul>
+<h4 id="使用场景-1">使用场景</h4>
+<p>适用于串行执行任务的场景，一个任务一个任务的执行</p>
+<p>==newScheduledThreadPool==</p>
+<h4 id="线程池特点-2">线程池特点</h4>
+<pre><code><code>public ScheduledThreadPoolExecutor(int corePoolSize) {
+    super(corePoolSize, Integer.MAX_VALUE, 0, NANOSECONDS,new DelayedWorkQueue());
+}</code></code></pre>
+<ul>
+<li>最大线程数为Integer.MAX_VALUE</li>
+<li>阻塞队列是DelayedWorkQueue</li>
+<li>keepAliveTime为0</li>
+<li>scheduleAtFixedRate() ：按某种速率周期执行</li>
+<li>scheduleWithFixedDelay()：在某个延迟后执行</li>
+</ul>
+<h4 id="工作机制-3">工作机制</h4>
+<ul>
+<li>添加一个任务</li>
+<li>线程池中的线程从 DelayQueue 中取任务</li>
+<li>线程从 DelayQueue 中获取 time 大于等于当前时间的task</li>
+<li>执行完后修改这个 task 的 time 为下次被执行的时间</li>
+<li>这个 task 放回DelayQueue队列中</li>
+</ul>
+<h4 id="schedulewithfixeddelay">scheduleWithFixedDelay</h4>
+<ul>
+<li>无论任务执行时间长短，都是当第一个任务执行完成之后，延迟指定时间再开始执行第二个任务</li>
+</ul>
+<h4 id="scheduleatfixedrate">scheduleAtFixedRate</h4>
+<ul>
+<li>在任务执行时间小于间隔时间的情况下，程序以起始时间为准则，每隔指定时间执行一次，不受任务执行时间影响</li>
+<li>当执行任务时间大于间隔时间，此方法不会重新开启一个新的任务进行执行，而是等待原有任务执行完成，马上开启下一个任务进行执行。此时，执行间隔时间已经被打乱</li>
+</ul>
+
+
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>
